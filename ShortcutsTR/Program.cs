@@ -39,12 +39,12 @@ namespace ShortcutsTR
 
             if (args != null && args.Length >= 2)
             {
-                    destination = args[0];
-                    shortcutPath = args[1];
+                destination = args[0];
+                shortcutPath = args[1];
 
-                    // DEBUG Uncomment for more information
-                    Console.WriteLine(string.Format("  Destination:   {0}", destination));
-                    Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
+                // DEBUG Uncomment for more information
+                Console.WriteLine(string.Format("  Destination:   {0}", destination));
+                Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
 
                 // Run app and pass arguments as parameters
                 //TODO Put command to run app with parameters here

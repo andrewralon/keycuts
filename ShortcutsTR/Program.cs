@@ -43,16 +43,16 @@ namespace ShortcutsTR
                 Console.WriteLine(string.Format("  Destination:   {0}", destination));
                 Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
 
-                // Run app and pass arguments as parameters
-                ConsoleApp app = new ConsoleApp();
-                app.Run(destination, shortcutPath);
-
                 // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
                 //  Example: Open a file with Notepad++, not Notepad
                 if (args.Length > 2)
                 {
                     Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
                 }
+
+                // Run app and pass arguments as parameters
+                var app = new ConsoleApp();
+                app.Run(destination, shortcutPath);
             }
             else
             {

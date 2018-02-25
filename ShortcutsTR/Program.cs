@@ -18,10 +18,11 @@ namespace ShortcutsTR
             //Runner(args);
 
             // DEBUG Uncomment this section to manually pass destination and shortcut name
-            string[] debugArgs = new string[2]
+            string[] debugArgs = new string[]
             {
                 @"C:\randomfile.txt",
-                @"C:\Shortcuts\test.bat"
+                @"C:\Shortcuts\test.bat",
+                @"C:\third\argument"
             };
             Runner(debugArgs);
         }
@@ -36,21 +37,22 @@ namespace ShortcutsTR
             // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
             //  Example: Open a file with Notepad++, not Notepad
 
-            if (args != null && args.Length == 2)
+            if (args != null && args.Length >= 2)
             {
-                destination = args[0];
-                shortcutPath = args[1];
+                    destination = args[0];
+                    shortcutPath = args[1];
 
-                // DEBUG Uncomment for more information
-                Console.WriteLine(string.Format("  Destination:   {0}", destination));
-                Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
+                    // DEBUG Uncomment for more information
+                    Console.WriteLine(string.Format("  Destination:   {0}", destination));
+                    Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
 
                 // Run app and pass arguments as parameters
                 //TODO Put command to run app with parameters here
-            }
-            else if (args.Length > 2)
-            {
-                Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
+
+                if (args.Length > 2)
+                {
+                    Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
+                }
             }
             else
             {

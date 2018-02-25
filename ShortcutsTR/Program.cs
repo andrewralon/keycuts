@@ -34,9 +34,6 @@ namespace ShortcutsTR
             Console.WriteLine();
             Console.WriteLine("Shortcuts");
 
-            // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
-            //  Example: Open a file with Notepad++, not Notepad
-
             if (args != null && args.Length >= 2)
             {
                 destination = args[0];
@@ -47,8 +44,11 @@ namespace ShortcutsTR
                 Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
 
                 // Run app and pass arguments as parameters
-                //TODO Put command to run app with parameters here
+                ConsoleApp app = new ConsoleApp();
+                app.Run(destination, shortcutPath);
 
+                // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
+                //  Example: Open a file with Notepad++, not Notepad
                 if (args.Length > 2)
                 {
                     Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
@@ -62,7 +62,7 @@ namespace ShortcutsTR
                 Console.WriteLine("      C:\\full\\path\to\\folder");
                 Console.WriteLine("      https://website.com/");
                 Console.WriteLine("  arg2 = full path of shortcut filename");
-                Console.WriteLine("    Examples:");
+                Console.WriteLine("    Example:");
                 Console.WriteLine("      C:\\Shortcuts\\shortcut-name.bat");
                 Console.WriteLine("Not enough arguments given. Maybe next time.");
             }

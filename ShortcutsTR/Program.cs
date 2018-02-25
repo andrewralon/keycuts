@@ -8,9 +8,9 @@ namespace ShortcutsTR
 {
     class Program
     {
-        private static string shortcutPath;
+        private static string destination;
 
-        private static string shortcutName;
+        private static string shortcutPath;
 
         private static void Main(string[] args)
         {
@@ -20,8 +20,8 @@ namespace ShortcutsTR
             // DEBUG Uncomment this section to manually pass destination and shortcut name
             string[] debugArgs = new string[2]
             {
-                "C:\\windows - version.txt",
-                "test"
+                @"C:\randomfile.txt",
+                @"C:\Shortcuts\test.bat"
             };
             Runner(debugArgs);
         }
@@ -33,35 +33,40 @@ namespace ShortcutsTR
             Console.WriteLine();
             Console.WriteLine("Shortcuts");
 
-            if (args != null && args.Length >= 2)
-            {
-                if (args.Length == 2)
-                {
-                    shortcutPath = args[0];
-                    shortcutName = args[1];
+            // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
+            //  Example: Open a file with Notepad++, not Notepad
 
-                    // TODO Run app and pass arguments as parameters
-                    //command to run app goes here
-                }
-                else
-                {
-                    Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
-                }
+            if (args != null && args.Length == 2)
+            {
+                destination = args[0];
+                shortcutPath = args[1];
+
+                // DEBUG Uncomment for more information
+                Console.WriteLine(string.Format("  Destination:   {0}", destination));
+                Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
+
+                // Run app and pass arguments as parameters
+                //TODO Put command to run app with parameters here
+            }
+            else if (args.Length > 2)
+            {
+                Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
             }
             else
             {
                 Console.WriteLine("  arg1 = location of destination file, folder, or URL (no spaces)");
                 Console.WriteLine("    Examples:");
-                Console.WriteLine("      c:\\full\\path\to\\file.extension");
-                Console.WriteLine("      c:\\full\\path\to\\folder");
+                Console.WriteLine("      C:\\full\\path\to\\file.extension");
+                Console.WriteLine("      C:\\full\\path\to\\folder");
                 Console.WriteLine("      https://website.com/");
-                Console.WriteLine("  arg2 = name of shortcut");
+                Console.WriteLine("  arg2 = full path of shortcut filename");
+                Console.WriteLine("    Examples:");
+                Console.WriteLine("      C:\\Shortcuts\\shortcut-name.bat");
                 Console.WriteLine("Not enough arguments given. Maybe next time.");
             }
 
             // DEBUG Uncomment for testing so command prompt stays open
             Console.ReadKey();
         }
-
     }
 }

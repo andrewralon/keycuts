@@ -11,7 +11,7 @@ namespace ShortcutsTR
     {
         public string Destination { get; private set; }
 
-        public string Name { get; private set; }
+        public string Path { get; private set; }
 
         public ShortcutType Type { get; private set; } = ShortcutType.Unknown;
 
@@ -19,10 +19,10 @@ namespace ShortcutsTR
         {
         }
 
-        public Shortcut(string destination, string name)
+        public Shortcut(string destination, string path)
         {
             Destination = destination;
-            Name = name;
+            Path = path;
 
             GetShortcutType();
         }
@@ -31,7 +31,7 @@ namespace ShortcutsTR
         {
             // TODO Check if the destination is a URL shortcut file - .url
 
-            if (IsValidUrl())
+            if (IsValidUrl() || IsValidUrlFile())
             {
                 Type = ShortcutType.Url;
             }
@@ -47,7 +47,7 @@ namespace ShortcutsTR
                 {
                     Type = ShortcutType.File;
                 }
-                else 
+                else
                 {
                     Type = ShortcutType.Unknown;
                 }
@@ -57,7 +57,8 @@ namespace ShortcutsTR
         private bool IsValidUrl()
         {
             Uri uriResult;
-            bool result = Uri.TryCreate(Destination, UriKind.Absolute, out uriResult);
+            bool result = Uri.TryCreate(Destination, UriKind.Absolute, out uriResult) &&
+                !uriResult.IsFile;
 
             if (!result)
             {
@@ -66,11 +67,38 @@ namespace ShortcutsTR
                 //  Incomplete: amazon.com
 
                 var newUri = new UriBuilder(Destination);
-                if (uriResult != null)
+                if (uriResult != null && !uriResult.IsFile)
                 {
                     // Fix the incomplete Uri
                     Destination = newUri.Uri.AbsoluteUri;
                     result = true;
+                }
+            }
+
+            return result;
+        }
+
+        private bool IsValidUrlFile()
+        {
+            bool result = false;
+
+            if (System.IO.Path.GetExtension(Destination).ToLower() == ".url")
+            {
+                // Check for a line starting with "URL="
+                var line = File.ReadAllLines(Destination)
+                    .ToList()
+                    .Where(a => a.Substring(0, 4).ToUpper() == "URL=")
+                    .SingleOrDefault();
+
+                // Update the destination to use the URL from the link
+                if (line != null)
+                {
+                    var url = line.Substring(4);
+                    if (url != null)
+                    {
+                        Destination = url;
+                        result = true;
+                    }
                 }
             }
 

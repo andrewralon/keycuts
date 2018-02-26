@@ -9,22 +9,19 @@ namespace ShortcutsTR
 {
     class ConsoleApp
     {
-        public Shortcut Shortcut { get; private set; } = new Shortcut();
-
         // TODO Make this an int to return 0 or 1?
-        public void Run(string destination, string shortcutPath)
+        public void Run(string destination, string path)
         {
-            Shortcut = new Shortcut(destination, shortcutPath);
+            Shortcut shortcut = new Shortcut(destination, path);
 
-            CreateShortcutsFolder(shortcutPath);
+            CreateShortcutFolder(shortcut.Path);
 
-            CreateShortcut();
+            CreateShortcutFile(shortcut);
         }
 
-        private void CreateShortcutsFolder(string shortcutPath)
+        private void CreateShortcutFolder(string path)
         {
-            // Get the directory
-            string directory = Path.GetDirectoryName(shortcutPath);
+            string directory = Path.GetDirectoryName(path);
 
             // Create the shortcuts folder if it doesn't exist already
             if (!Directory.Exists(directory))
@@ -33,7 +30,7 @@ namespace ShortcutsTR
             }
         }
 
-        private bool CreateShortcut()
+        private bool CreateShortcutFile(Shortcut shortcut)
         {
             //if (Shortcut.Type == ShortcutType.Unknown)
             //{

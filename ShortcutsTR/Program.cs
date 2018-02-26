@@ -20,7 +20,8 @@ namespace ShortcutsTR
             // DEBUG Uncomment this section to manually pass destination and shortcut name
             string[] debugArgs = new string[]
             {
-                @"C:\randomfile.txt",
+                //@"C:\randomfile.txt",
+                @"C:\randomurl.url",
                 @"C:\Shortcuts\test.bat",
                 @"C:\third\argument"
             };

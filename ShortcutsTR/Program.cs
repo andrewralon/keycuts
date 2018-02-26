@@ -15,17 +15,19 @@ namespace ShortcutsTR
         private static void Main(string[] args)
         {
             // RELEASE Uncomment this for normal use 
-            //Runner(args);
+            Runner(args);
 
             // DEBUG Uncomment this section to manually pass destination and shortcut name
-            string[] debugArgs = new string[]
-            {
-                //@"C:\randomfile.txt",
-                @"C:\randomurl.url",
-                @"C:\Shortcuts\test.bat",
-                @"C:\third\argument"
-            };
-            Runner(debugArgs);
+            //string[] debugArgs = new string[]
+            //{
+            //    //@"C:\randomfile.txt", // File
+            //    //@"C:\Users", // Folder
+            //    //@"C:\randomurl.url", // URL shortcut file
+            //    @"C:\Windows\System32\drivers\etc\hosts", // hosts file
+            //    @"C:\Shortcuts\test.bat",
+            //    @"C:\third\argument"
+            //};
+            //Runner(debugArgs);
         }
 
         // TODO Make this an int to return 0 or 1?

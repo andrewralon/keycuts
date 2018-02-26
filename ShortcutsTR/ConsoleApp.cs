@@ -12,84 +12,90 @@ namespace ShortcutsTR
         // TODO Make this an int to return 0 or 1?
         public void Run(string destination, string path)
         {
-            Shortcut shortcut = new Shortcut(destination, path);
+            var shortcut = new Shortcut(destination, path);
 
-            CreateShortcutFolder(shortcut.Path);
+            if (shortcut.Type != ShortcutType.Unknown)
+            {
+                CreateShortcutFolder(shortcut.Folder);
 
-            CreateShortcutFile(shortcut);
+                CreateShortcutFile(shortcut);
+            }
         }
 
-        private void CreateShortcutFolder(string path)
+        private void CreateShortcutFolder(string folder)
         {
-            string directory = Path.GetDirectoryName(path);
-
             // Create the shortcuts folder if it doesn't exist already
-            if (!Directory.Exists(directory))
+            if (!Directory.Exists(folder))
             {
-                Directory.CreateDirectory(directory);
+                Directory.CreateDirectory(folder);
             }
         }
 
         private bool CreateShortcutFile(Shortcut shortcut)
         {
-            //if (Shortcut.Type == ShortcutType.Unknown)
-            //{
-            //    return false;
-            //}
+            bool result = false;
 
-            //string pathOnly = "";
-            //string filename = "";
-            //string savePath = Path.Combine(_shortcutsFolder, shortcut);
+            // Check if the shortcut file already exists
+            //if (!File.Exists(shortcut.FullPath))
+            {
+                // Create lines with comments and command based on type (file or folder)
+                var shortcutTypeLower = shortcut.Type.ToString().ToLower();
+                var lines = new List<string>
+                {
+                    "@ECHO OFF",
+                    // TODO Put app name and version here
+                    //string.Format("REM {0}", shortcut.Text), 
+                    string.Format("REM <{0}>{1}</{2}>", shortcutTypeLower, shortcut.FullPath, shortcutTypeLower)
+                };
 
-            //// Check if the shortcut file already exists
-            //if (File.Exists(savePath))
-            //{
-            //    DialogResult dr = MessageBox.Show(this, "This shortcut file already exists: " +
-            //        Environment.NewLine + Environment.NewLine +
-            //        "    " + savePath +
-            //        Environment.NewLine + Environment.NewLine +
-            //        "Would you like to overwrite it with your new shortcut?",
-            //        "Overwrite existing file?", MessageBoxButtons.YesNo);
+                if (shortcut.Type == ShortcutType.Url)
+                {
+                    lines.Add(string.Format("START {0}", SanitizeBatAndCmdEscapeCharacters(shortcut.Destination)));
+                }
+                else if (shortcut.Type == ShortcutType.File)
+                {
+                    lines.Add(string.Format("START \"\" /D \"{0}\" \"{1}\"", shortcut.Folder, shortcut.FilenameWithExtension));
+                }
+                else if (shortcut.Type == ShortcutType.HostsFile)
+                {
+                    // TODO Fix this -- the command prompt stays open?!
+                    
+                    // TODO Fix this -- should it create a .lnk file with this or similar?
+                    //"C:\Program Files (x86)\Notepad++\notepad++.exe" C:\Windows\System32\drivers\etc\hosts
 
-            //    if (dr != DialogResult.Yes)
-            //    {
-            //        return false;
-            //    }
-            //}
+                    var notepadPath = @"%windir%\system32\notepad.exe";
 
-            //if (shortcutType != this.ShortcutType.Url) // File or Folder
-            //{
-            //    pathOnly = Path.GetDirectoryName(_newShortcutPath);
-            //    filename = Path.GetFileName(_newShortcutPath);
-            //}
+                    lines.Add(string.Format("\"{0}\" \"{1}\"", notepadPath, shortcut.FullPath));
+                }
+                else if (shortcut.Type == ShortcutType.Folder)
+                {
+                    lines.Add(string.Format("\"%SystemRoot%\\explorer.exe\" \"{0}\"", shortcut.Destination));
+                }
 
-            //// Create lines with comments and command based on type (file or folder)
-            //string shortcutTypeLower = shortcutType.ToString().ToLower();
-            //List<string> lines = new List<string>();
-            //lines.Add("@ECHO OFF");
-            //lines.Add("REM " + Text);
-            //lines.Add("REM <" + shortcutTypeLower + ">" + savePath + "</" + shortcutTypeLower + ">");
-            ////lines.Add("CHCP 65001>NUL");
+                lines.Add("EXIT");
 
-            //if (shortcutType == this.ShortcutType.Url)
-            //{
-            //    lines.Add("START " + SanitizeBatAndCmdEscapeCharacters(target));
-            //}
-            //else if (shortcutType == this.ShortcutType.File)
-            //{
-            //    lines.Add("START \"\" /D \"" + pathOnly + "\" \"" + filename + "\"");
-            //}
-            //else if (shortcutType == this.ShortcutType.Folder)
-            //{
-            //    lines.Add("\"%SystemRoot%\\explorer.exe\" \"" + _newShortcutPath + "\"");
-            //}
+                // Write the file to the given save path
+                File.WriteAllLines(shortcut.FullPath, lines.ToArray()); //, Encoding.UTF8);
 
-            //lines.Add("EXIT");
+                result = true;
+            }
 
-            //// Write the file to the given save path
-            //File.WriteAllLines(savePath, lines.ToArray()); //, Encoding.UTF8);
+            return result;
+        }
 
-            return true;
+        private string SanitizeBatAndCmdEscapeCharacters(string command)
+        {
+            // TODO Use Regex instead!
+
+            // TODO Check for ^& and %% in existing string instead of blindly replacing
+
+            // CMD uses & for commands, so replace it with ^&
+            command = command.Replace("&", "^&");
+
+            // Bat files use % for commands, so replace it with %%
+            command = command.Replace("%", "%%");
+
+            return command;
         }
     }
 }

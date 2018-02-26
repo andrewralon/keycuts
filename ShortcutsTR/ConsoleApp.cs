@@ -12,6 +12,11 @@ namespace ShortcutsTR
         // TODO Make this an int to return 0 or 1?
         public void Run(string destination, string path)
         {
+            //if (IsWindowsShortcut(destination))
+            //{
+            //    destination = FollowWindowsShortcut(destination);
+            //}
+
             var shortcut = new Shortcut(destination, path);
 
             if (shortcut.Type != ShortcutType.Unknown)
@@ -65,7 +70,7 @@ namespace ShortcutsTR
 
                     var notepadPath = @"%windir%\system32\notepad.exe";
 
-                    lines.Add(string.Format("\"{0}\" \"{1}\"", notepadPath, shortcut.FullPath));
+                    lines.Add(string.Format("\"{0}\" \"{1}\"", notepadPath, shortcut.Destination));
                 }
                 else if (shortcut.Type == ShortcutType.Folder)
                 {
@@ -96,6 +101,59 @@ namespace ShortcutsTR
             command = command.Replace("%", "%%");
 
             return command;
+        }
+
+        public static string FollowWindowsShortcut(string file)
+        {
+            var result = file;
+
+            // Follow the shortcut if it is one!
+            if (IsWindowsShortcut(file))
+            {
+                result = GetShortcutTargetPath(file);
+            }
+
+            // TODO Handle resolving a relative
+            //result = Path.GetFullPath(file);
+
+            return result;
+        }
+
+        public static bool IsWindowsShortcut(string shortcutFilename)
+        {
+            // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
+            string path = Path.GetDirectoryName(shortcutFilename);
+            string file = Path.GetFileName(shortcutFilename);
+
+            //Shell32.Shell shell = new Shell32.Shell();
+            //Shell32.Folder folder = shell.NameSpace(path);
+            //Shell32.FolderItem folderItem = folder.ParseName(file);
+
+            //if (folderItem != null)
+            //{
+            //    return folderItem.IsLink;
+            //}
+
+            return false; // Not found
+        }
+
+        public static string GetShortcutTargetPath(string shortcutFilename)
+        {
+            // Code found here: http://www.emoticode.net/c-sharp/get-full-path-of-file-a-shortcut-link-references.html
+            string path = Path.GetDirectoryName(shortcutFilename);
+            string file = Path.GetFileName(shortcutFilename);
+
+            //Shell32.Shell shell = new Shell32.Shell();
+            //Shell32.Folder folder = shell.NameSpace(path);
+            //Shell32.FolderItem folderItem = folder.ParseName(file);
+
+            //if (folderItem != null)
+            //{
+            //    Shell32.ShellLinkObject link = (Shell32.ShellLinkObject)folderItem.GetLink;
+            //    return link.Path;
+            //}
+
+            return ""; // Not found
         }
     }
 }

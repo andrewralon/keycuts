@@ -15,19 +15,19 @@ namespace ShortcutsTR
         private static void Main(string[] args)
         {
             // RELEASE Uncomment this for normal use 
-            Runner(args);
+            //Runner(args);
 
             // DEBUG Uncomment this section to manually pass destination and shortcut name
-            //string[] debugArgs = new string[]
-            //{
-            //    //@"C:\randomfile.txt", // File
-            //    //@"C:\Users", // Folder
-            //    //@"C:\randomurl.url", // URL shortcut file
-            //    @"C:\Windows\System32\drivers\etc\hosts", // hosts file
-            //    @"C:\Shortcuts\test.bat",
-            //    @"C:\third\argument"
-            //};
-            //Runner(debugArgs);
+            string[] debugArgs = new string[]
+            {
+                //@"C:\randomfile.txt", // File
+                //@"C:\Users", // Folder
+                //@"C:\randomurl.url", // URL shortcut file
+                @"C:\Windows\System32\drivers\etc\hosts", // hosts file
+                @"C:\Shortcuts\test.bat",
+                @"C:\third\argument"
+            };
+            Runner(debugArgs);
         }
 
         // TODO Make this an int to return 0 or 1?
@@ -43,8 +43,8 @@ namespace ShortcutsTR
                 shortcutPath = args[1];
 
                 // DEBUG Uncomment for more information
-                Console.WriteLine(string.Format("  Destination:   {0}", destination));
-                Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
+                //Console.WriteLine(string.Format("  Destination:   {0}", destination));
+                //Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
 
                 // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
                 //  Example: Open a file with Notepad++, not Notepad

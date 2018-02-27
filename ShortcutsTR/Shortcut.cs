@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Shell32;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +27,7 @@ namespace ShortcutsTR
         // TODO Handle 2 args:
         //  - Case 1: 2nd arg is full path -> split into folder (w/ path) and name (w/o extension)
         //  - Case 2: 2nd arg is filename only -> use default shortcuts folder
-        
+
         // TODO Handle 3 args:
         //  - destination, name, appToUse = null -> see above
 
@@ -35,7 +36,7 @@ namespace ShortcutsTR
             // TODO Detect if 2nd arg is full path or filename only and handle both
             //  If filename only, create shortcut file in default shortcuts folder
 
-            Destination = destination;
+            Destination = GetWindowsLinkTargetPath(destination);
             Extension = ".bat";
             Filename = Path.GetFileNameWithoutExtension(path);
             FilenameWithExtension = string.Format("{0}{1}", Filename, Extension);
@@ -61,7 +62,7 @@ namespace ShortcutsTR
                 }
                 else if (File.Exists(Destination))
                 {
-                    if (Destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() || 
+                    if (Destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
                         Destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
                     {
                         Type = ShortcutType.HostsFile;
@@ -80,7 +81,7 @@ namespace ShortcutsTR
 
         private bool IsValidUrl()
         {
-            bool result = Uri.TryCreate(Destination, UriKind.Absolute, out Uri uriResult) 
+            bool result = Uri.TryCreate(Destination, UriKind.Absolute, out Uri uriResult)
                 && !uriResult.IsFile;
 
             if (!result)
@@ -123,6 +124,30 @@ namespace ShortcutsTR
                         result = true;
                     }
                 }
+            }
+
+            return result;
+        }
+
+        public static string GetWindowsLinkTargetPath(string shortcutFilename)
+        {
+            // TODO Handle resolving a relative
+            //result = Path.GetFullPath(file);
+
+            string result = shortcutFilename;
+
+            // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
+            string path = Path.GetDirectoryName(shortcutFilename);
+            string file = Path.GetFileName(shortcutFilename);
+
+            Shell shell = new Shell();
+            Folder folder = shell.NameSpace(path);
+            FolderItem folderItem = folder.ParseName(file);
+
+            if (folderItem != null && folderItem.IsLink)
+            {
+                ShellLinkObject link = (ShellLinkObject)folderItem.GetLink;
+                result = link.Path;
             }
 
             return result;

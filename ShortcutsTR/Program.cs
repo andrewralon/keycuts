@@ -23,7 +23,8 @@ namespace ShortcutsTR
                 //@"C:\randomfile.txt", // File
                 //@"C:\Users", // Folder
                 //@"C:\randomurl.url", // URL shortcut file
-                @"C:\Windows\System32\drivers\etc\hosts", // hosts file
+                @"C:\Dropbox.lnk", // Shortcut to folder
+                //@"C:\Windows\System32\drivers\etc\hosts", // hosts file
                 @"C:\Shortcuts\test.bat",
                 @"C:\third\argument"
             };

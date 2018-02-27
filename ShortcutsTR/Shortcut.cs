@@ -42,15 +42,16 @@ namespace ShortcutsTR
             FilenameWithExtension = string.Format("{0}{1}", Filename, Extension);
             Folder = Path.GetDirectoryName(path);
             FullPath = Path.Combine(Folder, string.Format("{0}{1}", Filename, Extension));
-
-            GetShortcutType();
+            Type = GetShortcutType();
         }
 
-        private void GetShortcutType()
+        private ShortcutType GetShortcutType()
         {
+            ShortcutType type = new ShortcutType();
+
             if (IsValidUrl() || IsValidUrlFile())
             {
-                Type = ShortcutType.Url;
+                type = ShortcutType.Url;
             }
             else
             {
@@ -58,25 +59,27 @@ namespace ShortcutsTR
 
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    Type = ShortcutType.Folder;
+                    type = ShortcutType.Folder;
                 }
                 else if (File.Exists(Destination))
                 {
                     if (Destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
                         Destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
                     {
-                        Type = ShortcutType.HostsFile;
+                        type = ShortcutType.HostsFile;
                     }
                     else
                     {
-                        Type = ShortcutType.File;
+                        type = ShortcutType.File;
                     }
                 }
                 else
                 {
-                    Type = ShortcutType.Unknown;
+                    type = ShortcutType.Unknown;
                 }
             }
+
+            return type;
         }
 
         private bool IsValidUrl()

@@ -36,7 +36,7 @@ namespace ShortcutsTR
             bool result = false;
 
             // Check if the shortcut file already exists
-            //if (!File.Exists(shortcut.FullPath))
+            if (!File.Exists(shortcut.FullPath))
             {
                 // Create lines with comments and command based on type (file or folder)
                 var shortcutTypeLower = shortcut.Type.ToString().ToLower();
@@ -75,7 +75,7 @@ namespace ShortcutsTR
                 lines.Add("EXIT");
 
                 // Write the file to the given save path
-                File.WriteAllLines(shortcut.FullPath, lines.ToArray()); //, Encoding.UTF8);
+                File.WriteAllLines(shortcut.FullPath, lines.ToArray());
 
                 result = true;
             }
@@ -85,7 +85,7 @@ namespace ShortcutsTR
 
         private string SanitizeBatAndCmdEscapeCharacters(string command)
         {
-            // TODO Use Regex instead!
+            // TODO Use Regex instead! Or create a new Uri???
 
             // TODO Check for ^& and %% in existing string instead of blindly replacing
 

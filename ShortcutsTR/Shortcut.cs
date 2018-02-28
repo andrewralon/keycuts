@@ -134,13 +134,10 @@ namespace ShortcutsTR
 
         public static string GetWindowsLinkTargetPath(string shortcutFilename)
         {
-            // TODO Handle resolving a relative
-            //result = Path.GetFullPath(file);
-
             string result = shortcutFilename;
 
             // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
-            string path = Path.GetDirectoryName(shortcutFilename);
+            string path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(shortcutFilename));
             string file = Path.GetFileName(shortcutFilename);
 
             Shell shell = new Shell();

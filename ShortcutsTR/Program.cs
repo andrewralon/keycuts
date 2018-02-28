@@ -15,25 +15,31 @@ namespace ShortcutsTR
         private static void Main(string[] args)
         {
             // RELEASE Uncomment this for normal use 
-            //Runner(args);
+            Runner(args);
 
             // DEBUG Uncomment this section to manually pass destination and shortcut name
-            string[] debugArgs = new string[]
-            {
-                //@"C:\randomfile.txt", // File
-                //@"C:\Users", // Folder
-                //@"C:\randomurl.url", // URL shortcut file
-                @"C:\Dropbox.lnk", // Shortcut to folder
-                //@"C:\Windows\System32\drivers\etc\hosts", // hosts file
-                @"C:\Shortcuts\test.bat",
-                @"C:\third\argument"
-            };
-            Runner(debugArgs);
+            //string[] debugArgs = new string[]
+            //{
+            //    //@"C:\randomfile.txt", // File
+            //    //@"C:\Users", // Folder
+            //    //@"C:\Dropbox.lnk", // Shortcut to folder
+            //    //@"C:\Public Desktop.lnk", // Shortcut to folder via relative path (down) -- are these allowed?
+            //    //@"%HOMEDRIVE%%HOMEPATH%\Desktop\My Documents.lnk", // Shortcut to folder via relative path (up) -- are these allowed?
+            //    //"https://github.com/", // URL
+            //    //@"C:\randomurl.url", // URL shortcut file
+            //    //@"C:\Windows\System32\drivers\etc\hosts", // hosts file
+            //    //@"C:\hosts.lnk", // Shortcut to hosts file -- this is a weird use case that will *not* be implemented
+            //    @"C:\Shortcuts\test.bat",
+            //    @"C:\third\argument"
+            //};
+            //Runner(debugArgs);
         }
 
         // TODO Make this an int to return 0 or 1?
-        private static void Runner(string[] args)
+        private static int Runner(string[] args)
         {
+            int result = 0;
+            
             // TODO Print app name here
             Console.WriteLine();
             Console.WriteLine("Shortcuts");
@@ -52,11 +58,21 @@ namespace ShortcutsTR
                 if (args.Length > 2)
                 {
                     Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
+                    Console.WriteLine();
                 }
 
                 // Run app and pass arguments as parameters
                 var app = new ConsoleApp();
-                app.Run(destination, shortcutPath);
+                result = app.Run(destination, shortcutPath);
+
+                if (result == 0)
+                {
+                    Console.WriteLine("Done. YAY!");
+                }
+                else
+                {
+                    Console.WriteLine("Better luck next time.");
+                }
             }
             else
             {
@@ -69,10 +85,13 @@ namespace ShortcutsTR
                 Console.WriteLine("    Example:");
                 Console.WriteLine("      C:\\Shortcuts\\shortcut-name.bat");
                 Console.WriteLine("Not enough arguments given. Maybe next time.");
+                Console.WriteLine();
             }
 
-            // DEBUG Uncomment for testing so command prompt stays open
-            Console.ReadKey();
+            
+            Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
+
+            return result;
         }
     }
 }

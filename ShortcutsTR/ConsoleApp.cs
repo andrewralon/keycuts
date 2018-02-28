@@ -10,16 +10,20 @@ namespace ShortcutsTR
     class ConsoleApp
     {
         // TODO Make this an int to return 0 or 1?
-        public void Run(string destination, string path)
+        public int Run(string destination, string path)
         {
+            bool result = false;
+
             var shortcut = new Shortcut(destination, path);
 
             if (shortcut.Type != ShortcutType.Unknown)
             {
                 CreateShortcutFolder(shortcut.Folder);
 
-                CreateShortcutFile(shortcut);
+                result = CreateShortcutFile(shortcut);
             }
+
+            return result ? 0 : 1;
         }
 
         private void CreateShortcutFolder(string folder)
@@ -78,6 +82,13 @@ namespace ShortcutsTR
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
 
                 result = true;
+            }
+            else
+            {
+                Console.WriteLine("The shortcut file already exists: ");
+                Console.WriteLine(shortcut.FullPath);
+                Console.WriteLine();
+                result = false;
             }
 
             return result;

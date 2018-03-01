@@ -38,7 +38,7 @@ namespace ShortcutsTR
         // TODO Make this an int to return 0 or 1?
         private static int Runner(string[] args)
         {
-            int result = 0;
+            var result = 0;
             
             // TODO Print app name here
             Console.WriteLine();
@@ -87,7 +87,6 @@ namespace ShortcutsTR
                 Console.WriteLine("Not enough arguments given. Maybe next time.");
                 Console.WriteLine();
             }
-
             
             Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
 

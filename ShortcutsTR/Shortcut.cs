@@ -47,7 +47,7 @@ namespace ShortcutsTR
 
         private ShortcutType GetShortcutType()
         {
-            ShortcutType type = new ShortcutType();
+            var type = new ShortcutType();
 
             if (IsValidUrl() || IsValidUrlFile())
             {
@@ -84,7 +84,7 @@ namespace ShortcutsTR
 
         private bool IsValidUrl()
         {
-            bool result = Uri.TryCreate(Destination, UriKind.Absolute, out Uri uriResult)
+            var result = Uri.TryCreate(Destination, UriKind.Absolute, out Uri uriResult)
                 && !uriResult.IsFile;
 
             if (!result)
@@ -107,14 +107,14 @@ namespace ShortcutsTR
 
         private bool IsValidUrlFile()
         {
-            bool result = false;
+            var result = false;
 
-            if (Path.GetExtension(Destination).ToLower() == ".url")
+            if (Path.GetExtension(Destination).EndsWith(".url", StringComparison.InvariantCultureIgnoreCase))
             {
                 // Check for a line starting with "URL="
                 var line = File.ReadAllLines(Destination)
                     .ToList()
-                    .Where(a => a.Substring(0, 4).ToUpper() == "URL=")
+                    .Where(a => a.StartsWith("URL=", StringComparison.InvariantCultureIgnoreCase))
                     .SingleOrDefault();
 
                 // Update the destination to use the URL from the link
@@ -134,19 +134,19 @@ namespace ShortcutsTR
 
         public static string GetWindowsLinkTargetPath(string shortcutFilename)
         {
-            string result = shortcutFilename;
+            var result = shortcutFilename;
 
             // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
-            string path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(shortcutFilename));
-            string file = Path.GetFileName(shortcutFilename);
+            var path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(shortcutFilename));
+            var file = Path.GetFileName(shortcutFilename);
 
-            Shell shell = new Shell();
-            Folder folder = shell.NameSpace(path);
-            FolderItem folderItem = folder.ParseName(file);
+            var shell = new Shell();
+            var folder = shell.NameSpace(path);
+            var folderItem = folder.ParseName(file);
 
             if (folderItem != null && folderItem.IsLink)
             {
-                ShellLinkObject link = (ShellLinkObject)folderItem.GetLink;
+                var link = (ShellLinkObject)folderItem.GetLink;
                 result = link.Path;
             }
 

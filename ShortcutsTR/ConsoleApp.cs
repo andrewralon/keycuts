@@ -12,7 +12,7 @@ namespace ShortcutsTR
         // TODO Make this an int to return 0 or 1?
         public int Run(string destination, string path)
         {
-            bool result = false;
+            var result = false;
 
             var shortcut = new Shortcut(destination, path);
 
@@ -35,12 +35,12 @@ namespace ShortcutsTR
             }
         }
 
-        private bool CreateShortcutFile(Shortcut shortcut)
+        private bool CreateShortcutFile(Shortcut shortcut, bool overwrite = false)
         {
-            bool result = false;
+            var result = false;
 
             // Check if the shortcut file already exists
-            if (!File.Exists(shortcut.FullPath))
+            if (!File.Exists(shortcut.FullPath) || overwrite)
             {
                 // Create lines with comments and command based on type (file or folder)
                 var shortcutTypeLower = shortcut.Type.ToString().ToLower();

@@ -20,7 +20,7 @@ namespace ShortcutsTR
             {
                 CreateShortcutFolder(shortcut.Folder);
 
-                result = CreateShortcutFile(shortcut);
+                result = CreateShortcutFile(shortcut, true);
             }
 
             return result ? 0 : 1;
@@ -58,7 +58,7 @@ namespace ShortcutsTR
                 }
                 else if (shortcut.Type == ShortcutType.File)
                 {
-                    lines.Add(string.Format("START \"\" /D \"{0}\" \"{1}\"", shortcut.Folder, shortcut.FilenameWithExtension));
+                    lines.Add(string.Format("START \"\" /D \"{0}\" \"{1}\"", shortcut.DestinationFolder, shortcut.DestinationFilename));
                 }
                 else if (shortcut.Type == ShortcutType.HostsFile)
                 {

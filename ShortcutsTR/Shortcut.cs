@@ -12,6 +12,10 @@ namespace ShortcutsTR
     {
         public string Destination { get; private set; }
 
+        public string DestinationFilename { get; private set; }
+
+        public string DestinationFolder { get; private set; }
+
         public string Extension { get; private set; } = ".bat";
 
         public string Filename { get; private set; }
@@ -23,6 +27,8 @@ namespace ShortcutsTR
         public string FullPath { get; private set; }
 
         public ShortcutType Type { get; private set; } = ShortcutType.Unknown;
+
+        public string ShortcutsFolder { get; private set; } = @"C:\Shortcuts";
 
         // TODO Handle 2 args:
         //  - Case 1: 2nd arg is full path -> split into folder (w/ path) and name (w/o extension)
@@ -37,12 +43,31 @@ namespace ShortcutsTR
             //  If filename only, create shortcut file in default shortcuts folder
 
             Destination = GetWindowsLinkTargetPath(destination);
+            DestinationFolder = Path.GetDirectoryName(Destination);
+            DestinationFilename = Path.GetFileName(Destination);
             Extension = ".bat";
             Filename = Path.GetFileNameWithoutExtension(path);
             FilenameWithExtension = string.Format("{0}{1}", Filename, Extension);
-            Folder = Path.GetDirectoryName(path);
+            Folder = IsNotFullPath(path) ?
+                ShortcutsFolder :
+                Path.GetDirectoryName(path);
             FullPath = Path.Combine(Folder, string.Format("{0}{1}", Filename, Extension));
             Type = GetShortcutType();
+        }
+
+        private bool IsNotFullPath(string path)
+        {
+            var result = false;
+
+            var filename = Path.GetFileNameWithoutExtension(path);
+            var filenamewithextension = Path.GetFileName(path);
+
+            if (path == filename || path == filenamewithextension)
+            {
+                result = true;
+            }
+
+            return result;
         }
 
         private ShortcutType GetShortcutType()

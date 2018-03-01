@@ -15,24 +15,26 @@ namespace ShortcutsTR
         private static void Main(string[] args)
         {
             // RELEASE Uncomment this for normal use 
-            Runner(args);
+            //Runner(args);
 
             // DEBUG Uncomment this section to manually pass destination and shortcut name
-            //string[] debugArgs = new string[]
-            //{
-            //    //@"C:\randomfile.txt", // File
-            //    //@"C:\Users", // Folder
-            //    //@"C:\Dropbox.lnk", // Shortcut to folder
-            //    //@"C:\Public Desktop.lnk", // Shortcut to folder via relative path (down) -- are these allowed?
-            //    //@"%HOMEDRIVE%%HOMEPATH%\Desktop\My Documents.lnk", // Shortcut to folder via relative path (up) -- are these allowed?
-            //    //"https://github.com/", // URL
-            //    //@"C:\randomurl.url", // URL shortcut file
-            //    //@"C:\Windows\System32\drivers\etc\hosts", // hosts file
-            //    //@"C:\hosts.lnk", // Shortcut to hosts file -- this is a weird use case that will *not* be implemented
-            //    @"C:\Shortcuts\test.bat",
-            //    @"C:\third\argument"
-            //};
-            //Runner(debugArgs);
+            string[] debugArgs = new string[]
+            {
+                @"C:\randomfile.txt", // File
+                //@"C:\Users", // Folder
+                //@"C:\Dropbox.lnk", // Shortcut to folder
+                //@"C:\Public Desktop.lnk", // Shortcut to folder via relative path (down) -- are these allowed?
+                //@"%HOMEDRIVE%%HOMEPATH%\Desktop\My Documents.lnk", // Shortcut to folder via relative path (up) -- are these allowed?
+                //"https://github.com/", // URL
+                //@"C:\randomurl.url", // URL shortcut file
+                //@"C:\Windows\System32\drivers\etc\hosts", // hosts file
+                //@"C:\hosts.lnk", // Shortcut to hosts file -- this is a weird use case that will *not* be implemented
+                //@"C:\Shortcuts\test.bat", // Full path to shortcut
+                //@"test.bat", // Incomplete path to shortcut
+                @"test", // Incomplete path to shortcut, no extension
+                @"C:\third\argument"
+            };
+            Runner(debugArgs);
         }
 
         // TODO Make this an int to return 0 or 1?

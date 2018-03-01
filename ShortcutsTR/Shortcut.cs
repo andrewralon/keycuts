@@ -28,6 +28,8 @@ namespace ShortcutsTR
 
         public ShortcutType Type { get; private set; } = ShortcutType.Unknown;
 
+        // TODO Get and set the shortcuts folder in registry; make C:\Shortcuts the default value
+
         public string ShortcutsFolder { get; private set; } = @"C:\Shortcuts";
 
         // TODO Handle 2 args:
@@ -39,9 +41,6 @@ namespace ShortcutsTR
 
         public Shortcut(string destination, string path)
         {
-            // TODO Detect if 2nd arg is full path or filename only and handle both
-            //  If filename only, create shortcut file in default shortcuts folder
-
             Destination = GetWindowsLinkTargetPath(destination);
             DestinationFolder = Path.GetDirectoryName(Destination);
             DestinationFilename = Path.GetFileName(Destination);

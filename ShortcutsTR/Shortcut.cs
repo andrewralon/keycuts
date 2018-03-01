@@ -32,10 +32,6 @@ namespace ShortcutsTR
 
         public string ShortcutsFolder { get; private set; } = @"C:\Shortcuts";
 
-        // TODO Handle 2 args:
-        //  - Case 1: 2nd arg is full path -> split into folder (w/ path) and name (w/o extension)
-        //  - Case 2: 2nd arg is filename only -> use default shortcuts folder
-
         // TODO Handle 3 args:
         //  - destination, name, appToUse = null -> see above
 

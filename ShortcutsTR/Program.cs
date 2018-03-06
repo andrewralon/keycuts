@@ -8,88 +8,88 @@ namespace ShortcutsTR
 {
     class Program
     {
-        private static string destination;
-
-        private static string shortcutPath;
-
         private static void Main(string[] args)
         {
             // RELEASE Uncomment this for normal use 
             //Runner(args);
 
-            // DEBUG Uncomment this section to manually pass destination and shortcut name
+            // DEBUG Uncomment this to manually pass destination and shortcut name
+            RunnerDebug();
+        }
+
+        private static void RunnerDebug()
+        {
+            var destination =
+                //@"C:\randomfile.txt";       // File
+                //@"C:\Users";              // Folder
+                //@"C:\Dropbox.lnk";        // Shortcut to folder
+                //@"C:\Public Desktop.lnk"; // Shortcut to folder via relative path (down) -- are these allowed?
+                //@"%HOMEDRIVE%%HOMEPATH%\Desktop\My Documents.lnk"; // Shortcut to folder via relative path (up) -- are these allowed?
+                //"https://github.com/";    // URL
+                //@"C:\randomurl.url";      // URL shortcut file
+                @"C:\Windows\System32\drivers\etc\hosts"; // hosts file
+                //@"C:\hosts.lnk";          // Shortcut to hosts file -- this is a weird use case that will *not* be implemented
+
+            var shortcut =
+                //@"C:\Shortcuts\test.bat"; // Full path to shortcut
+                //@"test.bat";              // Incomplete path to shortcut
+                @"test";                    // Incomplete path to shortcut, no extension
+
+            var openWithAppPath =           // Path to program to open destination
+                //"";                         // Empty path given; will open normally
+                //@"C:\Windows\System32\notepad.exe";  // Path to notepad
+                @"C:\Program Files (x86)\Notepad++\notepad++.exe";
+
+            //var force = false;               // Force overwrite shortcut if it already exists -- add "-f" with nothing else
+
             string[] debugArgs = new string[]
             {
-                @"C:\randomfile.txt", // File
-                //@"C:\Users", // Folder
-                //@"C:\Dropbox.lnk", // Shortcut to folder
-                //@"C:\Public Desktop.lnk", // Shortcut to folder via relative path (down) -- are these allowed?
-                //@"%HOMEDRIVE%%HOMEPATH%\Desktop\My Documents.lnk", // Shortcut to folder via relative path (up) -- are these allowed?
-                //"https://github.com/", // URL
-                //@"C:\randomurl.url", // URL shortcut file
-                //@"C:\Windows\System32\drivers\etc\hosts", // hosts file
-                //@"C:\hosts.lnk", // Shortcut to hosts file -- this is a weird use case that will *not* be implemented
-                //@"C:\Shortcuts\test.bat", // Full path to shortcut
-                //@"test.bat", // Incomplete path to shortcut
-                @"test", // Incomplete path to shortcut, no extension
-                @"C:\third\argument"
+                "-d " + destination,
+                "-s " + shortcut,
+                "-o " + openWithAppPath,
+                //"-f"
             };
+
             Runner(debugArgs);
         }
 
         // TODO Make this an int to return 0 or 1?
         private static int Runner(string[] args)
         {
-            var result = 0;
+            var result = 1;
             
-            // TODO Print app name here
-            Console.WriteLine();
-            Console.WriteLine("Shortcuts");
+            // DEBUG Uncomment for more information
+            //Console.WriteLine("Arguments given:");
+            //foreach (string arg in args)
+            //{
+            //    Console.WriteLine("  arg: " + arg);
+            //}
 
-            if (args != null && args.Length >= 2)
+            var options = new Options();
+            var parsedArgs = CommandLine.Parser.Default.ParseArguments<Options>(args);
+
+            if (!parsedArgs.Errors.Any())
             {
-                destination = args[0];
-                shortcutPath = args[1];
-
-                // DEBUG Uncomment for more information
-                //Console.WriteLine(string.Format("  Destination:   {0}", destination));
-                //Console.WriteLine(string.Format("  Shortcut Path: {0}", shortcutPath));
-
-                // TODO Handle 3 arguments to tell which app will open the destination file/folder/URL
-                //  Example: Open a file with Notepad++, not Notepad
-                if (args.Length > 2)
-                {
-                    Console.WriteLine("Only two arguments are supported for now. Ignoring extra arguments.");
-                    Console.WriteLine();
-                }
+                options.Destination = parsedArgs.Value.Destination.Trim();
+                options.Shortcut = parsedArgs.Value.Shortcut.Trim();
+                options.OpenWithAppPath = parsedArgs.Value.OpenWithAppPath?.Trim();
+                options.Force = parsedArgs.Value.Force;
 
                 // Run app and pass arguments as parameters
                 var app = new ConsoleApp();
-                result = app.Run(destination, shortcutPath);
+                result = app.Run(options);
+                //result = app.Run(options.Destination, options.Shortcut, options.OpenWithAppPath, options.Force);
+            }
 
-                if (result == 0)
-                {
-                    Console.WriteLine("Done. YAY!");
-                }
-                else
-                {
-                    Console.WriteLine("Better luck next time.");
-                }
+            if (result == 0)
+            {
+                Console.WriteLine("Done. YAY!");
             }
             else
             {
-                Console.WriteLine("  arg1 = location of destination file, folder, or URL (no spaces)");
-                Console.WriteLine("    Examples:");
-                Console.WriteLine("      C:\\full\\path\to\\file.extension");
-                Console.WriteLine("      C:\\full\\path\to\\folder");
-                Console.WriteLine("      https://website.com/");
-                Console.WriteLine("  arg2 = full path of shortcut filename");
-                Console.WriteLine("    Example:");
-                Console.WriteLine("      C:\\Shortcuts\\shortcut-name.bat");
-                Console.WriteLine("Not enough arguments given. Maybe next time.");
-                Console.WriteLine();
+                Console.WriteLine("Incorrect arguments given. Better luck next time.");
             }
-            
+
             Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
 
             return result;

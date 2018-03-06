@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,18 +10,22 @@ namespace ShortcutsTR
 {
     class ConsoleApp
     {
-        // TODO Make this an int to return 0 or 1?
-        public int Run(string destination, string path)
+        public int Run(Options options)
+        {
+            return Run(options.Destination, options.Shortcut, options.OpenWithAppPath, options.Force);
+        }
+
+        public int Run(string destination, string shortcutPath, string openWithAppPath = null, bool force = false)
         {
             var result = false;
 
-            var shortcut = new Shortcut(destination, path);
+            var shortcut = new Shortcut(destination, shortcutPath, openWithAppPath);
 
             if (shortcut.Type != ShortcutType.Unknown)
             {
                 CreateShortcutFolder(shortcut.Folder);
 
-                result = CreateShortcutFile(shortcut, true);
+                result = CreateShortcutFile(shortcut, force);
             }
 
             return result ? 0 : 1;
@@ -43,37 +48,41 @@ namespace ShortcutsTR
             if (!File.Exists(shortcut.FullPath) || overwrite)
             {
                 // Create lines with comments and command based on type (file or folder)
+                string appName = Assembly.GetExecutingAssembly().GetName().Name;
+                string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                 var shortcutTypeLower = shortcut.Type.ToString().ToLower();
+
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    // TODO Put app name and version here
-                    //string.Format("REM {0}", shortcut.Text), 
+                    string.Format("REM {0} {1}", appName, version), 
                     string.Format("REM <{0}>{1}</{2}>", shortcutTypeLower, shortcut.FullPath, shortcutTypeLower)
                 };
 
-                if (shortcut.Type == ShortcutType.Url)
+                if (shortcut.OpenWithApp)
                 {
-                    lines.Add(string.Format("START {0}", SanitizeBatAndCmdEscapeCharacters(shortcut.Destination)));
+                    lines.Add(string.Format("START \"\" /B \"{0}\" \"{1}\"", shortcut.OpenWithAppPath, shortcut.Destination));
                 }
-                else if (shortcut.Type == ShortcutType.File)
+                else
                 {
-                    lines.Add(string.Format("START \"\" /D \"{0}\" \"{1}\"", shortcut.DestinationFolder, shortcut.DestinationFilename));
-                }
-                else if (shortcut.Type == ShortcutType.HostsFile)
-                {
-                    // TODO Fix this -- the command prompt stays open?!
-                    
-                    // TODO Fix this -- should it create a .lnk file with this or similar?
-                    //"C:\Program Files (x86)\Notepad++\notepad++.exe" C:\Windows\System32\drivers\etc\hosts
+                    if (shortcut.Type == ShortcutType.Url)
+                    {
+                        lines.Add(string.Format("START {0}", SanitizeBatAndCmdEscapeCharacters(shortcut.Destination)));
+                    }
+                    else if (shortcut.Type == ShortcutType.File)
+                    {
+                        lines.Add(string.Format("START \"\" /B \"{0}\"", shortcut.Destination, shortcut.DestinationFilename));
+                    }
+                    else if (shortcut.Type == ShortcutType.HostsFile)
+                    {
+                        var notepadPath = @"%windir%\system32\notepad.exe";
 
-                    var notepadPath = @"%windir%\system32\notepad.exe";
-
-                    lines.Add(string.Format("\"{0}\" \"{1}\"", notepadPath, shortcut.Destination));
-                }
-                else if (shortcut.Type == ShortcutType.Folder)
-                {
-                    lines.Add(string.Format("\"%SystemRoot%\\explorer.exe\" \"{0}\"", shortcut.Destination));
+                        lines.Add(string.Format("START \"\" /B \"{0}\" \"{1}\"", notepadPath, shortcut.Destination));
+                    }
+                    else if (shortcut.Type == ShortcutType.Folder)
+                    {
+                        lines.Add(string.Format("\"%SystemRoot%\\explorer.exe\" \"{0}\"", shortcut.Destination));
+                    }
                 }
 
                 lines.Add("EXIT");

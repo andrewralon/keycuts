@@ -26,6 +26,10 @@ namespace ShortcutsTR
 
         public string FullPath { get; private set; }
 
+        public string OpenWithAppPath { get; private set; }
+
+        public bool OpenWithApp { get; private set; }
+
         public ShortcutType Type { get; private set; } = ShortcutType.Unknown;
 
         // TODO Get and set the shortcuts folder in registry; make C:\Shortcuts the default value
@@ -35,7 +39,7 @@ namespace ShortcutsTR
         // TODO Handle 3 args:
         //  - destination, name, appToUse = null -> see above
 
-        public Shortcut(string destination, string path)
+        public Shortcut(string destination, string path, string openWithAppPath = null)
         {
             Destination = GetWindowsLinkTargetPath(destination);
             DestinationFolder = Path.GetDirectoryName(Destination);
@@ -47,6 +51,8 @@ namespace ShortcutsTR
                 ShortcutsFolder :
                 Path.GetDirectoryName(path);
             FullPath = Path.Combine(Folder, string.Format("{0}{1}", Filename, Extension));
+            OpenWithAppPath = openWithAppPath;
+            OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
             Type = GetShortcutType();
         }
 
@@ -107,12 +113,11 @@ namespace ShortcutsTR
             var result = Uri.TryCreate(Destination, UriKind.Absolute, out Uri uriResult)
                 && !uriResult.IsFile;
 
+            // Check for an incomplete Uri without the scheme
+            //  Complete:   http://www.amazon.com
+            //  Incomplete: amazon.com
             if (!result)
             {
-                // Check for an incomplete Uri without the scheme
-                //  Complete:   https://www.amazon.com
-                //  Incomplete: amazon.com
-
                 var newUri = new UriBuilder(Destination);
                 if (uriResult != null && !uriResult.IsFile)
                 {

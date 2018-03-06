@@ -13,7 +13,8 @@ namespace ShortcutsTR
         private static int Main(string[] args)
         {
             int result = Runner(args); // new string[] { "--help" });		// RELEASE For normal use, called from the command line
-                                       //int result = RunnerDebug();	// DEBUG Uncomment this to test pre-determined parameters
+            
+            //int result = RunnerDebug();	// DEBUG Uncomment this to test pre-determined parameters
 
             if (result == 0)
             {

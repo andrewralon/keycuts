@@ -44,7 +44,7 @@ namespace ShortcutsTR
         {
             var result = false;
 
-            // Check if the shortcut file already exists
+            // If the shortcut file already exists, let overwrite decide
             if (!File.Exists(shortcut.FullPath) || overwrite)
             {
                 // Create lines with comments and command based on type (file or folder)
@@ -55,38 +55,45 @@ namespace ShortcutsTR
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    string.Format("REM {0} {1}", appName, version), 
+                    string.Format("REM {0} {1}", appName, version),
                     string.Format("REM <{0}>{1}</{2}>", shortcutTypeLower, shortcut.FullPath, shortcutTypeLower)
                 };
 
-                //var command = "START \"\" ";
+                // START: "" = Title (empty) of console window
+                //  /MIN = start window minimized -- not recommended
+                //  /B = don't create a new window
+                //  "{0}" = command/program
+                //  "{1}" = parameters
+                var start = "START \"\" /B \"{0}\"";
+                var command = "";
 
                 if (shortcut.OpenWithApp)
                 {
-                    lines.Add(string.Format("START \"\" /B \"{0}\" \"{1}\"", shortcut.OpenWithAppPath, shortcut.Destination));
+                    command = string.Format(start + " \"{1}\"", shortcut.OpenWithAppPath, shortcut.Destination);
                 }
                 else
                 {
                     if (shortcut.Type == ShortcutType.Url)
                     {
-                        lines.Add(string.Format("START \"\" /B \"{0}\"", SanitizeBatAndCmdEscapeCharacters(shortcut.Destination)));
+                        command = string.Format(start, SanitizeBatAndCmdEscapeCharacters(shortcut.Destination));
                     }
                     else if (shortcut.Type == ShortcutType.File)
                     {
-                        lines.Add(string.Format("START \"\" /B \"{0}\"", shortcut.Destination));
+                        command = string.Format(start, shortcut.Destination);
                     }
                     else if (shortcut.Type == ShortcutType.HostsFile)
                     {
                         var notepadPath = @"%windir%\system32\notepad.exe";
 
-                        lines.Add(string.Format("START \"\" /B \"{0}\" \"{1}\"", notepadPath, shortcut.Destination));
+                        command = string.Format(start + " \"{1}\"", notepadPath, shortcut.Destination);
                     }
                     else if (shortcut.Type == ShortcutType.Folder)
                     {
-                        lines.Add(string.Format("\"%SystemRoot%\\explorer.exe\" \"{0}\"", shortcut.Destination));
+                        command = string.Format("\"%SystemRoot%\\explorer.exe\" \"{0}\"", shortcut.Destination);
                     }
                 }
 
+                lines.Add(command);
                 lines.Add("EXIT");
 
                 // Write the file to the given save path

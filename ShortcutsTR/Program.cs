@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommandLine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,16 +9,30 @@ namespace ShortcutsTR
 {
     class Program
     {
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
             // RELEASE Uncomment this for normal use 
-            //Runner(args);
+            //int result = Runner(args);
 
             // DEBUG Uncomment this to manually pass destination and shortcut name
-            RunnerDebug();
+            int result = RunnerDebug();
+
+            if (result == 0)
+            {
+                Console.WriteLine("Done. YAY!");
+            }
+            else
+            {
+                Console.WriteLine("Incorrect arguments given. Better luck next time.");
+            }
+
+            Console.WriteLine();
+            Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
+
+            return result;
         }
 
-        private static void RunnerDebug()
+        private static int RunnerDebug()
         {
             var destination =
                 //@"C:\randomfile.txt";       // File
@@ -40,33 +55,24 @@ namespace ShortcutsTR
                 //@"C:\Windows\System32\notepad.exe";  // Path to notepad
                 @"C:\Program Files (x86)\Notepad++\notepad++.exe";
 
-            //var force = false;               // Force overwrite shortcut if it already exists -- add "-f" with nothing else
+            //var force = false;            // Overwrite shortcut if it exists -- add "-f" with nothing else
 
             string[] debugArgs = new string[]
             {
                 "-d " + destination,
                 "-s " + shortcut,
                 "-o " + openWithAppPath,
-                //"-f"
+                "-f"
             };
 
-            Runner(debugArgs);
+            return Runner(debugArgs);
         }
 
-        // TODO Make this an int to return 0 or 1?
         private static int Runner(string[] args)
         {
             var result = 1;
-            
-            // DEBUG Uncomment for more information
-            //Console.WriteLine("Arguments given:");
-            //foreach (string arg in args)
-            //{
-            //    Console.WriteLine("  arg: " + arg);
-            //}
-
             var options = new Options();
-            var parsedArgs = CommandLine.Parser.Default.ParseArguments<Options>(args);
+            var parsedArgs = Parser.Default.ParseArguments<Options>(args);
 
             if (!parsedArgs.Errors.Any())
             {
@@ -78,19 +84,7 @@ namespace ShortcutsTR
                 // Run app and pass arguments as parameters
                 var app = new ConsoleApp();
                 result = app.Run(options);
-                //result = app.Run(options.Destination, options.Shortcut, options.OpenWithAppPath, options.Force);
             }
-
-            if (result == 0)
-            {
-                Console.WriteLine("Done. YAY!");
-            }
-            else
-            {
-                Console.WriteLine("Incorrect arguments given. Better luck next time.");
-            }
-
-            Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
 
             return result;
         }

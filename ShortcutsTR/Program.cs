@@ -40,9 +40,9 @@ namespace ShortcutsTR
                 //@"C:\Dropbox.lnk";        // Shortcut to folder
                 //@"C:\Public Desktop.lnk"; // Shortcut to folder via relative path (down) -- are these allowed?
                 //@"%HOMEDRIVE%%HOMEPATH%\Desktop\My Documents.lnk"; // Shortcut to folder via relative path (up) -- are these allowed?
-                //"https://github.com/";    // URL
+                "https://github.com/";    // URL
                 //@"C:\randomurl.url";      // URL shortcut file
-                @"C:\Windows\System32\drivers\etc\hosts"; // hosts file
+                //@"C:\Windows\System32\drivers\etc\hosts"; // hosts file
                 //@"C:\hosts.lnk";          // Shortcut to hosts file -- this is a weird use case that will *not* be implemented
 
             var shortcut =
@@ -61,7 +61,7 @@ namespace ShortcutsTR
             {
                 "-d " + destination,
                 "-s " + shortcut,
-                "-o " + openWithAppPath,
+                //"-o " + openWithAppPath,
                 "-f"
             };
 

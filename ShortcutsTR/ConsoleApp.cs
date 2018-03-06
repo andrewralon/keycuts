@@ -59,6 +59,8 @@ namespace ShortcutsTR
                     string.Format("REM <{0}>{1}</{2}>", shortcutTypeLower, shortcut.FullPath, shortcutTypeLower)
                 };
 
+                //var command = "START \"\" ";
+
                 if (shortcut.OpenWithApp)
                 {
                     lines.Add(string.Format("START \"\" /B \"{0}\" \"{1}\"", shortcut.OpenWithAppPath, shortcut.Destination));
@@ -67,11 +69,11 @@ namespace ShortcutsTR
                 {
                     if (shortcut.Type == ShortcutType.Url)
                     {
-                        lines.Add(string.Format("START {0}", SanitizeBatAndCmdEscapeCharacters(shortcut.Destination)));
+                        lines.Add(string.Format("START \"\" /B \"{0}\"", SanitizeBatAndCmdEscapeCharacters(shortcut.Destination)));
                     }
                     else if (shortcut.Type == ShortcutType.File)
                     {
-                        lines.Add(string.Format("START \"\" /B \"{0}\"", shortcut.Destination, shortcut.DestinationFilename));
+                        lines.Add(string.Format("START \"\" /B \"{0}\"", shortcut.Destination));
                     }
                     else if (shortcut.Type == ShortcutType.HostsFile)
                     {

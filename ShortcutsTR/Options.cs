@@ -19,14 +19,14 @@ namespace ShortcutsTR
         [Option('o', "openwith", Required = false, HelpText = "The path to a program to open the destination file.")]
         public string OpenWithAppPath { get; set; }
 
-        [Option('f', "force",  DefaultValue = false, HelpText = "Force overwrite the shortcut file if it already exists.")]
+        [Option('f', "force", DefaultValue = false, HelpText = "Force overwrite the shortcut file if it already exists.")]
         public bool Force { get; set; }
 
-		//[HelpOption]
+		//[HelpOption(HelpText = "Displays this help screen.")]
 		//public string GetUsage()
 		//{
 		//	return HelpText.AutoBuild(this,
-		//	  (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
+		//	  (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current), true);
 		//}
 	}
 }

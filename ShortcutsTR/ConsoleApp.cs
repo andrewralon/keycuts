@@ -26,7 +26,10 @@ namespace ShortcutsTR
 
         public int Run(string destination, string shortcutPath, string openWithAppPath = null, bool force = false)
         {
-            var result = false;
+			Console.WriteLine(AppName);
+			Console.WriteLine(Version);
+
+			var result = false;
 
             var shortcut = new Shortcut(destination, shortcutPath, openWithAppPath);
 

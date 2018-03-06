@@ -10,10 +10,10 @@ namespace ShortcutsTR
 {
     class Program
     {
-		private static int Main(string[] args)
-		{
-			int result = Runner(new string[] { "--help" });		// RELEASE For normal use, called from the command line
-            //int result = RunnerDebug();	// DEBUG Uncomment this to test pre-determined parameters
+        private static int Main(string[] args)
+        {
+            int result = Runner(args); // new string[] { "--help" });		// RELEASE For normal use, called from the command line
+                                       //int result = RunnerDebug();	// DEBUG Uncomment this to test pre-determined parameters
 
             if (result == 0)
             {
@@ -21,10 +21,9 @@ namespace ShortcutsTR
             }
             else
             {
-                
+                //Console.WriteLine("Did something bad happen?");
             }
 
-            Console.WriteLine();
             //Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
 
             return result;
@@ -37,27 +36,31 @@ namespace ShortcutsTR
             string appName = Assembly.GetExecutingAssembly().GetName().Name;
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
-            var options = new Options();
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
-
             if (!parsedArgs.Errors.Any())
             {
                 Console.WriteLine(appName);
                 Console.WriteLine(version);
 
-                options.Destination = parsedArgs.Value.Destination.Trim();
-                options.Shortcut = parsedArgs.Value.Shortcut.Trim();
-                options.OpenWithAppPath = parsedArgs.Value.OpenWithAppPath?.Trim();
-                options.Force = parsedArgs.Value.Force;
+                var options = new Options
+                {
+                    Destination = parsedArgs.Value.Destination.Trim(),
+                    Shortcut = parsedArgs.Value.Shortcut.Trim(),
+                    OpenWithAppPath = parsedArgs.Value.OpenWithAppPath?.Trim(),
+                    Force = parsedArgs.Value.Force
+                };
 
                 // Run app and pass arguments as parameters
                 var app = new ConsoleApp(appName, version);
                 result = app.Run(options);
             }
-			else if (parsedArgs.Errors.FirstOrDefault().Tag == ErrorType.HelpRequestedError)
-			{
-				Console.WriteLine("Incorrect arguments given. Better luck next time.");
-			}
+            //else
+            //{
+            //	foreach (var error in parsedArgs.Errors)
+            //	{
+            //		Console.WriteLine("Error: " + error.ToString());
+            //	}
+            //}
 
             return result;
         }
@@ -75,7 +78,7 @@ namespace ShortcutsTR
             var shortcut =
                 //@"C:\Shortcuts\test.bat";	// Full path to shortcut
                 //@"test.bat";				// Incomplete path to shortcut
-                @"test";					// Incomplete path to shortcut, no extension
+                @"test";                    // Incomplete path to shortcut, no extension
 
             var openWithAppPath =
                 //"";									// Empty path given; will open normally

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,6 +9,16 @@ namespace ShortcutsTR
 {
     class ConsoleApp
     {
+        public string AppName { get; private set; }
+
+        public string Version { get; private set; }
+
+        public ConsoleApp(string appName, string version)
+        {
+            AppName = appName;
+            Version = version;
+        }
+
         public int Run(Options options)
         {
             return Run(options.Destination, options.Shortcut, options.OpenWithAppPath, options.Force);
@@ -48,14 +57,12 @@ namespace ShortcutsTR
             if (!File.Exists(shortcut.FullPath) || overwrite)
             {
                 // Create lines with comments and command based on type (file or folder)
-                string appName = Assembly.GetExecutingAssembly().GetName().Name;
-                string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
                 var shortcutTypeLower = shortcut.Type.ToString().ToLower();
 
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    string.Format("REM {0} {1}", appName, version),
+                    string.Format("REM {0} {1}", AppName, Version),
                     string.Format("REM <{0}>{1}</{2}>", shortcutTypeLower, shortcut.FullPath, shortcutTypeLower)
                 };
 

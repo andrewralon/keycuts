@@ -22,13 +22,11 @@ namespace ShortcutsTR
         [Option('f', "force",  DefaultValue = false, HelpText = "Force overwrite the shortcut file if it already exists.")]
         public bool Force { get; set; }
 
-        //////[HelpOption(HelpText = "Shortcuts Help")]
-        //[Option(HelpText = "Display this help screen.")]
-        //public string GetUsage()
-        //{
-        //    var usage = new StringBuilder();
-        //    usage.AppendLine("Shortcuts Help");
-        //    return usage.ToString();
-        //}
-    }
+		//[HelpOption]
+		//public string GetUsage()
+		//{
+		//	return HelpText.AutoBuild(this,
+		//	  (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
+		//}
+	}
 }

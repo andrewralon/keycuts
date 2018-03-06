@@ -35,10 +35,7 @@ namespace ShortcutsTR
         // TODO Get and set the shortcuts folder in registry; make C:\Shortcuts the default value
 
         public string ShortcutsFolder { get; private set; } = @"C:\Shortcuts";
-
-        // TODO Handle 3 args:
-        //  - destination, name, appToUse = null -> see above
-
+        
         public Shortcut(string destination, string path, string openWithAppPath = null)
         {
             Destination = GetWindowsLinkTargetPath(destination);

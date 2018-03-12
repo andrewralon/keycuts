@@ -55,6 +55,7 @@
   <ItemGroup>
     <Compile Include="ConsoleApp.cs" />
     <Compile Include="Options.cs" />
+    <Compile Include="RegistryKey.cs" />
     <Compile Include="Shortcut.cs" />
     <Compile Include="ShortcutType.cs" />
     <Compile Include="Program.cs" />

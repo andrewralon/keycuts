@@ -32,11 +32,9 @@ namespace ShortcutsTR
 
         public ShortcutType Type { get; private set; } = ShortcutType.Unknown;
 
-        // TODO Get and set the shortcuts folder in registry; make C:\Shortcuts the default value
-
-        public string ShortcutsFolder { get; private set; } = @"C:\Shortcuts";
+        public string ShortcutsFolder { get; private set; }
         
-        public Shortcut(string destination, string path, string openWithAppPath = null)
+        public Shortcut(string destination, string path, string defaultFolder = null, string openWithAppPath = null)
         {
             Destination = GetWindowsLinkTargetPath(destination);
             DestinationFolder = Path.GetDirectoryName(Destination);
@@ -45,7 +43,7 @@ namespace ShortcutsTR
             Filename = Path.GetFileNameWithoutExtension(path);
             FilenameWithExtension = string.Format("{0}{1}", Filename, Extension);
             Folder = IsNotFullPath(path) ?
-                ShortcutsFolder :
+                RegistryKey.GetDefaultShortcutsFolder(defaultFolder) :
                 Path.GetDirectoryName(path);
             FullPath = Path.Combine(Folder, string.Format("{0}{1}", Filename, Extension));
             OpenWithAppPath = openWithAppPath;
@@ -53,7 +51,7 @@ namespace ShortcutsTR
             Type = GetShortcutType();
         }
 
-        private bool IsNotFullPath(string path)
+        public static bool IsNotFullPath(string path)
         {
             var result = false;
 

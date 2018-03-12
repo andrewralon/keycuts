@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ShortcutsTR
@@ -26,10 +27,7 @@ namespace ShortcutsTR
 
         public int Run(string destination, string shortcutPath, string openWithAppPath = null, bool force = false)
         {
-			Console.WriteLine(AppName);
-			Console.WriteLine(Version);
-
-			var result = false;
+            var result = false;
 
             var shortcut = new Shortcut(destination, shortcutPath, openWithAppPath);
 
@@ -66,11 +64,12 @@ namespace ShortcutsTR
                 {
                     "@ECHO OFF",
                     string.Format("REM {0} {1}", AppName, Version),
-                    string.Format("REM <{0}>{1}</{2}>", shortcutTypeLower, shortcut.FullPath, shortcutTypeLower)
+                    string.Format("REM <shortcut>{0}</shortcut>", shortcut.FullPath),
+                    string.Format("REM <type>{0}</type>", shortcutTypeLower),
+                    string.Format("REM <destination>{0}</destination>", shortcut.Destination),
                 };
 
                 // START: "" = Title (empty) of console window
-                //  /MIN = start window minimized -- not recommended
                 //  /B = don't create a new window
                 //  "{0}" = command/program
                 //  "{1}" = parameters
@@ -124,15 +123,8 @@ namespace ShortcutsTR
 
         private string SanitizeBatAndCmdEscapeCharacters(string command)
         {
-            // TODO Use Regex instead! Or create a new Uri???
-
-            // TODO Check for ^& and %% in existing string instead of blindly replacing
-
-            // CMD uses & for commands, so replace it with ^&
-            command = command.Replace("&", "^&");
-
-            // Bat files use % for commands, so replace it with %%
-            command = command.Replace("%", "%%");
+            // Bat files use % for variables, so escape a single % with %%
+            command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
 
             return command;
         }

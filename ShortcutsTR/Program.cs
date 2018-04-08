@@ -15,9 +15,11 @@ namespace ShortcutsTR
 
         private static int Main(string[] args)
         {
-            int result = Runner(args); // new string[] { "--help" });
+            var result = 0;
 #if DEBUG
-            result = RunnerDebug();	// Tests pre-determined parameters
+            result = RunnerDebug(); // Tests pre-determined parameters
+#else
+            result = Runner(args);  // new string[] { "--help" });
 #endif
             if (result == 0)
             {
@@ -30,28 +32,31 @@ namespace ShortcutsTR
 #if DEBUG
             Console.ReadKey(); // Leave command prompt open when testing
 #endif
-
             return result;
         }
 
         private static int RunnerDebug()
         {
+            var outputFolder =
+                @"C:\Shortcuts";
+                //@"C:\Shortcuts-2";
+
             var destination =
-                @"C:\randomfile.txt";		// File
+                @"C:\randomfile.txt";       // File
                 //@"C:\Users";				// Folder
                 //@"C:\Dropbox.lnk";		// Shortcut to folder
-                //"https://github.com/";  // URL
-                //"https://calendar.google.com/calendar/r?tab=mc&pli=1#main_7";
+                //"https://github.com/";    // URL #1
+                //"https://calendar.google.com/calendar/r?tab=mc&pli=1#main_7"; // URL #2
                 //@"C:\randomurl.url";		// URL shortcut file
                 //@"C:\Windows\System32\drivers\etc\hosts"; // hosts file
 
             var shortcut =
                 //@"C:\Shortcuts\test.bat";	// Full path to shortcut
                 //@"test.bat";				// Incomplete path to shortcut
-                @"test3";                    // Incomplete path to shortcut, no extension
+                @"test3";                   // Incomplete path to shortcut, no extension
 
             var openWithAppPath =
-                "";									// Empty path given; will open normally
+                "";                                 // Empty path given; will open normally
                 //@"C:\Windows\System32\notepad.exe";	// Path to notepad
                 //@"C:\Program Files (x86)\Notepad++\notepad++.exe"; // Path to notepad++
 
@@ -59,7 +64,7 @@ namespace ShortcutsTR
 
             string[] debugArgs = new string[]
             {
-                //"-o C:\\Shortcuts",
+                "-o " + outputFolder,
                 "-d " + destination,
                 "-s " + shortcut,
                 "-a " + openWithAppPath,
@@ -79,8 +84,7 @@ namespace ShortcutsTR
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
             if (!parsedArgs.Errors.Any())
             {
-                Console.WriteLine(appName);
-                Console.WriteLine(version);
+                Console.WriteLine(string.Format("{0} {1}", appName, version));
 
                 var options = new Options
                 {
@@ -91,12 +95,16 @@ namespace ShortcutsTR
                     DefaultFolder = parsedArgs.Value.DefaultFolder?.Trim()
                 };
 
+                var oldDefaultFolder = RegistryKey.GetDefaultShortcutsFolder(DefaultFolder);
+
                 if (options.DefaultFolder != null)
                 {
+                    PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, options.DefaultFolder);
                     RegistryKey.SetDefaultShortcutsFolder(options.DefaultFolder);
                 }
-                else if (RegistryKey.GetDefaultShortcutsFolder("") == "")
+                else
                 {
+                    PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, DefaultFolder);
                     RegistryKey.SetDefaultShortcutsFolder(DefaultFolder);
                 }
 

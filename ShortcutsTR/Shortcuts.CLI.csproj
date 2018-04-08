@@ -53,8 +53,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CmdCommand.cs" />
     <Compile Include="ConsoleApp.cs" />
     <Compile Include="Options.cs" />
+    <Compile Include="PathSetup.cs" />
     <Compile Include="RegistryKey.cs" />
     <Compile Include="Shortcut.cs" />
     <Compile Include="ShortcutType.cs" />

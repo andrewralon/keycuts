@@ -15,20 +15,21 @@ namespace ShortcutsTR
 
         private static int Main(string[] args)
         {
-            //int result = Runner(args); // new string[] { "--help" });		// RELEASE For normal use, called from the command line
-
-            int result = RunnerDebug();	// DEBUG Uncomment this to test pre-determined parameters
-
+            int result = Runner(args); // new string[] { "--help" });
+#if DEBUG
+            result = RunnerDebug();	// Tests pre-determined parameters
+#endif
             if (result == 0)
             {
                 Console.WriteLine("Done. YAY!");
             }
             else
             {
-                //Console.WriteLine("Did something bad happen?");
+                Console.WriteLine("Did something bad happen?");
             }
-
-            //Console.ReadKey(); // DEBUG Uncomment for testing so command prompt stays open
+#if DEBUG
+            Console.ReadKey(); // Leave command prompt open when testing
+#endif
 
             return result;
         }
@@ -36,12 +37,11 @@ namespace ShortcutsTR
         private static int RunnerDebug()
         {
             var destination =
-                //@"C:\randomfile.txt";		// File
+                @"C:\randomfile.txt";		// File
                 //@"C:\Users";				// Folder
                 //@"C:\Dropbox.lnk";		// Shortcut to folder
                 //"https://github.com/";  // URL
                 //"https://calendar.google.com/calendar/r?tab=mc&pli=1#main_7";
-                "https://www.google.com/search?q=regex+replace+c%23&oq=regex+replace+c%23&aqs=chrome..69i57j0l5.15967j0j7&sourceid=chrome&ie=UTF-8";
                 //@"C:\randomurl.url";		// URL shortcut file
                 //@"C:\Windows\System32\drivers\etc\hosts"; // hosts file
 
@@ -105,6 +105,11 @@ namespace ShortcutsTR
                     // Run app and pass arguments as parameters
                     var app = new ConsoleApp(appName, version);
                     result = app.Run(options);
+                }
+                else
+                {
+                    // Throw new exception here?
+                    Console.WriteLine("Values cannot be null: Destination, Shortcut");
                 }
             }
             //else

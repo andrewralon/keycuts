@@ -68,11 +68,6 @@ namespace ShortcutsTR
             {
                 var newSystemPath = string.Format("{0}{1}", systemPath, pathToAdd);
                 Environment.SetEnvironmentVariable("PATH", newSystemPath, EnvironmentVariableTarget.Machine);
-
-                // Do I need this?
-                //var command = string.Format("SET PATH=%PATH%;{0}", pathToAdd);
-                //CmdCommand.RunCommand(command);
-
                 result = true;
             }
             else
@@ -102,11 +97,6 @@ namespace ShortcutsTR
             {
                 var newSystemPath = systemPath.Replace(oldPath, newPath);
                 Environment.SetEnvironmentVariable("PATH", newSystemPath, EnvironmentVariableTarget.Machine);
-
-                // NOT TESTED
-                //var command = string.Format("SET PATH={0}", newSystemPath);
-                //CmdCommand.RunCommand(command);
-
                 result = true;
             }
             else

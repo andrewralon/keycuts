@@ -9,19 +9,6 @@ namespace ShortcutsTR
 {
     class RegistryKey
     {
-        //public string AppName { get; set; }
-
-        //public string Version { get; set; }
-
-        //public string Company { get; set; }
-
-        //public RegistryKey(string appName, string version, string company)
-        //{
-        //    AppName = appName;
-        //    Version = version;
-        //    Company = company;
-        //}
-
         public static void SetDefaultShortcutsFolder(string defaultFolder)
         {
             var keyPath = @"Software\TeamRalon\ShortcutsTR";// + AppName;
@@ -35,7 +22,6 @@ namespace ShortcutsTR
 
             if (folder != null)
             {
-                //folder.SetValue("Version", Version, RegistryValueKind.String);
                 folder.SetValue("DefaultFolder", defaultFolder, RegistryValueKind.String);
             }
         }

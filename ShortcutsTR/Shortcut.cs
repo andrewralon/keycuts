@@ -134,8 +134,7 @@ namespace ShortcutsTR
                 // Check for a line starting with "URL="
                 var line = File.ReadAllLines(Destination)
                     .ToList()
-                    .Where(a => a.StartsWith("URL=", StringComparison.InvariantCultureIgnoreCase))
-                    .SingleOrDefault();
+                    .FirstOrDefault(a => a.StartsWith("URL=", StringComparison.InvariantCultureIgnoreCase));
 
                 // Update the destination to use the URL from the link
                 if (line != null)

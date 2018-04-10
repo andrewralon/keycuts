@@ -13,6 +13,10 @@ namespace ShortcutsTR
 
         public readonly string Version;
 
+        public static readonly string DefaultFolder = @"C:\Shortcuts";
+
+        public static readonly string RegistryKeyStartPath = @"Software\TeamRalon\";
+
         public ConsoleApp(string appName, string version)
         {
             AppName = appName;
@@ -27,6 +31,23 @@ namespace ShortcutsTR
         public int Run(string destination, string shortcutPath, string defaultFolder, string openWithAppPath = null, bool force = false)
         {
             var result = false;
+
+            string registryKeyPath = string.Format("{0}{1}", RegistryKeyStartPath, AppName);
+            var oldDefaultFolder = RegistryKey.GetDefaultShortcutsFolder(DefaultFolder, registryKeyPath);
+
+            if (defaultFolder == null)
+            {
+                // If not given, use the existing default folder
+                defaultFolder = oldDefaultFolder;
+            }
+
+            if (defaultFolder != oldDefaultFolder)
+            {
+                // Update the registry key if the default folder has changed
+                RegistryKey.SetDefaultShortcutsFolder(defaultFolder, registryKeyPath);
+            }
+
+            PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, defaultFolder);
 
             var shortcut = new Shortcut(destination, shortcutPath, defaultFolder, openWithAppPath);
 

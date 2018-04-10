@@ -28,7 +28,7 @@ namespace ShortcutsTR
             if (keyPath == null)
             {
                 var appName = Assembly.GetExecutingAssembly().GetName().Name;
-                keyPath = string.Format("{0}{1}", Program.RegistryKeyStartPath, appName);
+                keyPath = string.Format("{0}{1}", ConsoleApp.RegistryKeyStartPath, appName);
             }
 
             var currentUser = Registry.CurrentUser;

@@ -10,7 +10,9 @@ namespace ShortcutsTR
 {
     class Program
     {
-        public static string DefaultFolder { get; private set; } = @"C:\Shortcuts";
+        public static readonly string RegistryKeyStartPath = @"Software\TeamRalon\";
+
+        public static readonly string DefaultFolder = @"C:\Shortcuts";
 
         private static int Main(string[] args)
         {
@@ -37,17 +39,17 @@ namespace ShortcutsTR
         private static int RunnerDebug()
         {
             var outputFolder =
+                //@"C:\NewShortcutFolder";
                 @"C:\Shortcuts";
-                //@"C:\Shortcuts-2";
 
             var destination =
-                @"C:\randomfile.txt";       // File
+                //@"C:\randomfile.txt";     // File
                 //@"C:\Users";				// Folder
                 //@"C:\Dropbox.lnk";		// Shortcut to folder
                 //"https://github.com/";    // URL #1
                 //"https://calendar.google.com/calendar/r?tab=mc&pli=1#main_7"; // URL #2
                 //@"C:\randomurl.url";		// URL shortcut file
-                //@"C:\Windows\System32\drivers\etc\hosts"; // hosts file
+                @"C:\Windows\System32\drivers\etc\hosts"; // hosts file
 
             var shortcut =
                 //@"C:\Shortcuts\test.bat";	// Full path to shortcut
@@ -55,9 +57,9 @@ namespace ShortcutsTR
                 @"test3";                   // Incomplete path to shortcut, no extension
 
             var openWithAppPath =
-                "";                                 // Empty path given; will open normally
                 //@"C:\Windows\System32\notepad.exe";	// Path to notepad
                 //@"C:\Program Files (x86)\Notepad++\notepad++.exe"; // Path to notepad++
+                "";                                     // Empty path; will open normally
 
             // Force - False by default. To overwrite existing shortcut, use "-f"
 
@@ -80,11 +82,11 @@ namespace ShortcutsTR
             string appName = Assembly.GetExecutingAssembly().GetName().Name;
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
+            Console.WriteLine(string.Format("{0} {1}", appName, version));
+
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
             if (!parsedArgs.Errors.Any())
             {
-                Console.WriteLine(string.Format("{0} {1}", appName, version));
-
                 var options = new Options
                 {
                     Destination = parsedArgs.Value.Destination?.Trim(),
@@ -94,18 +96,22 @@ namespace ShortcutsTR
                     DefaultFolder = parsedArgs.Value.DefaultFolder?.Trim()
                 };
 
-                var oldDefaultFolder = RegistryKey.GetDefaultShortcutsFolder(DefaultFolder);
+                string registryKeyPath = string.Format("{0}{1}", RegistryKeyStartPath, appName);
+                var oldDefaultFolder = RegistryKey.GetDefaultShortcutsFolder(DefaultFolder, registryKeyPath);
 
-                if (options.DefaultFolder != null)
+                if (options.DefaultFolder == null)
                 {
-                    PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, options.DefaultFolder);
-                    RegistryKey.SetDefaultShortcutsFolder(options.DefaultFolder);
+                    // If not given, use the existing default folder
+                    options.DefaultFolder = oldDefaultFolder;
                 }
-                else
+
+                if (options.DefaultFolder != oldDefaultFolder)
                 {
-                    PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, DefaultFolder);
-                    RegistryKey.SetDefaultShortcutsFolder(DefaultFolder);
+                    // Update the registry key if the default folder has changed
+                    RegistryKey.SetDefaultShortcutsFolder(options.DefaultFolder, registryKeyPath);
                 }
+
+                PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, options.DefaultFolder);
 
                 if (options.Destination != null && options.Shortcut != null)
                 {
@@ -119,13 +125,15 @@ namespace ShortcutsTR
                     Console.WriteLine("Values cannot be null: Destination, Shortcut");
                 }
             }
-            //else
-            //{
-            //	foreach (var error in parsedArgs.Errors)
-            //	{
-            //		Console.WriteLine("Error: " + error.ToString());
-            //	}
-            //}
+            else
+            {
+                Console.WriteLine("***Errors:");
+
+                foreach (var error in parsedArgs.Errors)
+                {
+                    Console.WriteLine(error.ToString());
+                }
+            }
 
             return result;
         }

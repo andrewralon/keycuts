@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ShortcutsTR
 {
     class ConsoleApp
     {
-        public string AppName { get; private set; }
+        public readonly string AppName;
 
-        public string Version { get; private set; }
+        public readonly string Version;
 
         public ConsoleApp(string appName, string version)
         {
@@ -22,14 +21,14 @@ namespace ShortcutsTR
 
         public int Run(Options options)
         {
-            return Run(options.Destination, options.Shortcut, options.OpenWithAppPath, options.Force);
+            return Run(options.Destination, options.Shortcut, options.DefaultFolder, options.OpenWithAppPath, options.Force);
         }
 
-        public int Run(string destination, string shortcutPath, string openWithAppPath = null, bool force = false)
+        public int Run(string destination, string shortcutPath, string defaultFolder, string openWithAppPath = null, bool force = false)
         {
             var result = false;
 
-            var shortcut = new Shortcut(destination, shortcutPath, openWithAppPath);
+            var shortcut = new Shortcut(destination, shortcutPath, defaultFolder, openWithAppPath);
 
             if (shortcut.Type != ShortcutType.Unknown)
             {
@@ -84,7 +83,7 @@ namespace ShortcutsTR
                 {
                     if (shortcut.Type == ShortcutType.Url)
                     {
-                        command = string.Format(start, SanitizeBatAndCmdEscapeCharacters(shortcut.Destination));
+                        command = string.Format(start, Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination));
                     }
                     else if (shortcut.Type == ShortcutType.File)
                     {
@@ -119,14 +118,6 @@ namespace ShortcutsTR
             }
 
             return result;
-        }
-
-        private string SanitizeBatAndCmdEscapeCharacters(string command)
-        {
-            // Bat files use % for variables, so escape a single % with %%
-            command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
-
-            return command;
         }
     }
 }

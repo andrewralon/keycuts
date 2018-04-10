@@ -4,12 +4,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ShortcutsTR
 {
     class Shortcut
     {
+        #region Properties
+
         public string Destination { get; private set; }
 
         public string DestinationFilename { get; private set; }
@@ -33,8 +36,12 @@ namespace ShortcutsTR
         public ShortcutType Type { get; private set; } = ShortcutType.Unknown;
 
         public string ShortcutsFolder { get; private set; }
-        
-        public Shortcut(string destination, string path, string defaultFolder = null, string openWithAppPath = null)
+
+        #endregion Properties
+
+        #region Constructors
+
+        public Shortcut(string destination, string path, string defaultFolder, string openWithAppPath = null)
         {
             Destination = GetWindowsLinkTargetPath(destination);
             DestinationFolder = Path.GetDirectoryName(Destination);
@@ -51,20 +58,9 @@ namespace ShortcutsTR
             Type = GetShortcutType();
         }
 
-        public static bool IsNotFullPath(string path)
-        {
-            var result = false;
+        #endregion Constructors
 
-            var filename = Path.GetFileNameWithoutExtension(path);
-            var filenamewithextension = Path.GetFileName(path);
-
-            if (path == filename || path == filenamewithextension)
-            {
-                result = true;
-            }
-
-            return result;
-        }
+        #region Private Methods
 
         private ShortcutType GetShortcutType()
         {
@@ -151,6 +147,25 @@ namespace ShortcutsTR
             return result;
         }
 
+        #endregion Private Methods
+
+        #region Public Methods
+
+        public static bool IsNotFullPath(string path)
+        {
+            var result = false;
+
+            var filename = Path.GetFileNameWithoutExtension(path);
+            var filenamewithextension = Path.GetFileName(path);
+
+            if (path == filename || path == filenamewithextension)
+            {
+                result = true;
+            }
+
+            return result;
+        }
+
         public static string GetWindowsLinkTargetPath(string shortcutFilename)
         {
             var result = shortcutFilename;
@@ -171,5 +186,14 @@ namespace ShortcutsTR
 
             return result;
         }
+
+        public static string SanitizeBatEscapeCharacters(string command)
+        {
+            // Bat files use % for variables, so escape a single % with %%
+            command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
+            return command;
+        }
+
+        #endregion Public Methods
     }
 }

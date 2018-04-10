@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,9 +10,8 @@ namespace ShortcutsTR
 {
     class RegistryKey
     {
-        public static void SetDefaultShortcutsFolder(string defaultFolder)
+        public static void SetDefaultShortcutsFolder(string defaultFolder, string keyPath)
         {
-            var keyPath = @"Software\TeamRalon\ShortcutsTR";// + AppName;
             var currentUser = Registry.CurrentUser;
             var folder = currentUser.OpenSubKey(keyPath, true);
 
@@ -20,15 +20,17 @@ namespace ShortcutsTR
                 folder = currentUser.CreateSubKey(keyPath, true);
             }
 
-            if (folder != null)
-            {
-                folder.SetValue("DefaultFolder", defaultFolder, RegistryValueKind.String);
-            }
+            folder?.SetValue("DefaultFolder", defaultFolder, RegistryValueKind.String);
         }
 
-        public static string GetDefaultShortcutsFolder(string defaultFolder)
+        public static string GetDefaultShortcutsFolder(string defaultFolder, string keyPath = null)
         {
-            var keyPath = @"Software\TeamRalon\ShortcutsTR";// + AppName;
+            if (keyPath == null)
+            {
+                var appName = Assembly.GetExecutingAssembly().GetName().Name;
+                keyPath = string.Format("{0}{1}", Program.RegistryKeyStartPath, appName);
+            }
+
             var currentUser = Registry.CurrentUser;
             var folder = currentUser.OpenSubKey(keyPath, true);
 
@@ -37,10 +39,7 @@ namespace ShortcutsTR
                 folder = currentUser.CreateSubKey(keyPath, true);
             }
 
-            if (folder != null)
-            {
-                defaultFolder = folder.GetValue("DefaultFolder", defaultFolder).ToString();
-            }
+            defaultFolder = folder?.GetValue("DefaultFolder", defaultFolder).ToString();
 
             return defaultFolder;
         }

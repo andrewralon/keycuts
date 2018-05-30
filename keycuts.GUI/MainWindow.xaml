@@ -5,8 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="450" Width="425">
     <Grid>
-        
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*">
+                    
+                </RowDefinition>
+                <RowDefinition Height="1*">
+                    
+                </RowDefinition>
+                <RowDefinition Height="1*">
+
+                </RowDefinition>
+                <RowDefinition Height="1*">
+
+                </RowDefinition>
+            </Grid.RowDefinitions>
+        </Grid>
     </Grid>
 </Window>

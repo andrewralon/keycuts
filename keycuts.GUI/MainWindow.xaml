@@ -5,26 +5,27 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="425">
+        Title="MainWindow" Height="500" Width="425" FontSize="18">
     <Grid>
         <Grid Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="2*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
-                <Label Content="{Binding Path=Step1}" HorizontalAlignment="Left" Margin="20,20,0,0" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Step1}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="1">
-                <Label Content="{Binding Path=Step2}" HorizontalAlignment="Left" Margin="20,20,0,0" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Step2}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="2">
-                <Label Content="{Binding Path=Step3}" HorizontalAlignment="Left" Margin="20,20,0,0" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Step3}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="3">
-                <Label Content="{Binding Path=Step4}" HorizontalAlignment="Left" Margin="20,20,0,0" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Instructions}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <Button Content="Open Shortcuts Folder" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="275"/>
             </Grid>
         </Grid>
     </Grid>

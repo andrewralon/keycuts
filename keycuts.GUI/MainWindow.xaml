@@ -12,20 +12,23 @@
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
-                <RowDefinition Height="2*"/>
+                <RowDefinition Height="1.75*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
-                <Label Content="{Binding Path=Step1}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <TextBox Height="30" Margin="10" TextWrapping="Wrap" Text="{Binding Path=Destination}" Width="200" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center"/>
             </Grid>
             <Grid Grid.Row="1">
-                <Label Content="{Binding Path=Step2}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <TextBox Height="30" Margin="10" TextWrapping="Wrap" Text="{Binding Path=Shortcut}" Width="200" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center"/>
             </Grid>
             <Grid Grid.Row="2">
-                <Label Content="{Binding Path=Step3}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
+                <Button Content="Create Shortcut" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Bottom" Width="170"/>
             </Grid>
             <Grid Grid.Row="3">
-                <Label Content="{Binding Path=Instructions}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-                <Button Content="Open Shortcuts Folder" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="275"/>
+                <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Top"/>
+                <Button Content="Open Shortcuts Folder" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="240"/>
             </Grid>
         </Grid>
     </Grid>

@@ -40,7 +40,7 @@ namespace keycuts.GUI
 
         public string[] Steps = new string[]
         {
-            "1. Drag in or paste a file, folder, or URL",
+            "1. Drag or paste a file, folder, or URL",
             "2. Choose a name for the shortcut",
             "3. Create the shortcut",
             "* Type Windows + R",

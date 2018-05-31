@@ -59,21 +59,34 @@ namespace keycuts.GUI
             defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
         }
 
+        #region Event Handlers - Buttons, etc
+
         private void CreateShortcut_Click(object sender, RoutedEventArgs e)
         {
-            var args = new string[]
+            if (Destination != "" && Shortcut != "")
             {
-                $"-d {Destination}",
-                $"-s {Shortcut}"
-            };
+                defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
 
-            Program.Main(args);
+                var args = new string[]
+                {
+                    $"-d \"{Destination}\"",
+                    $"-s \"{Shortcut}\""
+                };
+
+                Program.Main(args);
+            }
         }
 
         private void OpenShortcutsFolder_Click(object sender, RoutedEventArgs e)
         {
+            defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
+
             Process.Start(defaultFolder);
         }
+
+        #endregion Event Handlers - Buttons, etc
+
+        #region OnPropertyChanged - Event and Handler
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -86,5 +99,7 @@ namespace keycuts.GUI
                 handler(this, e);
             }
         }
+
+        #endregion OnPropertyChanged - Event and Handler
     }
 }

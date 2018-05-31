@@ -24,6 +24,8 @@ namespace keycuts.GUI
     /// </summary>
     public partial class MainWindow : Window
     {
+        private string defaultFolder;
+
         #region Properties
 
         public string Step1 { get { return Steps[0]; } }
@@ -37,8 +39,6 @@ namespace keycuts.GUI
         public string Destination { get; set; }
 
         public string Shortcut { get; set; }
-
-        private string defaultFolder;
 
         #endregion Properties
 

@@ -5,35 +5,40 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="500" Width="425" FontSize="18">
+        Title="MainWindow" Height="500" Width="425" FontSize="18" MinWidth="425" MinHeight="500">
     <Grid>
         <Grid Margin="20">
             <Grid.RowDefinitions>
-                <RowDefinition Height="1*"/>
-                <RowDefinition Height="1*"/>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="0.5*"/>
+                <RowDefinition Height="0.5*"/>
+                <RowDefinition Height="0.5*"/>
+                <RowDefinition Height="0.5*"/>
+                <RowDefinition Height="0.5*"/>
+                <RowDefinition Height="0.5*"/>
                 <RowDefinition Height="1.75*"/>
             </Grid.RowDefinitions>
-            <Grid Grid.Row="0" Height="91" VerticalAlignment="Bottom">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="1*"/>
-                    <RowDefinition Height="1*"/>
-                </Grid.RowDefinitions>
+            <Grid Grid.Row="0">
                 <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.RowSpan="2"/>
-                <!--<TextBox Height="30" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Path=Destination}" VerticalAlignment="Bottom" TextAlignment="Center"/>-->
-                <DockPanel Grid.Row="1">
-                    <TextBox AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding Path=Destination}"/>
-                </DockPanel>
             </Grid>
             <Grid Grid.Row="1">
-                <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-                <TextBox Height="30" Margin="10" TextWrapping="Wrap" Text="{Binding Path=Shortcut}" Width="200" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center"/>
+                <!--<TextBox Height="30" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Path=Destination}" VerticalAlignment="Bottom" TextAlignment="Center"/>-->
+                <DockPanel Grid.Row="1">
+                    <TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16"/>
+                </DockPanel>
             </Grid>
             <Grid Grid.Row="2">
-                <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Bottom" Width="170"/>
+                <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="3">
+                <TextBox Margin="88,10,88,10" TextWrapping="Wrap" Text="{Binding Path=Shortcut}" TextAlignment="Center"/>
+            </Grid>
+            <Grid Grid.Row="4">
+                <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+            </Grid>
+            <Grid Grid.Row="5">
+                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="98,8,98,7" MinWidth="170"/>
+            </Grid>
+            <Grid Grid.Row="6">
                 <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Top"/>
                 <Button Content="Open Shortcuts Folder" Click="OpenShortcutsFolder_Click" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="240"/>
             </Grid>

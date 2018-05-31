@@ -6,18 +6,20 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShortcutsTR
+namespace keycuts.CLI
 {
-    class Program
+    public class Program
     {
-        private static int Main(string[] args)
+        public static string DefaultFolder { get; set; } = @"C:\Shortcuts";
+
+        public static int Main(string[] args)
         {
             var result = 0;
-#if DEBUG
-            result = RunnerDebug(); // Tests pre-determined parameters
-#else
+            //#if DEBUG
+            //result = RunnerDebug(); // Tests pre-determined parameters
+            //#else
             result = Runner(args);  // new string[] { "--help" });
-#endif
+            //#endif
             if (result == 0)
             {
                 Console.WriteLine("Done. YAY!");
@@ -27,7 +29,7 @@ namespace ShortcutsTR
                 Console.WriteLine("Did something bad happen?");
             }
 #if DEBUG
-            Console.ReadKey(); // Leave command prompt open when testing
+            Console.Read(); // Leave command prompt open when testing
 #endif
             return result;
         }

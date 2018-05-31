@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShortcutsTR
+namespace keycuts.CLI
 {
     class ConsoleApp
     {

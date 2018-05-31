@@ -24,11 +24,11 @@
             </Grid>
             <Grid Grid.Row="2">
                 <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-                <Button Content="Create Shortcut" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Bottom" Width="170"/>
+                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Bottom" Width="170"/>
             </Grid>
             <Grid Grid.Row="3">
                 <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Top"/>
-                <Button Content="Open Shortcuts Folder" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="240"/>
+                <Button Content="Open Shortcuts Folder" Click="OpenShortcutsFolder_Click" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="240"/>
             </Grid>
         </Grid>
     </Grid>

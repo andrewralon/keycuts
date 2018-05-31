@@ -6,9 +6,9 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShortcutsTR
+namespace keycuts.CLI
 {
-    class RegistryKey
+    public class RegistryKey
     {
         public static void SetDefaultShortcutsFolder(string defaultFolder, string keyPath)
         {

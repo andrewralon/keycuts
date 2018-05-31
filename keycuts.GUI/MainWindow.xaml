@@ -16,7 +16,7 @@
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-                <TextBox Height="30" Margin="10" TextWrapping="Wrap" Text="{Binding Path=Destination}" Width="200" HorizontalAlignment="Center" VerticalAlignment="Bottom" TextAlignment="Center"/>
+                <TextBox Height="30" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Path=Destination}" VerticalAlignment="Bottom" TextAlignment="Center"/>
             </Grid>
             <Grid Grid.Row="1">
                 <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>

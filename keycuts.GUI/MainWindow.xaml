@@ -9,13 +9,14 @@
     <Grid>
         <Grid Margin="20">
             <Grid.RowDefinitions>
-                <RowDefinition Height="0.5*"/>
-                <RowDefinition Height="0.5*"/>
-                <RowDefinition Height="0.5*"/>
-                <RowDefinition Height="0.5*"/>
-                <RowDefinition Height="0.5*"/>
-                <RowDefinition Height="0.5*"/>
-                <RowDefinition Height="1.75*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="2.5*"/>
+                <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.RowSpan="2"/>
@@ -36,11 +37,13 @@
                 <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="5">
-                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="98,8,98,7" MinWidth="170"/>
+                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="0,8,0,7" MinWidth="170"/>
             </Grid>
             <Grid Grid.Row="6">
-                <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Top"/>
-                <Button Content="Open Shortcuts Folder" Click="OpenShortcutsFolder_Click" HorizontalAlignment="Center" Margin="20" VerticalAlignment="Bottom" Width="240"/>
+                <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid Grid.Row="7">
+                <Button Content="Open Shortcuts Folder" Click="OpenShortcutsFolder_Click" HorizontalAlignment="Center" Margin="0,8,0,7" Width="240"/>
             </Grid>
         </Grid>
     </Grid>

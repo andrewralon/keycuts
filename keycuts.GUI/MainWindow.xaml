@@ -14,9 +14,16 @@
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1.75*"/>
             </Grid.RowDefinitions>
-            <Grid Grid.Row="0">
-                <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>
-                <TextBox Height="30" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Path=Destination}" VerticalAlignment="Bottom" TextAlignment="Center"/>
+            <Grid Grid.Row="0" Height="91" VerticalAlignment="Bottom">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.RowSpan="2"/>
+                <!--<TextBox Height="30" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Path=Destination}" VerticalAlignment="Bottom" TextAlignment="Center"/>-->
+                <DockPanel Grid.Row="1">
+                    <TextBox AcceptsReturn="True" TextWrapping="Wrap" Text="{Binding Path=Destination}"/>
+                </DockPanel>
             </Grid>
             <Grid Grid.Row="1">
                 <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10" VerticalAlignment="Top"/>

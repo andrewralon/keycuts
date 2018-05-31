@@ -31,7 +31,7 @@
                 <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="3">
-                <TextBox Margin="88,10,88,10" TextWrapping="Wrap" Text="{Binding Path=Shortcut}" TextAlignment="Center"/>
+                <TextBox Margin="0,8,0,7" Text="{Binding Path=Shortcut}" TextAlignment="Center" HorizontalAlignment="Center" Width="220"/>
             </Grid>
             <Grid Grid.Row="4">
                 <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>

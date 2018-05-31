@@ -28,7 +28,7 @@ namespace keycuts.CLI
             if (keyPath == null)
             {
                 var appName = Assembly.GetExecutingAssembly().GetName().Name;
-                keyPath = string.Format("{0}{1}", ConsoleApp.RegistryKeyStartPath, appName);
+                keyPath = $"{ConsoleApp.RegistryKeyStartPath}{appName}";
             }
 
             var currentUser = Registry.CurrentUser;

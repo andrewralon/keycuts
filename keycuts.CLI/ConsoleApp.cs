@@ -32,7 +32,7 @@ namespace keycuts.CLI
         {
             var result = false;
 
-            string registryKeyPath = string.Format("{0}{1}", RegistryKeyStartPath, AppName);
+            string registryKeyPath = $"{RegistryKeyStartPath}{AppName}";
             var oldDefaultFolder = RegistryKey.GetDefaultShortcutsFolder(DefaultFolder, registryKeyPath);
 
             if (defaultFolder == null)
@@ -83,10 +83,10 @@ namespace keycuts.CLI
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    string.Format("REM {0} {1}", AppName, Version),
-                    string.Format("REM <shortcut>{0}</shortcut>", shortcut.FullPath),
-                    string.Format("REM <type>{0}</type>", shortcutTypeLower),
-                    string.Format("REM <destination>{0}</destination>", shortcut.Destination),
+                    $"REM {AppName} {Version}",
+                    $"REM <shortcut>{shortcut.FullPath}</shortcut>",
+                    $"REM <type>{shortcutTypeLower}</type>",
+                    $"REM <destination>{shortcut.Destination}</destination>",
                 };
 
                 // START: "" = Title (empty) of console window
@@ -98,7 +98,8 @@ namespace keycuts.CLI
 
                 if (shortcut.OpenWithApp)
                 {
-                    command = string.Format(start + " \"{1}\"", shortcut.OpenWithAppPath, shortcut.Destination);
+                    start = $"{start} \"{1}\"";
+                    command = string.Format(start, shortcut.OpenWithAppPath, shortcut.Destination);
                 }
                 else
                 {
@@ -114,11 +115,12 @@ namespace keycuts.CLI
                     {
                         var notepadPath = @"%windir%\system32\notepad.exe";
 
-                        command = string.Format(start + " \"{1}\"", notepadPath, shortcut.Destination);
+                        start = $"{start} \"{1}\"";
+                        command = string.Format(start, notepadPath, shortcut.Destination);
                     }
                     else if (shortcut.Type == ShortcutType.Folder)
                     {
-                        command = string.Format("\"%SystemRoot%\\explorer.exe\" \"{0}\"", shortcut.Destination);
+                        command = $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"";
                     }
                 }
 
@@ -133,7 +135,7 @@ namespace keycuts.CLI
             else
             {
                 Console.WriteLine("The shortcut file already exists: ");
-                Console.WriteLine(shortcut.FullPath);
+                Console.WriteLine($"  {shortcut.FullPath}");
                 Console.WriteLine();
                 result = false;
             }

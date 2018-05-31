@@ -80,7 +80,7 @@ namespace keycuts.CLI
             string appName = Assembly.GetExecutingAssembly().GetName().Name;
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
-            Console.WriteLine(string.Format("{0} {1}", appName, version));
+            Console.WriteLine($"{appName} {version}");
 
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
             if (!parsedArgs.Errors.Any())

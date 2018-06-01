@@ -12,11 +12,8 @@ namespace keycuts.GUI
     {
         public static void DragAndEnter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop)) // Normal files or folders
-            {
-                e.Effects = DragDropEffects.Copy;
-            }
-            else if (e.Data.GetDataPresent(DataFormats.Text)) // URL drag and drop from browser "lock" icon
+            if (e.Data.GetDataPresent(DataFormats.FileDrop) ||  // Normal files or folders
+                e.Data.GetDataPresent(DataFormats.Text))        // URL drag and drop from browser "lock" icon
             {
                 e.Effects = DragDropEffects.Copy;
             }

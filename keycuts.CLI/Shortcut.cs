@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace keycuts.CLI
 {
-    class Shortcut
+    public class Shortcut
     {
         #region Properties
 

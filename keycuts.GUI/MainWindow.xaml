@@ -1,13 +1,13 @@
-﻿<Window x:Class="keycuts.GUI.MainWindow"
+﻿<Window x:Name="Main" x:Class="keycuts.GUI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.GUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510">
-    <Grid>
-        <Grid Margin="20">
+        Title="MainWindow" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510" DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True">
+    <Grid x:Name="GridMainFull" DragEnter="GridMainFull_DragEnter" Drop="GridMainFull_Drop" AllowDrop="True">
+        <Grid x:Name="GridMainMargin" Margin="20" DragEnter="GridMainMargin_DragEnter" Drop="GridMainMargin_Drop" AllowDrop="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="0.9*"/>
                 <RowDefinition Height="1.1*"/>
@@ -22,16 +22,15 @@
                 <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top" Grid.RowSpan="2"/>
             </Grid>
             <Grid Grid.Row="1">
-                <!--<TextBox Height="30" Margin="0,0,0,10" TextWrapping="Wrap" Text="{Binding Path=Destination}" VerticalAlignment="Bottom" TextAlignment="Center"/>-->
                 <DockPanel Grid.Row="1">
-                    <TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16"/>
+                    <TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16" DragEnter="TextboxDestination_DragEnter" Drop="TextboxDestination_Drop" AllowDrop="True" PreviewDragOver="TextboxDestination_PreviewDragOver"/>
                 </DockPanel>
             </Grid>
             <Grid Grid.Row="2">
                 <Label Content="{Binding Path=Step2, FallbackValue='2. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="3">
-                <TextBox Margin="0,8,0,7" Text="{Binding Path=Shortcut}" TextAlignment="Center" HorizontalAlignment="Center" Width="220"/>
+                <TextBox x:Name="TextboxShortcut" Margin="0,8,0,7" Text="{Binding Path=ShortcutName}" TextAlignment="Center" HorizontalAlignment="Center" Width="220"/>
             </Grid>
             <Grid Grid.Row="4">
                 <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>

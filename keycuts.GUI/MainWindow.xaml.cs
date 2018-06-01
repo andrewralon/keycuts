@@ -24,7 +24,17 @@ namespace keycuts.GUI
     /// </summary>
     public partial class MainWindow : Window
     {
+        #region Fields
+
         private string defaultFolder;
+
+        private string destination;
+
+        private string shortcutName;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        #endregion Fields
 
         #region Properties
 
@@ -36,9 +46,21 @@ namespace keycuts.GUI
 
         public string Instructions { get { return string.Join("\n", Steps[3], Steps[4], Steps[5]); } }
 
-        public string Destination { get; set; }
+        public string Destination { get { return destination; }
+            set
+            {
+                destination = value;
+                NotifyPropertyChanged("Destination");
+            }
+        }
 
-        public string Shortcut { get; set; }
+        public string ShortcutName { get { return shortcutName; }
+            set
+            {
+                shortcutName = value;
+                NotifyPropertyChanged("ShortcutName");
+            }
+        }
 
         #endregion Properties
 
@@ -63,14 +85,15 @@ namespace keycuts.GUI
 
         private void CreateShortcut_Click(object sender, RoutedEventArgs e)
         {
-            if (Destination != "" && Shortcut != "")
+            if (Destination != "" && ShortcutName != "")
             {
                 defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
 
                 var args = new string[]
                 {
-                    $"-d \"{Destination}\"",
-                    $"-s \"{Shortcut}\""
+                    // Surround with quotes?
+                    $"-d {Destination}", 
+                    $"-s {ShortcutName}"
                 };
 
                 Program.Main(args);
@@ -86,20 +109,87 @@ namespace keycuts.GUI
 
         #endregion Event Handlers - Buttons, etc
 
-        #region OnPropertyChanged - Event and Handler
+        #region DragAndDrop Handlers
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName]string propertyName = null)
+        private void HandlePreviewDragOver(object sender, DragEventArgs e)
         {
-            PropertyChangedEventHandler handler = this.PropertyChanged;
-            if (handler != null)
-            {
-                var e = new PropertyChangedEventArgs(propertyName);
-                handler(this, e);
-            }
+            e.Handled = false;
         }
 
-        #endregion OnPropertyChanged - Event and Handler
+        private void HandleDragEnter(object sender, DragEventArgs e)
+        {
+            DragDrop.DragAndEnter(sender, e);
+        }
+
+        private void HandleDragDrop(object sender, DragEventArgs e)
+        {
+            var file = DragDrop.GetDroppedFiles(sender, e).FirstOrDefault();
+
+            // Follow the link (if it exists) and set the path textbox
+            Destination = Shortcut.GetWindowsLinkTargetPath(file);
+
+            // Focus on the shortcut name textbox
+            TextboxShortcut.Focus();
+
+            // Activate this window (normally keeps focus on whatever was previously active)
+            Admin.ActivateThisWindow();
+        }
+
+        private void Main_DragEnter(object sender, DragEventArgs e)
+        {
+            HandleDragEnter(sender, e);
+        }
+
+        private void Main_Drop(object sender, DragEventArgs e)
+        {
+            HandleDragDrop(sender, e);
+        }
+
+        private void GridMainFull_DragEnter(object sender, DragEventArgs e)
+        {
+            HandleDragEnter(sender, e);
+        }
+
+        private void GridMainFull_Drop(object sender, DragEventArgs e)
+        {
+            HandleDragDrop(sender, e);
+        }
+
+        private void GridMainMargin_DragEnter(object sender, DragEventArgs e)
+        {
+            HandleDragEnter(sender, e);
+        }
+
+        private void GridMainMargin_Drop(object sender, DragEventArgs e)
+        {
+            HandleDragDrop(sender, e);
+        }
+
+        private void TextboxDestination_PreviewDragOver(object sender, DragEventArgs e)
+        {
+            HandlePreviewDragOver(sender, e);
+        }
+
+        private void TextboxDestination_DragEnter(object sender, DragEventArgs e)
+        {
+            HandleDragEnter(sender, e);
+        }
+
+        private void TextboxDestination_Drop(object sender, DragEventArgs e)
+        {
+            HandleDragDrop(sender, e);
+        }
+
+        #endregion DragAndDrop Handlers
+
+
+        #region OnPropertyChanged Handler
+
+        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion OnPropertyChanged Handler
     }
 }

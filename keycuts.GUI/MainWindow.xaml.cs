@@ -62,8 +62,6 @@ namespace keycuts.GUI
             }
         }
 
-        #endregion Properties
-
         public string[] Steps = new string[]
         {
             "1. Drag or paste a file, folder, or URL",
@@ -73,6 +71,8 @@ namespace keycuts.GUI
             "* Type the shortcut name",
             "* Press enter.... Enjoy!"
         };
+
+        #endregion Properties
 
         public MainWindow()
         {

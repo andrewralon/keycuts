@@ -50,7 +50,7 @@ namespace keycuts.CLI
             Filename = Path.GetFileNameWithoutExtension(path);
             FilenameWithExtension = string.Format("{0}{1}", Filename, Extension);
             Folder = IsNotFullPath(path) ?
-                RegistryKey.GetDefaultShortcutsFolder(defaultFolder) :
+                defaultFolder :
                 Path.GetDirectoryName(path);
             FullPath = Path.Combine(Folder, string.Format("{0}{1}", Filename, Extension));
             OpenWithAppPath = openWithAppPath;

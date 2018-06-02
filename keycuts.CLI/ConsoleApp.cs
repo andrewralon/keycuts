@@ -15,8 +15,6 @@ namespace keycuts.CLI
 
         public static readonly string DefaultFolder = @"C:\Shortcuts";
 
-        public static readonly string RegistryKeyStartPath = @"Software\TeamRalon\";
-
         public ConsoleApp(string appName, string version)
         {
             AppName = appName;
@@ -32,8 +30,7 @@ namespace keycuts.CLI
         {
             var result = false;
 
-            string registryKeyPath = $"{RegistryKeyStartPath}{AppName}";
-            var oldDefaultFolder = RegistryKey.GetDefaultShortcutsFolder(DefaultFolder, registryKeyPath);
+            var oldDefaultFolder = RegistryStuff.GetOutputFolder(DefaultFolder);
 
             if (defaultFolder == null)
             {
@@ -44,7 +41,7 @@ namespace keycuts.CLI
             if (defaultFolder != oldDefaultFolder)
             {
                 // Update the registry key if the default folder has changed
-                RegistryKey.SetDefaultShortcutsFolder(defaultFolder, registryKeyPath);
+                RegistryStuff.SetOutputFolder(defaultFolder);
             }
 
             PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, defaultFolder);

@@ -28,7 +28,7 @@ namespace keycuts.GUI
 
         public static void OpenShortcutsFolder()
         {
-            var defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
+            var defaultFolder = RegistryStuff.GetOutputFolder(Program.DefaultFolder);
 
             Process.Start(defaultFolder);
         }

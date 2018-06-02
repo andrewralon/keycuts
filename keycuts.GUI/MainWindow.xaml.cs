@@ -1,8 +1,8 @@
-﻿using keycuts.CLI;
+﻿//using keycuts.CLI;
+using keycuts.CLI;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -25,8 +25,6 @@ namespace keycuts.GUI
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         #region Fields
-
-        private string defaultFolder;
 
         private string destination;
 
@@ -78,36 +76,34 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
-            defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
         }
 
-        #region Event Handlers - Buttons, etc
+        private void CreateShortcut()
+        {
+            CLI.CreateShortcut(Destination, ShortcutName);
+        }
+
+        #region UI Handlers - Buttons, Keys
 
         private void CreateShortcut_Click(object sender, RoutedEventArgs e)
         {
-            if (Destination != "" && ShortcutName != "")
+            CreateShortcut();
+        }
+
+        private void Main_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
             {
-                defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
-
-                var args = new string[]
-                {
-                    // Surround with quotes?
-                    $"-d {Destination}", 
-                    $"-s {ShortcutName}"
-                };
-
-                Program.Main(args);
+                CreateShortcut();
             }
         }
 
         private void OpenShortcutsFolder_Click(object sender, RoutedEventArgs e)
         {
-            defaultFolder = RegistryKey.GetDefaultShortcutsFolder(Program.DefaultFolder);
-
-            Process.Start(defaultFolder);
+            CLI.OpenShortcutsFolder();
         }
 
-        #endregion Event Handlers - Buttons, etc
+        #endregion UI Handlers - Buttons, Keys
 
         #region DragAndDrop Handlers
 
@@ -134,7 +130,7 @@ namespace keycuts.GUI
             TextboxShortcut.Focus();
 
             // Activate this window (normally keeps focus on whatever was previously active)
-            Admin.ActivateThisWindow();
+            UI.ActivateThisWindow();
         }
 
         private void Main_DragEnter(object sender, DragEventArgs e)
@@ -183,7 +179,6 @@ namespace keycuts.GUI
         }
 
         #endregion DragAndDrop Handlers
-
 
         #region OnPropertyChanged Handler
 

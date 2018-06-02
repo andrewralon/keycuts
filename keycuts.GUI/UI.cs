@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace keycuts.GUI
 {
-    public class Admin
+    public class UI
     {
         public static void ActivateThisWindow()
         {

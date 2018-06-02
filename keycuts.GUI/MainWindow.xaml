@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:keycuts.GUI"
         mc:Ignorable="d"
         Title="keycuts.... by TeamRalon" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510" DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True">
     <Grid x:Name="GridMainFull" DragEnter="GridMainFull_DragEnter" Drop="GridMainFull_Drop" AllowDrop="True">

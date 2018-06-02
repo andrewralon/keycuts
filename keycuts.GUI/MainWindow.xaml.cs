@@ -22,7 +22,7 @@ namespace keycuts.GUI
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         #region Fields
 
@@ -113,7 +113,7 @@ namespace keycuts.GUI
 
         private void HandlePreviewDragOver(object sender, DragEventArgs e)
         {
-            e.Handled = false;
+            e.Handled = true;
         }
 
         private void HandleDragEnter(object sender, DragEventArgs e)
@@ -123,6 +123,8 @@ namespace keycuts.GUI
 
         private void HandleDragDrop(object sender, DragEventArgs e)
         {
+            e.Handled = true;
+
             var file = DragDrop.GetDroppedFiles(sender, e).FirstOrDefault();
 
             // Follow the link (if it exists) and set the path textbox

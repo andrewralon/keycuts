@@ -10,7 +10,7 @@ using System.Windows;
 [assembly: AssemblyTitle("keycuts.GUI")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("TeamRalon")]
 [assembly: AssemblyProduct("keycuts.GUI")]
 [assembly: AssemblyCopyright("Copyright © Microsoft 2018")]
 [assembly: AssemblyTrademark("")]

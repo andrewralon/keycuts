@@ -9,14 +9,8 @@ namespace keycuts.CLI
 {
     class ConsoleApp
     {
-        public readonly string AppName;
-
-        public readonly string Version;
-
-        public ConsoleApp(string appName, string version)
+        public ConsoleApp()
         {
-            AppName = appName;
-            Version = version;
         }
 
         public int Run(Options options)
@@ -78,7 +72,7 @@ namespace keycuts.CLI
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    $"REM {AppName} {Version}",
+                    $"REM {Program.AppName} {Program.Version}",
                     $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                     $"REM <type>{shortcutTypeLower}</type>",
                     $"REM <destination>{shortcut.Destination}</destination>",

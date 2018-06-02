@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -16,21 +17,23 @@ namespace keycuts.CLI
 
         public static readonly string OutputFolderKeyName = "OutputFolder";
 
-        //private static readonly string ContextMenuName = "Folder\\shell\\";
+        private static readonly string ContextMenuFile = $@"*\shell\{Program.AppName}";
 
-        //private static readonly string ContextMenuCommand = "Folder\\shell\\";
+        private static readonly string ContextMenuFileCommand = $@"*\shell\{Program.AppName}\command";
 
-        public static string AppName = Assembly.GetExecutingAssembly().GetName().Name;
+        private static readonly string ContextMenuFolder = $@"Folder\shell\{Program.AppName}";
 
-        public static string ShortcutsFolderPath { get { return $"{OutputFolderStartPath}{AppName}"; } }
+        private static readonly string ContextMenuFolderCommand = $@"Folder\shell\{Program.AppName}\command";
+
+        public static string ShortcutsFolderPath { get { return $"{OutputFolderStartPath}{Program.AppName}"; } }
 
         public static RegistryKey CreateSubKey(RegistryKey context, string name, bool writable = false)
         {
             var key = context.OpenSubKey(name, writable);
             if (key == null)
             {
-                Console.WriteLine($"CreateSubKey({CurrentUserContext.Name}, {name}, {writable})");
-                key = CurrentUserContext.CreateSubKey(name, writable);
+                Console.WriteLine($"CreateSubKey({context.Name}, {name}, {writable})");
+                key = context.CreateSubKey(name, writable);
             }
             return key;
         }
@@ -66,19 +69,24 @@ namespace keycuts.CLI
 
         public static void CreateRightClickContextMenu()
         {
-            // CHECK IF IT EXISTS ALREADY
-
-            var context = Registry.ClassesRoot;
-            var exePath = @"C:\dev\keycuts\keycuts.CLI\bin\Debug\keycuts.exe";
-
             var menu = "Create a keycut to here!";
-            var command = "";
+            var appName = Process.GetCurrentProcess().MainModule.FileName;
+            var command = $"\"{appName}\" \"%1\"";
+            var context = Registry.ClassesRoot;
 
-            var menuKey = CreateSubKey(context, menu, true);
+            // File
+            var menuKey = CreateSubKey(context, ContextMenuFile, true);
             menuKey?.SetValue("", menu);
 
-            var commandKey = CreateSubKey(context, command, true);
-            commandKey.SetValue("", exePath);
+            var commandKey = CreateSubKey(context, ContextMenuFileCommand, true);
+            commandKey?.SetValue("", command);
+
+            // Folder
+            menuKey = CreateSubKey(context, ContextMenuFolder, true);
+            menuKey?.SetValue("", menu);
+
+            commandKey = CreateSubKey(context, ContextMenuFolderCommand, true);
+            commandKey?.SetValue("", command);
         }
     }
 }

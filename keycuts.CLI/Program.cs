@@ -10,7 +10,11 @@ namespace keycuts.CLI
 {
     public class Program
     {
-        public static string DefaultOutputFolder { get; set; } = @"C:\Shortcuts";
+        public static readonly string AppName = Assembly.GetExecutingAssembly().GetName().Name;
+
+        public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+        public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
 
         public static int Main(string[] args)
         {
@@ -77,10 +81,7 @@ namespace keycuts.CLI
         {
             var result = 1;
 
-            string appName = Assembly.GetExecutingAssembly().GetName().Name;
-            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-
-            Console.WriteLine($"{appName} {version}");
+            Console.WriteLine($"{AppName} {Version}");
 
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
             if (!parsedArgs.Errors.Any())
@@ -97,7 +98,7 @@ namespace keycuts.CLI
                 if (options.Destination != null && options.Shortcut != null)
                 {
                     // Run app and pass arguments as parameters
-                    var app = new ConsoleApp(appName, version);
+                    var app = new ConsoleApp();
                     result = app.Run(options);
                 }
                 else

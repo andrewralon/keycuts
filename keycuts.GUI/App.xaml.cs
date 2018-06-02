@@ -13,5 +13,16 @@ namespace keycuts.GUI
     /// </summary>
     public partial class App : Application
     {
+        void App_Startup(object sender, StartupEventArgs e)
+        {
+            var mainWindow = new MainWindow();
+
+            if (e.Args.Any())
+            {
+                mainWindow.Destination = e.Args[0];
+            }
+
+            mainWindow.Show();
+        }
     }
 }

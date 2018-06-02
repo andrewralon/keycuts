@@ -37,9 +37,14 @@ namespace keycuts.CLI
 
         public static void SetOutputFolder(string path)
         {
-            Console.WriteLine($"SetOutputFolder({path})");
-
             var appNameKey = CreateSubKey(CurrentUserContext, ShortcutsFolderPath, true);
+
+            SetOutputFolder(path, appNameKey);
+        }
+
+        public static void SetOutputFolder(string path, RegistryKey appNameKey)
+        {
+            Console.WriteLine($"SetOutputFolder({path}, {appNameKey.Name})");
 
             appNameKey?.SetValue(OutputFolderKeyName, path, RegistryValueKind.String);
         }
@@ -51,7 +56,7 @@ namespace keycuts.CLI
 
             if (outputFolder == null)
             {
-                SetOutputFolder(path);
+                SetOutputFolder(path, appNameKey);
             }
 
             path = appNameKey?.GetValue(OutputFolderKeyName, path).ToString();

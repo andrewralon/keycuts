@@ -76,6 +76,8 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
+
+            RegistryStuff.CreateRightClickContextMenu();
         }
 
         private void CreateShortcut()

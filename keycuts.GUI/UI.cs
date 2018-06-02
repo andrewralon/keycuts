@@ -11,11 +11,6 @@ namespace keycuts.GUI
 {
     public class UI
     {
-        public static void CreateRightClickContextMenu()
-        {
-            RegistryStuff.CreateRightClickContextMenu();
-        }
-
         public static void ActivateThisWindow()
         {
             Process process = Process.GetCurrentProcess();

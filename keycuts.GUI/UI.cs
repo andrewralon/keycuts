@@ -1,4 +1,5 @@
-﻿using System;
+﻿using keycuts.CLI;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,6 +11,11 @@ namespace keycuts.GUI
 {
     public class UI
     {
+        public static void CreateRightClickContextMenu()
+        {
+            RegistryStuff.CreateRightClickContextMenu();
+        }
+
         public static void ActivateThisWindow()
         {
             Process process = Process.GetCurrentProcess();

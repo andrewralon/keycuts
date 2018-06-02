@@ -13,7 +13,9 @@ namespace keycuts.CLI
 
         public readonly string Version;
 
-        public static readonly string DefaultFolder = @"C:\Shortcuts";
+        public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
+
+
 
         public ConsoleApp(string appName, string version)
         {
@@ -26,27 +28,27 @@ namespace keycuts.CLI
             return Run(options.Destination, options.Shortcut, options.DefaultFolder, options.OpenWithAppPath, options.Force);
         }
 
-        public int Run(string destination, string shortcutPath, string defaultFolder, string openWithAppPath = null, bool force = false)
+        public int Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
         {
             var result = false;
 
-            var oldDefaultFolder = RegistryStuff.GetOutputFolder(DefaultFolder);
+            var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
 
-            if (defaultFolder == null)
+            if (outputFolder == null)
             {
                 // If not given, use the existing default folder
-                defaultFolder = oldDefaultFolder;
+                outputFolder = currentOutputFolder;
             }
 
-            if (defaultFolder != oldDefaultFolder)
+            if (outputFolder != currentOutputFolder)
             {
-                // Update the registry key if the default folder has changed
-                RegistryStuff.SetOutputFolder(defaultFolder);
+                // Update the registry key if the output folder has changed
+                RegistryStuff.SetOutputFolder(outputFolder);
             }
 
-            PathSetup.AddToOrReplaceInSystemPath(oldDefaultFolder, defaultFolder);
+            PathSetup.AddToOrReplaceInSystemPath(currentOutputFolder, outputFolder);
 
-            var shortcut = new Shortcut(destination, shortcutPath, defaultFolder, openWithAppPath);
+            var shortcut = new Shortcut(destination, shortcutPath, outputFolder, openWithAppPath);
 
             if (shortcut.Type != ShortcutType.Unknown)
             {

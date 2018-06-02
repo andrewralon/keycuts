@@ -10,7 +10,7 @@ namespace keycuts.CLI
 {
     public class Program
     {
-        public static string DefaultFolder { get; set; } = @"C:\Shortcuts";
+        public static string DefaultOutputFolder { get; set; } = @"C:\Shortcuts";
 
         public static int Main(string[] args)
         {

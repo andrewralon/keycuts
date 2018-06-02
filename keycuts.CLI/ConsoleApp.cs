@@ -13,10 +13,6 @@ namespace keycuts.CLI
 
         public readonly string Version;
 
-        public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
-
-
-
         public ConsoleApp(string appName, string version)
         {
             AppName = appName;
@@ -32,7 +28,7 @@ namespace keycuts.CLI
         {
             var result = false;
 
-            var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+            var currentOutputFolder = RegistryStuff.GetOutputFolder(Program.DefaultOutputFolder);
 
             if (outputFolder == null)
             {

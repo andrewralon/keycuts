@@ -124,15 +124,21 @@ namespace keycuts.GUI
             e.Handled = true;
 
             var file = DragDrop.GetDroppedFiles(sender, e).FirstOrDefault();
+            if (file == null)
+            {
+                MessageBox.Show("Sorry, not sure what to do with this type of file.", "Oops");
+            }
+            else
+            { 
+                // Follow the link (if it exists) and set the path textbox
+                Destination = Shortcut.GetWindowsLinkTargetPath(file);
 
-            // Follow the link (if it exists) and set the path textbox
-            Destination = Shortcut.GetWindowsLinkTargetPath(file);
+                // Focus on the shortcut name textbox
+                TextboxShortcut.Focus();
 
-            // Focus on the shortcut name textbox
-            TextboxShortcut.Focus();
-
-            // Activate this window (normally keeps focus on whatever was previously active)
-            UI.ActivateThisWindow();
+                // Activate this window (normally keeps focus on whatever was previously active)
+                UI.ActivateThisWindow();
+            }
         }
 
         private void Main_DragEnter(object sender, DragEventArgs e)

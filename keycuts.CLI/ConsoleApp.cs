@@ -94,7 +94,9 @@ namespace keycuts.CLI
                 {
                     if (shortcut.Type == ShortcutType.Url)
                     {
-                        command = string.Format(start, Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination));
+                        var sanitized = Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination);
+
+                        command = string.Format(start, sanitized);
                     }
                     else if (shortcut.Type == ShortcutType.File)
                     {
@@ -107,7 +109,7 @@ namespace keycuts.CLI
                         start = $"{start} \"{1}\"";
                         command = string.Format(start, notepadPath, shortcut.Destination);
                     }
-                    else if (shortcut.Type == ShortcutType.Folder)
+                    else if (shortcut.Type == ShortcutType.Folder || shortcut.Type == ShortcutType.CLSIDKey)
                     {
                         command = $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"";
                     }

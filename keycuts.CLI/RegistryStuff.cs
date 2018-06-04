@@ -25,6 +25,7 @@ namespace keycuts.CLI
             if (key == null)
             {
                 Console.WriteLine($"CreateSubKey({context.Name}, {name}, {writable})");
+
                 key = context.CreateSubKey(name, writable);
             }
             return key;
@@ -65,29 +66,31 @@ namespace keycuts.CLI
             var context = Registry.ClassesRoot;
 
             var menu = "Create a keycut to here!";
-            var command = $"\"{appNameGUI}\" \"%1\"";
-            var commandBackground = $"\"{appNameGUI}\" \"%V\"";
+            var command = $"\"{appNameGUI}\" \"%1\""; // Path of selected folder with %1
+            var commandBackground = $"\"{appNameGUI}\" \"%V\""; // Path of current directory with %V
 
             var keyDirectoryShell = $@"Directory\shell\{Program.AppName}";
             var keyDirectoryBackgroundShell = $@"Directory\Background\shell\{Program.AppName}";
             var keyStarShell = $@"*\shell\{Program.AppName}";
             var keyFolderShell = $@"Folder\shell\{Program.AppName}";
 
-            // Directory\shell -- get path of selected folder with %1
+            // Directory\shell
             CreateRightClickContextMenu(context, keyDirectoryShell, menu, command);
 
-            // Directory\Background\shell -- get current directory with %V
+            // Directory\Background\shell
             CreateRightClickContextMenu(context, keyDirectoryBackgroundShell, menu, commandBackground);
 
-            // File
+            // *\shell -- file
             CreateRightClickContextMenu(context, keyStarShell, menu, command);
 
-            // Folder
+            // Folder\shell
             CreateRightClickContextMenu(context, keyFolderShell, menu, command);
         }
 
         public static void CreateRightClickContextMenu(RegistryKey context, string keyPath, string menu, string command)
         {
+            Console.WriteLine($"CreateRightClickContextMenu({context.Name}, {keyPath}, {menu}, {command})");
+
             var menuKey = CreateSubKey(context, keyPath, true);
             menuKey?.SetValue("", menu);
 

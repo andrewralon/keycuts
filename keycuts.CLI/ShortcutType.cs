@@ -12,6 +12,7 @@ namespace keycuts.CLI
         Folder,
         Url,
         HostsFile,
+        CLSIDKey,
         Unknown
     }
 }

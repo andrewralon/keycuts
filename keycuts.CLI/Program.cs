@@ -51,6 +51,7 @@ namespace keycuts.CLI
                 //"https://github.com/";    // URL #1
                 //"https://calendar.google.com/calendar/r?tab=mc&pli=1#main_7"; // URL #2
                 //@"C:\randomurl.url";		// URL shortcut file
+                //@"shell:::{645FF040-5081-101B-9F08-00AA002F954E}"; // CLSID key GUID for Recycle Bin 
                 @"C:\Windows\System32\drivers\etc\hosts"; // hosts file
 
             var shortcut =

@@ -15,10 +15,6 @@ namespace keycuts.CLI
 
         public string Destination { get; private set; }
 
-        public string DestinationFilename { get; private set; }
-
-        public string DestinationFolder { get; private set; }
-
         public string Extension { get; private set; } = ".bat";
 
         public string Filename { get; private set; }
@@ -44,15 +40,13 @@ namespace keycuts.CLI
         public Shortcut(string destination, string path, string defaultFolder, string openWithAppPath = null)
         {
             Destination = GetWindowsLinkTargetPath(destination);
-            DestinationFolder = Path.GetDirectoryName(Destination);
-            DestinationFilename = Path.GetFileName(Destination);
             Extension = ".bat";
             Filename = Path.GetFileNameWithoutExtension(path);
-            FilenameWithExtension = string.Format("{0}{1}", Filename, Extension);
+            FilenameWithExtension = $"{Filename}{Extension}";
             Folder = IsNotFullPath(path) ?
                 defaultFolder :
                 Path.GetDirectoryName(path);
-            FullPath = Path.Combine(Folder, string.Format("{0}{1}", Filename, Extension));
+            FullPath = Path.Combine(Folder, FilenameWithExtension);
             OpenWithAppPath = openWithAppPath;
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
             Type = GetShortcutType();
@@ -66,7 +60,11 @@ namespace keycuts.CLI
         {
             var type = new ShortcutType();
 
-            if (IsValidUrl() || IsValidUrlFile())
+            if (IsCLSIDKey(Destination))
+            {
+                type = ShortcutType.CLSIDKey;
+            }
+            else if (IsValidUrl() || IsValidUrlFile())
             {
                 type = ShortcutType.Url;
             }
@@ -170,18 +168,25 @@ namespace keycuts.CLI
         {
             var result = shortcutFilename;
 
-            // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
-            var path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(shortcutFilename));
-            var file = Path.GetFileName(shortcutFilename);
-
-            var shell = new Shell();
-            var folder = shell.NameSpace(path);
-            var folderItem = folder.ParseName(file);
-
-            if (folderItem != null && folderItem.IsLink)
+            if (IsCLSIDKey(shortcutFilename))
             {
-                var link = (ShellLinkObject)folderItem.GetLink;
-                result = link.Path;
+                result = GetCLSIDKeyFullString(shortcutFilename);
+            }
+            else
+            {
+                // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
+                var path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(shortcutFilename));
+                var file = Path.GetFileName(shortcutFilename);
+
+                var shell = new Shell();
+                var folder = shell.NameSpace(path);
+                var folderItem = folder.ParseName(file);
+
+                if (folderItem != null && folderItem.IsLink)
+                {
+                    var link = (ShellLinkObject)folderItem.GetLink;
+                    result = link.Path;
+                }
             }
 
             return result;
@@ -192,6 +197,35 @@ namespace keycuts.CLI
             // Bat files use % for variables, so escape a single % with %%
             command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
             return command;
+        }
+
+        public static bool IsCLSIDKey(string guid)
+        {
+            var result = false;
+
+            if ((guid.StartsWith("{") || guid.StartsWith("::{") || guid.StartsWith("shell:::{")) &&
+                guid.EndsWith("}"))
+            {
+                result = true;
+            }
+
+            return result;
+        }
+
+        public static string GetCLSIDKeyFullString(string guid)
+        {
+            var result = guid;
+
+            if (guid.StartsWith("{"))
+            {
+                result = $"shell:::{guid}";
+            }
+            else if (guid.StartsWith("::{"))
+            {
+                result = $"shell:{guid}";
+            }
+
+            return result;
         }
 
         #endregion Public Methods

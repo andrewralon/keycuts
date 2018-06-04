@@ -59,31 +59,40 @@ namespace keycuts.CLI
             return path;
         }
 
-        public static void CreateRightClickContextMenu()
+        public static void CreateRightClickContextMenus()
         {
-            var appName = Process.GetCurrentProcess().MainModule.FileName;
+            var appNameGUI = Process.GetCurrentProcess().MainModule.FileName;
             var context = Registry.ClassesRoot;
 
             var menu = "Create a keycut to here!";
-            var commandShell = $"\"{appName}\" \"%1\"";
-            var commandBackgroundShell = $"\"{appName}\" \"%V\"";
+            var command = $"\"{appNameGUI}\" \"%1\"";
+            var commandBackground = $"\"{appNameGUI}\" \"%V\"";
 
             var keyDirectoryShell = $@"Directory\shell\{Program.AppName}";
             var keyDirectoryBackgroundShell = $@"Directory\Background\shell\{Program.AppName}";
+            var keyStarShell = $@"*\shell\{Program.AppName}";
+            var keyFolderShell = $@"Folder\shell\{Program.AppName}";
 
-            // Directory\shell -- get path of selected file/folder with %1
-            var menuKey = CreateSubKey(context, keyDirectoryShell, true);
-            menuKey?.SetValue("", menu);
-
-            var commandKey = CreateSubKey(context, $@"{keyDirectoryShell}\command", true);
-            commandKey?.SetValue("", commandShell);
+            // Directory\shell -- get path of selected folder with %1
+            CreateRightClickContextMenu(context, keyDirectoryShell, menu, command);
 
             // Directory\Background\shell -- get current directory with %V
-            menuKey = CreateSubKey(context, keyDirectoryBackgroundShell, true);
+            CreateRightClickContextMenu(context, keyDirectoryBackgroundShell, menu, commandBackground);
+
+            // File
+            CreateRightClickContextMenu(context, keyStarShell, menu, command);
+
+            // Folder
+            CreateRightClickContextMenu(context, keyFolderShell, menu, command);
+        }
+
+        public static void CreateRightClickContextMenu(RegistryKey context, string keyPath, string menu, string command)
+        {
+            var menuKey = CreateSubKey(context, keyPath, true);
             menuKey?.SetValue("", menu);
 
-            commandKey = CreateSubKey(context, $@"{keyDirectoryBackgroundShell}\command", true);
-            commandKey?.SetValue("", commandBackgroundShell);
+            var commandKey = CreateSubKey(context, $@"{keyPath}\command", true);
+            commandKey?.SetValue("", command);
         }
     }
 }

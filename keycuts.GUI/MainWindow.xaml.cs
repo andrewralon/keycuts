@@ -159,7 +159,7 @@ namespace keycuts.GUI
                 TextboxShortcut.Focus();
 
                 // Activate this window (normally keeps focus on whatever was previously active)
-                UI.ActivateThisWindow();
+                GUI.ActivateThisWindow();
             }
         }
 

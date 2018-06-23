@@ -10,7 +10,7 @@ namespace keycuts.Common
 {
     public class Runner
     {
-        public static readonly string AppName = "keycuts"; //Assembly.GetExecutingAssembly().GetName().Name;
+        public static readonly string AppName = "keycuts";
 
         public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
@@ -101,7 +101,7 @@ namespace keycuts.Common
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    $"REM {Runner.AppName} {Runner.Version}",
+                    $"REM {AppName} {Version}",
                     $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                     $"REM <type>{shortcutTypeLower}</type>",
                     $"REM <destination>{shortcut.Destination}</destination>",
@@ -151,13 +151,6 @@ namespace keycuts.Common
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
 
                 result = true;
-            }
-            else
-            {
-                //Console.WriteLine("The shortcut file already exists: ");
-                //Console.WriteLine($"  {shortcut.FullPath}");
-                //Console.WriteLine();
-                result = false;
             }
 
             return result;

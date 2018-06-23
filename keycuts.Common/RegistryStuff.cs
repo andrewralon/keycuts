@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace keycuts.CLI
+namespace keycuts.Common
 {
     public class RegistryStuff
     {
@@ -17,7 +17,7 @@ namespace keycuts.CLI
 
         public static readonly string OutputFolderKeyName = "OutputFolder";
 
-        public static string ShortcutsFolderPath { get { return $"{OutputFolderStartPath}{Program.AppName}"; } }
+        public static string ShortcutsFolderPath { get { return $"{OutputFolderStartPath}{Runner.AppName}"; } }
 
         public static RegistryKey CreateSubKey(RegistryKey context, string name, bool writable = false)
         {
@@ -69,10 +69,10 @@ namespace keycuts.CLI
             var command = $"\"{appNameGUI}\" \"%1\""; // Path of selected folder with %1
             var commandBackground = $"\"{appNameGUI}\" \"%V\""; // Path of current directory with %V
 
-            var keyDirectoryShell = $@"Directory\shell\{Program.AppName}";
-            var keyDirectoryBackgroundShell = $@"Directory\Background\shell\{Program.AppName}";
-            var keyStarShell = $@"*\shell\{Program.AppName}";
-            var keyFolderShell = $@"Folder\shell\{Program.AppName}";
+            var keyDirectoryShell = $@"Directory\shell\{Runner.AppName}";
+            var keyDirectoryBackgroundShell = $@"Directory\Background\shell\{Runner.AppName}";
+            var keyStarShell = $@"*\shell\{Runner.AppName}";
+            var keyFolderShell = $@"Folder\shell\{Runner.AppName}";
 
             // Directory\shell
             CreateRightClickContextMenu(context, keyDirectoryShell, menu, command);

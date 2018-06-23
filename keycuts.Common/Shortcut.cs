@@ -1,4 +1,5 @@
-﻿using Shell32;
+﻿//using Shell32;
+using Shell32;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace keycuts.CLI
+namespace keycuts.Common
 {
     public class Shortcut
     {

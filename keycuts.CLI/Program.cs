@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using keycuts.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,20 +11,10 @@ namespace keycuts.CLI
 {
     public class Program
     {
-        public static readonly string AppName = Assembly.GetExecutingAssembly().GetName().Name;
-
-        public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-
-        public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
-
         public static int Main(string[] args)
         {
-            var result = 0;
-            //#if DEBUG
-            //result = RunnerDebug(); // Tests pre-determined parameters
-            //#else
-            result = Runner(args);  // new string[] { "--help" });
-            //#endif
+            var result = Run(args);
+
             if (result == 0)
             {
                 Console.WriteLine("Done. YAY!");
@@ -38,51 +29,9 @@ namespace keycuts.CLI
             return result;
         }
 
-        private static int RunnerDebug()
+        public static int Run(string[] args)
         {
-            var outputFolder =
-                //@"C:\NewShortcutFolder";
-                @"C:\Shortcuts";
-
-            var destination =
-                //@"C:\randomfile.txt";     // File
-                //@"C:\Users";				// Folder
-                //@"C:\Dropbox.lnk";		// Shortcut to folder
-                //"https://github.com/";    // URL #1
-                //"https://calendar.google.com/calendar/r?tab=mc&pli=1#main_7"; // URL #2
-                //@"C:\randomurl.url";		// URL shortcut file
-                //@"shell:::{645FF040-5081-101B-9F08-00AA002F954E}"; // CLSID key GUID for Recycle Bin 
-                @"C:\Windows\System32\drivers\etc\hosts"; // hosts file
-
-            var shortcut =
-                //@"C:\Shortcuts\test.bat";	// Full path to shortcut
-                //@"test.bat";				// Incomplete path to shortcut
-                @"test3";                   // Incomplete path to shortcut, no extension
-
-            var openWithAppPath =
-                //@"C:\Windows\System32\notepad.exe";	// Path to notepad
-                //@"C:\Program Files (x86)\Notepad++\notepad++.exe"; // Path to notepad++
-                "";                                     // Empty path; will open normally
-
-            // Force - False by default. To overwrite existing shortcut, use "-f"
-
-            string[] debugArgs = new string[]
-            {
-                "-o " + outputFolder,
-                "-d " + destination,
-                "-s " + shortcut,
-                "-a " + openWithAppPath,
-                "-f"
-            };
-
-            return Runner(debugArgs);
-        }
-
-        private static int Runner(string[] args)
-        {
-            var result = 1;
-
-            Console.WriteLine($"{AppName} {Version}");
+            var result = -1;
 
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
             if (!parsedArgs.Errors.Any())
@@ -91,21 +40,27 @@ namespace keycuts.CLI
                 {
                     Destination = parsedArgs.Value.Destination?.Trim(),
                     Shortcut = parsedArgs.Value.Shortcut?.Trim(),
-                    OpenWithAppPath = parsedArgs.Value.OpenWithAppPath?.Trim(),
-                    Force = parsedArgs.Value.Force,
-                    DefaultFolder = parsedArgs.Value.DefaultFolder?.Trim()
+                    OpenWithApp = parsedArgs.Value.OpenWithApp?.Trim(),
+                    OutputFolder = parsedArgs.Value.OutputFolder?.Trim(),
+                    Force = parsedArgs.Value.Force
                 };
 
                 if (options.Destination != null && options.Shortcut != null)
                 {
+                    var keycutArgs = new KeycutArgs(
+                        options.Destination,
+                        options.Shortcut,
+                        options.OpenWithApp,
+                        options.OutputFolder,
+                        options.Force);
+
                     // Run app and pass arguments as parameters
-                    var app = new ConsoleApp();
-                    result = app.Run(options);
+                    var app = new Runner();
+                    result = app.Run(keycutArgs);
                 }
                 else
                 {
-                    // Throw new exception here?
-                    Console.WriteLine("Values cannot be null: Destination, Shortcut");
+                    throw new Exception("Bad things happened.");
                 }
             }
             else

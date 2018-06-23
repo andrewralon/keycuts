@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace keycuts.CLI
+namespace keycuts.Common
 {
     class PathSetup
     {
@@ -37,7 +37,7 @@ namespace keycuts.CLI
 
         public static bool AddToOrReplaceInSystemPath(string oldPath, string newPath)
         {
-            var result = false;
+            var result = true;
 
             if (oldPath != newPath)
             {
@@ -49,10 +49,6 @@ namespace keycuts.CLI
                 {
                     result = AddToSystemPath(newPath);
                 }
-            }
-            else
-            {
-                result = false;
             }
 
             return result;

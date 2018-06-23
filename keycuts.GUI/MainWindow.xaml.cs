@@ -1,5 +1,4 @@
-﻿//using keycuts.CLI;
-using keycuts.CLI;
+﻿using keycuts.Common;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -44,7 +43,9 @@ namespace keycuts.GUI
 
         public string Instructions { get { return string.Join("\n", Steps[3], Steps[4], Steps[5]); } }
 
-        public string Destination { get { return destination; }
+        public string Destination
+        {
+            get { return destination; }
             set
             {
                 destination = value;
@@ -52,7 +53,9 @@ namespace keycuts.GUI
             }
         }
 
-        public string ShortcutName { get { return shortcutName; }
+        public string ShortcutName
+        {
+            get { return shortcutName; }
             set
             {
                 shortcutName = value;
@@ -82,7 +85,26 @@ namespace keycuts.GUI
 
         private void CreateShortcut()
         {
-            CLI.CreateShortcut(Destination, ShortcutName);
+            var result = CLI.CreateShortcut(Destination, ShortcutName);
+
+            if (result == (int)ExitCode.FileAlreadyExists)
+            {
+                var dialogResult = MessageBox.Show(this,
+                    "Shortcut file already exists. Overwrite it?",
+                    "File already exists", MessageBoxButton.YesNo);
+
+                if (dialogResult == MessageBoxResult.Yes)
+                {
+                    result = CLI.CreateShortcut(Destination, ShortcutName, true);
+                }
+            }
+            
+            if (result != (int)ExitCode.Success)
+            {
+                var errorName = ExitCodes.GetName(result);
+
+                MessageBox.Show($"Error {result}: {errorName}");
+            }
         }
 
         #region UI Handlers - Buttons, Keys
@@ -129,7 +151,7 @@ namespace keycuts.GUI
                 MessageBox.Show("Sorry, not sure what to do with this type of file.", "Oops");
             }
             else
-            { 
+            {
                 // Follow the link (if it exists) and set the path textbox
                 Destination = Shortcut.GetWindowsLinkTargetPath(file);
 

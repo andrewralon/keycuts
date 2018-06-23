@@ -1,4 +1,4 @@
-﻿using keycuts.CLI;
+﻿using keycuts.Common;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,27 +10,36 @@ namespace keycuts.GUI
 {
     public class CLI
     {
-        public static void CreateShortcut(string destination, string shortcutName)
+        public static int CreateShortcut(string destination, string shortcutName, bool force = false)
         {
+            var result = 0;
+
             if (!string.IsNullOrEmpty(destination) && 
                 !string.IsNullOrEmpty(shortcutName))
             {
-                var args = new string[]
-                {
-                    // Surround with quotes?
-                    $"-d {destination}",
-                    $"-s {shortcutName}"
-                };
+                var args = new KeycutArgs(
+                    destination,
+                    shortcutName,
+                    force: force);
 
-                Program.Main(args);
+                result = new Runner().Run(args);
             }
+            else
+            {
+                result = (int)ExitCode.BadArguments;
+            }
+
+            return result;
         }
 
-        public static void OpenShortcutsFolder()
+        public static int OpenShortcutsFolder()
         {
-            var defaultFolder = RegistryStuff.GetOutputFolder(Program.DefaultOutputFolder);
+            var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
 
-            Process.Start(defaultFolder);
+            var process = Process.Start(defaultFolder);
+            process.WaitForExit();
+
+            return process.ExitCode;
         }
     }
 }

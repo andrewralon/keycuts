@@ -97,9 +97,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\keycuts.CLI\keycuts.CLI.csproj">
-      <Project>{5e4a91b5-cb7a-4284-88c6-c62f8f3c3c61}</Project>
-      <Name>keycuts.CLI</Name>
+    <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj">
+      <Project>{d8f05096-f7dd-4926-b936-9b6eab12bc02}</Project>
+      <Name>keycuts.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

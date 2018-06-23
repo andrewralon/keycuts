@@ -2,27 +2,34 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace keycuts.CLI
+namespace keycuts.Common
 {
-    class ConsoleApp
+    public class Runner
     {
-        public ConsoleApp()
+        public static readonly string AppName = "keycuts"; //Assembly.GetExecutingAssembly().GetName().Name;
+
+        public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+        public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
+
+        public Runner()
         {
         }
 
-        public int Run(Options options)
+        public int Run(KeycutArgs args)
         {
-            return Run(options.Destination, options.Shortcut, options.DefaultFolder, options.OpenWithAppPath, options.Force);
+            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force);
         }
 
         public int Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
         {
-            var result = false;
+            var result = ExitCode.Success;
 
-            var currentOutputFolder = RegistryStuff.GetOutputFolder(Program.DefaultOutputFolder);
+            var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
 
             if (outputFolder == null)
             {
@@ -36,27 +43,49 @@ namespace keycuts.CLI
                 RegistryStuff.SetOutputFolder(outputFolder);
             }
 
-            PathSetup.AddToOrReplaceInSystemPath(currentOutputFolder, outputFolder);
+            var systemPathResult = PathSetup.AddToOrReplaceInSystemPath(currentOutputFolder, outputFolder);
 
-            var shortcut = new Shortcut(destination, shortcutPath, outputFolder, openWithAppPath);
-
-            if (shortcut.Type != ShortcutType.Unknown)
+            if (!systemPathResult)
             {
-                CreateShortcutFolder(shortcut.Folder);
+                result = ExitCode.CannotUpdatePath;
+            }
+            else
+            {
+                var shortcut = new Shortcut(destination, shortcutPath, outputFolder, openWithAppPath);
 
-                result = CreateShortcutFile(shortcut, force);
+                if (shortcut.Type != ShortcutType.Unknown)
+                {
+                    var createOutputFolderResult = CreateOutputFolder(shortcut.Folder);
+
+                    if (!createOutputFolderResult)
+                    {
+                        result = ExitCode.CannotCreateOutputFolder;
+                    }
+                    else
+                    {
+                        var createShortcutResult = CreateShortcutFile(shortcut, force);
+
+                        result = createShortcutResult ?
+                            ExitCode.Success :
+                            ExitCode.FileAlreadyExists;
+                    }
+                }
             }
 
-            return result ? 0 : 1;
+            return (int)result;
         }
 
-        private void CreateShortcutFolder(string folder)
+        private bool CreateOutputFolder(string folder)
         {
+            var result = true;
+
             // Create the shortcuts folder if it doesn't exist already
             if (!Directory.Exists(folder))
             {
                 Directory.CreateDirectory(folder);
             }
+
+            return result;
         }
 
         private bool CreateShortcutFile(Shortcut shortcut, bool overwrite = false)
@@ -72,7 +101,7 @@ namespace keycuts.CLI
                 var lines = new List<string>
                 {
                     "@ECHO OFF",
-                    $"REM {Program.AppName} {Program.Version}",
+                    $"REM {Runner.AppName} {Runner.Version}",
                     $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                     $"REM <type>{shortcutTypeLower}</type>",
                     $"REM <destination>{shortcut.Destination}</destination>",
@@ -125,9 +154,9 @@ namespace keycuts.CLI
             }
             else
             {
-                Console.WriteLine("The shortcut file already exists: ");
-                Console.WriteLine($"  {shortcut.FullPath}");
-                Console.WriteLine();
+                //Console.WriteLine("The shortcut file already exists: ");
+                //Console.WriteLine($"  {shortcut.FullPath}");
+                //Console.WriteLine();
                 result = false;
             }
 

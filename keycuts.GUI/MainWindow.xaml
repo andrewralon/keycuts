@@ -1,10 +1,11 @@
-﻿<Window x:Name="Main" x:Class="keycuts.Common.MainWindow"
+﻿<Window x:Name="Main" x:Class="keycuts.GUI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="keycuts.... by TeamRalon" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510" DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True" KeyDown="Main_KeyDown">
+        Title="keycuts.... by TeamRalon" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510" 
+        DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True" KeyDown="Main_KeyDown">
     <Grid x:Name="GridMainFull" DragEnter="GridMainFull_DragEnter" Drop="GridMainFull_Drop" AllowDrop="True">
         <Grid x:Name="GridMainMargin" Margin="20" DragEnter="GridMainMargin_DragEnter" Drop="GridMainMargin_Drop" AllowDrop="True">
             <Grid.RowDefinitions>

@@ -16,7 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace keycuts.Common
+namespace keycuts.GUI
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -85,7 +85,7 @@ namespace keycuts.Common
 
         private void CreateShortcut()
         {
-            var result = Common.CreateShortcut(Destination, ShortcutName);
+            var result = CommonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == (int)ExitCode.FileAlreadyExists)
             {
@@ -95,7 +95,7 @@ namespace keycuts.Common
 
                 if (dialogResult == MessageBoxResult.Yes)
                 {
-                    result = Common.CreateShortcut(Destination, ShortcutName, true);
+                    result = CommonLogic.CreateShortcut(Destination, ShortcutName, true);
                 }
             }
             
@@ -129,7 +129,7 @@ namespace keycuts.Common
 
         private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
         {
-            Common.OpenOutputFolder();
+            FormLogic.OpenOutputFolder();
         }
 
         #endregion UI Handlers - Buttons, Keys
@@ -164,7 +164,7 @@ namespace keycuts.Common
                 TextboxShortcut.Focus();
 
                 // Activate this window (normally keeps focus on whatever was previously active)
-                GUI.ActivateThisWindow();
+                FormLogic.ActivateThisWindow();
             }
         }
 

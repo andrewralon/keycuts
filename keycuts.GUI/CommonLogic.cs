@@ -1,12 +1,13 @@
-﻿using System;
+﻿using keycuts.Common;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace keycuts.Common
+namespace keycuts.GUI
 {
-    public class Common
+    public class CommonLogic
     {
         public static int CreateShortcut(string destination, string shortcutName, bool force = false)
         {
@@ -30,11 +31,10 @@ namespace keycuts.Common
             return result;
         }
 
-        public static void OpenOutputFolder()
+        public static void ChangeOutputFolder(string outputFolder)
         {
-            var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
-
-            Process.Start(defaultFolder);
+            var runner = new Runner();
+            runner.SetOutputFolder(outputFolder);
         }
     }
 }

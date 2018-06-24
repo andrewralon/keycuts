@@ -58,8 +58,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="Common.cs" />
-    <Compile Include="GUI.cs" />
+    <Compile Include="CommonLogic.cs" />
+    <Compile Include="FormLogic.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>

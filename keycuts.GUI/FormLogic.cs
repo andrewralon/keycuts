@@ -1,14 +1,22 @@
-﻿using System;
+﻿using keycuts.Common;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace keycuts.Common
+namespace keycuts.GUI
 {
-    public class GUI
+    public class FormLogic
     {
+        public static void OpenOutputFolder()
+        {
+            var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
+
+            Process.Start(defaultFolder);
+        }
+
         public static void ActivateThisWindow()
         {
             Process process = Process.GetCurrentProcess();

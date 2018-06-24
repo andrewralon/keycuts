@@ -30,17 +30,7 @@ namespace keycuts.Common
 
             var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
 
-            if (outputFolder == null)
-            {
-                // If not given, use the existing default folder
-                outputFolder = currentOutputFolder;
-            }
-
-            if (outputFolder != currentOutputFolder)
-            {
-                // Update the registry key if the output folder has changed
-                RegistryStuff.SetOutputFolder(outputFolder);
-            }
+            outputFolder = SetOutputFolder(outputFolder, currentOutputFolder);
 
             var systemPathResult = PathSetup.AddToOrReplaceInSystemPath(currentOutputFolder, outputFolder);
 
@@ -72,6 +62,28 @@ namespace keycuts.Common
             }
 
             return (int)result;
+        }
+
+        public string SetOutputFolder(string newOutputFolder, string currentOutputFolder = null)
+        {
+            if (currentOutputFolder == null)
+            {
+                currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+            }
+
+            if (newOutputFolder == null)
+            {
+                // If not given, use the existing default folder
+                newOutputFolder = currentOutputFolder;
+            }
+
+            if (newOutputFolder != currentOutputFolder)
+            {
+                // Update the registry key if the output folder has changed
+                RegistryStuff.SetOutputFolder(newOutputFolder);
+            }
+
+            return newOutputFolder;
         }
 
         private bool CreateOutputFolder(string folder)

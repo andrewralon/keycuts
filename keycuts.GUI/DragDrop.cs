@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Windows;
 
-namespace keycuts.Common
+namespace keycuts.GUI
 {
     public class DragDrop
     {

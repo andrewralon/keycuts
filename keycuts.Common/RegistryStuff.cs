@@ -60,8 +60,8 @@ namespace keycuts.Common
                 SetForceOverwrite(forceOverwrite);//, appNameKey);
             }
 
-            var x = (int)appNameKey?.GetValue(ForceOverwriteKeyName, forceOverwrite);
-            forceOverwrite = x != 0;
+            var forceOverwriteRaw = (int)appNameKey?.GetValue(ForceOverwriteKeyName, forceOverwrite);
+            forceOverwrite = forceOverwriteRaw != 0;
 
             return forceOverwrite;
         }
@@ -83,34 +83,14 @@ namespace keycuts.Common
             var appNameKey = CreateSubKey(CurrentUserContext, StartPath, true);
 
             SetRegistryValue(appNameKey, OutputFolderKeyName, path, RegistryValueKind.String);
-
-            //SetOutputFolder(path, appNameKey);
         }
-
-        //public static void SetOutputFolder(string path, RegistryKey appNameKey)
-        //{
-        //    Console.WriteLine($"SetOutputFolder(\"{path}\", \"{appNameKey.Name}\")");
-
-        //    appNameKey?.SetValue(OutputFolderKeyName, path, RegistryValueKind.String);
-        //}
 
         public static void SetForceOverwrite(bool forceOverwrite)
         {
             var appNameKey = CreateSubKey(CurrentUserContext, StartPath, true);
 
             SetRegistryValue(appNameKey, ForceOverwriteKeyName, forceOverwrite, RegistryValueKind.DWord);
-
-            //SetForceOverwrite(forceOverwrite, appNameKey);
         }
-
-        //public static void SetForceOverwrite(bool forceOverwrite, RegistryKey appNameKey)
-        //{
-        //    Console.WriteLine($"SetForceOverwrite({forceOverwrite}, \"{appNameKey.Name}\"");
-
-        //    var binary = Convert.ToInt16(forceOverwrite);
-
-        //    appNameKey?.SetValue(ForceOverwriteKeyName, forceOverwrite, RegistryValueKind.DWord);
-        //}
 
         #endregion Set Methods
 

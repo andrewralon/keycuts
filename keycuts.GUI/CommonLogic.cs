@@ -31,7 +31,7 @@ namespace keycuts.GUI
             return result;
         }
 
-        public static void ChangeOutputFolder(string outputFolder)
+        public static void SetOutputFolder(string outputFolder)
         {
             var runner = new Runner();
             runner.SetOutputFolder(outputFolder);

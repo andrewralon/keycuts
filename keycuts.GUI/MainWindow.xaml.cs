@@ -107,9 +107,9 @@ namespace keycuts.GUI
             }
         }
 
-        private void ChangeOutputFolder()
+        private void ChangeOutputFolder(string outputFolder)
         {
-
+            CommonLogic.SetOutputFolder(outputFolder);
         }
 
         #region UI Handlers - Buttons, Keys

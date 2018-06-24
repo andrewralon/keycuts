@@ -32,6 +32,10 @@ namespace keycuts.GUI
 
         #region Properties
 
+        public string LabelOutputFolder { get; } = "Output Folder";
+
+        public string LabelForceOverwrite { get; } = "Force Overwrite";
+
         public Settings Settings { get; set; }
 
         public string OutputFolder

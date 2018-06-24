@@ -121,8 +121,6 @@ namespace keycuts.Common
 
         public static void CreateRightClickContextMenu(RegistryKey context, string keyPath, string menu, string command)
         {
-            Console.WriteLine($"CreateRightClickContextMenu(\"{context.Name}\", \"{keyPath}\", \"{menu}\", {command})");
-
             var menuKey = CreateSubKey(context, keyPath, true);
             menuKey?.SetValue("", menu);
 

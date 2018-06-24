@@ -188,6 +188,16 @@ namespace keycuts.GUI
             HandleDragDrop(sender, e);
         }
 
+        private void GridMainSettingsIcon_DragEnter(object sender, DragEventArgs e)
+        {
+            HandleDragEnter(sender, e);
+        }
+
+        private void GridMainSettingsIcon_Drop(object sender, DragEventArgs e)
+        {
+            HandleDragDrop(sender, e);
+        }
+
         private void GridMainMargin_DragEnter(object sender, DragEventArgs e)
         {
             HandleDragEnter(sender, e);

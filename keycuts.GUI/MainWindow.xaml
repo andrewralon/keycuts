@@ -7,6 +7,9 @@
         Title="keycuts.... by TeamRalon" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510" 
         DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True" KeyDown="Main_KeyDown">
     <Grid x:Name="GridMainFull" DragEnter="GridMainFull_DragEnter" Drop="GridMainFull_Drop" AllowDrop="True">
+        <Grid x:Name="GridMainSettingsIcon" Margin="10" DragEnter="GridMainSettingsIcon_DragEnter" Drop="GridMainSettingsIcon_Drop" AllowDrop="True">
+            <Image HorizontalAlignment="Right" Height="40" Width="40" VerticalAlignment="Top" />
+        </Grid>
         <Grid x:Name="GridMainMargin" Margin="20" DragEnter="GridMainMargin_DragEnter" Drop="GridMainMargin_Drop" AllowDrop="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="0.9*"/>

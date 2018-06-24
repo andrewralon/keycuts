@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace keycuts.GUI
+namespace keycuts.Common
 {
     /// <summary>
     /// Interaction logic for App.xaml

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace keycuts.GUI.Properties
+namespace keycuts.Common.Properties
 {
 
 

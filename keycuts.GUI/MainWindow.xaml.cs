@@ -16,7 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace keycuts.GUI
+namespace keycuts.Common
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -85,7 +85,7 @@ namespace keycuts.GUI
 
         private void CreateShortcut()
         {
-            var result = CLI.CreateShortcut(Destination, ShortcutName);
+            var result = Common.CreateShortcut(Destination, ShortcutName);
 
             if (result == (int)ExitCode.FileAlreadyExists)
             {
@@ -95,7 +95,7 @@ namespace keycuts.GUI
 
                 if (dialogResult == MessageBoxResult.Yes)
                 {
-                    result = CLI.CreateShortcut(Destination, ShortcutName, true);
+                    result = Common.CreateShortcut(Destination, ShortcutName, true);
                 }
             }
             
@@ -105,6 +105,11 @@ namespace keycuts.GUI
 
                 MessageBox.Show($"Error {result}: {errorName}");
             }
+        }
+
+        private void ChangeOutputFolder()
+        {
+
         }
 
         #region UI Handlers - Buttons, Keys
@@ -122,9 +127,9 @@ namespace keycuts.GUI
             }
         }
 
-        private void OpenShortcutsFolder_Click(object sender, RoutedEventArgs e)
+        private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
         {
-            CLI.OpenShortcutsFolder();
+            Common.OpenOutputFolder();
         }
 
         #endregion UI Handlers - Buttons, Keys

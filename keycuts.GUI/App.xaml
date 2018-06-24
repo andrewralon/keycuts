@@ -1,7 +1,7 @@
-﻿<Application x:Class="keycuts.GUI.App"
+﻿<Application x:Class="keycuts.Common.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:keycuts.GUI"
+             xmlns:local="clr-namespace:keycuts.Common"
              Startup="App_Startup">
     <Application.Resources>
          

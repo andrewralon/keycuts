@@ -1,13 +1,12 @@
-﻿using keycuts.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace keycuts.GUI
+namespace keycuts.Common
 {
-    public class CLI
+    public class Common
     {
         public static int CreateShortcut(string destination, string shortcutName, bool force = false)
         {
@@ -31,7 +30,7 @@ namespace keycuts.GUI
             return result;
         }
 
-        public static void OpenShortcutsFolder()
+        public static void OpenOutputFolder()
         {
             var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
 

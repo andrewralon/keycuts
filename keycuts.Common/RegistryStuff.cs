@@ -21,12 +21,10 @@ namespace keycuts.Common
 
         public static RegistryKey CreateSubKey(RegistryKey context, string name, bool writable = false)
         {
-            var combined = $"{StartPath}{name}";
-
-            var key = context.OpenSubKey(combined, writable);
+            var key = context.OpenSubKey(name, writable);
             if (key == null)
             {
-                Console.WriteLine($"CreateSubKey({context.Name}, {name}, {writable})");
+                Console.WriteLine($"CreateSubKey(\"{context.Name}\", \"{name}\", \"{writable}\")");
 
                 key = context.CreateSubKey(name, writable);
             }

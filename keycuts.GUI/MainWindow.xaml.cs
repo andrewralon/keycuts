@@ -29,15 +29,13 @@ namespace keycuts.GUI
 
         private string shortcutName;
 
-        private SettingsWindow settingsWindow;
+        private SettingsWindow settingsWindow = null;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         #endregion Fields
 
         #region Properties
-
-        public Settings Settings { get; set; }
 
         public string Step1 { get { return Steps[0]; } }
 
@@ -83,7 +81,7 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
-            settingsWindow = new SettingsWindow();
+            //settingsWindow = new SettingsWindow();
 
             RegistryStuff.CreateRightClickContextMenus();
         }

@@ -86,31 +86,36 @@ namespace keycuts.Common
 
         #region Set Methods
 
-        public string SetOutputFolder(string newOutputFolder, string currentOutputFolder = null)
+        public string SetOutputFolder(string outputFolder, string currentOutputFolder = null)
         {
             if (currentOutputFolder == null)
             {
                 currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
             }
 
-            if (newOutputFolder == null)
+            if (outputFolder == null)
             {
                 // If not given, use the existing default folder
-                newOutputFolder = currentOutputFolder;
+                outputFolder = currentOutputFolder;
             }
 
-            if (newOutputFolder != currentOutputFolder)
+            if (outputFolder != currentOutputFolder)
             {
                 // Update the registry key if the output folder has changed
-                RegistryStuff.SetOutputFolder(newOutputFolder);
+                RegistryStuff.SetOutputFolder(outputFolder);
             }
 
-            return newOutputFolder;
+            return outputFolder;
         }
 
         public void SetForceOverwrite(bool forceOverwrite)
         {
-            RegistryStuff.SetForceOverwrite(forceOverwrite);
+            var currentForceOverwrite = RegistryStuff.GetForceOverwrite(DefaultForceOverwrite);
+
+            if (currentForceOverwrite != forceOverwrite)
+            {
+                RegistryStuff.SetForceOverwrite(forceOverwrite);
+            }
         }
 
         #endregion Get Methods

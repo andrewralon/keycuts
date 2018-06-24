@@ -31,14 +31,11 @@ namespace keycuts.GUI
             return result;
         }
 
-        public static int OpenShortcutsFolder()
+        public static void OpenShortcutsFolder()
         {
             var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
 
-            var process = Process.Start(defaultFolder);
-            process.WaitForExit();
-
-            return process.ExitCode;
+            Process.Start(defaultFolder);
         }
     }
 }

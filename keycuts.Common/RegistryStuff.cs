@@ -42,7 +42,7 @@ namespace keycuts.Common
 
             if (outputFolderKey == null)
             {
-                SetOutputFolder(path);//, appNameKey);
+                SetOutputFolder(path);
             }
 
             path = appNameKey?.GetValue(OutputFolderKeyName, path).ToString();
@@ -57,7 +57,7 @@ namespace keycuts.Common
 
             if (forceOverwriteKey == null)
             {
-                SetForceOverwrite(forceOverwrite);//, appNameKey);
+                SetForceOverwrite(forceOverwrite);
             }
 
             var forceOverwriteRaw = (int)appNameKey?.GetValue(ForceOverwriteKeyName, forceOverwrite);

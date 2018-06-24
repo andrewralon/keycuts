@@ -15,6 +15,8 @@ namespace keycuts.Common
 
         public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
 
+        public static readonly bool DefaultForceOverwrite = false;
+
         public Runner()
         {
         }
@@ -64,6 +66,26 @@ namespace keycuts.Common
             return (int)result;
         }
 
+        #region Get Methods
+
+        public string GetOutputFolder()
+        {
+            var outputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+
+            return outputFolder;
+        }
+
+        public bool GetForceOverwrite()
+        {
+            var forceOverwrite = RegistryStuff.GetForceOverwrite(DefaultForceOverwrite);
+
+            return forceOverwrite;
+        }
+
+        #endregion Get Methods
+
+        #region Set Methods
+
         public string SetOutputFolder(string newOutputFolder, string currentOutputFolder = null)
         {
             if (currentOutputFolder == null)
@@ -85,6 +107,13 @@ namespace keycuts.Common
 
             return newOutputFolder;
         }
+
+        public void SetForceOverwrite(bool forceOverwrite)
+        {
+            RegistryStuff.SetForceOverwrite(forceOverwrite);
+        }
+
+        #endregion Get Methods
 
         private bool CreateOutputFolder(string folder)
         {

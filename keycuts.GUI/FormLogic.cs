@@ -10,9 +10,20 @@ namespace keycuts.GUI
 {
     public class FormLogic
     {
-        public static void OpenSettings(SettingsWindow settings)
+        public static void OpenSettings(SettingsWindow settingsWindow)
         {
-            settings.Show();
+            var settingsBefore = new Settings();
+            settingsBefore.LoadSettings();
+
+            settingsWindow = new SettingsWindow();
+            settingsWindow.Show();
+
+            settingsBefore.SaveSettings();
+        }
+
+        public static void SaveSettings(Settings settings)
+        {
+            //Settings.SaveSettings(settings);
         }
 
         public static void OpenOutputFolder()

@@ -8,10 +8,6 @@
         DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True" KeyDown="Main_KeyDown">
     <Grid x:Name="GridMainFull" DragEnter="GridMainFull_DragEnter" Drop="GridMainFull_Drop" AllowDrop="True">
         <Grid x:Name="GridMainSettingsIcon" Margin="0" DragEnter="GridMainSettingsIcon_DragEnter" Drop="GridMainSettingsIcon_Drop" AllowDrop="True">
-            <!--<Button Style="{StaticResource ImageButtonStyle}" HorizontalAlignment="Right" Height="50" Width="48"
-                    Click="SettingsIcon_Click">
-                <Image Source="{Binding SettingsIcon}"/>
-            </Button>-->
             <Image HorizontalAlignment="Right" Height="50" Width="48" VerticalAlignment="Top" 
                    Source="Images\gear-47203_50x50.png" MouseDown="SettingsIcon_MouseDown"/>
         </Grid>

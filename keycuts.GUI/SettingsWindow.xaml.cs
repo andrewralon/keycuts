@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -20,11 +21,35 @@ namespace keycuts.GUI
     /// </summary>
     public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
+        #region Fields
+
         public event PropertyChangedEventHandler PropertyChanged;
+
+        #endregion Fields
+
+        #region Properties
+
+
+
+        #endregion Properties
 
         public SettingsWindow()
         {
             InitializeComponent();
+            DataContext = this;
         }
+
+
+
+
+
+        #region OnPropertyChanged Handler
+
+        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion OnPropertyChanged Handler
     }
 }

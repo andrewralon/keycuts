@@ -7,8 +7,13 @@
         Title="keycuts.... by TeamRalon" Height="510" Width="425" FontSize="18" MinWidth="425" MinHeight="510" 
         DragEnter="Main_DragEnter" Drop="Main_Drop" AllowDrop="True" KeyDown="Main_KeyDown">
     <Grid x:Name="GridMainFull" DragEnter="GridMainFull_DragEnter" Drop="GridMainFull_Drop" AllowDrop="True">
-        <Grid x:Name="GridMainSettingsIcon" Margin="10" DragEnter="GridMainSettingsIcon_DragEnter" Drop="GridMainSettingsIcon_Drop" AllowDrop="True">
-            <Image HorizontalAlignment="Right" Height="40" Width="40" VerticalAlignment="Top" />
+        <Grid x:Name="GridMainSettingsIcon" Margin="0" DragEnter="GridMainSettingsIcon_DragEnter" Drop="GridMainSettingsIcon_Drop" AllowDrop="True">
+            <!--<Button Style="{StaticResource ImageButtonStyle}" HorizontalAlignment="Right" Height="50" Width="48"
+                    Click="SettingsIcon_Click">
+                <Image Source="{Binding SettingsIcon}"/>
+            </Button>-->
+            <Image HorizontalAlignment="Right" Height="50" Width="48" VerticalAlignment="Top" 
+                   Source="Images\gear-47203_50x50.png" MouseDown="SettingsIcon_MouseDown"/>
         </Grid>
         <Grid x:Name="GridMainMargin" Margin="20" DragEnter="GridMainMargin_DragEnter" Drop="GridMainMargin_Drop" AllowDrop="True">
             <Grid.RowDefinitions>

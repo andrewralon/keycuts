@@ -10,6 +10,11 @@ namespace keycuts.GUI
 {
     public class FormLogic
     {
+        public static void OpenSettings(SettingsWindow settings)
+        {
+            settings.Show();
+        }
+
         public static void OpenOutputFolder()
         {
             var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);

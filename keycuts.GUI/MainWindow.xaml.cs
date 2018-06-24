@@ -29,6 +29,8 @@ namespace keycuts.GUI
 
         private string shortcutName;
 
+        private SettingsWindow settings;
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         #endregion Fields
@@ -79,6 +81,7 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
+            settings = new SettingsWindow();
 
             RegistryStuff.CreateRightClickContextMenus();
         }
@@ -107,12 +110,22 @@ namespace keycuts.GUI
             }
         }
 
+        private void OpenSettings()
+        {
+            FormLogic.OpenSettings(settings);
+        }
+
         private void ChangeOutputFolder(string outputFolder)
         {
             CommonLogic.SetOutputFolder(outputFolder);
         }
 
         #region UI Handlers - Buttons, Keys
+
+        private void SettingsIcon_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            OpenSettings();
+        }
 
         private void CreateShortcut_Click(object sender, RoutedEventArgs e)
         {

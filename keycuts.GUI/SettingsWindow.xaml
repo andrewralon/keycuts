@@ -20,14 +20,19 @@
                        HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Center"/>
             </Grid>
             <Grid Grid.Row="1">
-                <TextBox TextWrapping="Wrap" Text="{Binding Path=OutputFolder}" FontSize="16" Margin="10"/>
+                <TextBox TextWrapping="Wrap" Text="{Binding Path=OutputFolder}" Margin="10"/>
             </Grid>
             <Grid Grid.Row="2">
-                <CheckBox Name="CheckboxForceOverwrite" Content="{Binding Path=LabelForceOverwrite, FallbackValue='Force Overwrite'}" 
-                          IsChecked="{Binding Path=ForceOverwrite}"
+                <CheckBox Name="CheckboxForceOverwrite" IsChecked="{Binding Path=ForceOverwrite}"
+                          Content="{Binding Path=LabelForceOverwrite, FallbackValue='Force Overwrite'}" 
                           HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
             </Grid>
             <Grid Grid.Row="3">
+                <CheckBox Name="CheckboxRightClickContextMenu" IsChecked="{Binding Path=RightClickContextMenu}"
+                          Content="{Binding Path=LabelRightClickContextMenu, FallbackValue='Right Click Context Menu'}" 
+                          HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
+            </Grid>
+            <Grid Grid.Row="4">
                 <Button Content="Save Settings" Click="SaveSettings_Click" HorizontalAlignment="Center" Margin="10" MinWidth="170"/>
             </Grid>
         </Grid>

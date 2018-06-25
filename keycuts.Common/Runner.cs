@@ -17,6 +17,8 @@ namespace keycuts.Common
 
         public static readonly bool DefaultForceOverwrite = false;
 
+        public static readonly bool DefaultRightClickContextMenu = true;
+
         public Runner()
         {
         }
@@ -82,6 +84,13 @@ namespace keycuts.Common
             return forceOverwrite;
         }
 
+        public bool GetRightClickContextMenu()
+        {
+            var rightClickContextMenu = RegistryStuff.GetRightClickContextMenu(DefaultRightClickContextMenu);
+
+            return rightClickContextMenu;
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -115,6 +124,16 @@ namespace keycuts.Common
             if (currentForceOverwrite != forceOverwrite)
             {
                 RegistryStuff.SetForceOverwrite(forceOverwrite);
+            }
+        }
+
+        public void SetRightClickContextMenu(bool rightClickContextMenu)
+        {
+            var currentRightClickContextMenu = RegistryStuff.GetRightClickContextMenu(DefaultForceOverwrite);
+
+            if (currentRightClickContextMenu != rightClickContextMenu)
+            {
+                RegistryStuff.SetRightClickContextMenu(rightClickContextMenu);
             }
         }
 

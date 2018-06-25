@@ -12,16 +12,16 @@ namespace keycuts.GUI
     {
         public static void OpenSettings(SettingsWindow settingsWindow)
         {
-            var settings = new Settings();
-            settings.LoadSettings();
+            //var settings = new Settings();
+            //settings.LoadSettings();
 
-            settingsWindow = new SettingsWindow { Settings = settings };
+            settingsWindow = new SettingsWindow();
             settingsWindow.Show();
         }
 
         public static void SaveSettings(Settings settings)
         {
-            settings.SaveSettings();
+            settings?.SaveSettings();
         }
 
         public static void OpenOutputFolder()

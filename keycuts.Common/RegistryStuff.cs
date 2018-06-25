@@ -11,13 +11,15 @@ namespace keycuts.Common
     {
         public static readonly RegistryKey CurrentUserContext = Registry.CurrentUser;
 
+        public static readonly RegistryKey RightClickContextMenuContext = Registry.ClassesRoot;
+
         public static readonly string StartPath = $@"Software\TeamRalon\{Runner.AppName}";
 
         public static readonly string OutputFolderKeyName = "OutputFolder";
 
         public static readonly string ForceOverwriteKeyName = "ForceOverwrite";
 
-        public static bool ForceOverwriteDefault { get { return false; } }
+        public static readonly string RightClickContextMenuKeyName = "RightClickContextMenu";
 
         public static RegistryKey CreateSubKey(RegistryKey context, string name, bool writable = false)
         {
@@ -29,6 +31,17 @@ namespace keycuts.Common
                 key = context.CreateSubKey(name, writable);
             }
             return key;
+        }
+
+        public static void DeleteSubKeyTree(RegistryKey context, string keyPath, string treeName)
+        {
+            var key = context.OpenSubKey(keyPath, true);
+            if (key != null)
+            {
+                Console.WriteLine($"DeleteSubKeyTree(\"{context.Name}\", \"{keyPath}\", \"{treeName}\"");
+
+                key?.DeleteSubKeyTree(treeName, false);
+            }
         }
 
         #region Get Methods
@@ -64,6 +77,22 @@ namespace keycuts.Common
             return forceOverwrite;
         }
 
+        public static bool GetRightClickContextMenu(bool rightClickContextMenu)
+        {
+            var appNameKey = CreateSubKey(CurrentUserContext, StartPath);
+            var rightClickContextMenuKey = appNameKey?.GetValue(RightClickContextMenuKeyName);
+
+            if (rightClickContextMenuKey == null)
+            {
+                SetRightClickContextMenu(rightClickContextMenu);
+            }
+
+            var rightClickContextMenuRaw = (int)appNameKey?.GetValue(RightClickContextMenuKeyName, rightClickContextMenu);
+            rightClickContextMenu = rightClickContextMenuRaw != 0;
+
+            return rightClickContextMenu;
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -90,33 +119,41 @@ namespace keycuts.Common
             SetRegistryValue(appNameKey, ForceOverwriteKeyName, forceOverwrite, RegistryValueKind.DWord);
         }
 
+        public static void SetRightClickContextMenu(bool rightClickContextMenu)
+        {
+            var appNameKey = CreateSubKey(CurrentUserContext, StartPath, true);
+
+            SetRegistryValue(appNameKey, RightClickContextMenuKeyName, rightClickContextMenu, RegistryValueKind.DWord);
+
+            if (rightClickContextMenu)
+            {
+                CreateRightClickContextMenus();
+            }
+            else
+            {
+                RemoveRightClickContextMenus();
+            }
+        }
+
         #endregion Set Methods
 
         public static void CreateRightClickContextMenus()
         {
             var appNameGUI = Process.GetCurrentProcess().MainModule.FileName;
-            var context = Registry.ClassesRoot;
 
             var menu = "Create a keycut to here!";
             var command = $"\"{appNameGUI}\" \"%1\""; // Path of selected folder with %1
             var commandBackground = $"\"{appNameGUI}\" \"%V\""; // Path of current directory with %V
 
-            var keyDirectoryShell = $@"Directory\shell\{Runner.AppName}";
-            var keyDirectoryBackgroundShell = $@"Directory\Background\shell\{Runner.AppName}";
-            var keyStarShell = $@"*\shell\{Runner.AppName}";
-            var keyFolderShell = $@"Folder\shell\{Runner.AppName}";
+            var keyDirectoryShell = $@"Directory\shell\{Runner.AppName}";   // Directory/shell
+            var keyDirectoryBackgroundShell = $@"Directory\Background\shell\{Runner.AppName}"; // Directory/Background/shell
+            var keyStarShell = $@"*\shell\{Runner.AppName}";                // *\shell -- file
+            var keyFolderShell = $@"Folder\shell\{Runner.AppName}";         // Folder\shell
 
-            // Directory\shell
-            CreateRightClickContextMenu(context, keyDirectoryShell, menu, command);
-
-            // Directory\Background\shell
-            CreateRightClickContextMenu(context, keyDirectoryBackgroundShell, menu, commandBackground);
-
-            // *\shell -- file
-            CreateRightClickContextMenu(context, keyStarShell, menu, command);
-
-            // Folder\shell
-            CreateRightClickContextMenu(context, keyFolderShell, menu, command);
+            CreateRightClickContextMenu(RightClickContextMenuContext, keyDirectoryShell, menu, command);
+            CreateRightClickContextMenu(RightClickContextMenuContext, keyDirectoryBackgroundShell, menu, commandBackground);
+            CreateRightClickContextMenu(RightClickContextMenuContext, keyStarShell, menu, command);
+            CreateRightClickContextMenu(RightClickContextMenuContext, keyFolderShell, menu, command);
         }
 
         public static void CreateRightClickContextMenu(RegistryKey context, string keyPath, string menu, string command)
@@ -126,6 +163,26 @@ namespace keycuts.Common
 
             var commandKey = CreateSubKey(context, $@"{keyPath}\command", true);
             commandKey?.SetValue("", command);
+        }
+
+        public static void RemoveRightClickContextMenus()
+        {
+            var treeName = Runner.AppName;
+
+            var keyDirectoryShell = $@"Directory\shell";    // Directory/shell
+            var keyDirectoryBackgroundShell = $@"Directory\Background\shell"; // Directory/Background/shell
+            var keyStarShell = $@"*\shell";                 // *\shell -- file
+            var keyFolderShell = $@"Folder\shell";          // Folder\shell
+
+            RemoveRightClickContextMenu(RightClickContextMenuContext, keyDirectoryShell, treeName);
+            RemoveRightClickContextMenu(RightClickContextMenuContext, keyDirectoryBackgroundShell, treeName);
+            RemoveRightClickContextMenu(RightClickContextMenuContext, keyStarShell, treeName);
+            RemoveRightClickContextMenu(RightClickContextMenuContext, keyFolderShell, treeName);
+        }
+
+        public static void RemoveRightClickContextMenu(RegistryKey context, string keyPath, string treeName)
+        {
+            DeleteSubKeyTree(context, keyPath, treeName);
         }
     }
 }

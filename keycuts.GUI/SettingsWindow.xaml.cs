@@ -26,7 +26,7 @@ namespace keycuts.GUI
 
         private bool forceOverwrite;
 
-        private bool rightClickContextMenu;
+        private bool rightClickContextMenus;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -36,9 +36,9 @@ namespace keycuts.GUI
 
         public string LabelOutputFolder { get; } = "Output Folder";
 
-        public string LabelForceOverwrite { get; } = "Force Overwrite";
+        public string LabelForceOverwrite { get; } = "Force Overwrite (if shortcut exists)";
 
-        public string LabelRightClickContextMenu { get; } = "Right Click Context Menu";
+        public string LabelRightClickContextMenus { get; } = "Right Click Context Menus";
 
         public Settings Settings { get; set; }
 
@@ -62,12 +62,12 @@ namespace keycuts.GUI
             }
         }
 
-        public bool RightClickContextMenu
+        public bool RightClickContextMenus
         {
-            get { return rightClickContextMenu; }
+            get { return rightClickContextMenus; }
             set
             {
-                rightClickContextMenu = value;
+                rightClickContextMenus = value;
                 NotifyPropertyChanged("RightClickContextMenu");
             }
         }
@@ -89,6 +89,7 @@ namespace keycuts.GUI
 
             OutputFolder = Settings.OutputFolder;
             ForceOverwrite = Settings.ForceOverwrite;
+            RightClickContextMenus = Settings.RightClickContextMenus;
         }
 
         #region UI Handlers
@@ -99,7 +100,7 @@ namespace keycuts.GUI
             {
                 OutputFolder = OutputFolder,
                 ForceOverwrite = (bool)CheckboxForceOverwrite.IsChecked,
-                RightClickContextMenu = RightClickContextMenu
+                RightClickContextMenus = RightClickContextMenus
             };
 
             FormLogic.SaveSettings(settings);

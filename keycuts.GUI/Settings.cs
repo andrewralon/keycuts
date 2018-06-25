@@ -15,7 +15,7 @@ namespace keycuts.GUI
 
         public bool ForceOverwrite { get; set; }
 
-        public bool RightClickContextMenu { get; set; }
+        public bool RightClickContextMenus { get; set; }
 
         public Settings()
         {
@@ -26,14 +26,14 @@ namespace keycuts.GUI
         {
             OutputFolder = runner.GetOutputFolder();
             ForceOverwrite = runner.GetForceOverwrite();
-            RightClickContextMenu = runner.GetRightClickContextMenu();
+            RightClickContextMenus = runner.GetRightClickContextMenu();
         }
 
         public void SaveSettings()
         {
             runner.SetOutputFolder(OutputFolder);
             runner.SetForceOverwrite(ForceOverwrite);
-            runner.SetRightClickContextMenu(RightClickContextMenu);
+            runner.SetRightClickContextMenu(RightClickContextMenus);
         }
     }
 }

@@ -13,6 +13,13 @@ namespace keycuts.GUI
         {
             var result = 0;
 
+            var runner = new Runner();
+
+            if (!force)
+            {
+                force = runner.GetForceOverwrite();
+            }
+
             if (!string.IsNullOrEmpty(destination) && 
                 !string.IsNullOrEmpty(shortcutName))
             {
@@ -21,7 +28,7 @@ namespace keycuts.GUI
                     shortcutName,
                     force: force);
 
-                result = new Runner().Run(args);
+                result = runner.Run(args);
             }
             else
             {

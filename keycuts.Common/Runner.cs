@@ -214,6 +214,8 @@ namespace keycuts.Common
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
 
+                Console.WriteLine($"Shortcut created: \"{shortcut.FullPath}\"");
+
                 result = true;
             }
 

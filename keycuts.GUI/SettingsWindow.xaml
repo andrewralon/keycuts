@@ -9,7 +9,7 @@
     <Grid>
         <Grid x:Name="GridSettingsMargin" Margin="20">
             <Grid.RowDefinitions>
-                <RowDefinition Height="1*"/>
+                <RowDefinition Height="0.6*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
@@ -17,7 +17,7 @@
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Label Content="{Binding Path=LabelOutputFolder, FallbackValue='Output Folder'}" 
-                       HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Center"/>
+                       HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
             </Grid>
             <Grid Grid.Row="1">
                 <TextBox TextWrapping="Wrap" Text="{Binding Path=OutputFolder}" Margin="10"/>
@@ -28,8 +28,8 @@
                           HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
             </Grid>
             <Grid Grid.Row="3">
-                <CheckBox Name="CheckboxRightClickContextMenu" IsChecked="{Binding Path=RightClickContextMenu}"
-                          Content="{Binding Path=LabelRightClickContextMenu, FallbackValue='Right Click Context Menu'}" 
+                <CheckBox Name="CheckboxRightClickContextMenus" IsChecked="{Binding Path=RightClickContextMenus}"
+                          Content="{Binding Path=LabelRightClickContextMenus, FallbackValue='Right Click Context Menus'}" 
                           HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
             </Grid>
             <Grid Grid.Row="4">

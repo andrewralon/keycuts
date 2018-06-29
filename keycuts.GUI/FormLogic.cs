@@ -12,9 +12,6 @@ namespace keycuts.GUI
     {
         public static void OpenSettings(SettingsWindow settingsWindow)
         {
-            //var settings = new Settings();
-            //settings.LoadSettings();
-
             settingsWindow = new SettingsWindow();
             settingsWindow.Show();
         }

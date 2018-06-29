@@ -21,6 +21,7 @@ namespace keycuts.Common
 
         public Runner()
         {
+            Console.ReadKey();
         }
 
         public int Run(KeycutArgs args)
@@ -180,7 +181,7 @@ namespace keycuts.Common
 
                 if (shortcut.OpenWithApp)
                 {
-                    start = $"{start} \"{1}\"";
+                    start = $"{start} \"{{1}}\"";
                     command = string.Format(start, shortcut.OpenWithAppPath, shortcut.Destination);
                 }
                 else

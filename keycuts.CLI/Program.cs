@@ -10,13 +10,27 @@ namespace keycuts.CLI
 {
     public class Program
     {
+        public static string CurrentDirectory { get; set; }
+
         public static int Main(string[] args)
         {
+            //args = new string[]
+            //{
+            //    @"-d keycuts.exe.config",
+            //    //@"-d ..\..\packages.config",
+            //    "-s config2"
+            //};
+
             var result = Run(args);
             if (result != ExitCode.Success)
             {
                 Console.WriteLine($"Error: {result}");
             }
+
+#if DEBUG
+            Console.ReadKey();
+#endif
+
             return (int)result;
         }
 
@@ -48,6 +62,21 @@ namespace keycuts.CLI
                     // Run app and pass arguments as parameters
                     var app = new Runner();
                     result = app.Run(keycutArgs);
+
+                    if (result == ExitCode.FileAlreadyExists)
+                    {
+                        Console.WriteLine($"Shortcut file {options.Shortcut} already exists.");
+                        Console.Write("Overwrite? (y / n)  ");
+                        var overwriteInput = Console.ReadKey().KeyChar.ToString();
+                        Console.WriteLine();
+
+                        if (overwriteInput.ToLower() == "y")
+                        {
+                            // Force overwrite
+                            keycutArgs.Force = true;
+                            result = app.Run(keycutArgs);
+                        }
+                    }
                 }
                 else
                 {
@@ -55,11 +84,8 @@ namespace keycuts.CLI
                     Parser.Default.ParseArguments<Options>(new string[] { "--help" });
                     result = ExitCode.Success;
                 }
-            }
 
-            if (result != ExitCode.Success)
-            {
-                result = ExitCode.BadArguments;
+                
             }
 
             return result;

@@ -30,7 +30,7 @@ namespace keycuts.Common
 
         public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
         {
-            var result = ExitCode.Success;
+            var result = ExitCode.NotStarted;
 
             var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
 

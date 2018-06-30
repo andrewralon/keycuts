@@ -37,15 +37,18 @@ namespace keycuts.Common
 
         #region Constructors
 
-        public Shortcut(string destination, string path, string defaultFolder, string openWithAppPath = null)
+        public Shortcut(string destination, string shortcut, string defaultFolder, string openWithAppPath = null)
         {
+            // Handle relative paths
+            destination = Path.GetFullPath(destination);
+
             Destination = GetWindowsLinkTargetPath(destination);
             Extension = ".bat";
-            Filename = Path.GetFileNameWithoutExtension(path);
+            Filename = Path.GetFileNameWithoutExtension(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
-            Folder = IsNotFullPath(path) ?
+            Folder = IsNotFullPath(shortcut) ?
                 defaultFolder :
-                Path.GetDirectoryName(path);
+                Path.GetDirectoryName(shortcut);
             FullPath = Path.Combine(Folder, FilenameWithExtension);
             OpenWithAppPath = openWithAppPath;
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
@@ -152,15 +155,10 @@ namespace keycuts.Common
         public static bool IsNotFullPath(string path)
         {
             var result = false;
-
-            var filename = Path.GetFileNameWithoutExtension(path);
-            var filenamewithextension = Path.GetFileName(path);
-
-            if (path == filename || path == filenamewithextension)
+            if (path != Path.GetFullPath(path))
             {
                 result = true;
             }
-
             return result;
         }
 

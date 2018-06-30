@@ -14,13 +14,6 @@ namespace keycuts.CLI
 
         public static int Main(string[] args)
         {
-            //args = new string[]
-            //{
-            //    @"-d keycuts.exe.config",
-            //    //@"-d ..\..\packages.config",
-            //    "-s config2"
-            //};
-
             var result = Run(args);
             if (result != ExitCode.Success)
             {

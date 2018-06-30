@@ -44,7 +44,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExitCode.cs" />
-    <Compile Include="ExitCodes.cs" />
     <Compile Include="KeycutArgs.cs" />
     <Compile Include="Runner.cs" />
     <Compile Include="PathSetup.cs" />

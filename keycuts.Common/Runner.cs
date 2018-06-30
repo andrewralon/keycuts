@@ -23,12 +23,12 @@ namespace keycuts.Common
         {
         }
 
-        public int Run(KeycutArgs args)
+        public ExitCode Run(KeycutArgs args)
         {
             return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force);
         }
 
-        public int Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
+        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
         {
             var result = ExitCode.Success;
 
@@ -65,7 +65,7 @@ namespace keycuts.Common
                 }
             }
 
-            return (int)result;
+            return result;
         }
 
         #region Get Methods

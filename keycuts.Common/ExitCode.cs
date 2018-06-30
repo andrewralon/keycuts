@@ -7,6 +7,7 @@ namespace keycuts.Common
 {
     public enum ExitCode
     {
+        NotStarted = -1,
         Success = 0,
         BadArguments = 1,
         CannotFindFile = 2,

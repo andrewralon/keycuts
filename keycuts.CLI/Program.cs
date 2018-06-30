@@ -13,24 +13,16 @@ namespace keycuts.CLI
         public static int Main(string[] args)
         {
             var result = Run(args);
-
-            if (result == 0)
+            if (result != ExitCode.Success)
             {
-                Console.WriteLine("Done. YAY!");
+                Console.WriteLine($"Error: {result}");
             }
-            else
-            {
-                Console.WriteLine("Did something bad happen?");
-            }
-#if DEBUG
-            Console.Read(); // Leave command prompt open when testing
-#endif
-            return result;
+            return (int)result;
         }
 
-        public static int Run(string[] args)
+        public static ExitCode Run(string[] args)
         {
-            var result = -1;
+            var result = ExitCode.NotStarted;
 
             var parsedArgs = Parser.Default.ParseArguments<Options>(args);
             if (!parsedArgs.Errors.Any())
@@ -59,17 +51,15 @@ namespace keycuts.CLI
                 }
                 else
                 {
-                    throw new Exception("Bad things happened.");
+                    // Show help text
+                    Parser.Default.ParseArguments<Options>(new string[] { "--help" });
+                    result = ExitCode.Success;
                 }
             }
-            else
-            {
-                Console.WriteLine("***Errors:");
 
-                foreach (var error in parsedArgs.Errors)
-                {
-                    Console.WriteLine(error.ToString());
-                }
+            if (result != ExitCode.Success)
+            {
+                result = ExitCode.BadArguments;
             }
 
             return result;

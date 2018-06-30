@@ -9,10 +9,9 @@ namespace keycuts.GUI
 {
     public class CommonLogic
     {
-        public static int CreateShortcut(string destination, string shortcutName, bool force = false)
+        public static ExitCode CreateShortcut(string destination, string shortcutName, bool force = false)
         {
-            var result = 0;
-
+            var result = ExitCode.NotStarted;
             var runner = new Runner();
 
             if (!force)
@@ -32,7 +31,7 @@ namespace keycuts.GUI
             }
             else
             {
-                result = (int)ExitCode.BadArguments;
+                result = ExitCode.BadArguments;
             }
 
             return result;

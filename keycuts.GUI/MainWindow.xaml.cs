@@ -87,7 +87,7 @@ namespace keycuts.GUI
         {
             var result = CommonLogic.CreateShortcut(Destination, ShortcutName);
 
-            if (result == (int)ExitCode.FileAlreadyExists)
+            if (result == ExitCode.FileAlreadyExists)
             {
                 var dialogResult = MessageBox.Show(this,
                     "Shortcut file already exists. Overwrite it?",
@@ -101,9 +101,7 @@ namespace keycuts.GUI
             
             if (result != (int)ExitCode.Success)
             {
-                var errorName = ExitCodes.GetName(result);
-
-                MessageBox.Show($"Error {result}: {errorName}");
+                MessageBox.Show($"Error: {result}");
             }
         }
 

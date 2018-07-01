@@ -28,10 +28,19 @@ namespace keycuts.GUI
             Process.Start(defaultFolder);
         }
 
+        public static void ActivateShortcutTextbox(MainWindow mainWindow, string file)
+        {
+            // Follow the link (if it exists) and set the path textbox
+            mainWindow.Destination = Shortcut.GetWindowsLinkTargetPath(file);
+
+            // Focus on the shortcut name textbox
+            mainWindow.TextboxShortcut.Focus();
+        }
+
         public static void ActivateThisWindow()
         {
-            Process process = Process.GetCurrentProcess();
-            IntPtr hwnd = process.MainWindowHandle;
+            var process = Process.GetCurrentProcess();
+            var hwnd = process.MainWindowHandle;
             SetForegroundWindow(hwnd);
         }
 

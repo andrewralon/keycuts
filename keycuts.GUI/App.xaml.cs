@@ -20,6 +20,8 @@ namespace keycuts.GUI
             if (e.Args.Any())
             {
                 mainWindow.Destination = e.Args[0];
+
+                FormLogic.ActivateShortcutTextbox(mainWindow, mainWindow.Destination);
             }
 
             mainWindow.Show();

@@ -22,31 +22,7 @@
         "Entry"
         {
         "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
-        "OwnerKey" = "8:_47602C6B1357410C9F8B8FB278FD2214"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
-        "OwnerKey" = "8:_7E30ED4C27244C99819686C74EC01361"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
-        "OwnerKey" = "8:_E8D6207D3E5D4262AE35C937BCFB6CE1"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_47602C6B1357410C9F8B8FB278FD2214"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_7E30ED4C27244C99819686C74EC01361"
-        "OwnerKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -57,6 +33,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
         "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
         "MsmSig" = "8:_UNDEFINED"
@@ -64,67 +46,31 @@
         "Entry"
         {
         "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
-        "OwnerKey" = "8:_47602C6B1357410C9F8B8FB278FD2214"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
-        "OwnerKey" = "8:_7E30ED4C27244C99819686C74EC01361"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
-        "OwnerKey" = "8:_E8D6207D3E5D4262AE35C937BCFB6CE1"
+        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_E09F4DE93B77E1461A7C849939E61BD8"
-        "OwnerKey" = "8:_E8D6207D3E5D4262AE35C937BCFB6CE1"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_E09F4DE93B77E1461A7C849939E61BD8"
-        "OwnerKey" = "8:_7E30ED4C27244C99819686C74EC01361"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_E8D6207D3E5D4262AE35C937BCFB6CE1"
-        "OwnerKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_E8D6207D3E5D4262AE35C937BCFB6CE1"
+        "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_47602C6B1357410C9F8B8FB278FD2214"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_7E30ED4C27244C99819686C74EC01361"
+        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_E09F4DE93B77E1461A7C849939E61BD8"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -346,13 +292,13 @@
             "Property" = "8:ProgramMenuFolder"
                 "Folders"
                 {
-                    "{9EF0B969-E518-4E46-987F-47570745A589}:_5DAECB291F644AAAB92FC330CF1E7E29"
+                    "{9EF0B969-E518-4E46-987F-47570745A589}:_7030346892814535B7DF58CB67CE1907"
                     {
                     "Name" = "8:keycuts"
                     "AlwaysCreate" = "11:FALSE"
                     "Condition" = "8:"
                     "Transitive" = "11:FALSE"
-                    "Property" = "8:_9E85FAAADCC44C839E4D3E2E23C926A1"
+                    "Property" = "8:_508B7FD4D0C445C99EF5470A63BAE594"
                         "Folders"
                         {
                         }
@@ -398,7 +344,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:keycuts"
         "ProductCode" = "8:{4B622F3D-661A-4949-A33F-AD6357432FFF}"
-        "PackageCode" = "8:{09652E16-672E-498A-A02D-F929E720B35B}"
+        "PackageCode" = "8:{FA4A2CAE-1E1C-41AE-8A4E-585930DEEEC0}"
         "UpgradeCode" = "8:{14EA8A3E-D6DE-4EE6-99FB-C1754F1E9381}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -478,7 +424,7 @@
                             "Name" = "8:[Manufacturer]"
                             "Condition" = "8:"
                             "AlwaysCreate" = "11:TRUE"
-                            "DeleteAtUninstall" = "11:FALSE"
+                            "DeleteAtUninstall" = "11:TRUE"
                             "Transitive" = "11:FALSE"
                                 "Keys"
                                 {
@@ -558,7 +504,7 @@
                                     {
                                     "Name" = "8:[ProductName]"
                                     "Condition" = "8:"
-                                    "AlwaysCreate" = "11:TRUE"
+                                    "AlwaysCreate" = "11:FALSE"
                                     "DeleteAtUninstall" = "11:TRUE"
                                     "Transitive" = "11:FALSE"
                                         "Keys"
@@ -575,14 +521,6 @@
                                                 }
                                                 "Values"
                                                 {
-                                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_2A27674E83DD40B78EEE00757434C4EE"
-                                                    {
-                                                    "Name" = "8:(Default)"
-                                                    "Condition" = "8:"
-                                                    "Transitive" = "11:FALSE"
-                                                    "ValueTypes" = "3:1"
-                                                    "Value" = "8:\"C:\\Program Files (x86)\\TeamRalon\\keycuts\\keycuts.GUI.exe\" \"%1\""
-                                                    }
                                                 }
                                             }
                                         }
@@ -593,14 +531,6 @@
                                 }
                                 "Values"
                                 {
-                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_6228C417715C4DA686AAF62FC6AA16DA"
-                                    {
-                                    "Name" = "8:(Default)"
-                                    "Condition" = "8:"
-                                    "Transitive" = "11:FALSE"
-                                    "ValueTypes" = "3:1"
-                                    "Value" = "8:Create a keycut to here!"
-                                    }
                                 }
                             }
                         }
@@ -630,7 +560,7 @@
                                     {
                                     "Name" = "8:[ProductName]"
                                     "Condition" = "8:"
-                                    "AlwaysCreate" = "11:TRUE"
+                                    "AlwaysCreate" = "11:FALSE"
                                     "DeleteAtUninstall" = "11:TRUE"
                                     "Transitive" = "11:FALSE"
                                         "Keys"
@@ -647,27 +577,11 @@
                                                 }
                                                 "Values"
                                                 {
-                                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_425281671E0F43A898A770E68835C01A"
-                                                    {
-                                                    "Name" = "8:(Default)"
-                                                    "Condition" = "8:"
-                                                    "Transitive" = "11:FALSE"
-                                                    "ValueTypes" = "3:1"
-                                                    "Value" = "8:\"C:\\Program Files (x86)\\TeamRalon\\keycuts\\keycuts.GUI.exe\" \"%1\""
-                                                    }
                                                 }
                                             }
                                         }
                                         "Values"
                                         {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_5D53A14EADAC42B49E120E7A398AECC2"
-                                            {
-                                            "Name" = "8:(Default)"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:Create a keycut to here!"
-                                            }
                                         }
                                     }
                                 }
@@ -697,7 +611,7 @@
                                             {
                                             "Name" = "8:[ProductName]"
                                             "Condition" = "8:"
-                                            "AlwaysCreate" = "11:TRUE"
+                                            "AlwaysCreate" = "11:FALSE"
                                             "DeleteAtUninstall" = "11:TRUE"
                                             "Transitive" = "11:FALSE"
                                                 "Keys"
@@ -714,27 +628,11 @@
                                                         }
                                                         "Values"
                                                         {
-                                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_18764849ED0B4F588A22A13903D4E361"
-                                                            {
-                                                            "Name" = "8:(Default)"
-                                                            "Condition" = "8:"
-                                                            "Transitive" = "11:FALSE"
-                                                            "ValueTypes" = "3:1"
-                                                            "Value" = "8:\"C:\\Program Files (x86)\\TeamRalon\\keycuts\\keycuts.GUI.exe\" \"%V\""
-                                                            }
                                                         }
                                                     }
                                                 }
                                                 "Values"
                                                 {
-                                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_4500EAD80EAD4A589A38E4152A886600"
-                                                    {
-                                                    "Name" = "8:(Default)"
-                                                    "Condition" = "8:"
-                                                    "Transitive" = "11:FALSE"
-                                                    "ValueTypes" = "3:1"
-                                                    "Value" = "8:Create a keycut to here!"
-                                                    }
                                                 }
                                             }
                                         }
@@ -774,7 +672,7 @@
                                     {
                                     "Name" = "8:[ProductName]"
                                     "Condition" = "8:"
-                                    "AlwaysCreate" = "11:TRUE"
+                                    "AlwaysCreate" = "11:FALSE"
                                     "DeleteAtUninstall" = "11:TRUE"
                                     "Transitive" = "11:FALSE"
                                         "Keys"
@@ -791,27 +689,11 @@
                                                 }
                                                 "Values"
                                                 {
-                                                    "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_41D284EDA8CE4EA89511E1ABD66CEF78"
-                                                    {
-                                                    "Name" = "8:(Default)"
-                                                    "Condition" = "8:"
-                                                    "Transitive" = "11:FALSE"
-                                                    "ValueTypes" = "3:1"
-                                                    "Value" = "8:\"C:\\Program Files (x86)\\TeamRalon\\keycuts\\keycuts.GUI.exe\" \"%1\""
-                                                    }
                                                 }
                                             }
                                         }
                                         "Values"
                                         {
-                                            "{ADCFDA98-8FDD-45E4-90BC-E3D20B029870}:_4F12A2A0E4EB427BB5C6AC04E5411535"
-                                            {
-                                            "Name" = "8:(Default)"
-                                            "Condition" = "8:"
-                                            "Transitive" = "11:FALSE"
-                                            "ValueTypes" = "3:1"
-                                            "Value" = "8:Create a keycut to here!"
-                                            }
                                         }
                                     }
                                 }
@@ -844,16 +726,30 @@
         }
         "Shortcut"
         {
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_86261EA4967A40E189F415831A60611F"
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_3B6F8796805F4E17A2E0C85B5AF6D7C7"
             {
-            "Name" = "8:keycuts"
+            "Name" = "8:keycuts.GUI"
             "Arguments" = "8:"
             "Description" = "8:"
             "ShowCmd" = "3:1"
             "IconIndex" = "3:0"
             "Transitive" = "11:FALSE"
-            "Target" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Folder" = "8:_75A1C3EAEDE14F4B879CA58D89355869"
+            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
+            "Folder" = "8:_D47755D055664D5BBA810C66EDC6878B"
+            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
+            "Icon" = "8:"
+            "Feature" = "8:"
+            }
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_5D59D00690AB4681BAD0ECCAE5A61E6D"
+            {
+            "Name" = "8:keycuts.GUI"
+            "Arguments" = "8:"
+            "Description" = "8:"
+            "ShowCmd" = "3:1"
+            "IconIndex" = "3:0"
+            "Transitive" = "11:FALSE"
+            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
+            "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
             "Icon" = "8:"
             "Feature" = "8:"
@@ -868,6 +764,20 @@
             "Transitive" = "11:FALSE"
             "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
             "Folder" = "8:_BD00CD3557E14739A0217E6283A18B8C"
+            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
+            "Icon" = "8:"
+            "Feature" = "8:"
+            }
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_D8DE00607E1D444F89A02894BF5A24B2"
+            {
+            "Name" = "8:Shortcut to keycuts folder"
+            "Arguments" = "8:"
+            "Description" = "8:"
+            "ShowCmd" = "3:1"
+            "IconIndex" = "3:0"
+            "Transitive" = "11:FALSE"
+            "Target" = "8:_666DD26FD228448586422229A6B53E1E"
+            "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
             "Icon" = "8:"
             "Feature" = "8:"
@@ -1271,62 +1181,6 @@
         }
         "ProjectOutput"
         {
-            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_47602C6B1357410C9F8B8FB278FD2214"
-            {
-            "SourcePath" = "8:..\\keycuts.GUI\\obj\\Release\\keycuts.GUI.exe"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_5DAECB291F644AAAB92FC330CF1E7E29"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            "ProjectOutputGroupRegister" = "3:1"
-            "OutputConfiguration" = "8:"
-            "OutputGroupCanonicalName" = "8:Built"
-            "OutputProjectGuid" = "8:{82526210-CF24-4279-84C6-E7B8ACF6E461}"
-            "ShowKeyOutput" = "11:TRUE"
-                "ExcludeFilters"
-                {
-                }
-            }
-            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_7E30ED4C27244C99819686C74EC01361"
-            {
-            "SourcePath" = "8:..\\keycuts.CLI\\obj\\Release\\keycuts.exe"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_5DAECB291F644AAAB92FC330CF1E7E29"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            "ProjectOutputGroupRegister" = "3:1"
-            "OutputConfiguration" = "8:"
-            "OutputGroupCanonicalName" = "8:Built"
-            "OutputProjectGuid" = "8:{5E4A91B5-CB7A-4284-88C6-C62F8F3C3C61}"
-            "ShowKeyOutput" = "11:TRUE"
-                "ExcludeFilters"
-                {
-                }
-            }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_9A2B39FE18694E528AFB04735262C70F"
             {
             "SourcePath" = "8:..\\keycuts.GUI\\obj\\Release\\keycuts.GUI.exe"
@@ -1355,7 +1209,7 @@
                 {
                 }
             }
-            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_E8D6207D3E5D4262AE35C937BCFB6CE1"
+            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_B04A0694F4BF44C287758CC754790DCB"
             {
             "SourcePath" = "8:..\\keycuts.CLI\\obj\\Release\\keycuts.exe"
             "TargetName" = "8:"

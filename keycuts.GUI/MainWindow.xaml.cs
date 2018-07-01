@@ -165,11 +165,7 @@ namespace keycuts.GUI
             }
             else
             {
-                // Follow the link (if it exists) and set the path textbox
-                Destination = Shortcut.GetWindowsLinkTargetPath(file);
-
-                // Focus on the shortcut name textbox
-                TextboxShortcut.Focus();
+                FormLogic.ActivateShortcutTextbox(this, file);
 
                 // Activate this window (normally keeps focus on whatever was previously active)
                 FormLogic.ActivateThisWindow();

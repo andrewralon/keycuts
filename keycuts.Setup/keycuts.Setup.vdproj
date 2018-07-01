@@ -15,6 +15,12 @@
     {
         "Entry"
         {
+        "MsmKey" = "8:_264D6B28AB3C44098996563CA65A17EF"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
         "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
         "MsmSig" = "8:_UNDEFINED"
@@ -110,6 +116,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.6.1"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.6.1 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.6.1"
+                    }
+                }
             }
         }
         "Release"
@@ -172,6 +186,26 @@
         }
         "File"
         {
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_264D6B28AB3C44098996563CA65A17EF"
+            {
+            "SourcePath" = "8:C:\\Users\\TeamRalon\\Desktop\\TR_256_ico.ico"
+            "TargetName" = "8:TR_256_ico.ico"
+            "Tag" = "8:"
+            "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_296872D540030B9D65AFCE95913AB254"
             {
             "AssemblyRegister" = "3:1"
@@ -737,7 +771,7 @@
             "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
             "Folder" = "8:_D47755D055664D5BBA810C66EDC6878B"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:"
+            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
             "Feature" = "8:"
             }
             "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_5D59D00690AB4681BAD0ECCAE5A61E6D"
@@ -751,7 +785,7 @@
             "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
             "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:"
+            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
             "Feature" = "8:"
             }
             "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_95575EAAFD1C4F6E8430104CF31B7807"
@@ -765,7 +799,7 @@
             "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
             "Folder" = "8:_BD00CD3557E14739A0217E6283A18B8C"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:"
+            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
             "Feature" = "8:"
             }
             "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_D8DE00607E1D444F89A02894BF5A24B2"

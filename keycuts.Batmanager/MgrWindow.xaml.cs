@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,11 +19,26 @@ namespace keycuts.Batmanager
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MgrWindow : Window, INotifyPropertyChanged
     {
-        public MainWindow()
+        #region Fields
+
+
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        #endregion Fields
+
+        #region Properties
+
+
+
+        #endregion Properties
+
+        public MgrWindow()
         {
             InitializeComponent();
+            DataContext = this;
         }
     }
 }

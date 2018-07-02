@@ -6,7 +6,22 @@
         xmlns:local="clr-namespace:keycuts.Batmanager"
         mc:Ignorable="d"
         Title="batmanager" Height="450" Width="800">
-    <Grid>
-        
+    <Grid x:Name="GridMainFull">
+        <Grid x:Name="GridMainMargin" Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="8*"/>
+                <RowDefinition Height="1*"/>
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0">
+                <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
+            </Grid>
+            <Grid Grid.Row="1">
+                <DockPanel Grid.Row="1">
+                    <DataGrid VerticalAlignment="Top" Loaded="DataGrid_Loaded"/>
+                    <!--<TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16" DragEnter="TextboxDestination_DragEnter" Drop="TextboxDestination_Drop" AllowDrop="True" PreviewDragOver="TextboxDestination_PreviewDragOver"/>-->
+                </DockPanel>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

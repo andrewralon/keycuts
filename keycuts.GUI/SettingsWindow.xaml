@@ -1,0 +1,40 @@
+﻿<Window x:Name="SettingsWindowName" x:Class="keycuts.GUI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:keycuts.GUI"
+        mc:Ignorable="d"
+        Title="Settings" Height="350" Width="425" FontSize="18" MinWidth="425" MinHeight="350">
+    <Grid>
+        <Grid x:Name="GridSettingsMargin" Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="0.6*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="1*"/>
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0">
+                <Label Content="{Binding Path=LabelOutputFolder, FallbackValue='Output Folder'}" 
+                       HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+            </Grid>
+            <Grid Grid.Row="1">
+                <TextBox TextWrapping="Wrap" Text="{Binding Path=OutputFolder}" Margin="10"/>
+            </Grid>
+            <Grid Grid.Row="2">
+                <CheckBox Name="CheckboxForceOverwrite" IsChecked="{Binding Path=ForceOverwrite}"
+                          Content="{Binding Path=LabelForceOverwrite, FallbackValue='Force Overwrite'}" 
+                          HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
+            </Grid>
+            <Grid Grid.Row="3">
+                <CheckBox Name="CheckboxRightClickContextMenus" IsChecked="{Binding Path=RightClickContextMenus}"
+                          Content="{Binding Path=LabelRightClickContextMenus, FallbackValue='Right Click Context Menus'}" 
+                          HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
+            </Grid>
+            <Grid Grid.Row="4">
+                <Button Content="Save Settings" Click="SaveSettings_Click" HorizontalAlignment="Center" Margin="10" MinWidth="170"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

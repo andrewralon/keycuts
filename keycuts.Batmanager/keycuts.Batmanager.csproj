@@ -65,8 +65,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Bat.cs" />
-    <Compile Include="FormLogic.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -100,12 +98,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\TR_256_ico.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj">
-      <Project>{d8f05096-f7dd-4926-b936-9b6eab12bc02}</Project>
-      <Name>keycuts.Common</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

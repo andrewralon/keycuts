@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -40,24 +39,6 @@ namespace keycuts.Batmanager
         {
             InitializeComponent();
             DataContext = this;
-        }
-
-
-
-
-
-        #region OnPropertyChanged Handler
-
-        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion OnPropertyChanged Handler
-
-        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            FormLogic.PopulateDataGrid((DataGrid)sender);
         }
     }
 }

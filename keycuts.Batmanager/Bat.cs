@@ -14,7 +14,7 @@ namespace keycuts.Batmanager
         public ShortcutType ShortcutType { get; set; }
         public string OpenWithApp { get; set; }
 
-        public Bat(string shortcut, string destination, ShortcutType shortcutType, string openWithApp = "")
+        public Bat(string shortcut, string destination, ShortcutType shortcutType, string openWithApp)
         {
             Shortcut = shortcut;
             Destination = destination;

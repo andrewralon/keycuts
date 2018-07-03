@@ -9,9 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "keycuts.GUI", "keycuts.GUI\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "keycuts.Common", "keycuts.Common\keycuts.Common.csproj", "{D8F05096-F7DD-4926-B936-9B6EAB12BC02}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "keycuts.Setup", "keycuts.Setup\keycuts.Setup.vdproj", "{CF0CEFE4-D18F-483C-94C1-9E02D365ADA9}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "keycuts.Batmanager", "keycuts.Batmanager\keycuts.Batmanager.csproj", "{031DED51-7DFF-451D-B76A-279842BEDEF8}"
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "keycuts", "keycuts.Setup\keycuts.Setup.vdproj", "{CF0CEFE4-D18F-483C-94C1-9E02D365ADA9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,10 +32,6 @@ Global
 		{CF0CEFE4-D18F-483C-94C1-9E02D365ADA9}.Debug|Any CPU.ActiveCfg = Debug
 		{CF0CEFE4-D18F-483C-94C1-9E02D365ADA9}.Release|Any CPU.ActiveCfg = Release
 		{CF0CEFE4-D18F-483C-94C1-9E02D365ADA9}.Release|Any CPU.Build.0 = Release
-		{031DED51-7DFF-451D-B76A-279842BEDEF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{031DED51-7DFF-451D-B76A-279842BEDEF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{031DED51-7DFF-451D-B76A-279842BEDEF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{031DED51-7DFF-451D-B76A-279842BEDEF8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

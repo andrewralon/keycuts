@@ -31,7 +31,8 @@ namespace keycuts.GUI
         public static void ActivateShortcutTextbox(MainWindow mainWindow, string file)
         {
             // Follow the link (if it exists) and set the path textbox
-            mainWindow.Destination = Shortcut.HandleDestination(file);
+            Shortcut.GetShortcutType(file, out string newFile);
+            mainWindow.Destination = newFile;
 
             // Focus on the shortcut name textbox
             mainWindow.TextboxShortcut.Focus();

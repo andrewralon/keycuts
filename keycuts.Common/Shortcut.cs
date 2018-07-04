@@ -56,7 +56,7 @@ namespace keycuts.Common
 
         #region Private Methods
 
-        private ShortcutType GetShortcutType(string destination, out string newDestination)
+        public static ShortcutType GetShortcutType(string destination, out string newDestination)
         {
             newDestination = destination;
             var type = new ShortcutType();
@@ -86,7 +86,7 @@ namespace keycuts.Common
                 {
                     type = ShortcutType.Folder;
                 }
-                else if (File.Exists(Destination))
+                else if (File.Exists(destination))
                 {
                     if (destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
                         destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
@@ -168,30 +168,6 @@ namespace keycuts.Common
             {
                 result = true;
             }
-            return result;
-        }
-
-        public static string HandleDestination(string destination)
-        {
-            var result = destination;
-
-            if (IsCLSIDKey(destination))
-            {
-                result = GetCLSIDKeyFullString(destination);
-            }
-            else if (IsValidUrl(destination, out string url1))
-            {
-                result = url1;
-            }
-            else if (IsValidUrlFile(destination, out string url2))
-            {
-                result = url2;
-            }
-            else if (IsLink(destination, out string link))
-            {
-                result = link;
-            }
-
             return result;
         }
 

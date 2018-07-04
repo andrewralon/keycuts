@@ -39,10 +39,8 @@ namespace keycuts.Common
 
         public Shortcut(string destination, string shortcut, string defaultFolder, string openWithAppPath = null)
         {
-            // Handle relative paths
-            destination = Path.GetFullPath(destination);
-
-            Destination = GetWindowsLinkTargetPath(destination);
+            Type = GetShortcutType(destination, out string newDestination);
+            Destination = newDestination;
             Extension = ".bat";
             Filename = Path.GetFileNameWithoutExtension(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
@@ -52,28 +50,37 @@ namespace keycuts.Common
             FullPath = Path.Combine(Folder, FilenameWithExtension);
             OpenWithAppPath = openWithAppPath;
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
-            Type = GetShortcutType();
         }
 
         #endregion Constructors
 
         #region Private Methods
 
-        private ShortcutType GetShortcutType()
+        private ShortcutType GetShortcutType(string destination, out string newDestination)
         {
+            newDestination = destination;
             var type = new ShortcutType();
 
-            if (IsCLSIDKey(Destination))
+            if (IsCLSIDKey(destination))
             {
                 type = ShortcutType.CLSIDKey;
             }
-            else if (IsValidUrl() || IsValidUrlFile())
+            else if (IsValidUrl(destination, out string url1))
             {
+                newDestination = url1;
+                type = ShortcutType.Url;
+            }
+            else if (IsValidUrlFile(destination, out string url2))
+            {
+                newDestination = url2;
                 type = ShortcutType.Url;
             }
             else
             {
-                var attributes = File.GetAttributes(Destination);
+                destination = Path.GetFullPath(destination);
+                newDestination = destination;
+
+                var attributes = File.GetAttributes(destination);
 
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
@@ -81,8 +88,8 @@ namespace keycuts.Common
                 }
                 else if (File.Exists(Destination))
                 {
-                    if (Destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
-                        Destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
+                    if (destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
+                        destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
                     {
                         type = ShortcutType.HostsFile;
                     }
@@ -100,9 +107,10 @@ namespace keycuts.Common
             return type;
         }
 
-        private bool IsValidUrl()
+        private static bool IsValidUrl(string destination, out string url)
         {
-            var result = Uri.TryCreate(Destination, UriKind.Absolute, out Uri uriResult)
+            url = destination;
+            var result = Uri.TryCreate(destination, UriKind.Absolute, out Uri uriResult)
                 && !uriResult.IsFile;
 
             // Check for an incomplete Uri without the scheme
@@ -110,11 +118,11 @@ namespace keycuts.Common
             //  Incomplete: amazon.com
             if (!result)
             {
-                var newUri = new UriBuilder(Destination);
+                var newUri = new UriBuilder(destination);
                 if (uriResult != null && !uriResult.IsFile)
                 {
                     // Fix the incomplete Uri
-                    Destination = newUri.Uri.AbsoluteUri;
+                    url = newUri.Uri.AbsoluteUri;
                     result = true;
                 }
             }
@@ -122,24 +130,25 @@ namespace keycuts.Common
             return result;
         }
 
-        private bool IsValidUrlFile()
+        private static bool IsValidUrlFile(string destination, out string url)
         {
             var result = false;
+            url = destination;
 
-            if (Path.GetExtension(Destination).EndsWith(".url", StringComparison.InvariantCultureIgnoreCase))
+            if (Path.GetExtension(destination).EndsWith(".url", StringComparison.InvariantCultureIgnoreCase))
             {
                 // Check for a line starting with "URL="
-                var line = File.ReadAllLines(Destination)
+                var line = File.ReadAllLines(destination)
                     .ToList()
                     .FirstOrDefault(a => a.StartsWith("URL=", StringComparison.InvariantCultureIgnoreCase));
 
                 // Update the destination to use the URL from the link
                 if (line != null)
                 {
-                    var url = line.Substring(4);
+                    url = line.Substring(4);
                     if (url != null)
                     {
-                        Destination = url;
+                        destination = url;
                         result = true;
                     }
                 }
@@ -162,29 +171,51 @@ namespace keycuts.Common
             return result;
         }
 
-        public static string GetWindowsLinkTargetPath(string shortcutFilename)
+        public static string HandleDestination(string destination)
         {
-            var result = shortcutFilename;
+            var result = destination;
 
-            if (IsCLSIDKey(shortcutFilename))
+            if (IsCLSIDKey(destination))
             {
-                result = GetCLSIDKeyFullString(shortcutFilename);
+                result = GetCLSIDKeyFullString(destination);
             }
-            else
+            else if (IsValidUrl(destination, out string url1))
             {
-                // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
-                var path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(shortcutFilename));
-                var file = Path.GetFileName(shortcutFilename);
+                result = url1;
+            }
+            else if (IsValidUrlFile(destination, out string url2))
+            {
+                result = url2;
+            }
+            else if (IsLink(destination, out string link))
+            {
+                result = link;
+            }
 
-                var shell = new Shell();
-                var folder = shell.NameSpace(path);
-                var folderItem = folder.ParseName(file);
+            return result;
+        }
 
-                if (folderItem != null && folderItem.IsLink)
-                {
-                    var link = (ShellLinkObject)folderItem.GetLink;
-                    result = link.Path;
-                }
+        public static bool IsLink(string destination, out string link)
+        {
+            var result = false;
+
+            // Handle relative paths
+            destination = Path.GetFullPath(destination);
+            link = destination;
+
+            // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
+            var path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(destination));
+            var file = Path.GetFileName(destination);
+
+            var shell = new Shell();
+            var folder = shell.NameSpace(path);
+            var folderItem = folder.ParseName(file);
+
+            if (folderItem != null && folderItem.IsLink)
+            {
+                var linkObject = (ShellLinkObject)folderItem.GetLink;
+                link = linkObject.Path;
+                result = true;
             }
 
             return result;

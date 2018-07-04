@@ -85,6 +85,8 @@ namespace keycuts.GUI
 
         private void CreateShortcut()
         {
+            ShortcutName = TextboxShortcut.Text;
+
             var result = CommonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == ExitCode.FileAlreadyExists)

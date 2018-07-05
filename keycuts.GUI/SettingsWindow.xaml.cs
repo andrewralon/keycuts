@@ -103,7 +103,7 @@ namespace keycuts.GUI
                 RightClickContextMenus = RightClickContextMenus
             };
 
-            FormLogic.SaveSettings(settings);
+            MainFormLogic.SaveSettings(settings);
         }
 
         #endregion UI Handlers

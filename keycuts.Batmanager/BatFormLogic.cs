@@ -1,6 +1,7 @@
 ﻿using keycuts.Common;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ using System.Windows.Controls;
 
 namespace keycuts.Batmanager
 {
-    public class FormLogic
+    public class BatFormLogic
     {
         public static List<Bat> Bats = new List<Bat>()
         {
@@ -18,14 +19,20 @@ namespace keycuts.Batmanager
 
         public static void PopulateDataGrid(DataGrid dataGrid)
         {
-            var items = new List<Bat>();
-            
-            foreach (var bat in Bats)
-            {
-                items.Add(bat);
-            }
+            var outputFolder = RegistryStuff.GetOutputFolder(@"C:\Shortcuts");
+            var shortcuts = Directory.GetFiles(outputFolder, "*.bat").ToList();
 
-            dataGrid.ItemsSource = items;
+            var bats = shortcuts.Select(t => BatParser.Parse(t)).ToList();
+            dataGrid.ItemsSource = bats;
+        }
+
+        public static List<Bat> ParseShortcutFiles(List<string> shortcuts)
+        {
+            var bats = new List<Bat>();
+
+
+
+            return bats;
         }
     }
 }

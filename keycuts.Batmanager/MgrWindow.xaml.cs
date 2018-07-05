@@ -40,6 +40,8 @@ namespace keycuts.Batmanager
         {
             InitializeComponent();
             DataContext = this;
+
+            BatFormLogic.PopulateDataGrid(DataGrid);
         }
 
 
@@ -57,7 +59,7 @@ namespace keycuts.Batmanager
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
         {
-            FormLogic.PopulateDataGrid((DataGrid)sender);
+            BatFormLogic.PopulateDataGrid((DataGrid)sender);
         }
     }
 }

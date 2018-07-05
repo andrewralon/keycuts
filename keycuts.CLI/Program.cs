@@ -77,8 +77,6 @@ namespace keycuts.CLI
                     Parser.Default.ParseArguments<Options>(new string[] { "--help" });
                     result = ExitCode.Success;
                 }
-
-                
             }
 
             return result;

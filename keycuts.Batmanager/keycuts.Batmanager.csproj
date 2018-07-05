@@ -67,7 +67,7 @@
     </Compile>
     <Compile Include="Bat.cs" />
     <Compile Include="BatParser.cs" />
-    <Compile Include="FormLogic.cs" />
+    <Compile Include="BatFormLogic.cs" />
     <Compile Include="MgrWindow.xaml.cs">
       <DependentUpon>MgrWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

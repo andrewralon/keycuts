@@ -18,7 +18,7 @@
             </Grid>
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
-                    <DataGrid VerticalAlignment="Top" Loaded="DataGrid_Loaded"/>
+                    <DataGrid Name="DataGrid" VerticalAlignment="Top" Loaded="DataGrid_Loaded"/>
                     <!--<TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16" DragEnter="TextboxDestination_DragEnter" Drop="TextboxDestination_Drop" AllowDrop="True" PreviewDragOver="TextboxDestination_PreviewDragOver"/>-->
                 </DockPanel>
             </Grid>

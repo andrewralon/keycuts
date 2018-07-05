@@ -21,7 +21,7 @@ namespace keycuts.GUI
             {
                 mainWindow.Destination = e.Args[0];
 
-                FormLogic.ActivateShortcutTextbox(mainWindow, mainWindow.Destination);
+                MainFormLogic.ActivateShortcutTextbox(mainWindow, mainWindow.Destination);
             }
 
             mainWindow.Show();

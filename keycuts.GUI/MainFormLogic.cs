@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace keycuts.GUI
 {
-    public class FormLogic
+    public class MainFormLogic
     {
         public static void OpenSettings(SettingsWindow settingsWindow)
         {

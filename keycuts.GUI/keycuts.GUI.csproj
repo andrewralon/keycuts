@@ -66,7 +66,7 @@
       <SubType>Designer</SubType>
     </Page>
     <Compile Include="CommonLogic.cs" />
-    <Compile Include="FormLogic.cs" />
+    <Compile Include="MainFormLogic.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>

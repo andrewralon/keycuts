@@ -56,6 +56,10 @@ namespace keycuts.Common
 
         #region Private Methods
 
+        #endregion Private Methods
+
+        #region Public Methods
+
         public static ShortcutType GetShortcutType(string destination, out string newDestination)
         {
             newDestination = destination;
@@ -107,7 +111,7 @@ namespace keycuts.Common
             return type;
         }
 
-        private static bool IsValidUrl(string destination, out string url)
+        public static bool IsValidUrl(string destination, out string url)
         {
             url = destination;
             var result = Uri.TryCreate(destination, UriKind.Absolute, out Uri uriResult)
@@ -130,7 +134,7 @@ namespace keycuts.Common
             return result;
         }
 
-        private static bool IsValidUrlFile(string destination, out string url)
+        public static bool IsValidUrlFile(string destination, out string url)
         {
             var result = false;
             url = destination;
@@ -156,10 +160,6 @@ namespace keycuts.Common
 
             return result;
         }
-
-        #endregion Private Methods
-
-        #region Public Methods
 
         public static bool IsNotFullPath(string path)
         {

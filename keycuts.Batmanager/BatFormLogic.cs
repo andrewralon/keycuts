@@ -16,31 +16,9 @@ namespace keycuts.Batmanager
 
         private static readonly string explorer = "\\explorer.exe\"";
         private static readonly string start = "START ";
-        //START "" \/[BD] .+ "([A - Za - z0 - 9:\\ \/\-\.\(\)\%]+)"$
-        //private static readonly string startBD = "START \"\" \\/[BD] .+ \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
 
         private static readonly string startBD = "START \"\" \\/[BD] \".+\" \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
-        private static readonly string explorerFolder = "\".+\" \"(.+)\"";
-
-
-        private static readonly string startB = $"{start} \"\" /B \"";
-        private static readonly string startD = $"{start} \"\" /D \"";
-
-        private static readonly string alphanumeric = "A-Za-z0-9";
-        private static readonly string alphanumericspecial = $"{alphanumeric}:\\.";
-        private static readonly string alphanumericurl = $@"{alphanumeric}:/.";
-
-        public static string URL = $"START [{alphanumericurl}]+";
-        public static string FILE = $"START \"\" /B \"[{alphanumericspecial}]+";
-        public static string FOLDER = $"\"%SystemRoot%\\explorer.exe\" \"[{alphanumericspecial}]+\"";
-        public static string OPENWITHAPP = $"\"[{alphanumericspecial}]+\" \"[{alphanumericspecial}]+\"";
-
-        public static List<BatParseArg> BatList = new List<BatParseArg>()
-        {
-            new BatParseArg(URL, ShortcutType.Url),
-            new BatParseArg(FILE, ShortcutType.File),
-            new BatParseArg(FOLDER, ShortcutType.Folder)
-        };
+        private static readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
 
         #endregion Fields
 
@@ -70,22 +48,18 @@ namespace keycuts.Batmanager
 
                 foreach (var line in lines)
                 {
+                    bat.Command = line;
                     bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
 
-                    if (line.Contains(explorer))
+                    if (IsFolder(line, out string result))
                     {
-                        // It's a Folder!
-                        var regex = new Regex(explorerFolder, RegexOptions.IgnoreCase);
-                        var match = regex.Match(line);
-
-                        if (match.Success)
-                        {
-                            bat.Command = line;
-                            bat.ShortcutType = ShortcutType.Folder;
-                            bat.Destination = match.Groups[1].Value;
-                        }
-
+                        bat.Destination = result;
+                        bat.ShortcutType = ShortcutType.Folder;
                         break;
+                    }
+                    else if (MatchesRegex(start, line, out string notFolder))
+                    {
+
                     }
                     else if (line.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
                     {
@@ -94,10 +68,10 @@ namespace keycuts.Batmanager
 
                         Console.WriteLine($"Line: {line}");
 
-                        if (!line.Contains("\""))
+                        var url = line.Substring(start.Length);
+                        if (Shortcut.IsValidUrl(url, out string newUrl))
                         {
-                            // No quotes -- It's a Url!
-                            bat.Destination = line.Substring(start.Length);
+                            bat.Destination = newUrl;
                             bat.ShortcutType = ShortcutType.Url;
                         }
                         else
@@ -111,9 +85,6 @@ namespace keycuts.Batmanager
                                 bat.Destination = match.Groups[1].Value;
                                 bat.ShortcutType = ShortcutType.File;
                             }
-
-                            //var regex = new Regex()
-
                             else
                             {
                                 bat.ShortcutType = ShortcutType.Command;
@@ -130,38 +101,36 @@ namespace keycuts.Batmanager
                 {
                     bats.Add(bat);
                 }
-
-
-                //if (lines.Any())
-                //{
-                //    var shortcut = Path.GetFileNameWithoutExtension(batFile);
-                //    var command = lines[0];
-                //    var destination = "";
-                //    var shortcutType = ShortcutType.Unknown;
-                //    var openWithApp = "";
-
-                //    if (command.Contains(explorer))
-                //    {
-                //        // It's a folder!
-                //        shortcutType = ShortcutType.Folder;
-                //    }
-                //    else if (command.Substring(0, 6).ToUpper() == start)
-                //    {
-                //        // It's NOT a folder! -- Could be File, Url, HostsFile, or CLSIDKey
-
-
-                //        shortcutType = ShortcutType.File;
-                //    }
-
-                //    if (!string.IsNullOrEmpty(shortcut) && 
-                //        !string.IsNullOrEmpty(command))
-                //    {
-                //        bats.Add(new Bat(shortcut, command, destination, shortcutType, openWithApp));
-                //    }
-                //}
             }
 
             return bats;
+        }
+
+        private static bool IsFolder(string line, out string result)
+        {
+            return MatchesRegex(patternFolder, line, out result);
+        }
+
+        private static bool IsFile(string line, out string result)
+        {
+            result = "";
+            return false;
+
+            //return MatchesRegex(patternXXXX, line, out result);
+        }
+
+        public static bool MatchesRegex(string pattern, string line, out string result)
+        {
+            result = "";
+            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+            var match = regex.Match(line);
+
+            if (match.Success)
+            {
+                result = match.Groups[1].Value;
+            }
+
+            return match.Success;
         }
 
         #endregion Public Methods

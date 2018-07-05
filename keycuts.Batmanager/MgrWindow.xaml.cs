@@ -24,8 +24,6 @@ namespace keycuts.Batmanager
     {
         #region Fields
 
-
-
         public event PropertyChangedEventHandler PropertyChanged;
 
         #endregion Fields
@@ -35,18 +33,44 @@ namespace keycuts.Batmanager
 
 
         #endregion Properties
+        
+        #region Constructors
 
         public MgrWindow()
         {
             InitializeComponent();
             DataContext = this;
 
+            PopulateDataGrid();
+        }
+
+        #endregion Constructors
+
+        #region Public Methods
+
+        public void PopulateDataGrid()
+        {
             BatFormLogic.PopulateDataGrid(DataGrid);
         }
 
+        #endregion Public Methods
 
+        #region Handlers
 
+        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            PopulateDataGrid();
+        }
 
+        private void Mgr_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F5)
+            {
+                PopulateDataGrid();
+            }
+        }
+
+        #endregion Handlers
 
         #region OnPropertyChanged Handler
 
@@ -56,10 +80,5 @@ namespace keycuts.Batmanager
         }
 
         #endregion OnPropertyChanged Handler
-
-        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            BatFormLogic.PopulateDataGrid((DataGrid)sender);
-        }
     }
 }

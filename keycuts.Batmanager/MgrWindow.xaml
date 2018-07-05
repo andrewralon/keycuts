@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.Batmanager"
         mc:Ignorable="d"
-        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100">
+        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100" KeyDown="Mgr_KeyDown">
     <Grid x:Name="GridMainFull">
         <Grid x:Name="GridMainMargin" Margin="20">
             <Grid.RowDefinitions>

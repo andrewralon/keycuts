@@ -20,7 +20,7 @@ namespace keycuts.Batmanager
         //private static readonly string startBD = "START \"\" \\/[BD] .+ \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
 
         private static readonly string startBD = "START \"\" \\/[BD] \".+\" \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
-
+        private static readonly string explorerFolder = "\".+\" \"(.+)\"";
 
 
         private static readonly string startB = $"{start} \"\" /B \"";
@@ -75,11 +75,15 @@ namespace keycuts.Batmanager
                     if (line.Contains(explorer))
                     {
                         // It's a Folder!
-                        bat.Command = line;
-                        bat.ShortcutType = ShortcutType.Folder;
-                        
-                        //var asdf = line.IndexOfAny('"',)
-                        //var secondToLastQuotes = line.IndexOf("\"", )
+                        var regex = new Regex(explorerFolder, RegexOptions.IgnoreCase);
+                        var match = regex.Match(line);
+
+                        if (match.Success)
+                        {
+                            bat.Command = line;
+                            bat.ShortcutType = ShortcutType.Folder;
+                            bat.Destination = match.Groups[1].Value;
+                        }
 
                         break;
                     }
@@ -93,43 +97,26 @@ namespace keycuts.Batmanager
                         if (!line.Contains("\""))
                         {
                             // No quotes -- It's a Url!
-                            bat.Destination = line.Substring(6);
+                            bat.Destination = line.Substring(start.Length);
                             bat.ShortcutType = ShortcutType.Url;
                         }
-                        //else if (line.StartsWith(startB) || line.StartsWith(startD))
-                        //{
-                        //    //var 
-                        //    bat.ShortcutType = ShortcutType.File;
-                        //}
                         else
                         {
                             var regex = new Regex(startBD, RegexOptions.IgnoreCase);
                             var match = regex.Match(line);
-                            //var matchCount = 0;
 
                             if (match.Success)
                             {
+                                // It's a File!
                                 bat.Destination = match.Groups[1].Value;
                                 bat.ShortcutType = ShortcutType.File;
-
-                                //Console.WriteLine($"Match: {++matchCount}");
-                                //for (int i = 1; i <= 2; i++)
-                                //{
-                                //    var group = match.Groups[i];
-                                //    Console.WriteLine($"Group: {i}='{group}'");
-
-                                //    CaptureCollection cc = group.Captures;
-                                //    for (int j = 0; j < cc.Count; j++)
-                                //    {
-                                //        Capture capture = cc[j];
-                                //        Console.WriteLine($"Capture: {j}='{cc}', Position={capture.Index}");
-                                //    }
-                                //}
-                                //match = match.NextMatch();
                             }
+
+                            //var regex = new Regex()
+
                             else
                             {
-                                bat.ShortcutType = ShortcutType.CLSIDKey;
+                                bat.ShortcutType = ShortcutType.Command;
                             }
                         }
 

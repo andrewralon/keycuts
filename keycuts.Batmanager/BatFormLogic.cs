@@ -17,7 +17,9 @@ namespace keycuts.Batmanager
         private static readonly string explorer = "\\explorer.exe\"";
         private static readonly string start = "START ";
 
+        private static readonly string patternCLSID = "\".+explorer.exe\" \"shell:::({.+})\"";
         private static readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
+        private static readonly string patternHostsFile = "START \"\" \\/[BD] \".+\" \"(.+)hosts\"$";
         private static readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$";
         private static readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
 
@@ -52,10 +54,22 @@ namespace keycuts.Batmanager
                     bat.Command = line;
                     bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
 
-                    if (IsFolder(line, out string folder))
+                    if (IsCLSIDKey(line, out string clsidKey))
+                    {
+                        bat.Destination = clsidKey;
+                        bat.ShortcutType = ShortcutType.CLSIDKey;
+                        break;
+                    }
+                    else if (IsFolder(line, out string folder))
                     {
                         bat.Destination = folder;
                         bat.ShortcutType = ShortcutType.Folder;
+                        break;
+                    }
+                    else if (IsHostsFile(line, out string hostsFile))
+                    {
+                        bat.Destination = hostsFile;
+                        bat.ShortcutType = ShortcutType.HostsFile;
                         break;
                     }
                     else if (IsFile(line, out string file))
@@ -91,9 +105,19 @@ namespace keycuts.Batmanager
             return bats;
         }
 
+        private static bool IsCLSIDKey(string line, out string clsidKey)
+        {
+            return MatchesRegex(patternCLSID, line, out clsidKey);
+        }
+
         private static bool IsFolder(string line, out string folder)
         {
             return MatchesRegex(patternFolder, line, out folder);
+        }
+
+        private static bool IsHostsFile(string line, out string hostsFile)
+        {
+            return MatchesRegex(patternHostsFile, line, out hostsFile);
         }
 
         private static bool IsFile(string line, out string file)

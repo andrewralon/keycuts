@@ -17,9 +17,9 @@ namespace keycuts.Batmanager
         private static readonly string explorer = "\\explorer.exe\"";
         private static readonly string start = "START ";
 
-        //private static readonly string patternFile = "START \"\" \\/[BD] \".+\" (.+\".+)\"$"; // chrome.exe --profile-directory="Profile 5
-        private static readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$"; // "audacity.exe"
         private static readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
+        private static readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$";
+        private static readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
 
         #endregion Fields
 
@@ -62,6 +62,7 @@ namespace keycuts.Batmanager
                     {
                         bat.Destination = file;
                         bat.ShortcutType = ShortcutType.File;
+                        break;
                     }
                     else if (Shortcut.IsValidUrl(line.Substring(start.Length), out string newUrl))
                     {
@@ -69,17 +70,9 @@ namespace keycuts.Batmanager
                         bat.ShortcutType = ShortcutType.Url;
                         break;
                     }
-                    else if (MatchesRegex(start, line, out string notFolder))
+                    else if (IsCommand(line, out string command))
                     {
-
-                    }
-                    else if (line.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
-                    {
-                        // It's NOT a folder! -- Could be File, Url, HostsFile, or CLSIDKey
-                        bat.Command = line;
-
-                        Console.WriteLine($"Line: {line}");
-
+                        bat.Destination = command;
                         bat.ShortcutType = ShortcutType.Command;
                         break;
                     }
@@ -106,6 +99,11 @@ namespace keycuts.Batmanager
         private static bool IsFile(string line, out string file)
         {
             return MatchesRegex(patternFile, line, out file);
+        }
+
+        private static bool IsCommand(string line, out string command)
+        {
+            return MatchesRegex(patternCommand, line, out command);
         }
 
         public static bool MatchesRegex(string pattern, string line, out string result)

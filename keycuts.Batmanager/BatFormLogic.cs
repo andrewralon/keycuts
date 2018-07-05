@@ -13,9 +13,9 @@ namespace keycuts.Batmanager
     {
         #region Fields
 
-        private static string alphanumeric = "A-Za-z0-9";
-        private static string alphanumericspecial = $"{alphanumeric}:\\.";
-        private static string alphanumericurl = $@"{alphanumeric}:/.";
+        private static readonly string alphanumeric = "A-Za-z0-9";
+        private static readonly string alphanumericspecial = $"{alphanumeric}:\\.";
+        private static readonly string alphanumericurl = $@"{alphanumeric}:/.";
 
         public static string URL = $"START [{alphanumericurl}]+";
         public static string FILE = $"START \"\" /B \"[{alphanumericspecial}]+";
@@ -35,59 +35,53 @@ namespace keycuts.Batmanager
 
         public static void PopulateDataGrid(DataGrid dataGrid)
         {
-            var bats = new List<Bat>();
-
             var outputFolder = RegistryStuff.GetOutputFolder(@"C:\Shortcuts");
-            var shortcuts = Directory.GetFiles(outputFolder, "*.bat").ToList();
-
-            foreach (var shortcut in shortcuts)
-            {
-                var lines = File.ReadAllLines(shortcut)
-                    .Where(x => !string.IsNullOrEmpty(x) &&
-                        (x.StartsWith("START", StringComparison.CurrentCultureIgnoreCase) || x.Contains("\\explorer.exe")))
-                    .ToList();
-
-                var bat = Parse(shortcut, lines);
-
-                if (bat != null)
-                {
-                    bats.Add(bat);
-                }
-            }
-
+            var batFiles = Directory.GetFiles(outputFolder, "*.bat").ToList();
+            var bats = ParseBats(batFiles);
             dataGrid.ItemsSource = bats;
         }
 
-        public static Bat Parse(string batFile, List<string> lines)
+        public static List<Bat> ParseBats(List<string> batFiles)
         {
-            var bat = new Bat();
+            var bats = new List<Bat>();
 
-            if (lines.Any())
+            foreach (var batFile in batFiles)
             {
-                bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
-                bat.Command = lines[0];
+                var lines = File.ReadAllLines(batFile)
+                    .Where(x => x.Contains("\\explorer.exe") ||
+                                x.StartsWith("START", StringComparison.CurrentCultureIgnoreCase))
+                    .ToList();
 
-                if (lines[0].Contains("\\explorer.exe"))
+                if (lines.Any())
                 {
-                    // It's a folder!
-                    bat.ShortcutType = ShortcutType.Folder;
-                }
-                else if (lines[0].Substring(0, 5).ToUpper() == "START")
-                {
-                    // It's NOT a folder! -- Could be File, Url, HostsFile, or CLSIDKey
+                    var shortcut = Path.GetFileNameWithoutExtension(batFile);
+                    var command = lines[0];
+                    var destination = "";
+                    var shortcutType = ShortcutType.Unknown;
+                    var openWithApp = "";
+
+                    if (command.Contains("\\explorer.exe"))
+                    {
+                        // It's a folder!
+                        shortcutType = ShortcutType.Folder;
+                    }
+                    else if (command.Substring(0, 5).ToUpper() == "START")
+                    {
+                        // It's NOT a folder! -- Could be File, Url, HostsFile, or CLSIDKey
 
 
-                    bat.ShortcutType = ShortcutType.File;
+                        shortcutType = ShortcutType.File;
+                    }
+
+                    if (!string.IsNullOrEmpty(shortcut) && 
+                        !string.IsNullOrEmpty(command))
+                    {
+                        bats.Add(new Bat(shortcut, command, destination, shortcutType, openWithApp));
+                    }
                 }
             }
 
-            if (string.IsNullOrEmpty(bat.Command) ||
-                (string.IsNullOrEmpty(bat.Shortcut) && string.IsNullOrEmpty(bat.Destination)))
-            {
-                bat = null;
-            }
-
-            return bat;
+            return bats;
         }
 
         #endregion Public Methods

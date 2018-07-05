@@ -10,6 +10,7 @@ namespace keycuts.Batmanager
     public class Bat
     {
         public string Shortcut { get; set; }
+        public string Command { get; set; }
         public string Destination { get; set; }
         public ShortcutType ShortcutType { get; set; }
         public string OpenWithApp { get; set; }
@@ -18,9 +19,10 @@ namespace keycuts.Batmanager
         {
         }
 
-        public Bat(string shortcut, string destination, ShortcutType shortcutType, string openWithApp = "")
+        public Bat(string shortcut, string command, string destination, ShortcutType shortcutType, string openWithApp = "")
         {
             Shortcut = shortcut;
+            Command = command;
             Destination = destination;
             ShortcutType = shortcutType;
             OpenWithApp = openWithApp;

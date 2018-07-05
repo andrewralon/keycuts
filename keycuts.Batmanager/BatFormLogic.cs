@@ -11,28 +11,29 @@ namespace keycuts.Batmanager
 {
     public class BatFormLogic
     {
-        public static List<Bat> Bats = new List<Bat>()
-        {
-            new Bat("andrew", @"D:\Dropbox\Andrew", ShortcutType.Folder),
-            new Bat("aud", @"C:\Program Files (x86)\Audacity\audacity.exe", ShortcutType.File)
-        };
-
         public static void PopulateDataGrid(DataGrid dataGrid)
-        {
-            var outputFolder = RegistryStuff.GetOutputFolder(@"C:\Shortcuts");
-            var shortcuts = Directory.GetFiles(outputFolder, "*.bat").ToList();
-
-            var bats = shortcuts.Select(t => BatParser.Parse(t)).ToList();
-            dataGrid.ItemsSource = bats;
-        }
-
-        public static List<Bat> ParseShortcutFiles(List<string> shortcuts)
         {
             var bats = new List<Bat>();
 
+            var outputFolder = RegistryStuff.GetOutputFolder(@"C:\Shortcuts");
+            var shortcuts = Directory.GetFiles(outputFolder, "*.bat").ToList();
 
+            foreach (var shortcut in shortcuts)
+            {
+                var lines = File.ReadAllLines(shortcut)
+                    .Where(x => !string.IsNullOrEmpty(x) &&
+                        (x.StartsWith("START", StringComparison.CurrentCultureIgnoreCase) || x.Contains("\\explorer.exe")))
+                    .ToList();
 
-            return bats;
+                var bat = BatParser.Parse(shortcut, lines);
+
+                if (bat != null)
+                {
+                    bats.Add(bat);
+                }
+            }
+
+            dataGrid.ItemsSource = bats;
         }
     }
 }

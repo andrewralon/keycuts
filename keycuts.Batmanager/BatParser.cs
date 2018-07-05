@@ -27,24 +27,14 @@ namespace keycuts.Batmanager
             new BatParseArg(FOLDER, ShortcutType.Folder)
         };
 
-        public static Bat Parse(string batFile)
+        public static Bat Parse(string batFile,List<string> lines)
         {
             var bat = new Bat();
-
-            var lines = File.ReadAllLines(batFile).
-                Where(t => !t.StartsWith("@ECHO") &&
-                    !t.StartsWith("@echo") &&
-                    !t.StartsWith("REM") &&
-                    !t.StartsWith("rem") &&
-                    !t.StartsWith("EXIT") &&
-                    !t.StartsWith("exit") &&
-                    !string.IsNullOrEmpty(t))
-                .ToList();
 
             if (lines.Any())
             {
                 bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
-                bat.Destination = lines[0];
+                bat.Command = lines[0];
                 //bat.ShortcutType = ShortcutType.Unknown;
                 //bat.OpenWithApp = "";
 
@@ -60,52 +50,37 @@ namespace keycuts.Batmanager
 
                     bat.ShortcutType = ShortcutType.File;
                 }
+            }
 
-                //foreach (var line in lines)
-                //{
-                //    foreach (var arg in BatList)
-                //    {
-                //        if (HasValue(line, arg.RegexPattern))
-                //        {
-                //            bat.ShortcutType = arg.ShortcutType;
-                //            break;
-                //        }
-
-                //        //var value = GetValue(line, arg.RegexPattern);
-                //        //if (value != "")
-                //        //{
-                //        //    if (Enum.TryParse(value, out ShortcutType shortcutType))
-                //        //    {
-                //        //        bat.ShortcutType = shortcutType;
-                //        //    }
-                //        //}
-                //    }
-                //}
+            if (string.IsNullOrEmpty(bat.Command) || 
+                (string.IsNullOrEmpty(bat.Shortcut) && string.IsNullOrEmpty(bat.Destination)))
+            {
+                bat = null;
             }
 
             return bat;
         }
 
-        public static bool HasValue(string line, string pattern)
-        {
-            var regex = new Regex(pattern);
-            var match = regex.Match(line);
+        //public static bool HasValue(string line, string pattern)
+        //{
+        //    var regex = new Regex(pattern);
+        //    var match = regex.Match(line);
 
-            return match.Success;
-        }
+        //    return match.Success;
+        //}
 
-        public static string GetValue(string line, string pattern)
-        {
-            var value = "";
-            var regex = new Regex(pattern);
-            var match = regex.Match(line);
+        //public static string GetValue(string line, string pattern)
+        //{
+        //    var value = "";
+        //    var regex = new Regex(pattern);
+        //    var match = regex.Match(line);
 
-            if (match.Success)
-            {
-                value = match.Value;
-            }
+        //    if (match.Success)
+        //    {
+        //        value = match.Value;
+        //    }
 
-            return value;
-        }
+        //    return value;
+        //}
     }
 }

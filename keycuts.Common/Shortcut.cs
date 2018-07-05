@@ -114,21 +114,31 @@ namespace keycuts.Common
         public static bool IsValidUrl(string destination, out string url)
         {
             url = destination;
-            var result = Uri.TryCreate(destination, UriKind.Absolute, out Uri uriResult)
-                && !uriResult.IsFile;
+            var result = false;
+            Uri uriResult;
 
-            // Check for an incomplete Uri without the scheme
-            //  Complete:   http://www.amazon.com
-            //  Incomplete: amazon.com
-            if (!result)
+            try
             {
-                var newUri = new UriBuilder(destination);
-                if (uriResult != null && !uriResult.IsFile)
+                result = Uri.TryCreate(destination, UriKind.Absolute, out uriResult)
+                    && !uriResult.IsFile;
+
+                // Check for an incomplete Uri without the scheme
+                //  Complete:   http://www.amazon.com
+                //  Incomplete: amazon.com
+                if (!result)
                 {
-                    // Fix the incomplete Uri
-                    url = newUri.Uri.AbsoluteUri;
-                    result = true;
+                    var newUri = new UriBuilder(destination);
+                    if (uriResult != null && !uriResult.IsFile)
+                    {
+                        // Fix the incomplete Uri
+                        url = newUri.Uri.AbsoluteUri;
+                        result = true;
+                    }
                 }
+            }
+            catch (UriFormatException e)
+            {
+                Console.WriteLine($"Exception -- {e.Data}");
             }
 
             return result;

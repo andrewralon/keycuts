@@ -51,10 +51,21 @@ namespace keycuts.Batmanager
                     bat.Command = line;
                     bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
 
-                    if (IsFolder(line, out string result))
+                    if (IsFolder(line, out string folder))
                     {
-                        bat.Destination = result;
+                        bat.Destination = folder;
                         bat.ShortcutType = ShortcutType.Folder;
+                        break;
+                    }
+                    else if (IsFile(line, out string file))
+                    {
+                        bat.Destination = file;
+                        bat.ShortcutType = ShortcutType.File;
+                    }
+                    else if (Shortcut.IsValidUrl(line.Substring(start.Length), out string newUrl))
+                    {
+                        bat.Destination = newUrl;
+                        bat.ShortcutType = ShortcutType.Url;
                         break;
                     }
                     else if (MatchesRegex(start, line, out string notFolder))
@@ -68,29 +79,7 @@ namespace keycuts.Batmanager
 
                         Console.WriteLine($"Line: {line}");
 
-                        var url = line.Substring(start.Length);
-                        if (Shortcut.IsValidUrl(url, out string newUrl))
-                        {
-                            bat.Destination = newUrl;
-                            bat.ShortcutType = ShortcutType.Url;
-                        }
-                        else
-                        {
-                            var regex = new Regex(startBD, RegexOptions.IgnoreCase);
-                            var match = regex.Match(line);
-
-                            if (match.Success)
-                            {
-                                // It's a File!
-                                bat.Destination = match.Groups[1].Value;
-                                bat.ShortcutType = ShortcutType.File;
-                            }
-                            else
-                            {
-                                bat.ShortcutType = ShortcutType.Command;
-                            }
-                        }
-
+                        bat.ShortcutType = ShortcutType.Command;
                         break;
                     }
                 }
@@ -106,17 +95,16 @@ namespace keycuts.Batmanager
             return bats;
         }
 
-        private static bool IsFolder(string line, out string result)
+        private static bool IsFolder(string line, out string folder)
         {
-            return MatchesRegex(patternFolder, line, out result);
+            return MatchesRegex(patternFolder, line, out folder);
         }
 
-        private static bool IsFile(string line, out string result)
+        private static bool IsFile(string line, out string file)
         {
-            result = "";
+            file = "";
             return false;
-
-            //return MatchesRegex(patternXXXX, line, out result);
+            //return MatchesRegex(patternFile, line, out file);
         }
 
         public static bool MatchesRegex(string pattern, string line, out string result)

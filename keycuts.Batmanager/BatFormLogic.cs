@@ -18,7 +18,11 @@ namespace keycuts.Batmanager
         private static readonly string start = "START ";
         //START "" \/[BD] .+ "([A - Za - z0 - 9:\\ \/\-\.\(\)\%]+)"$
         //private static readonly string startBD = "START \"\" \\/[BD] .+ \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
+
         private static readonly string startBD = "START \"\" \\/[BD] \".+\" \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
+
+
+
         private static readonly string startB = $"{start} \"\" /B \"";
         private static readonly string startD = $"{start} \"\" /D \"";
 

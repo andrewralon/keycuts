@@ -11,55 +11,76 @@ namespace keycuts.Batmanager
 {
     public class BatParser
     {
-        public static string FILE = "START \"\" /B \"";
-        //var start = "START \"\" /B \"{0}\"";
+        public static string alphanumeric = "A-Za-z0-9";
+        public static string alphanumericspecial = $"{alphanumeric}:\\.";//_%-";
+        public static string alphanumericurl = $@"{alphanumeric}:/.";
+
+        public static string URL = $"START [{alphanumericurl}]+";
+        public static string FILE = $"START \"\" /B \"[{alphanumericspecial}]+";
+        public static string FOLDER = $"\"%SystemRoot%\\explorer.exe\" \"[{alphanumericspecial}]+\"";
+        public static string OPENWITHAPP = $"\"[{alphanumericspecial}]+\" \"[{alphanumericspecial}]+\"";
+
+        public static List<BatParseArg> BatList = new List<BatParseArg>()
+        {
+            new BatParseArg(URL, ShortcutType.Url),
+            new BatParseArg(FILE, ShortcutType.File),
+            new BatParseArg(FOLDER, ShortcutType.Folder)
+        };
 
         public static Bat Parse(string batFile)
         {
             var bat = new Bat();
 
             var lines = File.ReadAllLines(batFile).
-                Where(t => (!t.StartsWith("@ECHO") &&
+                Where(t => !t.StartsWith("@ECHO") &&
                     !t.StartsWith("@echo") &&
                     !t.StartsWith("REM") &&
                     !t.StartsWith("rem") &&
                     !t.StartsWith("EXIT") &&
                     !t.StartsWith("exit") &&
-                    !string.IsNullOrEmpty(t))) // ||
-                    //(t.Contains("<") &&
-                    //t.Contains(">")))
+                    !string.IsNullOrEmpty(t))
                 .ToList();
-
-            var patterns = new List<string>
-            {
-                @"<type>[A-Za-z]+<\/type>", // ShortcutType
-                @"<shortcut>[A-Za-z0-9:\\.]+<\/type>",
-                @"<file>[A-Za-z0-9:\\.]+<\/file>"
-            };
 
             if (lines.Any())
             {
                 bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
                 bat.Destination = lines[0];
-                bat.ShortcutType = ShortcutType.Unknown;
+                //bat.ShortcutType = ShortcutType.Unknown;
+                //bat.OpenWithApp = "";
+
+                if (lines[0].Contains("\\explorer.exe"))
+                {
+                    // It's a folder!
+                    bat.ShortcutType = ShortcutType.Folder;
+                }
+                else if (lines[0].Substring(0, 5).ToUpper() == "START")
+                {
+                    // It's NOT a folder! -- Could be File, Url, HostsFile, or CLSIDKey
+
+
+                    bat.ShortcutType = ShortcutType.File;
+                }
 
                 //foreach (var line in lines)
                 //{
-                //    foreach (var pattern in patterns)
+                //    foreach (var arg in BatList)
                 //    {
-                //        var value = GetValue(line, pattern);
-                //        if (value != "")
+                //        if (HasValue(line, arg.RegexPattern))
                 //        {
-                //            if (Enum.TryParse(value, out ShortcutType shortcutType))
-                //            {
-                //                bat.ShortcutType = shortcutType;
-                //            }
+                //            bat.ShortcutType = arg.ShortcutType;
+                //            break;
                 //        }
+
+                //        //var value = GetValue(line, arg.RegexPattern);
+                //        //if (value != "")
+                //        //{
+                //        //    if (Enum.TryParse(value, out ShortcutType shortcutType))
+                //        //    {
+                //        //        bat.ShortcutType = shortcutType;
+                //        //    }
+                //        //}
                 //    }
                 //}
-
-                //bat.Destination = "";
-                bat.OpenWithApp = "";
             }
 
             return bat;

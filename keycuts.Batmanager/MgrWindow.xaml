@@ -5,12 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.Batmanager"
         mc:Ignorable="d"
-        Title="batmanager" Height="450" Width="800">
+        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100">
     <Grid x:Name="GridMainFull">
         <Grid x:Name="GridMainMargin" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
-                <RowDefinition Height="8*"/>
+                <RowDefinition Height="10*"/>
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
@@ -18,8 +18,7 @@
             </Grid>
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
-                    <DataGrid Name="DataGrid" VerticalAlignment="Top" Loaded="DataGrid_Loaded"/>
-                    <!--<TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16" DragEnter="TextboxDestination_DragEnter" Drop="TextboxDestination_Drop" AllowDrop="True" PreviewDragOver="TextboxDestination_PreviewDragOver"/>-->
+                    <DataGrid Name="DataGrid" VerticalAlignment="Top" Loaded="DataGrid_Loaded" IsReadOnly="True" SelectionUnit="Cell"/>
                 </DockPanel>
             </Grid>
         </Grid>

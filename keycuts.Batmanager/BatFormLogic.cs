@@ -17,7 +17,8 @@ namespace keycuts.Batmanager
         private static readonly string explorer = "\\explorer.exe\"";
         private static readonly string start = "START ";
 
-        private static readonly string startBD = "START \"\" \\/[BD] \".+\" \"([A-Za-z0-9:\\ \\/\\-\\.\\(\\)\\%]+)\"$";
+        //private static readonly string patternFile = "START \"\" \\/[BD] \".+\" (.+\".+)\"$"; // chrome.exe --profile-directory="Profile 5
+        private static readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$"; // "audacity.exe"
         private static readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
 
         #endregion Fields
@@ -82,6 +83,8 @@ namespace keycuts.Batmanager
                         bat.ShortcutType = ShortcutType.Command;
                         break;
                     }
+
+                    bat.ShortcutType = ShortcutType.Unknown;
                 }
 
                 if (!string.IsNullOrEmpty(bat.Shortcut) &&
@@ -102,9 +105,7 @@ namespace keycuts.Batmanager
 
         private static bool IsFile(string line, out string file)
         {
-            file = "";
-            return false;
-            //return MatchesRegex(patternFile, line, out file);
+            return MatchesRegex(patternFile, line, out file);
         }
 
         public static bool MatchesRegex(string pattern, string line, out string result)

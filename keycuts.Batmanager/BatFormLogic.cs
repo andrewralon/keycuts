@@ -38,6 +38,7 @@ namespace keycuts.Batmanager
         public static List<Bat> ParseBats(List<string> batFiles)
         {
             var bats = new List<Bat>();
+            var skippedFiles = new List<string>();
 
             foreach (var batFile in batFiles)
             {
@@ -78,16 +79,16 @@ namespace keycuts.Batmanager
                         bat.ShortcutType = ShortcutType.File;
                         break;
                     }
-                    else if (Shortcut.IsValidUrl(line.Substring(start.Length), out string newUrl))
-                    {
-                        bat.Destination = newUrl;
-                        bat.ShortcutType = ShortcutType.Url;
-                        break;
-                    }
                     else if (IsCommand(line, out string command))
                     {
                         bat.Destination = command;
                         bat.ShortcutType = ShortcutType.Command;
+                        break;
+                    }
+                    else if (IsValidUrl(line, out string url))
+                    {
+                        bat.Destination = url;
+                        bat.ShortcutType = ShortcutType.Url;
                         break;
                     }
 
@@ -100,6 +101,16 @@ namespace keycuts.Batmanager
                 {
                     bats.Add(bat);
                 }
+                else
+                {
+                    skippedFiles.Add(batFile);
+                }
+            }
+
+            if (skippedFiles.Any())
+            {
+                Console.WriteLine("*** Skipped files: ***");
+                skippedFiles.ForEach(t => Console.WriteLine(t));
             }
 
             return bats;
@@ -128,6 +139,11 @@ namespace keycuts.Batmanager
         private static bool IsCommand(string line, out string command)
         {
             return MatchesRegex(patternCommand, line, out command);
+        }
+
+        private static bool IsValidUrl(string line, out string url)
+        {
+            return Shortcut.IsValidUrl(line.Substring(start.Length), out url);
         }
 
         public static bool MatchesRegex(string pattern, string line, out string result)

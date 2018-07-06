@@ -115,11 +115,10 @@ namespace keycuts.Common
         {
             url = destination;
             var result = false;
-            Uri uriResult;
 
             try
             {
-                result = Uri.TryCreate(destination, UriKind.Absolute, out uriResult)
+                result = Uri.TryCreate(destination, UriKind.Absolute, out Uri uriResult)
                     && !uriResult.IsFile;
 
                 // Check for an incomplete Uri without the scheme
@@ -138,7 +137,7 @@ namespace keycuts.Common
             }
             catch (UriFormatException e)
             {
-                Console.WriteLine($"Exception -- {e.Data}");
+                Console.WriteLine($"UriFormatException: {destination} -- {e.Message}");
             }
 
             return result;

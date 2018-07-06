@@ -19,6 +19,8 @@ namespace keycuts.Common
 
         public static readonly bool DefaultRightClickContextMenu = true;
 
+        public static readonly string RightClickContextMenuText = "keycut this!";
+
         public Runner()
         {
         }

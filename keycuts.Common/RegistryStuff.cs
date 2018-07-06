@@ -141,7 +141,7 @@ namespace keycuts.Common
         {
             var appNameGUI = Process.GetCurrentProcess().MainModule.FileName;
 
-            var menu = "Create a keycut to here!";
+            var menu = Runner.RightClickContextMenuText;
             var command = $"\"{appNameGUI}\" \"%1\""; // Path of selected folder with %1
             var commandBackground = $"\"{appNameGUI}\" \"%V\""; // Path of current directory with %V
 

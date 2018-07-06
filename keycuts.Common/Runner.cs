@@ -189,7 +189,7 @@ namespace keycuts.Common
                     {
                         var sanitized = Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination);
 
-                        command = string.Format(start, sanitized);
+                        command = $"START {sanitized}";
                     }
                     else if (shortcut.Type == ShortcutType.File)
                     {

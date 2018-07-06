@@ -22,6 +22,7 @@ namespace keycuts.Batmanager
         private static readonly string patternHostsFile = "START \"\" \\/[BD] \".+\" \"(.+)hosts\"$";
         private static readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$";
         private static readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
+        private static readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
         #endregion Fields
 
@@ -143,7 +144,8 @@ namespace keycuts.Batmanager
 
         private static bool IsValidUrl(string line, out string url)
         {
-            return Shortcut.IsValidUrl(line.Substring(start.Length), out url);
+            return MatchesRegex(patternUrl, line, out url);
+            //return Shortcut.IsValidUrl(line.Substring(start.Length), out url);
         }
 
         public static bool MatchesRegex(string pattern, string line, out string result)

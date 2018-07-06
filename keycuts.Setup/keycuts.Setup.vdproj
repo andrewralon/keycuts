@@ -15,8 +15,20 @@
     {
         "Entry"
         {
-        "MsmKey" = "8:_264D6B28AB3C44098996563CA65A17EF"
+        "MsmKey" = "8:_18695623644246439946CD4D09273CF7"
         "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
+        "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
+        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -45,18 +57,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_DE52F21C0EC3387B8852F0DC6330FF38"
-        "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_DE52F21C0EC3387B8852F0DC6330FF38"
-        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_E09F4DE93B77E1461A7C849939E61BD8"
         "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
@@ -65,6 +65,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_296872D540030B9D65AFCE95913AB254"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -83,12 +89,6 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_DE52F21C0EC3387B8852F0DC6330FF38"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -186,9 +186,9 @@
         }
         "File"
         {
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_264D6B28AB3C44098996563CA65A17EF"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_18695623644246439946CD4D09273CF7"
             {
-            "SourcePath" = "8:C:\\Users\\TeamRalon\\Desktop\\TR_256_ico.ico"
+            "SourcePath" = "8:..\\keycuts.GUI\\Images\\TR_256_ico.ico"
             "TargetName" = "8:TR_256_ico.ico"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -206,20 +206,20 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_C1F751642CF9002BF73C29C254AA30E7"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_296872D540030B9D65AFCE95913AB254"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
+            "AssemblyAsmDisplayName" = "8:keycuts.Common, Version=1.0.0.1, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
-                    "_C1F751642CF9002BF73C29C254AA30E7"
+                    "_296872D540030B9D65AFCE95913AB254"
                     {
-                    "Name" = "8:System.Net.Http.dll"
+                    "Name" = "8:keycuts.Common.dll"
                     "Attributes" = "3:512"
                     }
                 }
-            "SourcePath" = "8:System.Net.Http.dll"
+            "SourcePath" = "8:keycuts.Common.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -237,20 +237,20 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_DE52F21C0EC3387B8852F0DC6330FF38"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_C1F751642CF9002BF73C29C254AA30E7"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:keycuts.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
                 "ScatterAssemblies"
                 {
-                    "_DE52F21C0EC3387B8852F0DC6330FF38"
+                    "_C1F751642CF9002BF73C29C254AA30E7"
                     {
-                    "Name" = "8:keycuts.Common.dll"
+                    "Name" = "8:System.Net.Http.dll"
                     "Attributes" = "3:512"
                     }
                 }
-            "SourcePath" = "8:keycuts.Common.dll"
+            "SourcePath" = "8:System.Net.Http.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -367,7 +367,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:keycuts"
         "ProductCode" = "8:{4B622F3D-661A-4949-A33F-AD6357432FFF}"
-        "PackageCode" = "8:{6024AB84-8314-46DB-AA6E-86322F082ACB}"
+        "PackageCode" = "8:{D1940E95-0AD3-4FF3-814E-94199F1318C8}"
         "UpgradeCode" = "8:{14EA8A3E-D6DE-4EE6-99FB-C1754F1E9381}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -1164,7 +1164,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_9A2B39FE18694E528AFB04735262C70F"
             {
-            "SourcePath" = "8:..\\keycuts.GUI\\obj\\Debug\\keycuts.GUI.exe"
+            "SourcePath" = "8:..\\keycuts.GUI\\obj\\Release\\keycuts.GUI.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -1192,7 +1192,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_B04A0694F4BF44C287758CC754790DCB"
             {
-            "SourcePath" = "8:..\\keycuts.CLI\\obj\\Debug\\keycuts.exe"
+            "SourcePath" = "8:..\\keycuts.CLI\\obj\\Release\\keycuts.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"

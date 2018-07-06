@@ -83,13 +83,18 @@ namespace keycuts.GUI
             LoadSettings();
         }
 
-        public void LoadSettings()
+        private void LoadSettings()
         {
             Settings.LoadSettings();
 
             OutputFolder = Settings.OutputFolder;
             ForceOverwrite = Settings.ForceOverwrite;
             RightClickContextMenus = Settings.RightClickContextMenus;
+        }
+
+        private void CloseWindow()
+        {
+            Close();
         }
 
         #region UI Handlers
@@ -104,6 +109,14 @@ namespace keycuts.GUI
             };
 
             MainFormLogic.SaveSettings(settings);
+        }
+
+        private void Settings_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                CloseWindow();
+            }
         }
 
         #endregion UI Handlers

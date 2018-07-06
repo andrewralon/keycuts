@@ -22,19 +22,7 @@ namespace keycuts.Batmanager
     /// </summary>
     public partial class MgrWindow : Window, INotifyPropertyChanged
     {
-        #region Fields
-
         public event PropertyChangedEventHandler PropertyChanged;
-
-        #endregion Fields
-
-        #region Properties
-
-
-
-        #endregion Properties
-        
-        #region Constructors
 
         public MgrWindow()
         {
@@ -44,16 +32,10 @@ namespace keycuts.Batmanager
             PopulateDataGrid();
         }
 
-        #endregion Constructors
-
-        #region Public Methods
-
-        public void PopulateDataGrid()
+        private void PopulateDataGrid()
         {
             BatFormLogic.PopulateDataGrid(DataGrid);
         }
-
-        #endregion Public Methods
 
         #region Handlers
 

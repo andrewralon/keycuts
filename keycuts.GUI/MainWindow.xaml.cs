@@ -117,6 +117,11 @@ namespace keycuts.GUI
             CommonLogic.SetOutputFolder(outputFolder);
         }
 
+        private void CloseWindow()
+        {
+            Close();
+        }
+
         #region UI Handlers - Buttons, Keys
 
         private void SettingsIcon_MouseDown(object sender, MouseButtonEventArgs e)
@@ -134,6 +139,10 @@ namespace keycuts.GUI
             if (e.Key == Key.Enter)
             {
                 CreateShortcut();
+            }
+            else if (e.Key == Key.Escape)
+            {
+                CloseWindow();
             }
         }
 

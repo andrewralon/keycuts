@@ -17,7 +17,7 @@ namespace keycuts.Batmanager
         private static readonly string explorer = "\\explorer.exe\"";
         private static readonly string start = "START ";
 
-        private static readonly string patternCLSID = "\".+explorer.exe\" \"shell:::({.+})\"";
+        private static readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
         private static readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
         private static readonly string patternHostsFile = "START \"\" \\/[BD] \".+\" \"(.+)hosts\"$";
         private static readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$";
@@ -52,52 +52,52 @@ namespace keycuts.Batmanager
 
                 foreach (var line in lines)
                 {
-                    bat.Command = line;
+                    //bat.Command = line;
                     bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
 
                     if (IsCLSIDKey(line, out string clsidKey))
                     {
                         bat.Destination = clsidKey;
-                        bat.ShortcutType = ShortcutType.CLSIDKey;
+                        bat.Type = ShortcutType.CLSIDKey;
                         break;
                     }
                     else if (IsFolder(line, out string folder))
                     {
                         bat.Destination = folder;
-                        bat.ShortcutType = ShortcutType.Folder;
+                        bat.Type = ShortcutType.Folder;
                         break;
                     }
                     else if (IsHostsFile(line, out string hostsFile))
                     {
                         bat.Destination = hostsFile;
-                        bat.ShortcutType = ShortcutType.HostsFile;
+                        bat.Type = ShortcutType.HostsFile;
                         break;
                     }
                     else if (IsFile(line, out string file))
                     {
                         bat.Destination = file;
-                        bat.ShortcutType = ShortcutType.File;
+                        bat.Type = ShortcutType.File;
                         break;
                     }
                     else if (IsCommand(line, out string command))
                     {
                         bat.Destination = command;
-                        bat.ShortcutType = ShortcutType.Command;
+                        bat.Type = ShortcutType.Command;
                         break;
                     }
                     else if (IsValidUrl(line, out string url))
                     {
                         bat.Destination = url;
-                        bat.ShortcutType = ShortcutType.Url;
+                        bat.Type = ShortcutType.Url;
                         break;
                     }
 
-                    bat.ShortcutType = ShortcutType.Unknown;
+                    bat.Type = ShortcutType.Unknown;
                 }
 
                 if (!string.IsNullOrEmpty(bat.Shortcut) &&
-                    !string.IsNullOrEmpty(bat.Command) &&
-                    bat.ShortcutType != ShortcutType.Unknown)
+                    //!string.IsNullOrEmpty(bat.Command) &&
+                    bat.Type != ShortcutType.Unknown)
                 {
                     bats.Add(bat);
                 }

@@ -10,22 +10,22 @@ namespace keycuts.Batmanager
     public class Bat
     {
         public string Shortcut { get; set; }
-        public string Command { get; set; }
+        public ShortcutType Type { get; set; }
         public string Destination { get; set; }
-        public ShortcutType ShortcutType { get; set; }
-        public string OpenWithApp { get; set; }
+        //public string OpenWithApp { get; set; }
+        //public string Command { get; set; }
 
         public Bat()
         {
         }
 
-        public Bat(string shortcut, string command, string destination, ShortcutType shortcutType, string openWithApp = "")
+        public Bat(string shortcut, string command, string destination, ShortcutType type, string openWithApp = "")
         {
             Shortcut = shortcut;
-            Command = command;
+            Type = type;
             Destination = destination;
-            ShortcutType = shortcutType;
-            OpenWithApp = openWithApp;
+            //OpenWithApp = openWithApp;
+            //Command = command;
         }
     }
 }

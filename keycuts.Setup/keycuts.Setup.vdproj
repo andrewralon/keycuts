@@ -21,18 +21,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
-        "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
-        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -52,6 +40,18 @@
         "Entry"
         {
         "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
+        "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_DE52F21C0EC3387B8852F0DC6330FF38"
+        "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_DE52F21C0EC3387B8852F0DC6330FF38"
         "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -88,7 +88,7 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_296872D540030B9D65AFCE95913AB254"
+        "OwnerKey" = "8:_DE52F21C0EC3387B8852F0DC6330FF38"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -206,20 +206,20 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_296872D540030B9D65AFCE95913AB254"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_C1F751642CF9002BF73C29C254AA30E7"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:keycuts.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
                 "ScatterAssemblies"
                 {
-                    "_296872D540030B9D65AFCE95913AB254"
+                    "_C1F751642CF9002BF73C29C254AA30E7"
                     {
-                    "Name" = "8:keycuts.Common.dll"
+                    "Name" = "8:System.Net.Http.dll"
                     "Attributes" = "3:512"
                     }
                 }
-            "SourcePath" = "8:keycuts.Common.dll"
+            "SourcePath" = "8:System.Net.Http.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -237,20 +237,20 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_C1F751642CF9002BF73C29C254AA30E7"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_DE52F21C0EC3387B8852F0DC6330FF38"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
+            "AssemblyAsmDisplayName" = "8:keycuts.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
-                    "_C1F751642CF9002BF73C29C254AA30E7"
+                    "_DE52F21C0EC3387B8852F0DC6330FF38"
                     {
-                    "Name" = "8:System.Net.Http.dll"
+                    "Name" = "8:keycuts.Common.dll"
                     "Attributes" = "3:512"
                     }
                 }
-            "SourcePath" = "8:System.Net.Http.dll"
+            "SourcePath" = "8:keycuts.Common.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -326,17 +326,6 @@
             "Property" = "8:ProgramMenuFolder"
                 "Folders"
                 {
-                    "{9EF0B969-E518-4E46-987F-47570745A589}:_7030346892814535B7DF58CB67CE1907"
-                    {
-                    "Name" = "8:keycuts"
-                    "AlwaysCreate" = "11:FALSE"
-                    "Condition" = "8:"
-                    "Transitive" = "11:FALSE"
-                    "Property" = "8:_508B7FD4D0C445C99EF5470A63BAE594"
-                        "Folders"
-                        {
-                        }
-                    }
                 }
             }
             "{1525181F-901A-416C-8A58-119130FE478E}:_BD00CD3557E14739A0217E6283A18B8C"
@@ -760,58 +749,16 @@
         }
         "Shortcut"
         {
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_3B6F8796805F4E17A2E0C85B5AF6D7C7"
-            {
-            "Name" = "8:keycuts.GUI"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
-            "Folder" = "8:_D47755D055664D5BBA810C66EDC6878B"
-            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
-            "Feature" = "8:"
-            }
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_5D59D00690AB4681BAD0ECCAE5A61E6D"
-            {
-            "Name" = "8:keycuts.GUI"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
-            "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
-            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
-            "Feature" = "8:"
-            }
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_95575EAAFD1C4F6E8430104CF31B7807"
-            {
-            "Name" = "8:keycuts.GUI"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
-            "Folder" = "8:_BD00CD3557E14739A0217E6283A18B8C"
-            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
-            "Feature" = "8:"
-            }
             "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_D8DE00607E1D444F89A02894BF5A24B2"
             {
-            "Name" = "8:Shortcut to keycuts folder"
+            "Name" = "8:keycuts"
             "Arguments" = "8:"
             "Description" = "8:"
             "ShowCmd" = "3:1"
             "IconIndex" = "3:0"
             "Transitive" = "11:FALSE"
             "Target" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
+            "Folder" = "8:_75A1C3EAEDE14F4B879CA58D89355869"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
             "Icon" = "8:"
             "Feature" = "8:"
@@ -1217,7 +1164,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_9A2B39FE18694E528AFB04735262C70F"
             {
-            "SourcePath" = "8:..\\keycuts.GUI\\obj\\Release\\keycuts.GUI.exe"
+            "SourcePath" = "8:..\\keycuts.GUI\\obj\\Debug\\keycuts.GUI.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -1245,7 +1192,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_B04A0694F4BF44C287758CC754790DCB"
             {
-            "SourcePath" = "8:..\\keycuts.CLI\\obj\\Release\\keycuts.exe"
+            "SourcePath" = "8:..\\keycuts.CLI\\obj\\Debug\\keycuts.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"

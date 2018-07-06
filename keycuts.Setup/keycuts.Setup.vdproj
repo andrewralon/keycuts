@@ -15,7 +15,13 @@
     {
         "Entry"
         {
-        "MsmKey" = "8:_264D6B28AB3C44098996563CA65A17EF"
+        "MsmKey" = "8:_00529C3B56DC4FD7A6BBC987EDEB3DEE"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_18695623644246439946CD4D09273CF7"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -23,6 +29,12 @@
         {
         "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
         "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_296872D540030B9D65AFCE95913AB254"
+        "OwnerKey" = "8:_00529C3B56DC4FD7A6BBC987EDEB3DEE"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -52,6 +64,12 @@
         "Entry"
         {
         "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
+        "OwnerKey" = "8:_00529C3B56DC4FD7A6BBC987EDEB3DEE"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_C1F751642CF9002BF73C29C254AA30E7"
         "OwnerKey" = "8:_B04A0694F4BF44C287758CC754790DCB"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -65,6 +83,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_9A2B39FE18694E528AFB04735262C70F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_00529C3B56DC4FD7A6BBC987EDEB3DEE"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -186,9 +210,9 @@
         }
         "File"
         {
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_264D6B28AB3C44098996563CA65A17EF"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_18695623644246439946CD4D09273CF7"
             {
-            "SourcePath" = "8:C:\\Users\\TeamRalon\\Desktop\\TR_256_ico.ico"
+            "SourcePath" = "8:..\\keycuts.GUI\\Images\\TR_256_ico.ico"
             "TargetName" = "8:TR_256_ico.ico"
             "Tag" = "8:"
             "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
@@ -326,17 +350,6 @@
             "Property" = "8:ProgramMenuFolder"
                 "Folders"
                 {
-                    "{9EF0B969-E518-4E46-987F-47570745A589}:_7030346892814535B7DF58CB67CE1907"
-                    {
-                    "Name" = "8:keycuts"
-                    "AlwaysCreate" = "11:FALSE"
-                    "Condition" = "8:"
-                    "Transitive" = "11:FALSE"
-                    "Property" = "8:_508B7FD4D0C445C99EF5470A63BAE594"
-                        "Folders"
-                        {
-                        }
-                    }
                 }
             }
             "{1525181F-901A-416C-8A58-119130FE478E}:_BD00CD3557E14739A0217E6283A18B8C"
@@ -378,14 +391,14 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:keycuts"
         "ProductCode" = "8:{4B622F3D-661A-4949-A33F-AD6357432FFF}"
-        "PackageCode" = "8:{6024AB84-8314-46DB-AA6E-86322F082ACB}"
+        "PackageCode" = "8:{258865CB-80F0-46F1-B6D9-8387D6C2716E}"
         "UpgradeCode" = "8:{14EA8A3E-D6DE-4EE6-99FB-C1754F1E9381}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.0"
+        "ProductVersion" = "8:1.0.1"
         "Manufacturer" = "8:TeamRalon"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -760,58 +773,16 @@
         }
         "Shortcut"
         {
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_3B6F8796805F4E17A2E0C85B5AF6D7C7"
-            {
-            "Name" = "8:keycuts.GUI"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
-            "Folder" = "8:_D47755D055664D5BBA810C66EDC6878B"
-            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
-            "Feature" = "8:"
-            }
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_5D59D00690AB4681BAD0ECCAE5A61E6D"
-            {
-            "Name" = "8:keycuts.GUI"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
-            "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
-            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
-            "Feature" = "8:"
-            }
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_95575EAAFD1C4F6E8430104CF31B7807"
-            {
-            "Name" = "8:keycuts.GUI"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:0"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_9A2B39FE18694E528AFB04735262C70F"
-            "Folder" = "8:_BD00CD3557E14739A0217E6283A18B8C"
-            "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Icon" = "8:_264D6B28AB3C44098996563CA65A17EF"
-            "Feature" = "8:"
-            }
             "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_D8DE00607E1D444F89A02894BF5A24B2"
             {
-            "Name" = "8:Shortcut to keycuts folder"
+            "Name" = "8:keycuts"
             "Arguments" = "8:"
             "Description" = "8:"
             "ShowCmd" = "3:1"
             "IconIndex" = "3:0"
             "Transitive" = "11:FALSE"
             "Target" = "8:_666DD26FD228448586422229A6B53E1E"
-            "Folder" = "8:_7030346892814535B7DF58CB67CE1907"
+            "Folder" = "8:_75A1C3EAEDE14F4B879CA58D89355869"
             "WorkingFolder" = "8:_666DD26FD228448586422229A6B53E1E"
             "Icon" = "8:"
             "Feature" = "8:"
@@ -1215,6 +1186,34 @@
         }
         "ProjectOutput"
         {
+            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_00529C3B56DC4FD7A6BBC987EDEB3DEE"
+            {
+            "SourcePath" = "8:..\\keycuts.Batmanager\\obj\\Release\\keycuts.Batmanager.exe"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_666DD26FD228448586422229A6B53E1E"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            "ProjectOutputGroupRegister" = "3:1"
+            "OutputConfiguration" = "8:"
+            "OutputGroupCanonicalName" = "8:Built"
+            "OutputProjectGuid" = "8:{031DED51-7DFF-451D-B76A-279842BEDEF8}"
+            "ShowKeyOutput" = "11:TRUE"
+                "ExcludeFilters"
+                {
+                }
+            }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_9A2B39FE18694E528AFB04735262C70F"
             {
             "SourcePath" = "8:..\\keycuts.GUI\\obj\\Release\\keycuts.GUI.exe"

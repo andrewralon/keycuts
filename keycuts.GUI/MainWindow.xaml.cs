@@ -85,6 +85,8 @@ namespace keycuts.GUI
 
         private void CreateShortcut()
         {
+            ShortcutName = TextboxShortcut.Text;
+
             var result = CommonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == ExitCode.FileAlreadyExists)
@@ -107,7 +109,7 @@ namespace keycuts.GUI
 
         private void OpenSettings()
         {
-            FormLogic.OpenSettings(settingsWindow);
+            MainFormLogic.OpenSettings(settingsWindow);
         }
 
         private void ChangeOutputFolder(string outputFolder)
@@ -137,7 +139,7 @@ namespace keycuts.GUI
 
         private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
         {
-            FormLogic.OpenOutputFolder();
+            MainFormLogic.OpenOutputFolder();
         }
 
         #endregion UI Handlers - Buttons, Keys
@@ -165,10 +167,10 @@ namespace keycuts.GUI
             }
             else
             {
-                FormLogic.ActivateShortcutTextbox(this, file);
+                MainFormLogic.ActivateShortcutTextbox(this, file);
 
                 // Activate this window (normally keeps focus on whatever was previously active)
-                FormLogic.ActivateThisWindow();
+                MainFormLogic.ActivateThisWindow();
             }
         }
 

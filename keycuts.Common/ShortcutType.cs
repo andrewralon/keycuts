@@ -12,6 +12,7 @@ namespace keycuts.Common
         Folder,
         Url,
         HostsFile,
+        Command,
         CLSIDKey,
         Unknown
     }

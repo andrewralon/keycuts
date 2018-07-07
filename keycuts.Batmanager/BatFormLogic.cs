@@ -49,12 +49,15 @@ namespace keycuts.Batmanager
                                 x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
                     .ToList();
 
-                var bat = new Bat();
+                var bat = new Bat
+                {
+                    Path = batFile,
+                    Shortcut = Path.GetFileNameWithoutExtension(batFile)
+                };
 
                 foreach (var line in lines)
                 {
-                    //bat.Command = line;
-                    bat.Shortcut = Path.GetFileNameWithoutExtension(batFile);
+                    bat.Command = line;
 
                     if (IsCLSIDKey(line, out string clsidKey))
                     {
@@ -97,7 +100,7 @@ namespace keycuts.Batmanager
                 }
 
                 if (!string.IsNullOrEmpty(bat.Shortcut) &&
-                    //!string.IsNullOrEmpty(bat.Command) &&
+                    !string.IsNullOrEmpty(bat.Command) &&
                     bat.Type != ShortcutType.Unknown)
                 {
                     bats.Add(bat);

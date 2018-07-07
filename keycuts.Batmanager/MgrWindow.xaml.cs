@@ -24,48 +24,17 @@ namespace keycuts.Batmanager
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        //public ContextMenu RightClickMenu = new ContextMenu();
-
         public MgrWindow()
         {
             InitializeComponent();
             DataContext = this;
 
-            PopulateRightClickContextMenu();
             PopulateDataGrid();
-        }
-
-        private void PopulateRightClickContextMenu()
-        {
-            //RightClickMenu.Items.Add(PopulateMenuItem("Open", ApplicationCommands.Open));
-            //RightClickMenu.Items.Add(PopulateMenuItem("Copy", ApplicationCommands.Copy));
-            //RightClickMenu.Items.Add(PopulateMenuItem("Edit", ApplicationCommands.NotACommand));
-            //RightClickMenu.Items.Add(PopulateMenuItem("Open Destination Location", ApplicationCommands.NotACommand));
-            //RightClickMenu.Items.Add(PopulateMenuItem("Delete", ApplicationCommands.Delete));
-        }
-
-        private MenuItem PopulateMenuItem(string name, object command)
-        {
-            return new MenuItem()
-            {
-                Header = name,
-                Command = command as ICommand
-            };
         }
 
         private void PopulateDataGrid()
         {
             BatFormLogic.PopulateDataGrid(DataGrid);
-        }
-
-        private void ShowRightClickContextMenu(DataGrid sender)
-        {
-            var cm = FindResource("DataGridRightClickMenu") as ContextMenu;
-            cm.PlacementTarget = sender;
-            cm.IsOpen = true;
-
-            //RightClickMenu.PlacementTarget = sender;
-            //RightClickMenu.IsOpen = true;
         }
 
         private void Copy(object sender)
@@ -126,34 +95,6 @@ namespace keycuts.Batmanager
             else if (e.Key == Key.Delete)
             {
                 Delete(sender);
-            }
-        }
-
-        private void DataGrid_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            var dep = (DependencyObject)e.OriginalSource;
-            while ((dep != null) && !(dep is DataGridCell))
-            {
-                dep = VisualTreeHelper.GetParent(dep);
-            }
-
-            if (dep != null)
-            {
-                if (dep is DataGridCell)
-                {
-                    var cell = dep as DataGridCell;
-                    cell.Focus();
-
-                    while ((dep != null) && !(dep is DataGridRow))
-                    {
-                        dep = VisualTreeHelper.GetParent(dep);
-                    }
-
-                    var row = dep as DataGridRow;
-                    DataGrid.SelectedItem = row.DataContext;
-
-                    ShowRightClickContextMenu(sender as DataGrid);
-                }
             }
         }
 

@@ -24,7 +24,6 @@ namespace keycuts.GUI
         public static void OpenOutputFolder()
         {
             var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
-
             Process.Start(defaultFolder);
         }
 

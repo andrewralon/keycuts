@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -37,31 +38,6 @@ namespace keycuts.Batmanager
             BatFormLogic.PopulateDataGrid(DataGrid);
         }
 
-        private void Copy(object sender)
-        {
-
-        }
-
-        private void Run(object sender)
-        {
-
-        }
-
-        private void Edit(object sender)
-        {
-
-        }
-
-        private void OpenDestinationLocation(object sender)
-        {
-
-        }
-
-        private void Delete(object sender)
-        {
-
-        }
-
         #region Handlers
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
@@ -75,52 +51,53 @@ namespace keycuts.Batmanager
             {
                 PopulateDataGrid();
             }
-            else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
-            {
-                Copy(sender);
-            }
             else if (e.Key == Key.Enter || 
                 (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                Edit(sender);
+                BatFormLogic.Edit(DataGrid);
             }
             else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                Run(sender);
+                BatFormLogic.Run(DataGrid);
             }
+            //else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            //{
+            //    Copy(sender); // Not needed -- works already
+            //}
             else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                OpenDestinationLocation(sender);
+                BatFormLogic.OpenDestinationLocation(DataGrid);
             }
             else if (e.Key == Key.Delete)
             {
-                Delete(sender);
+                var mod = Keyboard.Modifiers;
+                BatFormLogic.Delete(DataGrid);
             }
-        }
-
-        private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void RightClickMenu_Run(object sender, RoutedEventArgs e)
-        {
-
         }
 
         private void RightClickMenu_Edit(object sender, RoutedEventArgs e)
         {
+            BatFormLogic.Edit(DataGrid);
+        }
 
+        private void RightClickMenu_Run(object sender, RoutedEventArgs e)
+        {
+            BatFormLogic.Run(DataGrid);
+        }
+
+        private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
+        {
+            //Copy(DataGrid); // Not needed -- works already
         }
 
         private void RightClickMenu_OpenDestinationLocation(object sender, RoutedEventArgs e)
         {
-
+            BatFormLogic.OpenDestinationLocation(DataGrid);
         }
 
         private void RightClickMenu_Delete(object sender, RoutedEventArgs e)
         {
-
+            BatFormLogic.Delete(DataGrid);
         }
 
         #endregion Handlers

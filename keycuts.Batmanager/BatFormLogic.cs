@@ -1,6 +1,7 @@
 ﻿using keycuts.Common;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -148,7 +149,6 @@ namespace keycuts.Batmanager
         private static bool IsValidUrl(string line, out string url)
         {
             return MatchesRegex(patternUrl, line, out url);
-            //return Shortcut.IsValidUrl(line.Substring(start.Length), out url);
         }
 
         public static bool MatchesRegex(string pattern, string line, out string result)
@@ -163,6 +163,59 @@ namespace keycuts.Batmanager
             }
 
             return match.Success;
+        }
+
+        public static Bat GetBat(DataGrid dataGrid)
+        {
+            Bat bat = null;
+            if (dataGrid.SelectedCells.Any())
+            {
+                var selectedItem = dataGrid.SelectedCells[0];
+                bat = selectedItem.Item as Bat;
+            }
+            return bat;
+        }
+
+        public static void Edit(DataGrid dataGrid)
+        {
+            var bat = GetBat(dataGrid);
+            if (bat != null)
+            {
+                Process.Start(bat.Path);
+            }
+        }
+
+        public static void Run(DataGrid dataGrid)
+        {
+            var bat = GetBat(dataGrid);
+            if (bat != null)
+            {
+                Process.Start(bat.Path);
+            }
+        }
+
+        //private void Copy(DataGrid dataGrid)
+        //{
+        //    // Not needed -- works already
+        //}
+
+        public static void OpenDestinationLocation(DataGrid dataGrid)
+        {
+            var bat = GetBat(dataGrid);
+            if (bat != null)
+            {
+                var location = Path.GetDirectoryName(bat?.Destination);
+                Process.Start(location);
+            }
+        }
+
+        public static void Delete(DataGrid dataGrid)
+        {
+            var bat = GetBat(dataGrid);
+            if (bat != null)
+            {
+                File.Delete(bat.Path);
+            }
         }
 
         #endregion Public Methods

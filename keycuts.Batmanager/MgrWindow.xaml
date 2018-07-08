@@ -19,14 +19,15 @@
             </Grid>
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
-                    <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" IsReadOnly="True">
+                    <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" 
+                              IsReadOnly="True" SelectionUnit="Cell">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
+                                <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>
+                                <MenuItem Header="_Run" Command="Open" Click="RightClickMenu_Run"/>
                                 <MenuItem Header="_Copy" Command="Copy" Click="RightClickMenu_Copy"/>
-                                <MenuItem Header="_Open" Command="Open" Click="RightClickMenu_Run"/>
-                                <MenuItem Header="_Edit in Notepad" Click="RightClickMenu_Edit"/>
-                                <MenuItem Header="_View File Location" Click="RightClickMenu_OpenDestinationLocation"/>
-                                <MenuItem Header="_Delete" Command="Delete" Click="RightClickMenu_Delete"/>
+                                <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation"/>
+                                <MenuItem Header="_Delete" Click="RightClickMenu_Delete"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>

@@ -165,21 +165,23 @@ namespace keycuts.Batmanager
             return match.Success;
         }
 
-        public static Bat GetBat(DataGrid dataGrid)
+        public static bool IsBat(DataGrid dataGrid, out Bat bat)
         {
-            Bat bat = null;
+            bat = null;
+            var result = false;
+
             if (dataGrid.SelectedCells.Any())
             {
                 var selectedItem = dataGrid.SelectedCells[0];
                 bat = selectedItem.Item as Bat;
+                result = true;
             }
-            return bat;
+            return result;
         }
 
         public static void Edit(DataGrid dataGrid)
         {
-            var bat = GetBat(dataGrid);
-            if (bat != null)
+            if (IsBat(dataGrid, out Bat bat))
             {
                 Process.Start(bat.Path);
             }
@@ -187,8 +189,7 @@ namespace keycuts.Batmanager
 
         public static void Run(DataGrid dataGrid)
         {
-            var bat = GetBat(dataGrid);
-            if (bat != null)
+            if (IsBat(dataGrid, out Bat bat))
             {
                 Process.Start(bat.Path);
             }
@@ -201,8 +202,7 @@ namespace keycuts.Batmanager
 
         public static void OpenDestinationLocation(DataGrid dataGrid)
         {
-            var bat = GetBat(dataGrid);
-            if (bat != null)
+            if (IsBat(dataGrid, out Bat bat))
             {
                 var location = Path.GetDirectoryName(bat?.Destination);
                 Process.Start(location);
@@ -211,8 +211,7 @@ namespace keycuts.Batmanager
 
         public static void Delete(DataGrid dataGrid)
         {
-            var bat = GetBat(dataGrid);
-            if (bat != null)
+            if (IsBat(dataGrid, out Bat bat))
             {
                 File.Delete(bat.Path);
             }

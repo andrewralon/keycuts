@@ -20,7 +20,7 @@
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
                     <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" 
-                              IsReadOnly="True" SelectionUnit="Cell">
+                              SelectionUnit="Cell" PreviewKeyDown="DataGrid_PreviewKeyDown" AreRowDetailsFrozen="True">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>

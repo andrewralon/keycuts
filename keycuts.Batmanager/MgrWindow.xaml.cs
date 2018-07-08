@@ -23,6 +23,8 @@ namespace keycuts.Batmanager
     /// </summary>
     public partial class MgrWindow : Window, INotifyPropertyChanged
     {
+        public BatFormLogic batFormLogic = new BatFormLogic();
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public MgrWindow()
@@ -30,74 +32,72 @@ namespace keycuts.Batmanager
             InitializeComponent();
             DataContext = this;
 
-            PopulateDataGrid();
-        }
-
-        private void PopulateDataGrid()
-        {
-            BatFormLogic.PopulateDataGrid(DataGrid);
+            //batFormLogic.PopulateDataGrid(DataGrid);
         }
 
         #region Handlers
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
         {
-            PopulateDataGrid();
+            batFormLogic.PopulateDataGrid(DataGrid);
         }
 
         private void Mgr_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.F5)
             {
-                PopulateDataGrid();
+                batFormLogic.PopulateDataGrid(DataGrid);
             }
-            else if (e.Key == Key.Enter || 
+        }
+
+        private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter ||
                 (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                BatFormLogic.Edit(DataGrid);
+                batFormLogic.Edit(DataGrid);
             }
             else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                BatFormLogic.Run(DataGrid);
+                batFormLogic.Run(DataGrid);
             }
             //else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             //{
-            //    Copy(sender); // Not needed -- works already
+            //    batFormLogic.Copy(DataGrid); // Not needed -- works already
             //}
             else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                BatFormLogic.OpenDestinationLocation(DataGrid);
+                batFormLogic.OpenDestinationLocation(DataGrid);
             }
             else if (e.Key == Key.Delete)
             {
-                var mod = Keyboard.Modifiers;
-                BatFormLogic.Delete(DataGrid);
+                batFormLogic.Delete(DataGrid);
             }
         }
 
         private void RightClickMenu_Edit(object sender, RoutedEventArgs e)
         {
-            BatFormLogic.Edit(DataGrid);
+            batFormLogic.Edit(DataGrid);
         }
 
         private void RightClickMenu_Run(object sender, RoutedEventArgs e)
         {
-            BatFormLogic.Run(DataGrid);
+            batFormLogic.Run(DataGrid);
         }
 
         private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
         {
-            //Copy(DataGrid); // Not needed -- works already
+            //batFormLogic.Copy(DataGrid); // Not needed -- works already
         }
 
         private void RightClickMenu_OpenDestinationLocation(object sender, RoutedEventArgs e)
         {
-            BatFormLogic.OpenDestinationLocation(DataGrid);
+            batFormLogic.OpenDestinationLocation(DataGrid);
         }
 
         private void RightClickMenu_Delete(object sender, RoutedEventArgs e)
         {
-            BatFormLogic.Delete(DataGrid);
+            batFormLogic.Delete(DataGrid);
         }
 
         #endregion Handlers

@@ -1,5 +1,4 @@
 ﻿using keycuts.Common;
-using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -220,7 +219,7 @@ namespace keycuts.Batmanager
         {
             if (IsBat(dataGrid, out Bat bat))
             {
-                FileSystem.DeleteFile(bat.Path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin, UICancelOption.DoNothing);
+                File.Delete(bat.Path);
                 bats.Remove(bat);
                 dataGrid.Items.Refresh();
             }

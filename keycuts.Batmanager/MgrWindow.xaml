@@ -20,13 +20,13 @@
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
                     <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" 
-                              SelectionUnit="Cell" PreviewKeyDown="DataGrid_PreviewKeyDown" AreRowDetailsFrozen="True">
+                              SelectionUnit="Cell" PreviewKeyDown="DataGrid_PreviewKeyDown">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>
-                                <MenuItem Header="_Run" Command="Open" Click="RightClickMenu_Run"/>
-                                <MenuItem Header="_Copy" Command="Copy" Click="RightClickMenu_Copy"/>
+                                <MenuItem Header="_Run" Click="RightClickMenu_Run"/>
                                 <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation"/>
+                                <MenuItem Header="_Copy" Command="Copy" Click="RightClickMenu_Copy"/>
                                 <MenuItem Header="_Delete" Click="RightClickMenu_Delete"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>

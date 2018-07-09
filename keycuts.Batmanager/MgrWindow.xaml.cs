@@ -61,14 +61,14 @@ namespace keycuts.Batmanager
             {
                 batFormLogic.Run(DataGrid);
             }
-            //else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
-            //{
-            //    batFormLogic.Copy(DataGrid); // Not needed -- works already
-            //}
             else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 batFormLogic.OpenDestinationLocation(DataGrid);
             }
+            //else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            //{
+            //    batFormLogic.Copy(DataGrid); // Not needed -- works already
+            //}
             else if (e.Key == Key.Delete)
             {
                 batFormLogic.Delete(DataGrid);
@@ -85,14 +85,14 @@ namespace keycuts.Batmanager
             batFormLogic.Run(DataGrid);
         }
 
-        private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
-        {
-            //batFormLogic.Copy(DataGrid); // Not needed -- works already
-        }
-
         private void RightClickMenu_OpenDestinationLocation(object sender, RoutedEventArgs e)
         {
             batFormLogic.OpenDestinationLocation(DataGrid);
+        }
+
+        private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
+        {
+            //batFormLogic.Copy(DataGrid); // Not needed -- works already
         }
 
         private void RightClickMenu_Delete(object sender, RoutedEventArgs e)

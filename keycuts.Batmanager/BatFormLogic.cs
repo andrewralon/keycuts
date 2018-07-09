@@ -27,6 +27,8 @@ namespace keycuts.Batmanager
         private readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
         private readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
+        private List<Bat> bats = new List<Bat>();
+
         #endregion Fields
 
         #region Public Methods
@@ -35,7 +37,7 @@ namespace keycuts.Batmanager
         {
             var outputFolder = RegistryStuff.GetOutputFolder(@"C:\Shortcuts");
             var batFiles = Directory.GetFiles(outputFolder, "*.bat").ToList();
-            var bats = ParseBats(batFiles);
+            bats = ParseBats(batFiles);
             dataGrid.ItemsSource = bats;
         }
 
@@ -175,7 +177,6 @@ namespace keycuts.Batmanager
         {
             bat = null;
             var result = false;
-
             if (dataGrid.SelectedCells.Any())
             {
                 var selectedItem = dataGrid.SelectedCells[0];
@@ -189,7 +190,7 @@ namespace keycuts.Batmanager
         {
             if (IsBat(dataGrid, out Bat bat))
             {
-                Process.Start(bat.Path);
+                Process.Start("notepad.exe", bat.Path);
             }
         }
 
@@ -201,11 +202,6 @@ namespace keycuts.Batmanager
             }
         }
 
-        //private void Copy(DataGrid dataGrid)
-        //{
-        //    // Not needed -- works already
-        //}
-
         public void OpenDestinationLocation(DataGrid dataGrid)
         {
             if (IsBat(dataGrid, out Bat bat))
@@ -215,13 +211,18 @@ namespace keycuts.Batmanager
             }
         }
 
+        //private void Copy(DataGrid dataGrid)
+        //{
+        //    // Not needed -- works already
+        //}
+
         public void Delete(DataGrid dataGrid)
         {
             if (IsBat(dataGrid, out Bat bat))
             {
-                //MessageBox.Show("Are you sure you want to move this to the Recycle Bin?", );
                 FileSystem.DeleteFile(bat.Path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin, UICancelOption.DoNothing);
-                dataGrid.Items.Remove(bat);
+                bats.Remove(bat);
+                dataGrid.Items.Refresh();
             }
         }
 

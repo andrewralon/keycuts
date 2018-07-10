@@ -5,17 +5,31 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.Batmanager"
         mc:Ignorable="d"
-        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100" KeyDown="Mgr_KeyDown">
+        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100"  FontSize="18" KeyDown="Mgr_KeyDown">
     <Grid x:Name="GridMainFull">
         <Grid x:Name="GridMainMargin" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
-                <RowDefinition Height="10*"/>
+                <RowDefinition Height="8*"/>
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
-                <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" Margin="10,8,0,0" 
-                       HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="3*"/>
+                </Grid.ColumnDefinitions>
+                <Grid Grid.Column="0">
+                    <Label Content="Output Folder" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <Grid Grid.Column="1">
+                    <TextBox Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
+                             TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </Grid>
+                <Grid Grid.Column="2">
+                    <Button Name="ButtonSetOutputFolder" Content="Set Output Folder" Margin="10" VerticalAlignment="Center" 
+                            Click="ButtonSetOutputFolder_Click"/>
+                </Grid>
             </Grid>
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
@@ -32,6 +46,9 @@
                         </DataGrid.ContextMenu>
                     </DataGrid>
                 </DockPanel>
+            </Grid>
+            <Grid Grid.Row="2">
+
             </Grid>
         </Grid>
     </Grid>

@@ -225,11 +225,6 @@ namespace keycuts.Batmanager
             }
         }
 
-        public void SetOutputFolder(string outputFolder)
-        {
-            RegistryStuff.SetOutputFolder(outputFolder);
-        }
-
         #endregion Public Methods
     }
 }

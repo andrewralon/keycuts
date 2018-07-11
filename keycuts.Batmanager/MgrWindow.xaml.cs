@@ -1,4 +1,5 @@
-﻿using System;
+﻿using keycuts.Common;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -23,6 +24,21 @@ namespace keycuts.Batmanager
     /// </summary>
     public partial class MgrWindow : Window, INotifyPropertyChanged
     {
+        private string outputFolder;
+
+        public string OutputFolder
+        {
+            get { return outputFolder; }
+            set
+            {
+                if (value != outputFolder)
+                {
+                    outputFolder = value;
+                    NotifyPropertyChanged("OutputFolder");
+                }
+            }
+        }
+
         public BatFormLogic batFormLogic = new BatFormLogic();
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -31,14 +47,13 @@ namespace keycuts.Batmanager
         {
             InitializeComponent();
             DataContext = this;
-
-            //batFormLogic.PopulateDataGrid(DataGrid);
         }
 
         #region Handlers
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
         {
+            OutputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
             batFormLogic.PopulateDataGrid(DataGrid);
         }
 
@@ -98,6 +113,11 @@ namespace keycuts.Batmanager
         private void RightClickMenu_Delete(object sender, RoutedEventArgs e)
         {
             batFormLogic.Delete(DataGrid);
+        }
+
+        private void ButtonSetOutputFolder_Click(object sender, RoutedEventArgs e)
+        {
+            batFormLogic.SetOutputFolder(OutputFolder);
         }
 
         #endregion Handlers

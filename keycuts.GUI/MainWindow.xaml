@@ -40,13 +40,13 @@
                 <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="5">
-                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="0,8,0,7" MinWidth="180"/>
+                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="0,8,0,7" MinWidth="170"/>
             </Grid>
             <Grid Grid.Row="6">
                 <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Center"/>
             </Grid>
             <Grid Grid.Row="7">
-                <Button Content="Open Batmanager" Click="OpenBatmanager_Click" HorizontalAlignment="Center" Margin="0,8,0,7" Width="180"/>
+                <Button Content="Open Batmanager" Click="OpenBatmanager_Click" HorizontalAlignment="Center" Margin="0,8,0,7" Width="190"/>
             </Grid>
         </Grid>
     </Grid>

@@ -49,6 +49,11 @@ namespace keycuts.Batmanager
             DataContext = this;
         }
 
+        public void RefreshList()
+        {
+            batFormLogic.PopulateDataGrid(DataGrid);
+        }
+
         #region Handlers
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
@@ -57,11 +62,16 @@ namespace keycuts.Batmanager
             batFormLogic.PopulateDataGrid(DataGrid);
         }
 
+        private void ButtonRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshList();
+        }
+
         private void Mgr_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.F5)
             {
-                batFormLogic.PopulateDataGrid(DataGrid);
+                RefreshList();
             }
         }
 
@@ -113,11 +123,6 @@ namespace keycuts.Batmanager
         private void RightClickMenu_Delete(object sender, RoutedEventArgs e)
         {
             batFormLogic.Delete(DataGrid);
-        }
-
-        private void ButtonSetOutputFolder_Click(object sender, RoutedEventArgs e)
-        {
-            batFormLogic.SetOutputFolder(OutputFolder);
         }
 
         #endregion Handlers

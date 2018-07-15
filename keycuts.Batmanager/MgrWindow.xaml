@@ -16,19 +16,22 @@
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
                     <ColumnDefinition Width="8*"/>
                     <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
                 </Grid.ColumnDefinitions>
-                <Grid Grid.Column="0">
+                <Grid Grid.Column="1">
                     <Label Content="Output Folder" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
-                <Grid Grid.Column="1">
-                    <TextBox Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
-                             TextWrapping="Wrap" VerticalAlignment="Center"/>
-                </Grid>
                 <Grid Grid.Column="2">
-                    <Button Name="ButtonSetOutputFolder" Content="Set Output Folder" Margin="10" VerticalAlignment="Center" 
-                            Click="ButtonSetOutputFolder_Click"/>
+                    <TextBox Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
+                             TextWrapping="Wrap" VerticalAlignment="Center" IsReadOnlyCaretVisible="True" 
+                             IsReadOnly="True" IsEnabled="False"/>
+                </Grid>
+                <Grid Grid.Column="3">
+                    <Button Name="ButtonRefresh" Content="Refresh" Margin="20,10,20,10" VerticalAlignment="Center" 
+                            Click="ButtonRefresh_Click"/>
                 </Grid>
             </Grid>
             <DockPanel Grid.Row="1">

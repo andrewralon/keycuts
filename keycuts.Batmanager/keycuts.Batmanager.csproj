@@ -66,6 +66,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Bat.cs" />
+    <Compile Include="BatColumn.cs" />
     <Compile Include="BatFormLogic.cs" />
     <Compile Include="MgrWindow.xaml.cs">
       <DependentUpon>MgrWindow.xaml</DependentUpon>

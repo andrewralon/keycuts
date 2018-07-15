@@ -24,12 +24,12 @@
                     <Label Content="Output Folder" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
                 <Grid Grid.Column="2">
-                    <TextBox Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
+                    <TextBox x:Name="TextboxOutputFolder" Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
                              TextWrapping="Wrap" VerticalAlignment="Center" IsReadOnlyCaretVisible="True" 
                              IsReadOnly="True" IsEnabled="False"/>
                 </Grid>
                 <Grid Grid.Column="3">
-                    <Button Name="ButtonRefresh" Content="Refresh" Margin="20,10,20,10" VerticalAlignment="Center" 
+                    <Button Name="ButtonRefresh" Content="Refresh" Margin="30,10,30,10" VerticalAlignment="Center" 
                             Click="ButtonRefresh_Click"/>
                 </Grid>
             </Grid>
@@ -41,7 +41,7 @@
                             <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>
                             <MenuItem Header="_Run" Click="RightClickMenu_Run"/>
                             <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation"/>
-                            <MenuItem Header="_Copy" Command="Copy" Click="RightClickMenu_Copy"/>
+                            <MenuItem Header="_Copy" Click="RightClickMenu_Copy"/>
                             <MenuItem Header="_Delete" Click="RightClickMenu_Delete"/>
                         </ContextMenu>
                     </DataGrid.ContextMenu>

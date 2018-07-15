@@ -24,22 +24,9 @@ namespace keycuts.Batmanager
     /// </summary>
     public partial class MgrWindow : Window, INotifyPropertyChanged
     {
+        private BatFormLogic batFormLogic;
+
         private string outputFolder;
-
-        public string OutputFolder
-        {
-            get { return outputFolder; }
-            set
-            {
-                if (value != outputFolder)
-                {
-                    outputFolder = value;
-                    NotifyPropertyChanged("OutputFolder");
-                }
-            }
-        }
-
-        public BatFormLogic batFormLogic = new BatFormLogic();
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -47,20 +34,22 @@ namespace keycuts.Batmanager
         {
             InitializeComponent();
             DataContext = this;
+            batFormLogic = new BatFormLogic();
+        }
+
+        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            RefreshList();
         }
 
         public void RefreshList()
         {
-            batFormLogic.PopulateDataGrid(DataGrid);
+            outputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
+            TextboxOutputFolder.Text = outputFolder;
+            batFormLogic.PopulateDataGrid(DataGrid, outputFolder);
         }
 
         #region Handlers
-
-        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            OutputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
-            batFormLogic.PopulateDataGrid(DataGrid);
-        }
 
         private void ButtonRefresh_Click(object sender, RoutedEventArgs e)
         {

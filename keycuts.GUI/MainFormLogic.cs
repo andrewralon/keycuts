@@ -26,22 +26,42 @@ namespace keycuts.GUI
             Runner.OpenBatmanager();
         }
 
-        public void ActivateShortcutTextbox(MainWindow mainWindow, string file)
+        public void ClearDestination(MainWindow mainWindow)
         {
-            // Follow the link (if it exists) and set the path textbox
-            Shortcut.GetShortcutType(file, out string newFile);
-            mainWindow.Destination = newFile;
+            mainWindow.TextboxDestination.Clear();
+        }
 
+        public void HandleNewDestination(MainWindow mainWindow, string destination)
+        {
+            SetDestination(mainWindow, destination);
+            ActivateShortcutTextbox(mainWindow);
+            ActivateThisWindow();
+        }
+
+        #region Private Methods
+
+        private void SetDestination(MainWindow mainWindow, string destination)
+        {
+            // Follow the link (if it exists) and set the destination
+            Shortcut.GetShortcutType(destination, out string newDestination);
+            mainWindow.TextboxDestination.Text = newDestination;
+        }
+
+        private void ActivateShortcutTextbox(MainWindow mainWindow)
+        {
             // Focus on the shortcut name textbox
             mainWindow.TextboxShortcut.Focus();
         }
 
-        public void ActivateThisWindow()
+        private void ActivateThisWindow()
         {
+            // Activate this window (normally keeps focus on whatever was previously active)
             var process = Process.GetCurrentProcess();
             var hwnd = process.MainWindowHandle;
             SetForegroundWindow(hwnd);
         }
+
+        #endregion Private Methods
 
         #region External Methods
 

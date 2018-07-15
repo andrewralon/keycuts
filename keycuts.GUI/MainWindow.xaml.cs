@@ -24,7 +24,9 @@ namespace keycuts.GUI
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         #region Fields
-        
+
+        private MainFormLogic mainFormLogic;
+
         private CommonLogic commonLogic;
 
         private string destination;
@@ -38,8 +40,6 @@ namespace keycuts.GUI
         #endregion Fields
 
         #region Properties
-
-        public MainFormLogic MainFormLogic { get; }
 
         public string Step1 { get { return Steps[0]; } }
 
@@ -85,7 +85,7 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
-            MainFormLogic = new MainFormLogic();
+            mainFormLogic = new MainFormLogic();
             commonLogic = new CommonLogic();
         }
 
@@ -115,7 +115,7 @@ namespace keycuts.GUI
 
         private void OpenSettings()
         {
-            MainFormLogic.OpenSettings(settingsWindow);
+            mainFormLogic.OpenSettings(settingsWindow);
         }
 
         private void ChangeOutputFolder(string outputFolder)
@@ -154,7 +154,7 @@ namespace keycuts.GUI
 
         private void OpenBatmanager_Click(object sender, RoutedEventArgs e)
         {
-            MainFormLogic.OpenBatmanager();
+            mainFormLogic.OpenBatmanager();
         }
 
         #endregion UI Handlers - Buttons, Keys
@@ -163,6 +163,7 @@ namespace keycuts.GUI
 
         private void HandlePreviewDragOver(object sender, DragEventArgs e)
         {
+            mainFormLogic.ClearDestination(this);
             e.Handled = true;
         }
 
@@ -182,10 +183,7 @@ namespace keycuts.GUI
             }
             else
             {
-                MainFormLogic.ActivateShortcutTextbox(this, file);
-
-                // Activate this window (normally keeps focus on whatever was previously active)
-                MainFormLogic.ActivateThisWindow();
+                mainFormLogic.HandleNewDestination(this, file);
             }
         }
 

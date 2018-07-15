@@ -1,6 +1,8 @@
-﻿using System;
+﻿using keycuts.Common;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -22,52 +24,105 @@ namespace keycuts.Batmanager
     /// </summary>
     public partial class MgrWindow : Window, INotifyPropertyChanged
     {
-        #region Fields
+        private string outputFolder;
+
+        public string OutputFolder
+        {
+            get { return outputFolder; }
+            set
+            {
+                if (value != outputFolder)
+                {
+                    outputFolder = value;
+                    NotifyPropertyChanged("OutputFolder");
+                }
+            }
+        }
+
+        public BatFormLogic batFormLogic = new BatFormLogic();
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        #endregion Fields
-
-        #region Properties
-
-
-
-        #endregion Properties
-        
-        #region Constructors
 
         public MgrWindow()
         {
             InitializeComponent();
             DataContext = this;
-
-            PopulateDataGrid();
         }
 
-        #endregion Constructors
-
-        #region Public Methods
-
-        public void PopulateDataGrid()
+        public void RefreshList()
         {
-            BatFormLogic.PopulateDataGrid(DataGrid);
+            batFormLogic.PopulateDataGrid(DataGrid);
         }
-
-        #endregion Public Methods
 
         #region Handlers
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
         {
-            PopulateDataGrid();
+            OutputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
+            batFormLogic.PopulateDataGrid(DataGrid);
+        }
+
+        private void ButtonRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshList();
         }
 
         private void Mgr_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.F5)
             {
-                PopulateDataGrid();
+                RefreshList();
             }
+        }
+
+        private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter ||
+                (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control))
+            {
+                batFormLogic.Edit(DataGrid);
+            }
+            else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                batFormLogic.Run(DataGrid);
+            }
+            else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                batFormLogic.OpenDestinationLocation(DataGrid);
+            }
+            //else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            //{
+            //    batFormLogic.Copy(DataGrid); // Not needed -- works already
+            //}
+            else if (e.Key == Key.Delete)
+            {
+                batFormLogic.Delete(DataGrid);
+            }
+        }
+
+        private void RightClickMenu_Edit(object sender, RoutedEventArgs e)
+        {
+            batFormLogic.Edit(DataGrid);
+        }
+
+        private void RightClickMenu_Run(object sender, RoutedEventArgs e)
+        {
+            batFormLogic.Run(DataGrid);
+        }
+
+        private void RightClickMenu_OpenDestinationLocation(object sender, RoutedEventArgs e)
+        {
+            batFormLogic.OpenDestinationLocation(DataGrid);
+        }
+
+        private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
+        {
+            //batFormLogic.Copy(DataGrid); // Not needed -- works already
+        }
+
+        private void RightClickMenu_Delete(object sender, RoutedEventArgs e)
+        {
+            batFormLogic.Delete(DataGrid);
         }
 
         #endregion Handlers

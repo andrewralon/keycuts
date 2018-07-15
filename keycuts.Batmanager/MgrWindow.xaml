@@ -5,22 +5,49 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.Batmanager"
         mc:Ignorable="d"
-        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100" KeyDown="Mgr_KeyDown">
+        Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100" FontSize="18" KeyDown="Mgr_KeyDown">
     <Grid x:Name="GridMainFull">
         <Grid x:Name="GridMainMargin" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
-                <RowDefinition Height="10*"/>
+                <RowDefinition Height="8*"/>
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
-                <Label Content="{Binding Path=Step1, FallbackValue='1. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+                <Grid Grid.Column="1">
+                    <Label Content="Output Folder" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <Grid Grid.Column="2">
+                    <TextBox Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
+                             TextWrapping="Wrap" VerticalAlignment="Center" IsReadOnlyCaretVisible="True" 
+                             IsReadOnly="True" IsEnabled="False"/>
+                </Grid>
+                <Grid Grid.Column="3">
+                    <Button Name="ButtonRefresh" Content="Refresh" Margin="20,10,20,10" VerticalAlignment="Center" 
+                            Click="ButtonRefresh_Click"/>
+                </Grid>
             </Grid>
-            <Grid Grid.Row="1">
-                <DockPanel Grid.Row="1">
-                    <DataGrid Name="DataGrid" VerticalAlignment="Top" Loaded="DataGrid_Loaded" IsReadOnly="True" SelectionUnit="Cell"/>
-                </DockPanel>
-            </Grid>
+            <DockPanel Grid.Row="1">
+                <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" 
+                              SelectionUnit="Cell" PreviewKeyDown="DataGrid_PreviewKeyDown" IsReadOnly="True" FontSize="12">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>
+                            <MenuItem Header="_Run" Click="RightClickMenu_Run"/>
+                            <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation"/>
+                            <MenuItem Header="_Copy" Command="Copy" Click="RightClickMenu_Copy"/>
+                            <MenuItem Header="_Delete" Click="RightClickMenu_Delete"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                </DataGrid>
+            </DockPanel>
         </Grid>
     </Grid>
 </Window>

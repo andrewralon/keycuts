@@ -25,6 +25,10 @@ namespace keycuts.GUI
     {
         #region Fields
 
+        private MainFormLogic mainFormLogic;
+
+        private CommonLogic commonLogic;
+
         private string destination;
 
         private string shortcutName;
@@ -81,13 +85,15 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
+            mainFormLogic = new MainFormLogic();
+            commonLogic = new CommonLogic();
         }
 
         private void CreateShortcut()
         {
             ShortcutName = TextboxShortcut.Text;
 
-            var result = CommonLogic.CreateShortcut(Destination, ShortcutName);
+            var result = commonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == ExitCode.FileAlreadyExists)
             {
@@ -97,7 +103,7 @@ namespace keycuts.GUI
 
                 if (dialogResult == MessageBoxResult.Yes)
                 {
-                    result = CommonLogic.CreateShortcut(Destination, ShortcutName, true);
+                    result = commonLogic.CreateShortcut(Destination, ShortcutName, true);
                 }
             }
             
@@ -109,12 +115,17 @@ namespace keycuts.GUI
 
         private void OpenSettings()
         {
-            MainFormLogic.OpenSettings(settingsWindow);
+            mainFormLogic.OpenSettings(settingsWindow);
         }
 
         private void ChangeOutputFolder(string outputFolder)
         {
-            CommonLogic.SetOutputFolder(outputFolder);
+            commonLogic.SetOutputFolder(outputFolder);
+        }
+
+        private void CloseWindow()
+        {
+            Close();
         }
 
         #region UI Handlers - Buttons, Keys
@@ -135,11 +146,15 @@ namespace keycuts.GUI
             {
                 CreateShortcut();
             }
+            else if (e.Key == Key.Escape)
+            {
+                CloseWindow();
+            }
         }
 
-        private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
+        private void OpenBatmanager_Click(object sender, RoutedEventArgs e)
         {
-            MainFormLogic.OpenOutputFolder();
+            mainFormLogic.OpenBatmanager();
         }
 
         #endregion UI Handlers - Buttons, Keys
@@ -148,6 +163,7 @@ namespace keycuts.GUI
 
         private void HandlePreviewDragOver(object sender, DragEventArgs e)
         {
+            mainFormLogic.ClearDestination(this);
             e.Handled = true;
         }
 
@@ -167,10 +183,7 @@ namespace keycuts.GUI
             }
             else
             {
-                MainFormLogic.ActivateShortcutTextbox(this, file);
-
-                // Activate this window (normally keeps focus on whatever was previously active)
-                MainFormLogic.ActivateThisWindow();
+                mainFormLogic.HandleNewDestination(this, file);
             }
         }
 

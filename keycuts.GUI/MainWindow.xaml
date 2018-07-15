@@ -27,7 +27,7 @@
             </Grid>
             <Grid Grid.Row="1">
                 <DockPanel Grid.Row="1">
-                    <TextBox TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16" DragEnter="TextboxDestination_DragEnter" Drop="TextboxDestination_Drop" AllowDrop="True" PreviewDragOver="TextboxDestination_PreviewDragOver"/>
+                    <TextBox x:Name="TextboxDestination" TextWrapping="Wrap" Text="{Binding Path=Destination}" FontSize="16" DragEnter="TextboxDestination_DragEnter" Drop="TextboxDestination_Drop" AllowDrop="True" PreviewDragOver="TextboxDestination_PreviewDragOver"/>
                 </DockPanel>
             </Grid>
             <Grid Grid.Row="2">
@@ -46,7 +46,7 @@
                 <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Center"/>
             </Grid>
             <Grid Grid.Row="7">
-                <Button Content="Open Output Folder" Click="OpenOutputFolder_Click" HorizontalAlignment="Center" Margin="0,8,0,7" Width="240"/>
+                <Button Content="Open Batmanager" Click="OpenBatmanager_Click" HorizontalAlignment="Center" Margin="0,8,0,7" Width="190"/>
             </Grid>
         </Grid>
     </Grid>

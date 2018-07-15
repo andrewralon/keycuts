@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -18,6 +19,8 @@ namespace keycuts.Common
         public static readonly bool DefaultForceOverwrite = false;
 
         public static readonly bool DefaultRightClickContextMenu = true;
+
+        public static readonly string RightClickContextMenuText = "keycut this!";
 
         public Runner()
         {
@@ -189,7 +192,7 @@ namespace keycuts.Common
                     {
                         var sanitized = Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination);
 
-                        command = string.Format(start, sanitized);
+                        command = $"START {sanitized}";
                     }
                     else if (shortcut.Type == ShortcutType.File)
                     {
@@ -221,5 +224,20 @@ namespace keycuts.Common
 
             return result;
         }
+
+        #region Static Methods
+
+        public static void OpenBatmanager()
+        {
+            var projectFolder = Directory.GetCurrentDirectory();
+            var batmanager = Path.Combine(projectFolder, "keycuts.Batmanager.exe");
+#if DEBUG
+            projectFolder = Directory.GetParent(projectFolder).Parent.Parent.FullName;
+            batmanager = Path.Combine(projectFolder, "keycuts.Batmanager\\bin\\Debug\\keycuts.Batmanager.exe");
+#endif
+            Process.Start(batmanager);
+        }
+
+        #endregion Static Methods
     }
 }

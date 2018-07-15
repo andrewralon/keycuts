@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.GUI"
         mc:Ignorable="d"
-        Title="Settings" Height="350" Width="425" FontSize="18" MinWidth="425" MinHeight="350">
+        Title="Settings" Height="350" Width="425" FontSize="18" MinWidth="425" MinHeight="350" KeyDown="Settings_KeyDown">
     <Grid>
         <Grid x:Name="GridSettingsMargin" Margin="20">
             <Grid.RowDefinitions>

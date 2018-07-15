@@ -8,12 +8,12 @@ namespace keycuts.Common
 {
     public enum ShortcutType
     {
-        File,
-        Folder,
-        Url,
-        HostsFile,
         Command,
         CLSIDKey,
-        Unknown
+        File,
+        Folder,
+        HostsFile,
+        Unknown,
+        Url
     }
 }

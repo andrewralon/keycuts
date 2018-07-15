@@ -24,6 +24,8 @@ namespace keycuts.GUI
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         #region Fields
+        
+        private CommonLogic commonLogic;
 
         private string destination;
 
@@ -36,6 +38,8 @@ namespace keycuts.GUI
         #endregion Fields
 
         #region Properties
+
+        public MainFormLogic MainFormLogic { get; }
 
         public string Step1 { get { return Steps[0]; } }
 
@@ -81,13 +85,15 @@ namespace keycuts.GUI
         {
             InitializeComponent();
             DataContext = this;
+            MainFormLogic = new MainFormLogic();
+            commonLogic = new CommonLogic();
         }
 
         private void CreateShortcut()
         {
             ShortcutName = TextboxShortcut.Text;
 
-            var result = CommonLogic.CreateShortcut(Destination, ShortcutName);
+            var result = commonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == ExitCode.FileAlreadyExists)
             {
@@ -97,7 +103,7 @@ namespace keycuts.GUI
 
                 if (dialogResult == MessageBoxResult.Yes)
                 {
-                    result = CommonLogic.CreateShortcut(Destination, ShortcutName, true);
+                    result = commonLogic.CreateShortcut(Destination, ShortcutName, true);
                 }
             }
             
@@ -114,7 +120,7 @@ namespace keycuts.GUI
 
         private void ChangeOutputFolder(string outputFolder)
         {
-            CommonLogic.SetOutputFolder(outputFolder);
+            commonLogic.SetOutputFolder(outputFolder);
         }
 
         private void CloseWindow()
@@ -146,9 +152,9 @@ namespace keycuts.GUI
             }
         }
 
-        private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
+        private void OpenBatmanager_Click(object sender, RoutedEventArgs e)
         {
-            MainFormLogic.OpenOutputFolder();
+            MainFormLogic.OpenBatmanager();
         }
 
         #endregion UI Handlers - Buttons, Keys

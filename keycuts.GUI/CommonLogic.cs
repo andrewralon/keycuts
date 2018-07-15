@@ -9,7 +9,7 @@ namespace keycuts.GUI
 {
     public class CommonLogic
     {
-        public static ExitCode CreateShortcut(string destination, string shortcutName, bool force = false)
+        public ExitCode CreateShortcut(string destination, string shortcutName, bool force = false)
         {
             var result = ExitCode.NotStarted;
             var runner = new Runner();
@@ -37,7 +37,7 @@ namespace keycuts.GUI
             return result;
         }
 
-        public static void SetOutputFolder(string outputFolder)
+        public void SetOutputFolder(string outputFolder)
         {
             var runner = new Runner();
             runner.SetOutputFolder(outputFolder);

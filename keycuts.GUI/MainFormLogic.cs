@@ -10,24 +10,23 @@ namespace keycuts.GUI
 {
     public class MainFormLogic
     {
-        public static void OpenSettings(SettingsWindow settingsWindow)
+        public void OpenSettings(SettingsWindow settingsWindow)
         {
             settingsWindow = new SettingsWindow();
             settingsWindow.Show();
         }
 
-        public static void SaveSettings(Settings settings)
+        public void SaveSettings(Settings settings)
         {
             settings?.SaveSettings();
         }
 
-        public static void OpenOutputFolder()
+        public void OpenBatmanager()
         {
-            var defaultFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
-            Process.Start(defaultFolder);
+            Runner.OpenBatmanager();
         }
 
-        public static void ActivateShortcutTextbox(MainWindow mainWindow, string file)
+        public void ActivateShortcutTextbox(MainWindow mainWindow, string file)
         {
             // Follow the link (if it exists) and set the path textbox
             Shortcut.GetShortcutType(file, out string newFile);
@@ -37,7 +36,7 @@ namespace keycuts.GUI
             mainWindow.TextboxShortcut.Focus();
         }
 
-        public static void ActivateThisWindow()
+        public void ActivateThisWindow()
         {
             var process = Process.GetCurrentProcess();
             var hwnd = process.MainWindowHandle;

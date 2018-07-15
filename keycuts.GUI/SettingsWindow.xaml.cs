@@ -22,6 +22,10 @@ namespace keycuts.GUI
     {
         #region Fields
 
+        private MainFormLogic mainFormLogic;
+
+        private Settings settings;
+
         private string outputFolder;
 
         private bool forceOverwrite;
@@ -39,8 +43,6 @@ namespace keycuts.GUI
         public string LabelForceOverwrite { get; } = "Force Overwrite (if shortcut exists)";
 
         public string LabelRightClickContextMenus { get; } = "Right Click Context Menus";
-
-        public Settings Settings { get; set; }
 
         public string OutputFolder
         {
@@ -79,17 +81,18 @@ namespace keycuts.GUI
             InitializeComponent();
             DataContext = this;
 
-            Settings = new Settings();
+            settings = new Settings();
+            mainFormLogic = new MainFormLogic();
             LoadSettings();
         }
 
         private void LoadSettings()
         {
-            Settings.LoadSettings();
+            settings.LoadSettings();
 
-            OutputFolder = Settings.OutputFolder;
-            ForceOverwrite = Settings.ForceOverwrite;
-            RightClickContextMenus = Settings.RightClickContextMenus;
+            OutputFolder = settings.OutputFolder;
+            ForceOverwrite = settings.ForceOverwrite;
+            RightClickContextMenus = settings.RightClickContextMenus;
         }
 
         private void CloseWindow()
@@ -107,8 +110,8 @@ namespace keycuts.GUI
                 ForceOverwrite = (bool)CheckboxForceOverwrite.IsChecked,
                 RightClickContextMenus = RightClickContextMenus
             };
-
-            MainFormLogic.SaveSettings(settings);
+            
+            mainFormLogic.SaveSettings(settings);
         }
 
         private void Settings_KeyDown(object sender, KeyEventArgs e)

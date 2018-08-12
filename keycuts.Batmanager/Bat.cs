@@ -89,17 +89,15 @@ namespace keycuts.Batmanager
             }
         }
 
-        public Bat(string path, string shortcut, string command, string destination, ShortcutType type, string openWithApp = "")
-        {
-            Path = path;
-            Shortcut = shortcut;
-            Type = type;
-            Destination = destination;
-            OpenWithApp = openWithApp;
-            Command = command;
-        }
-
-        #region Validation Methods
+        //public Bat(string path, string shortcut, string command, string destination, ShortcutType type, string openWithApp = "")
+        //{
+        //    Path = path;
+        //    Shortcut = shortcut;
+        //    Type = type;
+        //    Destination = destination;
+        //    OpenWithApp = openWithApp;
+        //    Command = command;
+        //}
 
         public static bool IsBat(DataGrid dataGrid, out Bat bat)
         {
@@ -109,10 +107,15 @@ namespace keycuts.Batmanager
             {
                 var selectedItem = dataGrid.SelectedCells[0];
                 bat = selectedItem.Item as Bat;
-                result = true;
+                if (bat != null)
+                {
+                    result = true;
+                }
             }
             return result;
         }
+
+        #region Validation Methods
 
         private bool IsCLSIDKey(string line, out string clsidKey)
         {

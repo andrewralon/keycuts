@@ -6,6 +6,20 @@
         xmlns:local="clr-namespace:keycuts.Batmanager"
         mc:Ignorable="d"
         Title="batmanager" Height="600" Width="1100" MinHeight="600" MinWidth="1100" FontSize="18" KeyDown="Mgr_KeyDown">
+    <Window.CommandBindings>
+        <CommandBinding Command="local:CustomCommands.Run" Executed="Run_Executed" />
+        <CommandBinding Command="local:CustomCommands.Edit" Executed="Edit_Executed" />
+        <CommandBinding Command="local:CustomCommands.OpenDestinationLocation" Executed="OpenDestinationLocation_Executed" />
+        <CommandBinding Command="local:CustomCommands.Copy" Executed="Copy_Executed" />
+        <CommandBinding Command="local:CustomCommands.Delete" Executed="Delete_Executed" />
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Key="Return" Command="local:CustomCommands.Run"/>
+        <KeyBinding Key="E" Modifiers="Ctrl" Command="local:CustomCommands.Edit"/>
+        <KeyBinding Key="O" Modifiers="Ctrl" Command="local:CustomCommands.OpenDestinationLocation"/>
+        <KeyBinding Key="C" Modifiers="Ctrl" Command="local:CustomCommands.Copy"/>
+        <KeyBinding Key="Delete" Command="local:CustomCommands.Delete"/>
+    </Window.InputBindings>
     <Grid x:Name="GridMainFull">
         <Grid x:Name="GridMainMargin" Margin="20">
             <Grid.RowDefinitions>
@@ -35,14 +49,15 @@
             </Grid>
             <DockPanel Grid.Row="1">
                 <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" 
-                              SelectionUnit="Cell" PreviewKeyDown="DataGrid_PreviewKeyDown" IsReadOnly="True" FontSize="12">
+                          PreviewKeyDown="DataGrid_PreviewKeyDown" IsReadOnly="True" FontSize="12" 
+                          CopyingRowClipboardContent="DataGrid_CopyingRowClipboardContent">
                     <DataGrid.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>
-                            <MenuItem Header="_Run" Click="RightClickMenu_Run"/>
-                            <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation"/>
-                            <MenuItem Header="_Copy" Click="RightClickMenu_Copy"/>
-                            <MenuItem Header="_Delete" Click="RightClickMenu_Delete"/>
+                            <MenuItem Header="_Run" Click="RightClickMenu_Run" InputGestureText="Enter" />
+                            <MenuItem Header="_Edit" Click="RightClickMenu_Edit" InputGestureText="Ctrl+E" />
+                            <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation" InputGestureText="Ctrl+O" />
+                            <MenuItem Header="_Copy" Click="RightClickMenu_Copy" Command="Copy" InputGestureText="Ctrl+C" />
+                            <MenuItem Header="_Delete" Click="RightClickMenu_Delete" InputGestureText="Del" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                 </DataGrid>

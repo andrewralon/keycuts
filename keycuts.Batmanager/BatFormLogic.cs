@@ -16,8 +16,12 @@ namespace keycuts.Batmanager
     {
         private List<Bat> bats = new List<Bat>();
 
+        private string _outputFolder;
+
         public void PopulateDataGrid(DataGrid dataGrid, string outputFolder)
         {
+            _outputFolder = outputFolder;
+
             if (!Directory.Exists(outputFolder))
             {
                 Directory.CreateDirectory(outputFolder);
@@ -35,10 +39,19 @@ namespace keycuts.Batmanager
                     bats = new List<Bat>();
                 }
 
-                var columns = new List<BatColumn>();
-                bats.ForEach(s => columns.Add(new BatColumn(s)));
+                var columns = new List<Bat>();
+                bats.ForEach(s => columns.Add(s));
+
+                //var columns = new List<BatColumn>();
+                //bats.ForEach(s => columns.Add(new BatColumn(s)));
 
                 dataGrid.ItemsSource = columns;
+
+                if (dataGrid.Columns.Count > 0)
+                {
+                    dataGrid.Columns[0].Visibility = Visibility.Hidden;
+                    dataGrid.Columns[dataGrid.Columns.Count - 1].Visibility = Visibility.Hidden;
+                }
             }
             else
             {
@@ -97,14 +110,24 @@ namespace keycuts.Batmanager
             if (Bat.IsBat(dataGrid, out Bat bat))
             {
                 var location = Path.GetDirectoryName(bat?.Destination);
-                Process.Start(location);
+                if (location != "")
+                {
+                    Process.Start(location);
+                }
             }
         }
 
-        //private void Copy(DataGrid dataGrid)
-        //{
-        //    // Not needed -- works already
-        //}
+        public void Copy(DataGrid dataGrid)
+        {
+            
+        }
+
+        public void Copy(DataGrid dataGrid, DataGridRowClipboardEventArgs e)
+        {
+            var currentCell = e.ClipboardRowContent[dataGrid.CurrentCell.Column.DisplayIndex - 1];
+            e.ClipboardRowContent.Clear();
+            e.ClipboardRowContent.Add(currentCell);
+        }
 
         public void Delete(DataGrid dataGrid)
         {
@@ -114,6 +137,8 @@ namespace keycuts.Batmanager
                 bats.Remove(bat);
                 dataGrid.Items.Refresh();
             }
+
+            PopulateDataGrid(dataGrid, _outputFolder);
         }
 
         public void SetOutputFolder(string outputFolder)

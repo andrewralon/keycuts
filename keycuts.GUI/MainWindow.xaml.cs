@@ -117,7 +117,7 @@ namespace keycuts.GUI
 
             if (result != (int)ExitCode.Success)
             {
-                MessageBox.Show($"Error: {result}");
+                MessageBox.Show($"Error: {result}\nDestination: {Destination}\nShortcut: {ShortcutName}");
             }
         }
 

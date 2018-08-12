@@ -37,11 +37,6 @@ namespace keycuts.Batmanager
             batFormLogic = new BatFormLogic();
         }
 
-        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            Refresh();
-        }
-
         public void Refresh()
         {
             outputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
@@ -89,6 +84,16 @@ namespace keycuts.Batmanager
             }
         }
 
+        private void DataGrid_CopyingRowClipboardContent(object sender, DataGridRowClipboardEventArgs e)
+        {
+            batFormLogic.Copy(sender as DataGrid, e);
+        }
+
+        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            Refresh();
+        }
+
         private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter ||
@@ -96,15 +101,18 @@ namespace keycuts.Batmanager
             {
                 Run();
             }
-            else if (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control)
+            else if (e.Key == Key.E ||
+                (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control))
             {
                 Edit();
             }
-            else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
+            else if (e.Key == Key.O ||
+                (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control))
             {
                 OpenDestinationLocation();
             }
-            else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
+            else if (e.Key == Key.C ||
+                (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control))
             {
                 Copy();
             }
@@ -139,41 +147,7 @@ namespace keycuts.Batmanager
             batFormLogic.Delete(DataGrid);
         }
 
-        private void DataGrid_CopyingRowClipboardContent(object sender, DataGridRowClipboardEventArgs e)
-        {
-            batFormLogic.Copy(sender as DataGrid, e);
-        }
-
         #endregion Handlers
-
-        #region Context Menu Commands
-
-        private void Run_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-
-        }
-
-        private void Edit_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-
-        }
-
-        private void OpenDestinationLocation_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-
-        }
-
-        private void Copy_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-            
-        }
-
-        private void Delete_Executed(object sender, ExecutedRoutedEventArgs e)
-        {
-
-        }
-
-        #endregion Context Menu Commands
 
         #region OnPropertyChanged Handler
 

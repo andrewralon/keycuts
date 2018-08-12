@@ -89,16 +89,6 @@ namespace keycuts.Batmanager
             }
         }
 
-        //public Bat(string path, string shortcut, string command, string destination, ShortcutType type, string openWithApp = "")
-        //{
-        //    Path = path;
-        //    Shortcut = shortcut;
-        //    Type = type;
-        //    Destination = destination;
-        //    OpenWithApp = openWithApp;
-        //    Command = command;
-        //}
-
         public static bool IsBat(DataGrid dataGrid, out Bat bat)
         {
             bat = null;

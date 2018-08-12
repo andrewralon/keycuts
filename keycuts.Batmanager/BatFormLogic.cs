@@ -30,20 +30,10 @@ namespace keycuts.Batmanager
             if (Directory.Exists(outputFolder))
             {
                 var batFiles = Directory.GetFiles(outputFolder, "*.bat");
-                if (batFiles.Any())
-                {
-                    bats = ParseBats(batFiles.ToList(), dataGrid);
-                }
-                else
-                {
-                    bats = new List<Bat>();
-                }
+                bats = ParseBats(batFiles.ToList(), dataGrid);
 
                 var columns = new List<Bat>();
                 bats.ForEach(s => columns.Add(s));
-
-                //var columns = new List<BatColumn>();
-                //bats.ForEach(s => columns.Add(new BatColumn(s)));
 
                 dataGrid.ItemsSource = columns;
 
@@ -119,7 +109,7 @@ namespace keycuts.Batmanager
 
         public void Copy(DataGrid dataGrid)
         {
-            
+            // Not used -- Copy() below is called via DataGrid_CopyingRowClipboardContent event
         }
 
         public void Copy(DataGrid dataGrid, DataGridRowClipboardEventArgs e)

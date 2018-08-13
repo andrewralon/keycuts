@@ -11,7 +11,6 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="8*"/>
-                <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
@@ -25,25 +24,26 @@
                     <Label Content="Output Folder" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
                 <Grid Grid.Column="2">
-                    <TextBox Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
+                    <TextBox x:Name="TextboxOutputFolder" Text="{Binding OutputFolder, FallbackValue='C:\\Shortcuts'}" Margin="10" 
                              TextWrapping="Wrap" VerticalAlignment="Center" IsReadOnlyCaretVisible="True" 
                              IsReadOnly="True" IsEnabled="False"/>
                 </Grid>
                 <Grid Grid.Column="3">
-                    <Button Name="ButtonRefresh" Content="Refresh" Margin="20,10,20,10" VerticalAlignment="Center" 
+                    <Button Name="ButtonRefresh" Content="Refresh" Margin="30,10,30,10" VerticalAlignment="Center" 
                             Click="ButtonRefresh_Click"/>
                 </Grid>
             </Grid>
             <DockPanel Grid.Row="1">
                 <DataGrid Name="DataGrid" VerticalAlignment="Top" SelectionMode="Single" Loaded="DataGrid_Loaded" 
-                              SelectionUnit="Cell" PreviewKeyDown="DataGrid_PreviewKeyDown" IsReadOnly="True" FontSize="12">
+                          PreviewKeyDown="DataGrid_PreviewKeyDown" IsReadOnly="True" FontSize="12" 
+                          CopyingRowClipboardContent="DataGrid_CopyingRowClipboardContent">
                     <DataGrid.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="_Edit" Click="RightClickMenu_Edit"/>
-                            <MenuItem Header="_Run" Click="RightClickMenu_Run"/>
-                            <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation"/>
-                            <MenuItem Header="_Copy" Command="Copy" Click="RightClickMenu_Copy"/>
-                            <MenuItem Header="_Delete" Click="RightClickMenu_Delete"/>
+                            <MenuItem Header="_Run" Click="RightClickMenu_Run" InputGestureText="Enter or Ctrl+R" />
+                            <MenuItem Header="_Edit" Click="RightClickMenu_Edit" InputGestureText="E or Ctrl+E" />
+                            <MenuItem Header="_Open Destination Location" Click="RightClickMenu_OpenDestinationLocation" InputGestureText="O or Ctrl+O" />
+                            <MenuItem Header="_Copy" Click="RightClickMenu_Copy" Command="Copy" InputGestureText="C or Ctrl+C" />
+                            <MenuItem Header="_Delete" Click="RightClickMenu_Delete" InputGestureText="Del" />
                         </ContextMenu>
                     </DataGrid.ContextMenu>
                 </DataGrid>

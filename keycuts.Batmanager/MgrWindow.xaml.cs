@@ -24,22 +24,9 @@ namespace keycuts.Batmanager
     /// </summary>
     public partial class MgrWindow : Window, INotifyPropertyChanged
     {
+        private BatFormLogic batFormLogic;
+
         private string outputFolder;
-
-        public string OutputFolder
-        {
-            get { return outputFolder; }
-            set
-            {
-                if (value != outputFolder)
-                {
-                    outputFolder = value;
-                    NotifyPropertyChanged("OutputFolder");
-                }
-            }
-        }
-
-        public BatFormLogic batFormLogic = new BatFormLogic();
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -47,67 +34,102 @@ namespace keycuts.Batmanager
         {
             InitializeComponent();
             DataContext = this;
+            batFormLogic = new BatFormLogic();
         }
 
-        public void RefreshList()
+        public void Refresh()
         {
-            batFormLogic.PopulateDataGrid(DataGrid);
+            outputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
+            TextboxOutputFolder.Text = outputFolder;
+            batFormLogic.PopulateDataGrid(DataGrid, outputFolder);
+        }
+
+        public void Edit()
+        {
+            batFormLogic.Edit(DataGrid);
+        }
+
+        public void Run()
+        {
+            batFormLogic.Run(DataGrid);
+        }
+
+        public void OpenDestinationLocation()
+        {
+            batFormLogic.OpenDestinationLocation(DataGrid);
+        }
+
+        public void Copy()
+        {
+            batFormLogic.Copy(DataGrid);
+        }
+
+        public void Delete()
+        {
+            batFormLogic.Delete(DataGrid);
         }
 
         #region Handlers
 
-        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
-        {
-            OutputFolder = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
-            batFormLogic.PopulateDataGrid(DataGrid);
-        }
-
         private void ButtonRefresh_Click(object sender, RoutedEventArgs e)
         {
-            RefreshList();
+            Refresh();
         }
 
         private void Mgr_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.F5)
             {
-                RefreshList();
+                Refresh();
             }
+        }
+
+        private void DataGrid_CopyingRowClipboardContent(object sender, DataGridRowClipboardEventArgs e)
+        {
+            batFormLogic.Copy(sender as DataGrid, e);
+        }
+
+        private void DataGrid_Loaded(object sender, RoutedEventArgs e)
+        {
+            Refresh();
         }
 
         private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter ||
+                (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control))
+            {
+                Run();
+            }
+            else if (e.Key == Key.E ||
                 (e.Key == Key.E && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                batFormLogic.Edit(DataGrid);
+                Edit();
             }
-            else if (e.Key == Key.R && Keyboard.Modifiers == ModifierKeys.Control)
+            else if (e.Key == Key.O ||
+                (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                batFormLogic.Run(DataGrid);
+                OpenDestinationLocation();
             }
-            else if (e.Key == Key.O && Keyboard.Modifiers == ModifierKeys.Control)
+            else if (e.Key == Key.C ||
+                (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                batFormLogic.OpenDestinationLocation(DataGrid);
+                Copy();
             }
-            //else if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
-            //{
-            //    batFormLogic.Copy(DataGrid); // Not needed -- works already
-            //}
             else if (e.Key == Key.Delete)
             {
-                batFormLogic.Delete(DataGrid);
+                Delete();
             }
-        }
-
-        private void RightClickMenu_Edit(object sender, RoutedEventArgs e)
-        {
-            batFormLogic.Edit(DataGrid);
         }
 
         private void RightClickMenu_Run(object sender, RoutedEventArgs e)
         {
             batFormLogic.Run(DataGrid);
+        }
+
+        private void RightClickMenu_Edit(object sender, RoutedEventArgs e)
+        {
+            batFormLogic.Edit(DataGrid);
         }
 
         private void RightClickMenu_OpenDestinationLocation(object sender, RoutedEventArgs e)
@@ -117,7 +139,7 @@ namespace keycuts.Batmanager
 
         private void RightClickMenu_Copy(object sender, RoutedEventArgs e)
         {
-            //batFormLogic.Copy(DataGrid); // Not needed -- works already
+            batFormLogic.Copy(DataGrid);
         }
 
         private void RightClickMenu_Delete(object sender, RoutedEventArgs e)

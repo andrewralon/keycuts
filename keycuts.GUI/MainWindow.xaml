@@ -40,7 +40,7 @@
                 <Label Content="{Binding Path=Step3, FallbackValue='3. Words go here'}" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
             </Grid>
             <Grid Grid.Row="5">
-                <Button Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="0,8,0,7" MinWidth="170"/>
+                <ToggleButton Name="BtnCreateShortcut" Content="Create Shortcut" Click="CreateShortcut_Click" HorizontalAlignment="Center" Margin="0,8,0,7" MinWidth="170"/>
             </Grid>
             <Grid Grid.Row="6">
                 <Label Content="{Binding Path=Instructions, FallbackValue='* Instructions go here'}" HorizontalAlignment="Center" Margin="10" VerticalAlignment="Center"/>

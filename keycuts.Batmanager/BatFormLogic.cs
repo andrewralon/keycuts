@@ -14,94 +14,49 @@ namespace keycuts.Batmanager
 {
     public class BatFormLogic
     {
-        #region Fields
-
-        private readonly string explorer = "\\explorer.exe\"";
-        private readonly string start = "START ";
-
-        private readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
-        private readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
-        private readonly string patternHostsFile = "START \"\" \\/[BD] \".+\" \"(.+)hosts\"$";
-        private readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$";
-        private readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
-        private readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
-
         private List<Bat> bats = new List<Bat>();
 
-        #endregion Fields
+        private string _outputFolder;
 
-        #region Public Methods
-
-        public void PopulateDataGrid(DataGrid dataGrid)
+        public void PopulateDataGrid(DataGrid dataGrid, string outputFolder)
         {
-            var outputFolder = RegistryStuff.GetOutputFolder(@"C:\Shortcuts");
-            var batFiles = Directory.GetFiles(outputFolder, "*.bat").ToList();
-            bats = ParseBats(batFiles);
-            dataGrid.ItemsSource = bats;
+            _outputFolder = outputFolder;
+
+            if (!Directory.Exists(outputFolder))
+            {
+                Directory.CreateDirectory(outputFolder);
+            }
+
+            if (Directory.Exists(outputFolder))
+            {
+                var batFiles = Directory.GetFiles(outputFolder, "*.bat");
+                bats = ParseBats(batFiles.ToList(), dataGrid);
+
+                var columns = new List<Bat>();
+                bats.ForEach(s => columns.Add(s));
+
+                dataGrid.ItemsSource = columns;
+
+                if (dataGrid.Columns.Count > 0)
+                {
+                    dataGrid.Columns[0].Visibility = Visibility.Hidden;
+                    dataGrid.Columns[dataGrid.Columns.Count - 1].Visibility = Visibility.Hidden;
+                }
+            }
+            else
+            {
+                MessageBox.Show($"Directory \"{outputFolder}\" does not exist!");
+            }
         }
 
-        public List<Bat> ParseBats(List<string> batFiles)
+        public List<Bat> ParseBats(List<string> batFiles, DataGrid dataGrid)
         {
             var bats = new List<Bat>();
             var skippedFiles = new List<string>();
 
             foreach (var batFile in batFiles)
             {
-                var allLines = File.ReadAllLines(batFile);
-                var lines = allLines
-                    .Where(x => x.Contains(explorer) ||
-                                x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
-                    .ToList();
-
-                var bat = new Bat
-                {
-                    Path = batFile,
-                    Shortcut = Path.GetFileNameWithoutExtension(batFile)
-                };
-
-                foreach (var line in lines)
-                {
-                    bat.Command = line;
-
-                    if (IsCLSIDKey(line, out string clsidKey))
-                    {
-                        bat.Destination = clsidKey;
-                        bat.Type = ShortcutType.CLSIDKey;
-                        break;
-                    }
-                    else if (IsFolder(line, out string folder))
-                    {
-                        bat.Destination = folder;
-                        bat.Type = ShortcutType.Folder;
-                        break;
-                    }
-                    else if (IsHostsFile(line, out string hostsFile))
-                    {
-                        bat.Destination = hostsFile;
-                        bat.Type = ShortcutType.HostsFile;
-                        break;
-                    }
-                    else if (IsFile(line, out string file))
-                    {
-                        bat.Destination = file;
-                        bat.Type = ShortcutType.File;
-                        break;
-                    }
-                    else if (IsCommand(line, out string command))
-                    {
-                        bat.Destination = command;
-                        bat.Type = ShortcutType.Command;
-                        break;
-                    }
-                    else if (IsValidUrl(line, out string url))
-                    {
-                        bat.Destination = url;
-                        bat.Type = ShortcutType.Url;
-                        break;
-                    }
-
-                    bat.Type = ShortcutType.Unknown;
-                }
+                var bat = new Bat(batFile, dataGrid);
 
                 if (!string.IsNullOrEmpty(bat.Shortcut) &&
                     !string.IsNullOrEmpty(bat.Command) &&
@@ -124,70 +79,9 @@ namespace keycuts.Batmanager
             return bats;
         }
 
-        #region Validation Methods
-
-        private bool IsCLSIDKey(string line, out string clsidKey)
-        {
-            return MatchesRegex(patternCLSID, line, out clsidKey);
-        }
-
-        private bool IsFolder(string line, out string folder)
-        {
-            return MatchesRegex(patternFolder, line, out folder);
-        }
-
-        private bool IsHostsFile(string line, out string hostsFile)
-        {
-            return MatchesRegex(patternHostsFile, line, out hostsFile);
-        }
-
-        private bool IsFile(string line, out string file)
-        {
-            return MatchesRegex(patternFile, line, out file);
-        }
-
-        private bool IsCommand(string line, out string command)
-        {
-            return MatchesRegex(patternCommand, line, out command);
-        }
-
-        private bool IsValidUrl(string line, out string url)
-        {
-            return MatchesRegex(patternUrl, line, out url);
-        }
-
-        public bool MatchesRegex(string pattern, string line, out string result)
-        {
-            result = "";
-            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
-            var match = regex.Match(line);
-
-            if (match.Success)
-            {
-                result = match.Groups[1].Value;
-            }
-
-            return match.Success;
-        }
-
-        #endregion Validation Methods
-
-        public bool IsBat(DataGrid dataGrid, out Bat bat)
-        {
-            bat = null;
-            var result = false;
-            if (dataGrid.SelectedCells.Any())
-            {
-                var selectedItem = dataGrid.SelectedCells[0];
-                bat = selectedItem.Item as Bat;
-                result = true;
-            }
-            return result;
-        }
-
         public void Edit(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (Bat.IsBat(dataGrid, out Bat bat))
             {
                 Process.Start("notepad.exe", bat.Path);
             }
@@ -195,7 +89,7 @@ namespace keycuts.Batmanager
 
         public void Run(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (Bat.IsBat(dataGrid, out Bat bat))
             {
                 Process.Start(bat.Path);
             }
@@ -203,33 +97,43 @@ namespace keycuts.Batmanager
 
         public void OpenDestinationLocation(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (Bat.IsBat(dataGrid, out Bat bat))
             {
                 var location = Path.GetDirectoryName(bat?.Destination);
-                Process.Start(location);
+                if (location != "")
+                {
+                    Process.Start(location);
+                }
             }
         }
 
-        //private void Copy(DataGrid dataGrid)
-        //{
-        //    // Not needed -- works already
-        //}
+        public void Copy(DataGrid dataGrid)
+        {
+            // Not used -- Copy() below is called via DataGrid_CopyingRowClipboardContent event
+        }
+
+        public void Copy(DataGrid dataGrid, DataGridRowClipboardEventArgs e)
+        {
+            var currentCell = e.ClipboardRowContent[dataGrid.CurrentCell.Column.DisplayIndex - 1];
+            e.ClipboardRowContent.Clear();
+            e.ClipboardRowContent.Add(currentCell);
+        }
 
         public void Delete(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (Bat.IsBat(dataGrid, out Bat bat))
             {
                 File.Delete(bat.Path);
                 bats.Remove(bat);
                 dataGrid.Items.Refresh();
             }
+
+            PopulateDataGrid(dataGrid, _outputFolder);
         }
 
         public void SetOutputFolder(string outputFolder)
         {
             RegistryStuff.SetOutputFolder(outputFolder);
         }
-
-        #endregion Public Methods
     }
 }

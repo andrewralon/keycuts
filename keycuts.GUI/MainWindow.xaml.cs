@@ -93,6 +93,9 @@ namespace keycuts.GUI
         {
             ShortcutName = TextboxShortcut.Text;
 
+            BtnCreateShortcut.IsEnabled = false;
+            BtnCreateShortcut.IsChecked = true;
+
             var result = commonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == ExitCode.FileAlreadyExists)
@@ -106,10 +109,15 @@ namespace keycuts.GUI
                     result = commonLogic.CreateShortcut(Destination, ShortcutName, true);
                 }
             }
-            
+
+            System.Threading.Thread.Sleep(400);
+            System.Media.SystemSounds.Beep.Play();
+            BtnCreateShortcut.IsEnabled = true;
+            BtnCreateShortcut.IsChecked = false;
+
             if (result != (int)ExitCode.Success)
             {
-                MessageBox.Show($"Error: {result}");
+                MessageBox.Show($"Error: {result}\nDestination: {Destination}\nShortcut: {ShortcutName}");
             }
         }
 

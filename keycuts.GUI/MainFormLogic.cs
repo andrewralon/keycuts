@@ -44,7 +44,7 @@ namespace keycuts.GUI
         {
             // Follow the link (if it exists) and set the destination
             Shortcut.GetShortcutType(destination, out string newDestination);
-            mainWindow.TextboxDestination.Text = newDestination;
+            mainWindow.Destination = newDestination;
             mainWindow.TextboxDestination.ScrollToEnd();
         }
 

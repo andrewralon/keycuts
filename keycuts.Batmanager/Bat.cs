@@ -17,7 +17,7 @@ namespace keycuts.Batmanager
 
         private readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
         private readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
-        private readonly string patternHostsFile = "START \"\" \\/[BD] \".+\" \"(.+)hosts\"$";
+        private readonly string patternHostsFile = "START \"\" \\/[BD] \"(.+)\" \"(.+hosts)\"$";
         private readonly string patternFile = "START \"\" \\/[BD] \"(.+)\"( \"(.+)\")?$";
         private readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
         private readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
@@ -48,37 +48,38 @@ namespace keycuts.Batmanager
             {
                 Command = line;
 
-                if (IsCLSIDKey(line, out string clsidKey))
+                if (IsCLSIDKey(line, ShortcutType.CLSIDKey, out string clsidKey))
                 {
                     Destination = clsidKey;
                     Type = ShortcutType.CLSIDKey;
                     break;
                 }
-                else if (IsFolder(line, out string folder))
+                else if (IsFolder(line, ShortcutType.Folder, out string folder))
                 {
                     Destination = folder;
                     Type = ShortcutType.Folder;
                     break;
                 }
-                else if (IsHostsFile(line, out string hostsFile))
+                else if (IsHostsFile(line, ShortcutType.HostsFile, out string hostsFile, out string openWithApp))
                 {
                     Destination = hostsFile;
                     Type = ShortcutType.HostsFile;
+                    OpenWithApp = openWithApp;
                     break;
                 }
-                else if (IsFile(line, out string file))
+                else if (IsFile(line, ShortcutType.File, out string file))
                 {
                     Destination = file;
                     Type = ShortcutType.File;
                     break;
                 }
-                else if (IsCommand(line, out string command))
+                else if (IsCommand(line, ShortcutType.Command, out string command))
                 {
                     Destination = command;
                     Type = ShortcutType.Command;
                     break;
                 }
-                else if (IsValidUrl(line, out string url))
+                else if (IsValidUrl(line, ShortcutType.Url, out string url))
                 {
                     Destination = url;
                     Type = ShortcutType.Url;
@@ -89,6 +90,11 @@ namespace keycuts.Batmanager
             }
 
             Destination = $"\"{Destination}\"";
+
+            if (!string.IsNullOrEmpty(OpenWithApp))
+            {
+                OpenWithApp = $"\"{OpenWithApp}\"";
+            }
         }
 
         public static bool IsBat(DataGrid dataGrid, out Bat bat)
@@ -109,37 +115,37 @@ namespace keycuts.Batmanager
 
         #region Validation Methods
 
-        private bool IsCLSIDKey(string line, out string clsidKey)
+        private bool IsCLSIDKey(string line, ShortcutType shortcutType, out string clsidKey)
         {
-            return MatchesRegex(patternCLSID, line, out clsidKey);
+            return MatchesRegex(patternCLSID, line, shortcutType, out clsidKey);
         }
 
-        private bool IsFolder(string line, out string folder)
+        private bool IsFolder(string line, ShortcutType shortcutType, out string folder)
         {
-            return MatchesRegex(patternFolder, line, out folder);
+            return MatchesRegex(patternFolder, line, shortcutType, out folder);
         }
 
-        private bool IsHostsFile(string line, out string hostsFile)
+        private bool IsHostsFile(string line, ShortcutType shortcutType, out string hostsFile, out string openWithApp)
         {
-            return MatchesRegex(patternHostsFile, line, out hostsFile);
+            return MatchesRegex(patternHostsFile, line, shortcutType, out hostsFile, out openWithApp);
         }
 
-        private bool IsFile(string line, out string file)
+        private bool IsFile(string line, ShortcutType shortcutType, out string file)
         {
-            return MatchesRegex(patternFile, line, out file);
+            return MatchesRegex(patternFile, line, shortcutType, out file);
         }
 
-        private bool IsCommand(string line, out string command)
+        private bool IsCommand(string line, ShortcutType shortcutType, out string command)
         {
-            return MatchesRegex(patternCommand, line, out command);
+            return MatchesRegex(patternCommand, line, shortcutType, out command);
         }
 
-        private bool IsValidUrl(string line, out string url)
+        private bool IsValidUrl(string line, ShortcutType shortcutType, out string url)
         {
-            return MatchesRegex(patternUrl, line, out url);
+            return MatchesRegex(patternUrl, line, shortcutType, out url);
         }
 
-        public bool MatchesRegex(string pattern, string line, out string result)
+        public bool MatchesRegex(string pattern, string line, ShortcutType shortcutType, out string result)
         {
             result = "";
             var regex = new Regex(pattern, RegexOptions.IgnoreCase);
@@ -148,6 +154,32 @@ namespace keycuts.Batmanager
             if (match.Success)
             {
                 result = match.Groups[1].Value;
+            }
+
+            return match.Success;
+        }
+
+        public bool MatchesRegex(string pattern, string line, ShortcutType shortcutType, out string result, out string openWithApp)
+        {
+            result = "";
+            openWithApp = "";
+            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+            var match = regex.Match(line);
+
+            if (match.Success)
+            {
+                if (shortcutType == ShortcutType.HostsFile)
+                {
+                    if (match.Groups[1].Value != "" && match.Groups[2].Value != "")
+                    {
+                        openWithApp = match.Groups[1].Value;
+                        result = match.Groups[2].Value;
+                    }
+                }
+                else
+                {
+                    result = match.Groups[1].Value;
+                }
             }
 
             return match.Success;

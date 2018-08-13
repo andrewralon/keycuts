@@ -18,7 +18,7 @@ namespace keycuts.Batmanager
         private readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
         private readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
         private readonly string patternHostsFile = "START \"\" \\/[BD] \".+\" \"(.+)hosts\"$";
-        private readonly string patternFile = "START \"\" \\/[BD] \".+\" \"(.+)\"$";
+        private readonly string patternFile = "START \"\" \\/[BD] \"(.+)\"( \"(.+)\")?$";
         private readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
         private readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
@@ -87,6 +87,8 @@ namespace keycuts.Batmanager
 
                 Type = ShortcutType.Unknown;
             }
+
+            Destination = $"\"{Destination}\"";
         }
 
         public static bool IsBat(DataGrid dataGrid, out Bat bat)

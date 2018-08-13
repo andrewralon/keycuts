@@ -42,7 +42,9 @@ namespace keycuts.Common
             Type = GetShortcutType(destination, out string newDestination);
             Destination = newDestination;
             Extension = ".bat";
-            Filename = Path.GetFileNameWithoutExtension(shortcut);
+            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ? 
+                shortcut :
+                Path.GetFileNameWithoutExtension(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
             Folder = IsNotFullPath(shortcut) ?
                 defaultFolder :

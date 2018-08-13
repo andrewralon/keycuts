@@ -99,6 +99,7 @@ namespace keycuts.Common
                     }
                     else
                     {
+                        IsLink(destination, out newDestination);
                         type = ShortcutType.File;
                     }
                 }

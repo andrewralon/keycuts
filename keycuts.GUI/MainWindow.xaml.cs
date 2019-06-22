@@ -87,6 +87,7 @@ namespace keycuts.GUI
             DataContext = this;
             mainFormLogic = new MainFormLogic();
             commonLogic = new CommonLogic();
+            MainWindowName.TextboxDestination.Focus();
         }
 
         private void CreateShortcut()

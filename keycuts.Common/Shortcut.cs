@@ -211,8 +211,12 @@ namespace keycuts.Common
 
         public static string SanitizeBatEscapeCharacters(string command)
         {
-            // Bat files use % for variables, so escape a single % with %%
+            // Bat files use % for variables, so replace a single % with %%
             command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
+
+            // Replace a single & with ^&
+            command = Regex.Replace(command, "(?<!^)&(?!&)", "^&");
+
             return command;
         }
 

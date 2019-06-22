@@ -87,6 +87,7 @@ namespace keycuts.GUI
             DataContext = this;
             mainFormLogic = new MainFormLogic();
             commonLogic = new CommonLogic();
+            MainWindowName.TextboxDestination.Focus();
         }
 
         private void CreateShortcut()
@@ -95,6 +96,8 @@ namespace keycuts.GUI
 
             BtnCreateShortcut.IsEnabled = false;
             BtnCreateShortcut.IsChecked = true;
+
+            Refresh();
 
             var result = commonLogic.CreateShortcut(Destination, ShortcutName);
 
@@ -115,6 +118,8 @@ namespace keycuts.GUI
             BtnCreateShortcut.IsEnabled = true;
             BtnCreateShortcut.IsChecked = false;
 
+            Refresh();
+
             if (result != (int)ExitCode.Success)
             {
                 MessageBox.Show($"Error: {result}\nDestination: {Destination}\nShortcut: {ShortcutName}");
@@ -134,6 +139,11 @@ namespace keycuts.GUI
         private void CloseWindow()
         {
             Close();
+        }
+
+        private void Refresh()
+        {
+            ((MainWindow)Application.Current.MainWindow).UpdateLayout();
         }
 
         #region UI Handlers - Buttons, Keys

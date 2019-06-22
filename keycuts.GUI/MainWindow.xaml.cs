@@ -96,6 +96,8 @@ namespace keycuts.GUI
             BtnCreateShortcut.IsEnabled = false;
             BtnCreateShortcut.IsChecked = true;
 
+            Refresh();
+
             var result = commonLogic.CreateShortcut(Destination, ShortcutName);
 
             if (result == ExitCode.FileAlreadyExists)
@@ -114,6 +116,8 @@ namespace keycuts.GUI
             System.Media.SystemSounds.Beep.Play();
             BtnCreateShortcut.IsEnabled = true;
             BtnCreateShortcut.IsChecked = false;
+
+            Refresh();
 
             if (result != (int)ExitCode.Success)
             {
@@ -134,6 +138,11 @@ namespace keycuts.GUI
         private void CloseWindow()
         {
             Close();
+        }
+
+        private void Refresh()
+        {
+            ((MainWindow)Application.Current.MainWindow).UpdateLayout();
         }
 
         #region UI Handlers - Buttons, Keys

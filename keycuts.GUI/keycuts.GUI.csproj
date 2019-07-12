@@ -117,6 +117,9 @@
     <Resource Include="Images\Antu_codelite.svg_30x30.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\Antu_codelite.svg.png" />
+  </ItemGroup>
+  <ItemGroup>
     <Resource Include="Images\TR_256_ico.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

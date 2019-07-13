@@ -18,21 +18,38 @@ namespace keypaste
 
             if (args.Any())
             {
-                var file = args[0];
-
                 try
                 {
-                    result = AttemptToCopyContentsToClipboard(file);
+                    var file = args[0];
+                    string fileOriginal = file;
+
+                    if (!CheckIfExists(ref file))
+                    {
+                        TryExtensionIfNotGiven(ref file, ".txt");
+                    }
+
+                    if (!CheckIfExists(ref file))
+                    {
+                        CheckExeDirectory(ref file, fileOriginal);
+
+                        if (!CheckIfExists(ref file))
+                        {
+                            TryExtensionIfNotGiven(ref file, ".txt");
+                        }
+                    }
+
+                    result = CopyContentsToClipboard(file);
                 }
                 catch
                 {
+                    Console.WriteLine("BAD THINGS.");
                 }
             }
             else
             {
                 // Show help text
                 //Parser.Default.ParseArguments<Options>(new string[] { "--help" });
-                Console.WriteLine("Maybe include some args next time....?");
+                Console.WriteLine("Maybe include an file path argument next time....?");
                 result = 0;
             }
 
@@ -47,28 +64,6 @@ namespace keypaste
 #endif
 
             return result;
-        }
-
-        public static int AttemptToCopyContentsToClipboard(string file)
-        {
-            string fileOriginal = file;
-
-            if (!CheckIfExists(ref file))
-            {
-                TryExtensionIfNotGiven(ref file, ".txt");
-            }
-
-            if (!CheckIfExists(ref file))
-            {
-                CheckExeDirectory(ref file, fileOriginal);
-
-                if (!CheckIfExists(ref file))
-                {
-                    TryExtensionIfNotGiven(ref file, ".txt");
-                }
-            }
-
-            return CopyContentsToClipboard(file);
         }
 
         private static bool CheckIfExists(ref string file)
@@ -118,8 +113,6 @@ namespace keypaste
                     var contents = File.ReadAllText(file);
                     Clipboard.SetText(contents);
                     result = 0;
-
-                    Console.WriteLine("Done!");
                 }
                 else
                 {
@@ -129,7 +122,10 @@ namespace keypaste
             }
             catch
             {
+                Console.WriteLine("BAD THINGS.");
             }
+
+            Console.WriteLine("Done!");
 
             return result;
         }

@@ -126,6 +126,7 @@ namespace keypaste
                 else
                 {
                     Console.WriteLine("File not found:   " + file);
+                    Console.WriteLine("Giving up.... :(");
                 }
             }
             catch

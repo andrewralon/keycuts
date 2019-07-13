@@ -51,12 +51,11 @@ namespace keypaste
 
         public static int AttemptToCopyContentsToClipboard(string file)
         {
-            Console.WriteLine("file:  " + file);
             string fileOriginal = file;
 
             if (!CheckIfExists(ref file))
             {
-                CheckIfHasExtension(ref file);
+                TryExtensionIfNotGiven(ref file, ".txt");
             }
 
             if (!CheckIfExists(ref file))
@@ -65,7 +64,7 @@ namespace keypaste
 
                 if (!CheckIfExists(ref file))
                 {
-                    CheckIfHasExtension(ref file);
+                    TryExtensionIfNotGiven(ref file, ".txt");
                 }
             }
 
@@ -79,7 +78,6 @@ namespace keypaste
             if (File.Exists(file))
             {
                 result = true;
-                Console.WriteLine("File found here:   " + file);
             }
             else
             {
@@ -89,12 +87,12 @@ namespace keypaste
             return result;
         }
 
-        private static void CheckIfHasExtension(ref string file)
+        private static void TryExtensionIfNotGiven(ref string file, string extension)
         {
             if (!Path.HasExtension(file))
             {
-                Console.WriteLine("No file extension found. Trying .txt....");
-                file += ".txt";
+                Console.WriteLine("No extension given. Trying " + extension + "....");
+                file += extension;
             }
         }
 
@@ -114,7 +112,7 @@ namespace keypaste
             {
                 if (File.Exists(file))
                 {
-                    Console.WriteLine("File found here:  " + file);
+                    Console.WriteLine("File found:       " + file);
                     Console.WriteLine("Copying contents to clipboard....");
 
                     var contents = File.ReadAllText(file);

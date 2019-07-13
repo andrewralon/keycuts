@@ -18,65 +18,24 @@ namespace keypaste
 
                 try
                 {
-                    if (File.Exists(file))
-                    {
-                        CopyContentsToClipboard(file);
-                        result = 0;
-                    }
-                    else
-                    {
-                        Console.WriteLine("File not found:   " + file);
-
-                        if (!Path.HasExtension(file))
-                        {
-                            Console.WriteLine("No file extension found. Trying .txt....");
-                            var fileTxt = file + ".txt";
-
-                            if (File.Exists(fileTxt))
-                            {
-                                Console.WriteLine("Found file here:  " + fileTxt);
-
-                                CopyContentsToClipboard(fileTxt);
-                                result = 0;
-                            }
-                        }
-                        else
-                        {
-
-                            Console.WriteLine("Trying the exe directory....");
-
-                            var exeDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                            var fileExeDir = Path.Combine(exeDir, file);
-
-                            Console.WriteLine("exeDir:      " + exeDir);
-                            Console.WriteLine("fileExeDir:  " + fileExeDir);
-
-                            if (File.Exists(fileExeDir))
-                            {
-                                Console.WriteLine("Found file here:  " + fileExeDir);
-
-                                CopyContentsToClipboard(fileExeDir);
-                                result = 0;
-                            }
-                            else
-                            {
-                                Console.WriteLine("File not found:   " + fileExeDir);
-                                result = -1;
-                            }
-                        }
-                    }
+                    result = AttemptToCopyContentsToClipboard(file);
                 }
                 catch
                 {
-                    result = -1;
                 }
             }
             else
             {
                 // Show help text
                 //Parser.Default.ParseArguments<Options>(new string[] { "--help" });
-                Console.WriteLine("Maybe include some args next time...?");
+                Console.WriteLine("Maybe include some args next time....?");
                 result = 0;
+            }
+
+            if (result != 0)
+            {
+                Console.WriteLine("ERROR! Bad things!");
+                Console.WriteLine("Exit code: " + result + "....");
             }
 
 #if DEBUG
@@ -86,11 +45,54 @@ namespace keypaste
             return result;
         }
 
-        public static string CopyContentsToClipboard(string file)
+        public static int AttemptToCopyContentsToClipboard(string file)
         {
-            var contents = File.ReadAllText(file);
-            Clipboard.SetText(contents);
-            return contents;
+            string fileOriginal = file;
+
+            if (!File.Exists(fileOriginal))
+            {
+                if (!Path.HasExtension(fileOriginal))
+                {
+                    Console.WriteLine("No file extension found. Trying .txt....");
+                    file = Path.Combine(fileOriginal, ".txt");
+                }
+            }
+
+            if (!File.Exists(file))
+            {
+                Console.WriteLine("Trying the exe directory....");
+
+                var exeDir = Path.GetDirectoryName(
+                    System.Reflection.Assembly.GetExecutingAssembly().Location);
+                file = Path.Combine(exeDir, fileOriginal);
+            }
+
+            return CopyContentsToClipboard(file);
+        }
+
+        public static int CopyContentsToClipboard(string file)
+        {
+            int result = -1;
+
+            try
+            {
+                if (File.Exists(file))
+                {
+                    Console.WriteLine("Found file here:  " + file);
+                    var contents = File.ReadAllText(file);
+                    Clipboard.SetText(contents);
+                    result = 0;
+                }
+                else
+                {
+                    Console.WriteLine("File not found:   " + file);
+                }
+            }
+            catch
+            {
+            }
+
+            return result;
         }
     }
 }

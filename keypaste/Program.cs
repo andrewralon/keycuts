@@ -12,6 +12,10 @@ namespace keypaste
         {
             var result = -1;
 
+#if DEBUG
+            args = new string[] { "address" };
+#endif
+
             if (args.Any())
             {
                 var file = args[0];
@@ -47,27 +51,59 @@ namespace keypaste
 
         public static int AttemptToCopyContentsToClipboard(string file)
         {
+            Console.WriteLine("file:  " + file);
             string fileOriginal = file;
 
-            if (!File.Exists(fileOriginal))
+            if (!CheckIfExists(ref file))
             {
-                if (!Path.HasExtension(fileOriginal))
+                CheckIfHasExtension(ref file);
+            }
+
+            if (!CheckIfExists(ref file))
+            {
+                CheckExeDirectory(ref file, fileOriginal);
+
+                if (!CheckIfExists(ref file))
                 {
-                    Console.WriteLine("No file extension found. Trying .txt....");
-                    file = Path.Combine(fileOriginal, ".txt");
+                    CheckIfHasExtension(ref file);
                 }
             }
 
-            if (!File.Exists(file))
-            {
-                Console.WriteLine("Trying the exe directory....");
+            return CopyContentsToClipboard(file);
+        }
 
-                var exeDir = Path.GetDirectoryName(
-                    System.Reflection.Assembly.GetExecutingAssembly().Location);
-                file = Path.Combine(exeDir, fileOriginal);
+        private static bool CheckIfExists(ref string file)
+        {
+            var result = false;
+
+            if (File.Exists(file))
+            {
+                result = true;
+                Console.WriteLine("File found here:   " + file);
+            }
+            else
+            {
+                Console.WriteLine("File not found:   " + file);
             }
 
-            return CopyContentsToClipboard(file);
+            return result;
+        }
+
+        private static void CheckIfHasExtension(ref string file)
+        {
+            if (!Path.HasExtension(file))
+            {
+                Console.WriteLine("No file extension found. Trying .txt....");
+                file += ".txt";
+            }
+        }
+
+        private static void CheckExeDirectory(ref string file, string fileOriginal)
+        {
+            Console.WriteLine("Trying the exe directory....");
+            var exeDir = Path.GetDirectoryName(
+                System.Reflection.Assembly.GetExecutingAssembly().Location);
+            file = Path.Combine(exeDir, fileOriginal);
         }
 
         public static int CopyContentsToClipboard(string file)
@@ -78,10 +114,14 @@ namespace keypaste
             {
                 if (File.Exists(file))
                 {
-                    Console.WriteLine("Found file here:  " + file);
+                    Console.WriteLine("File found here:  " + file);
+                    Console.WriteLine("Copying contents to clipboard....");
+
                     var contents = File.ReadAllText(file);
                     Clipboard.SetText(contents);
                     result = 0;
+
+                    Console.WriteLine("Done!");
                 }
                 else
                 {

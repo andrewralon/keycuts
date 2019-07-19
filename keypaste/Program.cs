@@ -14,7 +14,7 @@ namespace keypaste
             var result = -1;
 
 #if DEBUG
-            //args = new string[] { "3net" };       // URL
+            //args = new string[] { "roster" };       // URL
             args = new string[] { "CORE" };         // URL with args
             //args = new string[] { "3rdparty" };   // Folder
             //args = new string[] { "cerebro" };    // File

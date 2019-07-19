@@ -15,13 +15,6 @@ namespace keycuts.Batmanager
         private readonly string explorer = "\\explorer.exe\"";
         private readonly string start = "START ";
 
-        private readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
-        private readonly string patternFolder = "\".+explorer.exe\" \"(.+)\"";
-        private readonly string patternHostsFile = "START \"\" \\/[BD] \"(.+)\" \"(.+hosts)\"$";
-        private readonly string patternFile = "START \"\" \\/[BD] \"(.+)\"( \"(.+)\")?$";
-        private readonly string patternCommand = "START \"\" \\/[BD] \".+\" (.+)";
-        private readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
-
         public string Path { get; set; }
         public string Shortcut { get; set; }
         public ShortcutType Type { get; set; }
@@ -48,38 +41,38 @@ namespace keycuts.Batmanager
             {
                 Command = line;
 
-                if (IsCLSIDKey(line, ShortcutType.CLSIDKey, out string clsidKey))
+                if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
                 {
                     Destination = clsidKey;
                     Type = ShortcutType.CLSIDKey;
                     break;
                 }
-                else if (IsFolder(line, ShortcutType.Folder, out string folder))
+                else if (ShortcutFile.IsFolder(line, out string folder))
                 {
                     Destination = folder;
                     Type = ShortcutType.Folder;
                     break;
                 }
-                else if (IsHostsFile(line, ShortcutType.HostsFile, out string hostsFile, out string openWithApp))
+                else if (ShortcutFile.IsHostsFile(line, out string hostsFile, out string openWithApp))
                 {
                     Destination = hostsFile;
                     Type = ShortcutType.HostsFile;
                     OpenWithApp = openWithApp;
                     break;
                 }
-                else if (IsFile(line, ShortcutType.File, out string file))
+                else if (ShortcutFile.IsFile(line, out string file))
                 {
                     Destination = file;
                     Type = ShortcutType.File;
                     break;
                 }
-                else if (IsCommand(line, ShortcutType.Command, out string command))
+                else if (ShortcutFile.IsCommand(line, out string command))
                 {
                     Destination = command;
                     Type = ShortcutType.Command;
                     break;
                 }
-                else if (IsValidUrl(line, ShortcutType.Url, out string url))
+                else if (ShortcutFile.IsValidUrl(line, out string url))
                 {
                     Destination = url;
                     Type = ShortcutType.Url;
@@ -88,8 +81,6 @@ namespace keycuts.Batmanager
 
                 Type = ShortcutType.Unknown;
             }
-
-            Destination = $"\"{Destination}\"";
 
             if (!string.IsNullOrEmpty(OpenWithApp))
             {
@@ -112,79 +103,5 @@ namespace keycuts.Batmanager
             }
             return result;
         }
-
-        #region Validation Methods
-
-        private bool IsCLSIDKey(string line, ShortcutType shortcutType, out string clsidKey)
-        {
-            return MatchesRegex(patternCLSID, line, shortcutType, out clsidKey);
-        }
-
-        private bool IsFolder(string line, ShortcutType shortcutType, out string folder)
-        {
-            return MatchesRegex(patternFolder, line, shortcutType, out folder);
-        }
-
-        private bool IsHostsFile(string line, ShortcutType shortcutType, out string hostsFile, out string openWithApp)
-        {
-            return MatchesRegex(patternHostsFile, line, shortcutType, out hostsFile, out openWithApp);
-        }
-
-        private bool IsFile(string line, ShortcutType shortcutType, out string file)
-        {
-            return MatchesRegex(patternFile, line, shortcutType, out file);
-        }
-
-        private bool IsCommand(string line, ShortcutType shortcutType, out string command)
-        {
-            return MatchesRegex(patternCommand, line, shortcutType, out command);
-        }
-
-        private bool IsValidUrl(string line, ShortcutType shortcutType, out string url)
-        {
-            return MatchesRegex(patternUrl, line, shortcutType, out url);
-        }
-
-        public bool MatchesRegex(string pattern, string line, ShortcutType shortcutType, out string result)
-        {
-            result = "";
-            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
-            var match = regex.Match(line);
-
-            if (match.Success)
-            {
-                result = match.Groups[1].Value;
-            }
-
-            return match.Success;
-        }
-
-        public bool MatchesRegex(string pattern, string line, ShortcutType shortcutType, out string result, out string openWithApp)
-        {
-            result = "";
-            openWithApp = "";
-            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
-            var match = regex.Match(line);
-
-            if (match.Success)
-            {
-                if (shortcutType == ShortcutType.HostsFile)
-                {
-                    if (match.Groups[1].Value != "" && match.Groups[2].Value != "")
-                    {
-                        openWithApp = match.Groups[1].Value;
-                        result = match.Groups[2].Value;
-                    }
-                }
-                else
-                {
-                    result = match.Groups[1].Value;
-                }
-            }
-
-            return match.Success;
-        }
-
-        #endregion Validation Methods
     }
 }

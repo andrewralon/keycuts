@@ -14,7 +14,7 @@ namespace keycuts.Batmanager
 {
     public class BatFormLogic
     {
-        private List<Bat> bats = new List<Bat>();
+        private List<ShortcutFile> shortcuts = new List<ShortcutFile>();
 
         private string _outputFolder;
 
@@ -29,11 +29,11 @@ namespace keycuts.Batmanager
 
             if (Directory.Exists(outputFolder))
             {
-                var batFiles = Directory.GetFiles(outputFolder, "*.bat");
-                bats = ParseBats(batFiles.ToList(), dataGrid);
+                var shortcutFiles = Directory.GetFiles(outputFolder, "*.bat");
+                shortcuts = ParseShortcutFiles(shortcutFiles.ToList(), dataGrid);
 
-                var columns = new List<Bat>();
-                bats.ForEach(s => columns.Add(s));
+                var columns = new List<ShortcutFile>();
+                shortcuts.ForEach(s => columns.Add(s));
 
                 dataGrid.ItemsSource = columns;
 
@@ -49,24 +49,24 @@ namespace keycuts.Batmanager
             }
         }
 
-        public List<Bat> ParseBats(List<string> batFiles, DataGrid dataGrid)
+        public List<ShortcutFile> ParseShortcutFiles(List<string> shortcutFiles, DataGrid dataGrid)
         {
-            var bats = new List<Bat>();
+            var shortcuts = new List<ShortcutFile>();
             var skippedFiles = new List<string>();
 
-            foreach (var batFile in batFiles)
+            foreach (var shortcutFile in shortcutFiles)
             {
-                var bat = new Bat(batFile);
+                var shortcut = new ShortcutFile(shortcutFile);
 
-                if (!string.IsNullOrEmpty(bat.Shortcut) &&
-                    !string.IsNullOrEmpty(bat.Command) &&
-                    bat.Type != ShortcutType.Unknown)
+                if (!string.IsNullOrEmpty(shortcut.Shortcut) &&
+                    !string.IsNullOrEmpty(shortcut.Command) &&
+                    shortcut.Type != ShortcutType.Unknown)
                 {
-                    bats.Add(bat);
+                    shortcuts.Add(shortcut);
                 }
                 else
                 {
-                    skippedFiles.Add(batFile);
+                    skippedFiles.Add(shortcutFile);
                 }
             }
 
@@ -76,18 +76,18 @@ namespace keycuts.Batmanager
                 skippedFiles.ForEach(t => Console.WriteLine(t));
             }
 
-            return bats;
+            return shortcuts;
         }
 
-        public static bool IsBat(DataGrid dataGrid, out Bat bat)
+        public static bool IsBat(DataGrid dataGrid, out ShortcutFile shortcutFile)
         {
-            bat = null;
+            shortcutFile = null;
             var result = false;
             if (dataGrid.SelectedCells.Any())
             {
                 var selectedItem = dataGrid.SelectedCells[0];
-                bat = selectedItem.Item as Bat;
-                if (bat != null)
+                shortcutFile = selectedItem.Item as ShortcutFile;
+                if (shortcutFile != null)
                 {
                     result = true;
                 }
@@ -97,25 +97,25 @@ namespace keycuts.Batmanager
 
         public void Edit(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
             {
-                Process.Start("notepad.exe", bat.Path);
+                Process.Start("notepad.exe", shortcutFile.Path);
             }
         }
 
         public void Run(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
             {
-                Process.Start(bat.Path);
+                Process.Start(shortcutFile.Path);
             }
         }
 
         public void OpenDestinationLocation(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
             {
-                var location = Path.GetDirectoryName(bat?.Destination);
+                var location = Path.GetDirectoryName(shortcutFile?.Destination);
                 if (location != "")
                 {
                     Process.Start(location);
@@ -137,10 +137,10 @@ namespace keycuts.Batmanager
 
         public void Delete(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
             {
-                File.Delete(bat.Path);
-                bats.Remove(bat);
+                File.Delete(shortcutFile.Path);
+                shortcuts.Remove(shortcutFile);
                 dataGrid.Items.Refresh();
             }
 

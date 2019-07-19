@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bat.cs" />
     <Compile Include="ExitCode.cs" />
     <Compile Include="KeycutArgs.cs" />
     <Compile Include="Runner.cs" />

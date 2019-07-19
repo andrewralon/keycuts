@@ -7,8 +7,8 @@ namespace keycuts.Common
 {
     public class ShortcutFile
     {
-        private static readonly string explorer = "\\explorer.exe\"";
-        private static readonly string start = "START ";
+        private readonly string explorer = "\\explorer.exe\"";
+        private readonly string start = "START ";
 
         private static readonly string patternCLSID =       "\".+explorer.exe\" \"[shell:]?::({.+})\"";
         private static readonly string patternFolder =      "\".+explorer.exe\" (\".+\")";
@@ -17,58 +17,77 @@ namespace keycuts.Common
         private static readonly string patternCommand =     "START \"\" \\/[BD] (\".+)?";
         private static readonly string patternUrl =         "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
-        public static ShortcutType GetExistingShortcutTypeAndContents(string file, out string contents)
-        {
-            contents = file;
-            var type = ShortcutType.Unknown;
+        public string Path { get; set; }
+        public string Shortcut { get; set; }
+        public ShortcutType Type { get; set; }
+        public string Destination { get; set; }
+        public string OpenWithApp { get; set; }
+        public string Command { get; set; }
 
+        public ShortcutFile()
+        {
+        }
+
+        public ShortcutFile(string file)
+        {
             var allLines = File.ReadAllLines(file);
             var lines = allLines
                 .Where(x => x.Contains(explorer) ||
                             x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
                 .ToList();
 
+            Path = file;
+            Shortcut = System.IO.Path.GetFileNameWithoutExtension(file);
+
             foreach (var line in lines)
             {
-                if (IsCLSIDKey(line, out string clsidKey))
+                Command = line;
+
+                if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
                 {
-                    contents = clsidKey;
-                    type = ShortcutType.CLSIDKey;
+                    Destination = clsidKey;
+                    Type = ShortcutType.CLSIDKey;
                     break;
                 }
-                else if (IsFolder(line, out string folder))
+                else if (ShortcutFile.IsFolder(line, out string folder))
                 {
-                    contents = folder;
-                    type = ShortcutType.Folder;
+                    Destination = folder;
+                    Type = ShortcutType.Folder;
                     break;
                 }
-                else if (IsHostsFile(line, out string hostsFile, out string openWithApp))
+                else if (ShortcutFile.IsHostsFile(line, out string hostsFile, out string openWithApp))
                 {
-                    contents = hostsFile;
-                    type = ShortcutType.HostsFile;
+                    Destination = hostsFile;
+                    Type = ShortcutType.HostsFile;
+                    OpenWithApp = openWithApp;
                     break;
                 }
-                else if (IsFile(line, out string newFile))
+                else if (ShortcutFile.IsFile(line, out string newFile))
                 {
-                    contents = newFile;
-                    type = ShortcutType.File;
+                    Destination = newFile;
+                    Type = ShortcutType.File;
                     break;
                 }
-                else if (IsCommand(line, out string command))
+                else if (ShortcutFile.IsCommand(line, out string command))
                 {
-                    contents = command;
-                    type = ShortcutType.Command;
+                    Destination = command;
+                    Type = ShortcutType.Command;
                     break;
                 }
-                else if (IsValidUrl(line, out string url))
+                else if (ShortcutFile.IsValidUrl(line, out string url))
                 {
-                    contents = url;
-                    type = ShortcutType.Url;
+                    Destination = url;
+                    Type = ShortcutType.Url;
                     break;
                 }
+
+                Type = ShortcutType.Unknown;
             }
 
-            return type;
+            if (!string.IsNullOrEmpty(OpenWithApp))
+            {
+                OpenWithApp = $"\"{OpenWithApp}\"";
+            }
         }
 
         public static bool IsCLSIDKey(string line, out string clsidKey)

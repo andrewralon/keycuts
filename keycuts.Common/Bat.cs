@@ -6,9 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Controls;
 
-namespace keycuts.Batmanager
+namespace keycuts.Common
 {
     public class Bat
     {
@@ -26,7 +25,7 @@ namespace keycuts.Batmanager
         {
         }
 
-        public Bat(string batFile, DataGrid dgBats)
+        public Bat(string batFile)
         {
             var allLines = File.ReadAllLines(batFile);
             var lines = allLines
@@ -86,22 +85,6 @@ namespace keycuts.Batmanager
             {
                 OpenWithApp = $"\"{OpenWithApp}\"";
             }
-        }
-
-        public static bool IsBat(DataGrid dataGrid, out Bat bat)
-        {
-            bat = null;
-            var result = false;
-            if (dataGrid.SelectedCells.Any())
-            {
-                var selectedItem = dataGrid.SelectedCells[0];
-                bat = selectedItem.Item as Bat;
-                if (bat != null)
-                {
-                    result = true;
-                }
-            }
-            return result;
         }
     }
 }

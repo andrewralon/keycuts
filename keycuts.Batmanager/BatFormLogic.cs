@@ -56,7 +56,7 @@ namespace keycuts.Batmanager
 
             foreach (var batFile in batFiles)
             {
-                var bat = new Bat(batFile, dataGrid);
+                var bat = new Bat(batFile);
 
                 if (!string.IsNullOrEmpty(bat.Shortcut) &&
                     !string.IsNullOrEmpty(bat.Command) &&
@@ -79,9 +79,25 @@ namespace keycuts.Batmanager
             return bats;
         }
 
+        public static bool IsBat(DataGrid dataGrid, out Bat bat)
+        {
+            bat = null;
+            var result = false;
+            if (dataGrid.SelectedCells.Any())
+            {
+                var selectedItem = dataGrid.SelectedCells[0];
+                bat = selectedItem.Item as Bat;
+                if (bat != null)
+                {
+                    result = true;
+                }
+            }
+            return result;
+        }
+
         public void Edit(DataGrid dataGrid)
         {
-            if (Bat.IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out Bat bat))
             {
                 Process.Start("notepad.exe", bat.Path);
             }
@@ -89,7 +105,7 @@ namespace keycuts.Batmanager
 
         public void Run(DataGrid dataGrid)
         {
-            if (Bat.IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out Bat bat))
             {
                 Process.Start(bat.Path);
             }
@@ -97,7 +113,7 @@ namespace keycuts.Batmanager
 
         public void OpenDestinationLocation(DataGrid dataGrid)
         {
-            if (Bat.IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out Bat bat))
             {
                 var location = Path.GetDirectoryName(bat?.Destination);
                 if (location != "")
@@ -121,7 +137,7 @@ namespace keycuts.Batmanager
 
         public void Delete(DataGrid dataGrid)
         {
-            if (Bat.IsBat(dataGrid, out Bat bat))
+            if (IsBat(dataGrid, out Bat bat))
             {
                 File.Delete(bat.Path);
                 bats.Remove(bat);

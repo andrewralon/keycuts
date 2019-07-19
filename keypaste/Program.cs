@@ -145,8 +145,8 @@ namespace keypaste
                     if (extension == ".bat")
                     {
                         // Parse out the desired text from a known keycut file
-                        var type = ShortcutFile.GetExistingShortcutTypeAndContents(file, out string fileContents);
-                        contents = fileContents;
+                        var shortcutFile = new ShortcutFile(file);
+                        contents = shortcutFile.Destination;
                     }
                     else
                     {

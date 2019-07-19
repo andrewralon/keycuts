@@ -39,7 +39,7 @@ namespace keycuts.Common
 
         public Shortcut(string destination, string shortcut, string defaultFolder, string openWithAppPath = null)
         {
-            Type = GetShortcutType(destination, out string newDestination);
+            Type = GetShortcutTypeFromDestination(destination, out string newDestination);
             Destination = newDestination;
             Extension = ".bat";
             Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ? 
@@ -62,7 +62,7 @@ namespace keycuts.Common
 
         #region Public Methods
 
-        public static ShortcutType GetShortcutType(string destination, out string newDestination)
+        public static ShortcutType GetShortcutTypeFromDestination(string destination, out string newDestination)
         {
             newDestination = destination;
             var type = new ShortcutType();

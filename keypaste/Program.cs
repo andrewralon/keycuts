@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using keycuts.Common;
 
 namespace keypaste
 {
@@ -13,29 +14,34 @@ namespace keypaste
             var result = -1;
 
 #if DEBUG
-            args = new string[] { "address" };
+            //args = new string[] { "3net" };       // URL
+            //args = new string[] { "3rdparty" };   // Folder
+            //args = new string[] { "cerebro" };    // File
+            args = new string[] { "setpoint" };     // Command
+            //args = new string[] { "rb" };         // CLSIDKey
 #endif
 
-            if (args.Any())
+            if (args.Any() && !string.IsNullOrEmpty(args[0]))
             {
                 try
                 {
                     var file = args[0];
                     string fileOriginal = file;
 
+                    CheckAllTheFiles(ref file, fileOriginal);
+
                     if (!CheckIfExists(ref file))
                     {
-                        TryExtensionIfNotGiven(ref file, ".txt");
+                        CheckShortcutsDirectory(ref file, fileOriginal);
+
+                        CheckAllTheFiles(ref file, fileOriginal);
                     }
 
                     if (!CheckIfExists(ref file))
                     {
                         CheckExeDirectory(ref file, fileOriginal);
 
-                        if (!CheckIfExists(ref file))
-                        {
-                            TryExtensionIfNotGiven(ref file, ".txt");
-                        }
+                        CheckAllTheFiles(ref file, fileOriginal);
                     }
 
                     result = CopyContentsToClipboard(file);
@@ -66,6 +72,21 @@ namespace keypaste
             return result;
         }
 
+        private static string CheckAllTheFiles(ref string file, string fileOriginal)
+        {
+            if (!CheckIfExists(ref file))
+            {
+                TryExtensionIfNotGiven(ref file, fileOriginal, ".txt");
+            }
+
+            if (!CheckIfExists(ref file))
+            {
+                TryExtensionIfNotGiven(ref file, fileOriginal, ".bat");
+            }
+
+            return file;
+        }
+
         private static bool CheckIfExists(ref string file)
         {
             var result = false;
@@ -82,13 +103,21 @@ namespace keypaste
             return result;
         }
 
-        private static void TryExtensionIfNotGiven(ref string file, string extension)
+        private static void TryExtensionIfNotGiven(ref string file, string fileOriginal, string extension)
         {
-            if (!Path.HasExtension(file))
+            file = Path.ChangeExtension(file, null);
+
+            if (!Path.HasExtension(fileOriginal))
             {
-                Console.WriteLine("No extension given. Trying " + extension + "....");
                 file += extension;
             }
+        }
+
+        private static void CheckShortcutsDirectory(ref string file, string fileOriginal)
+        {
+            Console.WriteLine("Trying the shortcuts directory....");
+            var shortcutsDir = RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder);
+            file = Path.Combine(shortcutsDir, fileOriginal);
         }
 
         private static void CheckExeDirectory(ref string file, string fileOriginal)
@@ -101,7 +130,8 @@ namespace keypaste
 
         public static int CopyContentsToClipboard(string file)
         {
-            int result = -1;
+            var result = -1;
+            var contents = "";
 
             try
             {
@@ -110,7 +140,25 @@ namespace keypaste
                     Console.WriteLine("File found:       " + file);
                     Console.WriteLine("Copying contents to clipboard....");
 
-                    var contents = File.ReadAllText(file);
+                    var extension = Path.GetExtension(file);
+
+                    if (extension == ".bat")
+                    {
+                        // Parse out the desired text from a known keycut file
+                        var type = ShortcutFile.GetExistingShortcutTypeAndContents(file, out string fileContents);
+                        contents = fileContents;
+                    }
+                    else
+                    {
+                        contents = File.ReadAllText(file);
+                    }
+
+                    Console.WriteLine("");
+                    Console.WriteLine("*** contents - start ***");
+                    Console.WriteLine(contents);
+                    Console.WriteLine("*** contents - end ***");
+                    Console.WriteLine("");
+
                     Clipboard.SetText(contents);
                     result = 0;
                 }

@@ -43,7 +43,7 @@ namespace keycuts.GUI
         private void SetDestination(MainWindow mainWindow, string destination)
         {
             // Follow the link (if it exists) and set the destination
-            Shortcut.GetShortcutType(destination, out string newDestination);
+            Shortcut.GetShortcutTypeFromDestination(destination, out string newDestination);
             mainWindow.Destination = newDestination;
             mainWindow.TextboxDestination.ScrollToEnd();
         }

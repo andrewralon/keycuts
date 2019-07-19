@@ -15,9 +15,10 @@ namespace keypaste
 
 #if DEBUG
             //args = new string[] { "3net" };       // URL
+            args = new string[] { "CORE" };         // URL with args
             //args = new string[] { "3rdparty" };   // Folder
             //args = new string[] { "cerebro" };    // File
-            args = new string[] { "setpoint" };     // Command
+            //args = new string[] { "setpoint" };     // Command
             //args = new string[] { "rb" };         // CLSIDKey
 #endif
 

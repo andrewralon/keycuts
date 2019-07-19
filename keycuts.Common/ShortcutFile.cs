@@ -17,6 +17,8 @@ namespace keycuts.Common
         private static readonly string patternCommand =     "START \"\" \\/[BD] (\".+)?";
         private static readonly string patternUrl =         "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
+        public static readonly string Extension = ".bat";
+
         public string Path { get; set; }
         public string Shortcut { get; set; }
         public ShortcutType Type { get; set; }

@@ -16,7 +16,7 @@ namespace keycuts.Batmanager
     {
         private List<ShortcutFile> shortcuts = new List<ShortcutFile>();
 
-        private string _outputFolder;
+        private string _outputFolder = "";
 
         public void PopulateDataGrid(DataGrid dataGrid, string outputFolder)
         {
@@ -29,7 +29,7 @@ namespace keycuts.Batmanager
 
             if (Directory.Exists(outputFolder))
             {
-                var shortcutFiles = Directory.GetFiles(outputFolder, "*.bat");
+                var shortcutFiles = Directory.GetFiles(outputFolder, $"*{ShortcutFile.Extension}");
                 shortcuts = ParseShortcutFiles(shortcutFiles.ToList(), dataGrid);
 
                 var columns = new List<ShortcutFile>();
@@ -79,7 +79,7 @@ namespace keycuts.Batmanager
             return shortcuts;
         }
 
-        public static bool IsBat(DataGrid dataGrid, out ShortcutFile shortcutFile)
+        public static bool IsShortcutFile(DataGrid dataGrid, out ShortcutFile shortcutFile)
         {
             shortcutFile = null;
             var result = false;
@@ -97,7 +97,7 @@ namespace keycuts.Batmanager
 
         public void Edit(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
             {
                 Process.Start("notepad.exe", shortcutFile.Path);
             }
@@ -105,7 +105,7 @@ namespace keycuts.Batmanager
 
         public void Run(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
             {
                 Process.Start(shortcutFile.Path);
             }
@@ -113,7 +113,7 @@ namespace keycuts.Batmanager
 
         public void OpenDestinationLocation(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
             {
                 var location = Path.GetDirectoryName(shortcutFile?.Destination);
                 if (location != "")
@@ -137,7 +137,7 @@ namespace keycuts.Batmanager
 
         public void Delete(DataGrid dataGrid)
         {
-            if (IsBat(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
             {
                 File.Delete(shortcutFile.Path);
                 shortcuts.Remove(shortcutFile);

@@ -51,10 +51,22 @@ namespace keycuts.GUI.ViewModels
         {
             ShowManagerCommand = showManagerCommand;
             OpenSettingsCommand = openSettingsCommand;
+            BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
+            BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
         }
 
         /// <summary>Raised after a keycut was created so the shell can refresh the count.</summary>
         public event EventHandler? KeycutCreated;
+
+        /// <summary>Raised by <see cref="BrowseFileCommand"/>; the view shows the file dialog and feeds the result back.</summary>
+        public event EventHandler? BrowseFileRequested;
+
+        /// <summary>Raised by <see cref="BrowseFolderCommand"/>; the view shows the folder dialog and feeds the result back.</summary>
+        public event EventHandler? BrowseFolderRequested;
+
+        public ICommand BrowseFileCommand { get; }
+
+        public ICommand BrowseFolderCommand { get; }
 
         public ICommand ShowManagerCommand { get; }
 
@@ -316,6 +328,29 @@ namespace keycuts.GUI.ViewModels
                     return "That destination didn\u2019t respond in time.";
                 default:
                     return DefaultHelperText;
+            }
+        }
+
+        /// <summary>
+        /// Applies a resolver result. A valid result replaces the text with the normalized destination and sets the kind.
+        /// An invalid result is shown as an error only when <paramref name="showError"/> is true (not while the user is typing).
+        /// </summary>
+        public void ApplyResolved(DestinationResult result, bool showError)
+        {
+            if (result == null)
+            {
+                throw new ArgumentNullException(nameof(result));
+            }
+
+            if (result.IsValid)
+            {
+                Destination = result.Destination;
+                DestinationKind = result.Kind;
+                DestinationError = DestinationError.None;
+            }
+            else if (showError && result.Error != DestinationError.Empty)
+            {
+                DestinationError = result.Error;
             }
         }
 

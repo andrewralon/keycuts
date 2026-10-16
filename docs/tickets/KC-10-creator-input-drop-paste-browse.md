@@ -62,3 +62,35 @@ a **File… / Folder…** menu. Today `DragDrop.cs` accepts `FileDrop` and `Text
 
 ## Out of scope
 A second destination field. Paste items in the Browse menu (the UI2 design has only File… and Folder…).
+
+## Implementation notes
+
+**Status:** implemented and unit-tested; no acceptance box is ticked because each one needs real drag, clipboard, dialog or keyboard interaction that couldn't be driven headlessly (see manual QA). The GUI was smoke-launched with an Explorer-style argument (`C:\Windows\System32`) and a temp `KEYCUTS_OUTPUT_FOLDER`; it started and was closed.
+
+**Files changed**
+- `keycuts.GUI/DragDrop.cs` — rewritten as a static helper: `TryGetDestination` (FileDrop first item → `UniformResourceLocatorW` → `UniformResourceLocator` → `UnicodeText`/`Text`), `TryGetFirstFile`, `HasSupportedData`, `DecodeUrlData`.
+- `keycuts.GUI/Views/CreatorView.xaml(.cs)` — whole view is the drop target via `PreviewDragEnter/Over/Leave/Drop` (handled, so text boxes never insert at the caret); per-grid and destination-field handlers removed; paste handler, 300 ms typing debounce, Enter/LostFocus/Ctrl+V handling, native dialogs, Browse menu keyboard support.
+- `keycuts.GUI/Controls/MenuButton.cs` (new) — Button subclass whose automation peer implements `IExpandCollapseProvider` (Browse).
+- `keycuts.GUI/ViewModels/CreatorViewModel.cs` — `BrowseFileCommand`/`BrowseFolderCommand` (+ `BrowseFileRequested`/`BrowseFolderRequested` events; the view owns the dialogs), `ApplyResolved(result, showError)`.
+- `keycuts.GUI/MainFormLogic.cs` — `ActivateThisWindow` made public (drop keeps `SetForegroundWindow`).
+- `keycuts.Tests/CreatorInputTests.cs` (new) — data-format priority, URL decoding, `ApplyResolved`, error visibility, Browse commands.
+
+**Decisions**
+- Drops/pastes/Browse set the raw text, then call `DestinationResolver.ResolveAsync`; valid → field shows the normalized destination, caret at end, focus to name (caret at end). Invalid → Invalid destination state (`ShowError`). Several dropped files: first one only, silently.
+- Typing: 300 ms debounce sets only the kind/icon (text is not rewritten mid-typing, no error). Error + normalization happen on LostFocus, Enter, drop, paste, Browse. Enter in the destination never creates.
+- Paste: copied files replace the whole field with the first path; text replaces the field and resolves immediately only if the field was empty/fully selected; partial pastes stay native and go through the debounce.
+- Ctrl+V outside the two text boxes pastes into the destination (view `PreviewKeyDown`).
+- Drag effect: Link if allowed, else Copy; unsupported data → `None` and no hover. Ignored while Saving.
+- Stale resolves are discarded (version counter + text comparison).
+- `OpenFileDialog.DereferenceLinks=false` so the resolver (not the dialog) resolves `.lnk` targets.
+- Explorer startup path (`MainFormLogic.HandleNewDestination`) is unchanged.
+
+**Deviations:** none. `CanCreate` still only needs non-error text plus a name (KC-11 owns submit-time validation); Create clicked before the debounce resolves is KC-11's concern.
+
+**Manual QA still needed**
+- Drag from Explorer (file, folder, `.lnk`, `.url`), from Edge/Chrome (address-bar lock icon, in-page link), and multi-file drag; confirm icon, replace-not-insert, hover state, no-drop cursor on unsupported data, and window activation.
+- Drop a deleted file / inaccessible path → specific message.
+- Ctrl+C a file in Explorer, then Ctrl+V in the field and while focus is on Browse/footer; Ctrl+V in the name field still pastes text.
+- Typing: icon updates after a pause, no error mid-typing, error on blur/Enter.
+- Browse ▾: mouse toggle (click again closes), Enter/Space/Alt+Down opens, arrows/Enter/Escape (focus returns to Browse), File…/Folder… dialogs and Cancel; Narrator announces expanded/collapsed.
+- Explorer right-click startup pre-fills the destination and focuses the name.

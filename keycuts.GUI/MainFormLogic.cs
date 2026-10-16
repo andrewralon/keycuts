@@ -40,7 +40,7 @@ namespace keycuts.GUI
             creator.DestinationKind = KeycutKinds.FromShortcutType(type);
         }
 
-        private void ActivateThisWindow()
+        public void ActivateThisWindow()
         {
             // Activate this window (normally keeps focus on whatever was previously active)
             var process = Process.GetCurrentProcess();

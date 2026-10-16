@@ -19,3 +19,14 @@ Create keycuts several ways:
 * Right click menu -- opens the app with the destination filled in
 * CLI -- for all the hard-core nerds and brogrammers
 * Common -- for forking your own implementation
+
+## Development
+
+Requires the .NET SDK 10. Run from the repository root:
+
+* Format check: `dotnet format keycuts.sln --verify-no-changes`
+* Build (also the type-check): `dotnet build keycuts.sln`
+* Test: `dotnet test keycuts.sln` (xUnit project `keycuts.Tests`; tests must use temp folders, never the real output folder or the registry)
+
+Known baselines: the build has 27 CA1416 (Windows-only API) warnings (count with `--no-incremental`), so `-warnaserror`
+isn't used. The format check reports 37 pre-existing whitespace errors in 9 files; new code must not add to them.

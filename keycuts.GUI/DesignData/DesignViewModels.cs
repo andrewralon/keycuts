@@ -31,12 +31,73 @@ namespace keycuts.GUI.DesignData
 
         public static CreatorViewModel CreatorUrl
         {
-            get { return NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2); }
+            get { return NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url); }
         }
 
         public static CreatorViewModel CreatorFolder
         {
-            get { return NewCreator(SampleKeycuts.DownloadsDestination, SampleKeycuts.DownloadsName, 2); }
+            get { return NewCreator(SampleKeycuts.DownloadsDestination, SampleKeycuts.DownloadsName, 2, KeycutKind.Folder); }
+        }
+
+        /// <summary>Destination chosen, name not typed yet (Create disabled).</summary>
+        public static CreatorViewModel CreatorSelected
+        {
+            get { return NewCreator(SampleKeycuts.VickiDestination, string.Empty, 2, KeycutKind.Url); }
+        }
+
+        public static CreatorViewModel CreatorDragHover
+        {
+            get
+            {
+                var creator = NewCreator(string.Empty, string.Empty, 2);
+                creator.IsDragHover = true;
+                return creator;
+            }
+        }
+
+        public static CreatorViewModel CreatorSaving
+        {
+            get
+            {
+                var creator = NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url);
+                creator.IsSaving = true;
+                return creator;
+            }
+        }
+
+        public static CreatorViewModel CreatorDuplicateName
+        {
+            get
+            {
+                var creator = NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url);
+                creator.SetDuplicateName(SampleKeycuts.VickiName);
+                return creator;
+            }
+        }
+
+        public static CreatorViewModel CreatorInvalidDestination
+        {
+            get
+            {
+                var creator = NewCreator(@"C:\does\not\exist\report.pdf", SampleKeycuts.VickiName, 2);
+                creator.DestinationError = DestinationError.NotFound;
+                return creator;
+            }
+        }
+
+        public static CreatorViewModel CreatorLongDestination
+        {
+            get { return NewCreator(@"C:\Users\sample\" + new string('a', 220) + ".txt", "long", 2, KeycutKind.File); }
+        }
+
+        public static CreatorViewModel CreatorSuccess
+        {
+            get
+            {
+                var creator = NewCreator(string.Empty, string.Empty, 3);
+                creator.SetSuccess(SampleKeycuts.VickiName);
+                return creator;
+            }
         }
 
         public static DesignManagerViewModel ManagerEmpty
@@ -54,12 +115,13 @@ namespace keycuts.GUI.DesignData
             get { return new DesignManagerViewModel(SampleKeycuts.Generate(25)); }
         }
 
-        private static CreatorViewModel NewCreator(string destination, string name, int count)
+        private static CreatorViewModel NewCreator(string destination, string name, int count, KeycutKind? kind = null)
         {
             return new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }))
             {
                 Destination = destination,
                 ShortcutName = name,
+                DestinationKind = kind,
                 KeycutCount = count
             };
         }

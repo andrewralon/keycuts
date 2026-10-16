@@ -144,18 +144,30 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="{StaticResource RadiusSm}" SnapsToDevicePixels="True">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
-                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                          Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                                <TextBlock x:Name="Placeholder" Margin="{TemplateBinding Padding}" Visibility="Collapsed"
+                                           Text="{TemplateBinding themes:TextBoxChrome.Placeholder}" IsHitTestVisible="False"
+                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                           TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextTertiaryBrush}" />
+                            </Grid>
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                        </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}" />
                         </Trigger>
                         <Trigger Property="Validation.HasError" Value="True">
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+                        </Trigger>
+                        <Trigger Property="themes:TextBoxChrome.HasError" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocusWithin" Value="True">
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />

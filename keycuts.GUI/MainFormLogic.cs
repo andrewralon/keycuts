@@ -35,8 +35,9 @@ namespace keycuts.GUI
         private void SetDestination(CreatorViewModel creator, string destination)
         {
             // Follow the link (if it exists) and set the destination
-            Shortcut.GetShortcutTypeFromDestination(destination, out string newDestination);
+            var type = Shortcut.GetShortcutTypeFromDestination(destination, out string newDestination);
             creator.Destination = newDestination;
+            creator.DestinationKind = KeycutKinds.FromShortcutType(type);
         }
 
         private void ActivateThisWindow()

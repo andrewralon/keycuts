@@ -279,7 +279,8 @@
               CornerRadius="{StaticResource RadiusMd}" SizeChanged="TableHost_SizeChanged"
               Visibility="{Binding IsTableVisible, Converter={StaticResource BoolToVisibility}}">
         <DataGrid x:Name="Table" Style="{StaticResource ManagerTable}" ItemsSource="{Binding Rows}"
-                  AutomationProperties.Name="Keycuts" PreviewKeyDown="Table_PreviewKeyDown">
+                  AutomationProperties.Name="Keycuts" PreviewKeyDown="Table_PreviewKeyDown"
+                  KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
             <DataGridTemplateColumn Width="1.7*" MinWidth="190">
               <DataGridTemplateColumn.Header>
@@ -328,8 +329,44 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <!-- Reserved for the row actions menu (KC-14). -->
-            <DataGridTemplateColumn Width="44" />
+            <DataGridTemplateColumn Width="44">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <controls:MenuButton Style="{StaticResource IconButton}" Width="28" Height="28"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       AutomationProperties.Name="{Binding ActionsLabel}"
+                                       Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown">
+                    <controls:Icon Kind="More" Size="17" />
+                    <Button.ContextMenu>
+                      <ContextMenu Width="190" Placement="Bottom" HorizontalOffset="-162" VerticalOffset="4"
+                                   Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
+                        <MenuItem Header="Open keycut" Command="{Binding OpenCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="Play" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Edit" Command="{Binding EditCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="File" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Copy destination" Command="{Binding CopyDestinationCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="Copy" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                      </ContextMenu>
+                    </Button.ContextMenu>
+                  </controls:MenuButton>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
           </DataGrid.Columns>
         </DataGrid>
       </Border>
@@ -358,7 +395,7 @@
                      FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
           <TextBlock Text="Create your first keycut and it will show up here." HorizontalAlignment="Center"
                      Margin="0,4,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
-          <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Padding="16,0" Height="38"
+          <Button x:Name="EmptyCreateButton" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Padding="16,0" Height="38"
                   Command="{Binding ShowCreatorCommand}">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="Create a keycut" />
@@ -393,8 +430,28 @@
 
     <Border Grid.Row="3" Height="34" Background="{DynamicResource SurfaceSubtleBrush}"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-      <TextBlock Margin="24,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
-                 Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding StatusText}" />
+      <Grid Margin="24,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <TextBlock VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
+                   Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding StatusText}" />
+        <TextBlock Grid.Column="1" x:Name="StatusMessageText" Margin="16,0,0,0" HorizontalAlignment="Right"
+                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="{StaticResource FontSizeCaption}"
+                   Text="{Binding StatusMessage}" AutomationProperties.LiveSetting="Polite">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding StatusIsError}" Value="True">
+                  <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </Grid>
     </Border>
   </Grid>
 </UserControl>

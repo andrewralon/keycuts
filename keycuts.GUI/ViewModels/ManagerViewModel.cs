@@ -38,6 +38,16 @@ namespace keycuts.GUI.ViewModels
 
         private readonly List<KeycutRowViewModel> allRows = new List<KeycutRowViewModel>();
 
+        private readonly IKeycutActions? actions;
+
+        private readonly HashSet<KeycutRowViewModel> deleting = new HashSet<KeycutRowViewModel>();
+
+        private int statusVersion;
+
+        private string statusMessage = string.Empty;
+
+        private bool statusIsError;
+
         private CancellationTokenSource? loadSource;
 
         private string searchText = string.Empty;
@@ -60,12 +70,14 @@ namespace keycuts.GUI.ViewModels
             ICommand showCreatorCommand,
             ICommand openSettingsCommand,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
-            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null)
+            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null,
+            IKeycutActions? actions = null)
         {
             ShowCreatorCommand = showCreatorCommand;
             OpenSettingsCommand = openSettingsCommand;
             this.keycutLoader = keycutLoader;
             this.destinationChecker = destinationChecker;
+            this.actions = actions;
 
             ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
             SortCommand = new RelayCommand<SortColumn>(SortBy);
@@ -207,6 +219,139 @@ namespace keycuts.GUI.ViewModels
             get { return "No keycuts match \u201C" + searchText + "\u201D"; }
         }
 
+        /// <summary>Raised after a keycut was deleted, so other views can refresh their counts.</summary>
+        public event EventHandler? KeycutDeleted;
+
+        /// <summary>
+        /// Raised after a delete to say where focus should go: the row to focus the menu button of,
+        /// or null when no rows are left and the view should fall back to the search box.
+        /// </summary>
+        public event EventHandler<KeycutRowViewModel?>? FocusRowRequested;
+
+        /// <summary>How long a status message stays visible; errors stay twice as long.</summary>
+        public TimeSpan StatusMessageDuration { get; set; } = TimeSpan.FromSeconds(4);
+
+        /// <summary>Brief confirmation or error shown in the status bar; empty when there is nothing to say.</summary>
+        public string StatusMessage
+        {
+            get { return statusMessage; }
+        }
+
+        public bool StatusIsError
+        {
+            get { return statusIsError; }
+        }
+
+        public void OpenKeycut(KeycutRowViewModel row)
+        {
+            Perform(row, "open", () => actions?.Launch(row.Keycut.FilePath));
+        }
+
+        public void EditKeycut(KeycutRowViewModel row)
+        {
+            Perform(row, "edit", () => actions?.Edit(row.Keycut.FilePath));
+        }
+
+        public void CopyDestination(KeycutRowViewModel row)
+        {
+            if (Perform(row, "copy the destination of", () => actions?.CopyText(row.Destination)) && actions != null)
+            {
+                ShowStatusMessage("Copied", false);
+            }
+        }
+
+        /// <summary>
+        /// Deletes the keycut's file without asking, removes the row and asks the view to focus the next row.
+        /// A file that is already gone counts as deleted (with an error message); other failures keep the row.
+        /// </summary>
+        public async Task DeleteKeycutAsync(KeycutRowViewModel row)
+        {
+            if (actions == null || !deleting.Add(row))
+            {
+                return;
+            }
+
+            try
+            {
+                await actions.DeleteAsync(row.Keycut);
+                RemoveRow(row);
+                ShowStatusMessage("Deleted \u201C" + row.Name + "\u201D", false);
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
+            {
+                RemoveRow(row);
+                ShowStatusMessage("\u201C" + row.Name + "\u201D was already deleted.", true);
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn't delete \u201C" + row.Name + "\u201D: " + ex.Message, true);
+            }
+            finally
+            {
+                deleting.Remove(row);
+            }
+        }
+
+        private bool Perform(KeycutRowViewModel row, string verb, Action action)
+        {
+            if (actions == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                action();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn't " + verb + " \u201C" + row.Name + "\u201D: " + ex.Message, true);
+                return false;
+            }
+        }
+
+        private void RemoveRow(KeycutRowViewModel row)
+        {
+            var index = Rows.IndexOf(row);
+            IsMenuOpen = false;
+            allRows.Remove(row);
+            KeycutCount = allRows.Count;
+            ApplyFilter();
+
+            KeycutRowViewModel? next = null;
+
+            if (Rows.Count > 0)
+            {
+                next = Rows[Math.Min(Math.Max(index, 0), Rows.Count - 1)];
+            }
+
+            KeycutDeleted?.Invoke(this, EventArgs.Empty);
+            FocusRowRequested?.Invoke(this, next);
+        }
+
+        private async void ShowStatusMessage(string message, bool isError)
+        {
+            var version = ++statusVersion;
+            SetStatus(message, isError);
+
+            var duration = isError ? StatusMessageDuration + StatusMessageDuration : StatusMessageDuration;
+            await Task.Delay(duration);
+
+            if (version == statusVersion)
+            {
+                SetStatus(string.Empty, false);
+            }
+        }
+
+        private void SetStatus(string message, bool isError)
+        {
+            statusMessage = message;
+            statusIsError = isError;
+            OnPropertyChanged(nameof(StatusMessage));
+            OnPropertyChanged(nameof(StatusIsError));
+        }
+
         /// <summary>
         /// Loads the keycuts and then checks their destinations in the background. A newer call cancels the previous one.
         /// The loading indicator shows only for the first load; later refreshes update the table quietly.
@@ -270,7 +415,7 @@ namespace keycuts.GUI.ViewModels
         public void ShowKeycuts(IReadOnlyList<Keycut> keycuts)
         {
             allRows.Clear();
-            allRows.AddRange(keycuts.Select(keycut => new KeycutRowViewModel(keycut)));
+            allRows.AddRange(keycuts.Select(keycut => new KeycutRowViewModel(keycut, this)));
             errorMessage = null;
             isLoading = false;
             hasLoaded = true;

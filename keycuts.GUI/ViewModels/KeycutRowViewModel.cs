@@ -1,3 +1,4 @@
+using System.Windows.Input;
 using keycuts.Common;
 using keycuts.GUI.Controls;
 using keycuts.GUI.Mvvm;
@@ -11,12 +12,31 @@ namespace keycuts.GUI.ViewModels
     {
         private bool isMenuOpen;
 
-        public KeycutRowViewModel(Keycut keycut)
+        public KeycutRowViewModel(Keycut keycut, ManagerViewModel? owner = null)
         {
             Keycut = keycut ?? throw new System.ArgumentNullException(nameof(keycut));
+
+            OpenCommand = new RelayCommand(() => owner?.OpenKeycut(this));
+            EditCommand = new RelayCommand(() => owner?.EditKeycut(this));
+            CopyDestinationCommand = new RelayCommand(() => owner?.CopyDestination(this));
+            DeleteCommand = new RelayCommand(() => _ = owner?.DeleteKeycutAsync(this));
         }
 
         public Keycut Keycut { get; }
+
+        public ICommand OpenCommand { get; }
+
+        public ICommand EditCommand { get; }
+
+        public ICommand CopyDestinationCommand { get; }
+
+        public ICommand DeleteCommand { get; }
+
+        /// <summary>Accessible name of the row's three-dot menu button.</summary>
+        public string ActionsLabel
+        {
+            get { return "Actions for " + Name; }
+        }
 
         public string Name
         {

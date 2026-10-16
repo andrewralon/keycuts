@@ -20,7 +20,8 @@ namespace keycuts.GUI
             var shell = new ViewModels.ShellViewModel(
                 () => Common.KeycutRepository.CreateDefault().CountAsync(),
                 ct => Common.KeycutRepository.CreateDefault().LoadAllAsync(ct),
-                (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct));
+                (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
+                new ViewModels.SystemKeycutActions());
             var mainWindow = new MainWindow(shell);
 
             if (e.Args.Any())

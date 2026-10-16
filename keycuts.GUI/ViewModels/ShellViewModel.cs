@@ -39,7 +39,8 @@ namespace keycuts.GUI.ViewModels
         public ShellViewModel(
             Func<Task<int>> countProvider,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
-            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null)
+            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null,
+            IKeycutActions? actions = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
 
@@ -48,10 +49,11 @@ namespace keycuts.GUI.ViewModels
             OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
 
             Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand);
-            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, destinationChecker);
+            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, destinationChecker, actions);
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();
+            Manager.KeycutDeleted += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
         }
 
         /// <summary>Raised when a settings button is pressed. The window opens the dialog and then calls <see cref="ReloadAsync"/>.</summary>

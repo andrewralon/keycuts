@@ -44,11 +44,27 @@ Behavior:
 | `Unknown` | not valid for creation; in the manager, show as Command with the raw text |
 
 ## Acceptance criteria
-- [ ] Unit tests cover URL, scheme-less URL, `.url`, `.lnk` (skip if WScript is unavailable), CLSID, existing folder,
+- [x] Unit tests cover URL, scheme-less URL, `.url`, `.lnk` (skip if WScript is unavailable), CLSID, existing folder,
       existing file, the hosts file, a missing path, a quoted path, a whitespace-padded path, an env-var path, and an empty string.
-- [ ] No code path throws for user input.
-- [ ] `Shortcut.GetShortcutTypeFromDestination` keeps its current behavior for the CLI. Either refactor it to delegate
+- [x] No code path throws for user input.
+- [x] `Shortcut.GetShortcutTypeFromDestination` keeps its current behavior for the CLI. Either refactor it to delegate
       to the resolver without changing its output, or leave it untouched.
 
 ## Out of scope
 UI. Creating files (KC-04).
+
+
+## Implementation notes
+
+**Files added:** `keycuts.Common/DestinationResolver.cs`, `DestinationResult.cs` (also holds `DestinationError`), `KeycutKind.cs` (enum + `KeycutKinds.FromShortcutType` mapping), `keycuts.Tests/DestinationResolverTests.cs`. `Shortcut.cs` is untouched, so CLI behavior is unchanged.
+
+**Decisions / deviations**
+- `Resolve(string)` is fully synchronous and does the filesystem checks (it is not "pure"); it can block on unreachable UNC paths. `ResolveAsync(raw, ct)` runs it on a worker thread with a 2s timeout (`DefaultTimeout`; an overload takes a timeout) and returns `Error = Timeout`. UI code must use the async one. Cancellation via `ct` throws `OperationCanceledException` (not user input).
+- Scheme-less URLs (`amazon.com`) are only accepted when nothing exists on disk at that path, the text has no spaces/backslashes/`%`, and the TLD isn't a common file extension (so a missing `notes.txt` is NotFound, not a URL). The existing `Shortcut.IsValidUrl` never actually matched these (its `uriResult` is null), so this is new logic; normalized via `Uri.AbsoluteUri` (`http://amazon.com/`).
+- Invalid results use `RawType = Unknown` and `Kind = Command` (mapping table), with `Destination`/`DisplayText` = cleaned input.
+- A `.url` file without a `URL=` line falls back to File, as the existing code does. `.lnk` resolves to its target via `Shortcut.IsLink`.
+- Quotes (`"` or `'`) and whitespace/newlines are stripped; env vars expanded for paths only (not URLs).
+
+**Verification:** build 27 warnings (baseline); 36 tests pass; `dotnet format` still reports only the 37 pre-existing WHITESPACE errors in the 9 old files, none in new files.
+
+**Manual QA still needed:** real clipboard/browser/Explorer drag input (e.g. URLs with trailing newline); a genuinely unreachable UNC path (e.g. `\\10.255.255.1\share`) to confirm the 2s timeout in the UI (KC-10).

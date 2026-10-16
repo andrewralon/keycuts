@@ -23,24 +23,47 @@ namespace keycuts.Common
 
         public static readonly string RightClickContextMenuText = "keycut this!";
 
+        private readonly IPathUpdater _pathUpdater = new SystemPathUpdater();
+
+        private readonly string _fixedOutputFolder;
+
         public Runner()
         {
         }
 
-        public ExitCode Run(KeycutArgs args)
+        /// <summary>
+        /// Runner with a fixed output folder (the registry is neither read nor written for it) and a custom PATH updater.
+        /// Lets tests avoid the real registry and PATH.
+        /// </summary>
+        public Runner(string fixedOutputFolder, IPathUpdater pathUpdater)
         {
-            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force);
+            _fixedOutputFolder = fixedOutputFolder;
+            _pathUpdater = pathUpdater ?? new SystemPathUpdater();
         }
 
-        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
+        public ExitCode Run(KeycutArgs args)
+        {
+            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description);
+        }
+
+        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "")
         {
             var result = ExitCode.NotStarted;
 
-            var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+            string currentOutputFolder;
 
-            outputFolder = SetOutputFolder(outputFolder, currentOutputFolder);
+            if (_fixedOutputFolder != null)
+            {
+                currentOutputFolder = _fixedOutputFolder;
+                outputFolder = _fixedOutputFolder;
+            }
+            else
+            {
+                currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+                outputFolder = SetOutputFolder(outputFolder, currentOutputFolder);
+            }
 
-            var systemPathResult = PathSetup.AddToOrReplaceInSystemPath(currentOutputFolder, outputFolder);
+            var systemPathResult = _pathUpdater.AddToOrReplace(currentOutputFolder, outputFolder);
 
             if (!systemPathResult)
             {
@@ -60,7 +83,7 @@ namespace keycuts.Common
                     }
                     else
                     {
-                        var createShortcutResult = CreateShortcutFile(shortcut, force);
+                        var createShortcutResult = CreateShortcutFile(shortcut, force, description);
 
                         result = createShortcutResult ?
                             ExitCode.Success :
@@ -150,7 +173,14 @@ namespace keycuts.Common
             // Create the shortcuts folder if it doesn't exist already
             if (!Directory.Exists(folder))
             {
-                Directory.CreateDirectory(folder);
+                try
+                {
+                    Directory.CreateDirectory(folder);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException || ex is ArgumentException)
+                {
+                    result = false;
+                }
             }
 
             return result;

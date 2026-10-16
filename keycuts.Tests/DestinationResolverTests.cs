@@ -19,7 +19,23 @@ namespace keycuts.Tests
 
         public void Dispose()
         {
-            Directory.Delete(_dir, true);
+            // The shell can briefly hold link files open, so retry
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    Directory.Delete(_dir, true);
+                    return;
+                }
+                catch (IOException) when (attempt < 10)
+                {
+                    System.Threading.Thread.Sleep(100);
+                }
+                catch (UnauthorizedAccessException) when (attempt < 10)
+                {
+                    System.Threading.Thread.Sleep(100);
+                }
+            }
         }
 
         private string MakeFile(string name, string content = "x")

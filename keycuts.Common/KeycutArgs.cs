@@ -12,6 +12,7 @@ namespace keycuts.Common
         public string OpenWithApp { get; set; }
         public string OutputFolder { get; set; }
         public bool Force { get; set; }
+        public string Description { get; set; } = "";
 
         public KeycutArgs(
             string destination = "", 

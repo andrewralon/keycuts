@@ -171,7 +171,7 @@ namespace keycuts.Common
             return keycuts;
         }
 
-        private static Keycut TryParse(string file)
+        internal static Keycut TryParse(string file)
         {
             try
             {

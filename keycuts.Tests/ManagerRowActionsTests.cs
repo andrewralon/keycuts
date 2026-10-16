@@ -25,6 +25,8 @@ namespace keycuts.Tests
 
             public Exception? LaunchError { get; set; }
 
+            public Exception? EditError { get; set; }
+
             public Exception? CopyError { get; set; }
 
             public Exception? DeleteError { get; set; }
@@ -41,6 +43,11 @@ namespace keycuts.Tests
 
             public void Edit(string path)
             {
+                if (EditError != null)
+                {
+                    throw EditError;
+                }
+
                 Edited.Add(path);
             }
 
@@ -125,6 +132,73 @@ namespace keycuts.Tests
             manager.Rows[0].EditCommand.Execute(null);
 
             Assert.Equal(new[] { @"C:\fixture\a.bat" }, actions.Edited);
+        }
+
+        [Fact]
+        public async Task Edit_FileGone_ShowsMessage_AndRefreshesTheList()
+        {
+            var noop = new RelayCommand(() => { });
+            var actions = new FakeActions { EditError = new System.IO.FileNotFoundException("gone") };
+            var current = new List<Keycut> { NewKeycut("a"), NewKeycut("b") };
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(current.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            current.RemoveAt(0);
+
+            manager.Rows[0].EditCommand.Execute(null);
+
+            Assert.Equal("This keycut no longer exists", manager.StatusMessage);
+            Assert.True(manager.StatusIsError);
+            await Task.Delay(200);
+            Assert.Equal(new[] { "b" }, manager.Rows.Select(r => r.Name).ToArray());
+        }
+
+        [Fact]
+        public async Task Edit_OtherFailure_ShowsErrorInStatus()
+        {
+            var actions = new FakeActions { EditError = new InvalidOperationException("no notepad") };
+            var manager = await LoadedAsync(actions, "a");
+
+            manager.Rows[0].EditCommand.Execute(null);
+
+            Assert.True(manager.StatusIsError);
+            Assert.Contains("no notepad", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Reload_AfterDescriptionEdit_ShowsNewDescription()
+        {
+            var noop = new RelayCommand(() => { });
+            var description = string.Empty;
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                var keycut = new Keycut
+                {
+                    Name = "a",
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.File,
+                    Description = description,
+                    Destination = @"C:\temp\a.txt",
+                    FilePath = @"C:\fixture\a.bat"
+                };
+                return Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { keycut });
+            }, null, new FakeActions());
+            await manager.LoadAsync();
+
+            description = "my notes";
+            await manager.LoadAsync();
+
+            Assert.Equal("my notes", manager.Rows[0].Description);
+        }
+
+        [Fact]
+        public void SystemEdit_MissingFile_ThrowsWithoutLaunching()
+        {
+            var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.bat");
+
+            Assert.Throws<System.IO.FileNotFoundException>(() => new SystemKeycutActions().Edit(path));
         }
 
         [Fact]

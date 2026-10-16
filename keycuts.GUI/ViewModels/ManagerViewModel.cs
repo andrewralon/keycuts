@@ -249,7 +249,19 @@ namespace keycuts.GUI.ViewModels
 
         public void EditKeycut(KeycutRowViewModel row)
         {
-            Perform(row, "edit", () => actions?.Edit(row.Keycut.FilePath));
+            try
+            {
+                actions?.Edit(row.Keycut.FilePath);
+            }
+            catch (System.IO.FileNotFoundException)
+            {
+                ShowStatusMessage("This keycut no longer exists", true);
+                _ = LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn't edit \u201C" + row.Name + "\u201D: " + ex.Message, true);
+            }
         }
 
         public void CopyDestination(KeycutRowViewModel row)

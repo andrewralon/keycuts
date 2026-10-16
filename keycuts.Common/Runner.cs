@@ -289,42 +289,6 @@ namespace keycuts.Common
             return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
         }
 
-        public static void OpenBatmanager()
-        {
-            var batmanager = FindBatmanager();
-            if (batmanager == null)
-            {
-                throw new FileNotFoundException("Could not find keycuts.Batmanager.exe. Build the Batmanager project first.");
-            }
-
-            Process.Start(new ProcessStartInfo(batmanager) { UseShellExecute = true });
-        }
-
-        private static string FindBatmanager()
-        {
-            const string exeName = "keycuts.Batmanager.exe";
-
-            var sibling = Path.Combine(AppContext.BaseDirectory, exeName);
-            if (File.Exists(sibling))
-            {
-                return sibling;
-            }
-
-            // Development layout: <repo>\keycuts.Batmanager\bin\<config>\<tfm>\keycuts.Batmanager.exe
-            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-            {
-                var binFolder = Path.Combine(dir.FullName, "keycuts.Batmanager", "bin");
-                if (Directory.Exists(binFolder))
-                {
-                    return Directory.EnumerateFiles(binFolder, exeName, SearchOption.AllDirectories)
-                        .OrderByDescending(File.GetLastWriteTimeUtc)
-                        .FirstOrDefault();
-                }
-            }
-
-            return null;
-        }
-
         #endregion Static Methods
     }
 }

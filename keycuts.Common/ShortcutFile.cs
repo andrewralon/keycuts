@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -29,8 +28,6 @@ namespace keycuts.Common
         public string OpenWithApp { get; set; }
         public string Command { get; set; }
 
-        // Hidden from auto-generated grid columns so the retiring Batmanager grid keeps its current layout
-        [Browsable(false)]
         public string Description { get; set; } = "";
 
         public ShortcutFile()

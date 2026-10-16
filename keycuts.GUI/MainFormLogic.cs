@@ -16,11 +16,6 @@ namespace keycuts.GUI
             settings?.SaveSettings();
         }
 
-        public void OpenBatmanager()
-        {
-            Runner.OpenBatmanager();
-        }
-
         /// <summary>
         /// Sets the creator's destination; the creator view focuses the name field when it is shown with a destination set.
         /// </summary>

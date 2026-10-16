@@ -29,4 +29,4 @@ Requires the .NET SDK 10. Run from the repository root:
 * Test: `dotnet test keycuts.sln` (xUnit project `keycuts.Tests`; tests must use temp folders, never the real output folder or the registry)
 
 Known baselines: the build has 27 CA1416 (Windows-only API) warnings (count with `--no-incremental`), so `-warnaserror`
-isn't used. The format check reports 37 pre-existing whitespace errors in 9 files; new code must not add to them.
+isn't used. The format check reports 28 pre-existing whitespace errors in 7 files; new code must not add to them.

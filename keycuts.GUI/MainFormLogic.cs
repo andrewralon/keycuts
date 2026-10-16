@@ -1,4 +1,5 @@
 ﻿using keycuts.Common;
+using keycuts.GUI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,51 +11,31 @@ namespace keycuts.GUI
 {
     public class MainFormLogic
     {
-        public void OpenSettings(SettingsWindow settingsWindow)
-        {
-            settingsWindow = new SettingsWindow();
-            settingsWindow.Show();
-        }
-
         public void SaveSettings(Settings settings)
         {
             settings?.SaveSettings();
         }
 
-        public void OpenBatmanager()
+        /// <summary>
+        /// Sets the creator's destination; the creator view focuses the name field when it is shown with a destination set.
+        /// </summary>
+        public void HandleNewDestination(CreatorViewModel creator, string destination)
         {
-            Runner.OpenBatmanager();
-        }
-
-        public void ClearDestination(MainWindow mainWindow)
-        {
-            mainWindow.TextboxDestination.Clear();
-        }
-
-        public void HandleNewDestination(MainWindow mainWindow, string destination)
-        {
-            SetDestination(mainWindow, destination);
-            ActivateShortcutTextbox(mainWindow);
+            SetDestination(creator, destination);
             ActivateThisWindow();
         }
 
         #region Private Methods
 
-        private void SetDestination(MainWindow mainWindow, string destination)
+        private void SetDestination(CreatorViewModel creator, string destination)
         {
             // Follow the link (if it exists) and set the destination
-            Shortcut.GetShortcutTypeFromDestination(destination, out string newDestination);
-            mainWindow.Destination = newDestination;
-            mainWindow.TextboxDestination.ScrollToEnd();
+            var type = Shortcut.GetShortcutTypeFromDestination(destination, out string newDestination);
+            creator.Destination = newDestination;
+            creator.DestinationKind = KeycutKinds.FromShortcutType(type);
         }
 
-        private void ActivateShortcutTextbox(MainWindow mainWindow)
-        {
-            // Focus on the shortcut name textbox
-            mainWindow.TextboxShortcut.Focus();
-        }
-
-        private void ActivateThisWindow()
+        public void ActivateThisWindow()
         {
             // Activate this window (normally keeps focus on whatever was previously active)
             var process = Process.GetCurrentProcess();

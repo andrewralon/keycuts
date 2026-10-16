@@ -1,5 +1,4 @@
-﻿using Shell32;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,7 +41,7 @@ namespace keycuts.Common
             Type = GetShortcutTypeFromDestination(destination, out string newDestination);
             Destination = newDestination;
             Extension = ".bat";
-            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ? 
+            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
                 shortcut :
                 Path.GetFileNameWithoutExtension(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
@@ -185,28 +184,41 @@ namespace keycuts.Common
 
         public static bool IsLink(string destination, out string link)
         {
-            var result = false;
-
-            // Handle relative paths
-            destination = Path.GetFullPath(destination);
             link = destination;
 
-            // Code found here: http://stackoverflow.com/questions/310595/how-can-i-test-programmatically-if-a-path-file-is-a-shortcut
-            var path = Environment.ExpandEnvironmentVariables(Path.GetDirectoryName(destination));
-            var file = Path.GetFileName(destination);
-
-            var shell = new Shell();
-            var folder = shell.NameSpace(path);
-            var folderItem = folder.ParseName(file);
-
-            if (folderItem != null && folderItem.IsLink)
+            try
             {
-                var linkObject = (ShellLinkObject)folderItem.GetLink;
-                link = linkObject.Path;
-                result = true;
-            }
+                destination = Path.GetFullPath(Environment.ExpandEnvironmentVariables(destination));
+                link = destination;
 
-            return result;
+                if (!string.Equals(Path.GetExtension(destination), ".lnk", StringComparison.OrdinalIgnoreCase) ||
+                    !File.Exists(destination))
+                {
+                    return false;
+                }
+
+                // Late-bound WScript.Shell avoids a COM interop reference
+                var shellType = System.Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null)
+                {
+                    return false;
+                }
+
+                dynamic shell = Activator.CreateInstance(shellType)!;
+                dynamic shortcut = shell.CreateShortcut(destination);
+                string target = shortcut.TargetPath;
+                if (string.IsNullOrEmpty(target))
+                {
+                    return false;
+                }
+
+                link = target;
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public static string SanitizeBatEscapeCharacters(string command)

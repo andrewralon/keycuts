@@ -26,13 +26,13 @@ namespace keycuts.GUI
 
         private Settings settings;
 
-        private string outputFolder;
+        private string outputFolder = string.Empty;
 
         private bool forceOverwrite;
 
         private bool rightClickContextMenus;
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         #endregion Fields
 
@@ -107,10 +107,10 @@ namespace keycuts.GUI
             var settings = new Settings()
             {
                 OutputFolder = OutputFolder,
-                ForceOverwrite = (bool)CheckboxForceOverwrite.IsChecked,
+                ForceOverwrite = CheckboxForceOverwrite.IsChecked == true,
                 RightClickContextMenus = RightClickContextMenus
             };
-            
+
             mainFormLogic.SaveSettings(settings);
         }
 
@@ -126,7 +126,7 @@ namespace keycuts.GUI
 
         #region OnPropertyChanged Handler
 
-        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = null)
+        protected void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AccentBrush" Color="#2563eb" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#1d4ed8" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#1e40af" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#eaf1ff" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#eef1f5" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#f9fafb" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="SurfaceSubtleBrush" Color="#f6f8fb" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#eef3fb" />
+    <SolidColorBrush x:Key="TextBrush" Color="#172033" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#5d687b" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#818b9d" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#d9dee8" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#bdc5d2" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#818b9d" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="DangerSoftBrush" Color="#fff0ee" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#16794b" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="BadgeUrlForegroundBrush" Color="#6d43b8" />
+    <SolidColorBrush x:Key="BadgeUrlBackgroundBrush" Color="#f3edff" />
+    <SolidColorBrush x:Key="BadgeUrlBorderBrush" Color="#dfd2f7" />
+    <SolidColorBrush x:Key="BadgeFileForegroundBrush" Color="#1c619d" />
+    <SolidColorBrush x:Key="BadgeFileBackgroundBrush" Color="#e9f4ff" />
+    <SolidColorBrush x:Key="BadgeFileBorderBrush" Color="#cfe6fa" />
+    <SolidColorBrush x:Key="BadgeFolderForegroundBrush" Color="#8a5700" />
+    <SolidColorBrush x:Key="BadgeFolderBackgroundBrush" Color="#fff5dc" />
+    <SolidColorBrush x:Key="BadgeFolderBorderBrush" Color="#f1dfae" />
+    <SolidColorBrush x:Key="BadgeCommandForegroundBrush" Color="#14734a" />
+    <SolidColorBrush x:Key="BadgeCommandBackgroundBrush" Color="#e8f7ef" />
+    <SolidColorBrush x:Key="BadgeCommandBorderBrush" Color="#c8ead8" />
+</ResourceDictionary>

@@ -231,27 +231,22 @@
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel>
         <TextBlock Text="KEYCUT MANAGER" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="SemiBold"
                    Foreground="{DynamicResource AccentBrush}" />
         <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextBrush}" />
+                   Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
         <TextBlock Text="Scan, search, and manage every shortcut in one place." Margin="0,4,0,0"
                    FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
                    TextTrimming="CharacterEllipsis" />
       </StackPanel>
-      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top" Margin="12,0,0,0"
+      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top" Margin="12,0,40,0"
               Command="{Binding ShowCreatorCommand}">
         <StackPanel Orientation="Horizontal">
           <controls:Icon Kind="Spark" Size="15" />
           <TextBlock Text="New keycut" Margin="8,0,0,0" />
         </StackPanel>
-      </Button>
-      <Button Grid.Column="2" Style="{StaticResource IconButton}" VerticalAlignment="Top" Margin="8,0,0,0"
-              Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Open settings">
-        <controls:Icon Kind="Settings" />
       </Button>
     </Grid>
 
@@ -270,7 +265,8 @@
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
       <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeBody}"
-                 Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ResultCountText}" />
+                 Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ResultCountText}"
+                 AutomationProperties.LiveSetting="Polite" />
     </Grid>
 
     <Grid Grid.Row="2" Margin="24,0,24,12">
@@ -392,6 +388,7 @@
                            Margin="0,6,6,0" Foreground="{DynamicResource AccentBrush}" />
           </Grid>
           <TextBlock Text="No keycuts yet" HorizontalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
+                     AutomationProperties.HeadingLevel="Level2"
                      FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
           <TextBlock Text="Create your first keycut and it will show up here." HorizontalAlignment="Center"
                      Margin="0,4,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
@@ -418,7 +415,8 @@
       <!-- Load error -->
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560"
                   Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
-        <TextBlock Text="Can't load your keycuts" HorizontalAlignment="Center"
+        <TextBlock Text="Can't load your keycuts" HorizontalAlignment="Center" AutomationProperties.HeadingLevel="Level2"
+                   AutomationProperties.LiveSetting="Assertive"
                    FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold"
                    Foreground="{DynamicResource DangerBrush}" />
         <TextBlock Text="{Binding ErrorMessage}" HorizontalAlignment="Center" TextAlignment="Center"
@@ -453,5 +451,11 @@
         </TextBlock>
       </Grid>
     </Border>
+
+    <!-- Declared last so Tab reaches it after the status bar; it sits visually at the top right. -->
+    <Button Style="{StaticResource IconButton}" HorizontalAlignment="Right" VerticalAlignment="Top"
+            Margin="0,24,24,0" Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Open settings">
+      <controls:Icon Kind="Settings" />
+    </Button>
   </Grid>
 </UserControl>

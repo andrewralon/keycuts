@@ -37,6 +37,8 @@ namespace keycuts.GUI.ViewModels
     {
         public const string DefaultHelperText = "Press Enter to create it";
 
+        public const string SavingHelperText = "Saving\u2026";
+
         public const string InvalidNameMessage = "Use letters, numbers, dashes, or dots \u2014 no \\ / : * ? \" < > |";
 
         public const string OutputFolderErrorMessage = "Couldn\u2019t save to the output folder. Check Settings.";
@@ -316,6 +318,11 @@ namespace keycuts.GUI.ViewModels
         {
             get
             {
+                if (isSaving)
+                {
+                    return SavingHelperText;
+                }
+
                 if (HasDestinationError)
                 {
                     return GetDestinationErrorMessage(destinationError);
@@ -343,6 +350,24 @@ namespace keycuts.GUI.ViewModels
 
                 return DefaultHelperText;
             }
+        }
+
+        /// <summary>The destination field's current error for screen readers, or empty when there is none.</summary>
+        public string DestinationHelpText
+        {
+            get { return HasDestinationError ? GetDestinationErrorMessage(destinationError) : string.Empty; }
+        }
+
+        /// <summary>The name field's current error for screen readers (a name or submit error), or empty when there is none.</summary>
+        public string NameHelpText
+        {
+            get { return !isSaving && !HasDestinationError && HelperIsError ? HelperText : string.Empty; }
+        }
+
+        /// <summary>Accessible name of the Create button; it reads "Saving" while the keycut is being written.</summary>
+        public string CreateButtonName
+        {
+            get { return isSaving ? "Saving" : "Create"; }
         }
 
         public bool HelperIsError
@@ -589,6 +614,9 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(DestinationIcon));
             OnPropertyChanged(nameof(HelperText));
             OnPropertyChanged(nameof(HelperIsError));
+            OnPropertyChanged(nameof(DestinationHelpText));
+            OnPropertyChanged(nameof(NameHelpText));
+            OnPropertyChanged(nameof(CreateButtonName));
         }
     }
 }

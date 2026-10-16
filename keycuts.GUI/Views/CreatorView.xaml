@@ -163,6 +163,9 @@
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
       <Style.Triggers>
+        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </DataTrigger>
         <DataTrigger Binding="{Binding IsSuccess}" Value="True">
           <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
         </DataTrigger>
@@ -215,16 +218,12 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel>
+        <StackPanel Margin="0,0,44,0">
           <TextBlock Text="NEW KEYCUT" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="Bold"
                      Foreground="{DynamicResource AccentBrush}" />
           <TextBlock Text="Launch anything instantly" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                     Foreground="{DynamicResource TextBrush}" />
+                     Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
         </StackPanel>
-        <Button Grid.Column="1" Style="{StaticResource IconButton}" VerticalAlignment="Top"
-                Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Settings">
-          <controls:Icon Kind="Settings" />
-        </Button>
       </Grid>
 
       <!-- Destination drop area -->
@@ -251,12 +250,13 @@
                      Text="{Binding Destination, UpdateSourceTrigger=PropertyChanged}"
                      themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, or URL here"
                      IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Destination"
+                     AutomationProperties.HelpText="{Binding DestinationHelpText}"
                      PreviewKeyDown="TextboxDestination_PreviewKeyDown" TextChanged="TextboxDestination_TextChanged"
                      LostFocus="TextboxDestination_LostFocus" />
           </StackPanel>
 
           <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
-                  Click="Browse_Click" PreviewKeyDown="Browse_PreviewKeyDown" IsEnabled="{Binding IsInputEnabled}"
+                  Click="Browse_Click" PreviewKeyDown="Browse_PreviewKeyDown" ContextMenuOpening="Browse_ContextMenuOpening" IsEnabled="{Binding IsInputEnabled}"
                   AutomationProperties.Name="Browse">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="Browse" VerticalAlignment="Center" />
@@ -310,6 +310,7 @@
                    themes:TextBoxChrome.Placeholder="e.g. l-vicki"
                    themes:TextBoxChrome.HasError="{Binding IsDuplicateName}"
                    IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
+                   AutomationProperties.HelpText="{Binding NameHelpText}"
                    TextChanged="TextboxShortcut_TextChanged">
             <TextBox.InputBindings>
               <!-- Enter creates only from the name field -->
@@ -318,7 +319,7 @@
           </TextBox>
           <Button x:Name="BtnCreateShortcut" Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
                   Height="38" MinWidth="104" Padding="16,0" Command="{Binding CreateCommand}"
-                  AutomationProperties.Name="Create">
+                  AutomationProperties.Name="{Binding CreateButtonName}">
             <Grid>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <StackPanel.Style>
@@ -366,7 +367,8 @@
               </Style>
             </controls:Icon.Style>
           </controls:Icon>
-          <TextBlock Text="{Binding HelperText}" Style="{StaticResource HelperText}" ToolTip="{Binding HelperText}" />
+          <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource HelperText}"
+                     ToolTip="{Binding HelperText}" />
         </StackPanel>
       </StackPanel>
     </Grid>
@@ -395,5 +397,11 @@
         </Grid>
       </Button>
     </Border>
+
+    <!-- Declared last so Tab reaches it after the footer link, as it sits visually at the top right. -->
+    <Button Style="{StaticResource IconButton}" HorizontalAlignment="Right" VerticalAlignment="Top"
+            Margin="0,20,20,0" Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Settings">
+      <controls:Icon Kind="Settings" />
+    </Button>
   </Grid>
 </UserControl>

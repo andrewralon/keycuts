@@ -1,7 +1,9 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -56,6 +58,7 @@ namespace keycuts.GUI.Views
                 oldViewModel.BrowseFolderRequested -= ViewModel_BrowseFolderRequested;
                 oldViewModel.FocusRequested -= ViewModel_FocusRequested;
                 oldViewModel.KeycutCreated -= ViewModel_KeycutCreated;
+                oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
             }
 
             if (e.NewValue is CreatorViewModel newViewModel)
@@ -64,7 +67,25 @@ namespace keycuts.GUI.Views
                 newViewModel.BrowseFolderRequested += ViewModel_BrowseFolderRequested;
                 newViewModel.FocusRequested += ViewModel_FocusRequested;
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
+                newViewModel.PropertyChanged += ViewModel_PropertyChanged;
             }
+        }
+
+        // Tell screen readers when the helper line (errors, Saving, Created) changes
+        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(CreatorViewModel.HelperText))
+            {
+                return;
+            }
+
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                if (UIElementAutomationPeer.FromElement(HelperTextBlock) is AutomationPeer peer)
+                {
+                    peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+                }
+            }));
         }
 
         private void ViewModel_KeycutCreated(object? sender, EventArgs e)
@@ -172,13 +193,24 @@ namespace keycuts.GUI.Views
             }
         }
 
-        private void OpenBrowseMenu()
+        // Shift+F10 and the Apps key open the menu through the context menu service; place it like the click path does
+        private void Browse_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            PlaceBrowseMenu();
+        }
+
+        private void PlaceBrowseMenu()
         {
             // Right-align the menu under the button
             BrowseMenu.PlacementTarget = BtnBrowse;
             BrowseMenu.Placement = PlacementMode.Bottom;
             BrowseMenu.HorizontalOffset = BtnBrowse.ActualWidth - BrowseMenu.Width;
             BrowseMenu.VerticalOffset = 6;
+        }
+
+        private void OpenBrowseMenu()
+        {
+            PlaceBrowseMenu();
             BrowseMenu.IsOpen = true;
         }
 

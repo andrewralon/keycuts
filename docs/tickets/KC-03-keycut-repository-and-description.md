@@ -37,12 +37,37 @@ Today that logic sits in `keycuts.Batmanager/BatFormLogic.cs` (being retired in 
    - Files without the line (every existing keycut) keep working unchanged.
 
 ## Acceptance criteria
-- [ ] Unit tests against a temp folder cover: an empty folder, a missing folder, a mix of URL/folder/file/command `.bat` files,
+- [x] Unit tests against a temp folder cover: an empty folder, a missing folder, a mix of URL/folder/file/command `.bat` files,
       an unparseable file (skipped), a description that's present, empty, absent, or malformed, a description containing
       `explorer.exe`, a delete, a delete of a file that's already gone, `Exists` case-insensitivity, and `Missing` detection.
-- [ ] 100 files load in well under 500 ms locally.
-- [ ] The CLI still builds and behaves the same. Batmanager is being retired (KC-20), so don't migrate `BatFormLogic`.
+- [x] 100 files load in well under 500 ms locally.
+- [x] The CLI still builds and behaves the same. Batmanager is being retired (KC-20), so don't migrate `BatFormLogic`.
 
 ## Notes
 - `ShortcutFile.MatchesRegex` writes to `Console`. That's harmless in WPF, but don't add more of it.
 - The CLI (`keycuts.CLI/Options.cs`) could take `--description` later. That's out of scope here.
+
+## Implementation notes
+
+**Files changed**
+- New: `keycuts.Common/Keycut.cs` (`Keycut` record + `DestinationStatus`), `keycuts.Common/KeycutRepository.cs` (repository, `KeycutRepositoryException`, `KeycutRepositoryError`), `keycuts.Tests/KeycutRepositoryTests.cs` (repository, description and Runner round-trip tests).
+- Changed: `keycuts.Common/ShortcutFile.cs` (`Description`, `ParseDescription`, `IsRemLine`; REM lines excluded from command selection), `keycuts.Common/Runner.cs` (writes `REM <description>…</description>`; `CreateShortcutFile` is now `public` with an optional `description` argument so tests can call it without touching PATH/registry).
+
+**Decisions**
+- Typed failures are `KeycutRepositoryException` with an `Error` of `NotFound | AccessDenied | InvalidPath | InUse | Unknown`. `LoadAllAsync` throws it for an invalid/unreadable folder; `DeleteAsync` throws it for a missing, locked, or protected file.
+- A description line must be exactly `REM <description>…</description>` (case-insensitive, trimmed); anything else counts as malformed and gives an empty description. The first valid line wins.
+- `Runner` flattens CR/LF in a description to spaces so it can't break the header.
+- `ShortcutFile.Description` has `[Browsable(false)]` so the retiring Batmanager grid keeps its current columns. `BatFormLogic` is not migrated.
+- `Keycut.Destination` trims the surrounding quotes that `ShortcutFile` keeps for file/folder destinations.
+- `CheckDestinationsAsync` checks File, Folder and HostsFile keycuts (env vars expanded; max 8 in parallel). URLs, commands and CLSID keys are never checked. A check that times out (2 s) leaves the status `Unknown`.
+- `Keycut` is a record, but `DestinationStatus` is mutable so the background check can update it.
+- Added `KeycutRepository.CreateDefault()` (uses `Runner.GetOutputFolder()`).
+
+**Verification**: build 27 warnings (baseline), 0 errors. Tests 64/64 pass. `dotnet format --verify-no-changes` reports the same 37 pre-existing WHITESPACE errors in 9 old files (none in new code). 100 files load in well under 500 ms (asserted in a test). Note: one earlier run showed a flaky KC-02 test (`DestinationResolverTests.Dispose` couldn't delete a `link.lnk` held by the shell); it passed on re-run.
+
+**Deviations**: none.
+
+**Manual QA still needed**
+- Create a keycut with the CLI or GUI and confirm the new `REM <description></description>` line appears in the `.bat`. Run the keycut to confirm it still launches.
+- Edit the description in Notepad and confirm it is picked up (once KC-12 shows it).
+- A `Missing` check against an unreachable UNC path (timeout behavior).

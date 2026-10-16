@@ -156,7 +156,7 @@ namespace keycuts.Common
             return result;
         }
 
-        private bool CreateShortcutFile(Shortcut shortcut, bool overwrite = false)
+        public bool CreateShortcutFile(Shortcut shortcut, bool overwrite = false, string description = "")
         {
             var result = false;
 
@@ -173,6 +173,7 @@ namespace keycuts.Common
                     $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                     $"REM <type>{shortcutTypeLower}</type>",
                     $"REM <destination>{shortcut.Destination}</destination>",
+                    $"REM <description>{SanitizeDescription(description)}</description>",
                 };
 
                 // START: "" = Title (empty) of console window
@@ -227,6 +228,11 @@ namespace keycuts.Common
         }
 
         #region Static Methods
+
+        private static string SanitizeDescription(string description)
+        {
+            return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+        }
 
         public static void OpenBatmanager()
         {

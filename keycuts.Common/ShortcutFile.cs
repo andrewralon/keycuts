@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -17,6 +18,8 @@ namespace keycuts.Common
         private static readonly string patternCommand =     "START \"\" \\/[BD] (\".+)?";
         private static readonly string patternUrl =         "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
+        private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         public static readonly string Extension = ".bat";
 
         public string Path { get; set; }
@@ -26,6 +29,10 @@ namespace keycuts.Common
         public string OpenWithApp { get; set; }
         public string Command { get; set; }
 
+        // Hidden from auto-generated grid columns so the retiring Batmanager grid keeps its current layout
+        [Browsable(false)]
+        public string Description { get; set; } = "";
+
         public ShortcutFile()
         {
         }
@@ -34,9 +41,12 @@ namespace keycuts.Common
         {
             var allLines = File.ReadAllLines(file);
             var lines = allLines
-                .Where(x => x.Contains(explorer) ||
-                            x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
+                .Where(x => !IsRemLine(x) &&
+                            (x.Contains(explorer) ||
+                             x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase)))
                 .ToList();
+
+            Description = ParseDescription(allLines);
 
             Path = file;
             Shortcut = System.IO.Path.GetFileNameWithoutExtension(file);
@@ -90,6 +100,27 @@ namespace keycuts.Common
             {
                 OpenWithApp = $"\"{OpenWithApp}\"";
             }
+        }
+
+        public static bool IsRemLine(string line)
+        {
+            return line.TrimStart().StartsWith("REM ", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Returns the trimmed text of the first well-formed description line, or empty.</summary>
+        public static string ParseDescription(string[] lines)
+        {
+            foreach (var line in lines)
+            {
+                var match = regexDescription.Match(line);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value.Trim();
+                }
+            }
+
+            return "";
         }
 
         public static bool IsCLSIDKey(string line, out string clsidKey)

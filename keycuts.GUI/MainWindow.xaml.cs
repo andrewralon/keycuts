@@ -1,284 +1,174 @@
-﻿using keycuts.Common;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using keycuts.GUI.ViewModels;
 
 namespace keycuts.GUI
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// The single application window. Hosts the creator or the manager and resizes itself per mode.
     /// </summary>
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : Window
     {
-        #region Fields
+        private readonly ShellViewModel shell;
 
-        private MainFormLogic mainFormLogic;
+        private Point? creatorLocation;
 
-        private CommonLogic commonLogic;
+        private Size? managerSize;
 
-        private string destination = string.Empty;
-
-        private string shortcutName = string.Empty;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        #endregion Fields
-
-        #region Properties
-
-        public string Step1 { get { return Steps[0]; } }
-
-        public string Step2 { get { return Steps[1]; } }
-
-        public string Step3 { get { return Steps[2]; } }
-
-        public string Instructions { get { return string.Join("\n", Steps[3], Steps[4], Steps[5]); } }
-
-        public string Destination
-        {
-            get { return destination; }
-            set
-            {
-                destination = value;
-                NotifyPropertyChanged("Destination");
-            }
-        }
-
-        public string ShortcutName
-        {
-            get { return shortcutName; }
-            set
-            {
-                shortcutName = value;
-                NotifyPropertyChanged("ShortcutName");
-            }
-        }
-
-        public string[] Steps = new string[]
-        {
-            "1. Drag or paste a file, folder, or URL",
-            "2. Name the shortcut",
-            "3. Create the shortcut",
-            "* Type Windows + R",
-            "* Type the shortcut name",
-            "* Press enter.... Enjoy!"
-        };
-
-        #endregion Properties
-
-        public MainWindow()
+        public MainWindow(ShellViewModel shell)
         {
             InitializeComponent();
-            DataContext = this;
-            mainFormLogic = new MainFormLogic();
-            commonLogic = new CommonLogic();
-            MainWindowName.TextboxDestination.Focus();
+            this.shell = shell;
+            DataContext = shell;
+
+            shell.PropertyChanged += Shell_PropertyChanged;
+            shell.SettingsRequested += Shell_SettingsRequested;
+            Loaded += (sender, e) => _ = shell.ReloadAsync();
         }
 
-        private void CreateShortcut()
+        public ShellViewModel Shell
         {
-            ShortcutName = TextboxShortcut.Text;
+            get { return shell; }
+        }
 
-            BtnCreateShortcut.IsEnabled = false;
-            BtnCreateShortcut.IsChecked = true;
-
-            Refresh();
-
-            var result = commonLogic.CreateShortcut(Destination, ShortcutName);
-
-            if (result == ExitCode.FileAlreadyExists)
+        private void Shell_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ShellViewModel.Mode) && IsLoaded)
             {
-                var dialogResult = MessageBox.Show(this,
-                    "Shortcut file already exists. Overwrite it?",
-                    "File already exists", MessageBoxButton.YesNo);
-
-                if (dialogResult == MessageBoxResult.Yes)
-                {
-                    result = commonLogic.CreateShortcut(Destination, ShortcutName, true);
-                }
-            }
-
-            System.Threading.Thread.Sleep(400);
-            System.Media.SystemSounds.Beep.Play();
-            BtnCreateShortcut.IsEnabled = true;
-            BtnCreateShortcut.IsChecked = false;
-
-            Refresh();
-
-            if (result == ExitCode.Success)
-            {
-                Destination = string.Empty;
-                ShortcutName = string.Empty;
-                TextboxDestination.Text = string.Empty;
-                TextboxShortcut.Text = string.Empty;
-                TextboxDestination.Focus();
-            }
-            else if (result == ExitCode.FileAlreadyExists)
-            {
-                // User chose not to overwrite; nothing went wrong
-            }
-            else
-            {
-                MessageBox.Show($"Error: {result}\nDestination: {Destination}\nShortcut: {ShortcutName}");
+                ApplyMode(shell.Mode);
             }
         }
 
-        private void OpenSettings()
+        private void Shell_SettingsRequested(object? sender, EventArgs e)
         {
-            mainFormLogic.OpenSettings();
-        }
+            var settingsWindow = new SettingsWindow { Owner = this };
+            settingsWindow.ShowDialog();
 
-        private void ChangeOutputFolder(string outputFolder)
-        {
-            commonLogic.SetOutputFolder(outputFolder);
-        }
-
-        private void CloseWindow()
-        {
-            Close();
-        }
-
-        private void Refresh()
-        {
-            ((MainWindow)Application.Current.MainWindow).UpdateLayout();
-        }
-
-        #region UI Handlers - Buttons, Keys
-
-        private void SettingsIcon_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            OpenSettings();
-        }
-
-        private void CreateShortcut_Click(object sender, RoutedEventArgs e)
-        {
-            CreateShortcut();
+            // The output folder may have changed
+            _ = shell.ReloadAsync();
         }
 
         private void Main_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (e.Key != Key.Escape)
             {
-                CreateShortcut();
+                return;
             }
-            else if (e.Key == Key.Escape)
+
+            e.Handled = true;
+            if (shell.HandleEscape() == EscapeResult.CloseWindow)
             {
-                CloseWindow();
+                Close();
             }
         }
 
-        private void OpenBatmanager_Click(object sender, RoutedEventArgs e)
+        private void ApplyMode(ShellMode mode)
         {
-            mainFormLogic.OpenBatmanager();
-        }
-
-        #endregion UI Handlers - Buttons, Keys
-
-        #region DragAndDrop Handlers
-
-        private void HandlePreviewDragOver(object sender, DragEventArgs e)
-        {
-            mainFormLogic.ClearDestination(this);
-            e.Handled = true;
-        }
-
-        private void HandleDragEnter(object sender, DragEventArgs e)
-        {
-            DragDrop.DragAndEnter(sender, e);
-        }
-
-        private void HandleDragDrop(object sender, DragEventArgs e)
-        {
-            e.Handled = true;
-
-            var file = DragDrop.GetDroppedFiles(sender, e).FirstOrDefault();
-            if (file == null)
+            if (mode == ShellMode.Manager)
             {
-                MessageBox.Show("Sorry, not sure what to do with this type of file.", "Oops");
+                ShowManagerSize();
             }
             else
             {
-                mainFormLogic.HandleNewDestination(this, file);
+                ShowCreatorSize();
             }
         }
 
-        private void Main_DragEnter(object sender, DragEventArgs e)
+        private void ShowManagerSize()
         {
-            HandleDragEnter(sender, e);
+            creatorLocation = new Point(Left, Top);
+
+            SizeToContent = SizeToContent.Manual;
+            ResizeMode = ResizeMode.CanResize;
+            MinWidth = WindowLayout.ManagerMinWidth;
+            MinHeight = WindowLayout.ManagerMinHeight;
+
+            var size = managerSize ?? new Size(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight);
+            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, size.Width, size.Height), GetWorkAreaInDips());
+
+            Left = bounds.Left;
+            Top = bounds.Top;
+            Width = bounds.Width;
+            Height = bounds.Height;
         }
 
-        private void Main_Drop(object sender, DragEventArgs e)
+        private void ShowCreatorSize()
         {
-            HandleDragDrop(sender, e);
+            if (WindowState == WindowState.Normal)
+            {
+                managerSize = new Size(ActualWidth, ActualHeight);
+            }
+            else
+            {
+                managerSize = RestoreBounds.Size;
+                WindowState = WindowState.Normal;
+            }
+
+            MinWidth = 0;
+            MinHeight = 0;
+            ResizeMode = ResizeMode.CanMinimize;
+            Width = WindowLayout.CreatorWidth;
+            SizeToContent = SizeToContent.Height;
+
+            if (creatorLocation.HasValue)
+            {
+                Left = creatorLocation.Value.X;
+                Top = creatorLocation.Value.Y;
+            }
         }
 
-        private void GridMainFull_DragEnter(object sender, DragEventArgs e)
+        private Rect GetWorkAreaInDips()
         {
-            HandleDragEnter(sender, e);
+            var handle = new WindowInteropHelper(this).Handle;
+            var monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
+            var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+
+            if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
+            {
+                return SystemParameters.WorkArea;
+            }
+
+            var dpi = VisualTreeHelper.GetDpi(this);
+            return new Rect(
+                info.Work.Left / dpi.DpiScaleX,
+                info.Work.Top / dpi.DpiScaleY,
+                (info.Work.Right - info.Work.Left) / dpi.DpiScaleX,
+                (info.Work.Bottom - info.Work.Top) / dpi.DpiScaleY);
         }
 
-        private void GridMainFull_Drop(object sender, DragEventArgs e)
+        #region External Methods
+
+        private const int MonitorDefaultToNearest = 2;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativeRect
         {
-            HandleDragDrop(sender, e);
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
         }
 
-        private void GridMainSettingsIcon_DragEnter(object sender, DragEventArgs e)
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MonitorInfo
         {
-            HandleDragEnter(sender, e);
+            public int Size;
+            public NativeRect Monitor;
+            public NativeRect Work;
+            public int Flags;
         }
 
-        private void GridMainSettingsIcon_Drop(object sender, DragEventArgs e)
-        {
-            HandleDragDrop(sender, e);
-        }
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int flags);
 
-        private void GridMainMargin_DragEnter(object sender, DragEventArgs e)
-        {
-            HandleDragEnter(sender, e);
-        }
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
-        private void GridMainMargin_Drop(object sender, DragEventArgs e)
-        {
-            HandleDragDrop(sender, e);
-        }
-
-        private void TextboxDestination_PreviewDragOver(object sender, DragEventArgs e)
-        {
-            HandlePreviewDragOver(sender, e);
-        }
-
-        private void TextboxDestination_DragEnter(object sender, DragEventArgs e)
-        {
-            HandleDragEnter(sender, e);
-        }
-
-        private void TextboxDestination_Drop(object sender, DragEventArgs e)
-        {
-            HandleDragDrop(sender, e);
-        }
-
-        #endregion DragAndDrop Handlers
-
-        #region OnPropertyChanged Handler
-
-        protected void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion OnPropertyChanged Handler
+        #endregion External Methods
     }
 }

@@ -19,9 +19,16 @@ namespace keycuts.GUI.ViewModels
         Error
     }
 
+    public enum SortColumn
+    {
+        Shortcut,
+        Type,
+        Description
+    }
+
     /// <summary>
     /// State of the manager: the loaded rows plus the loading, empty, no-results and error states.
-    /// Search filtering (KC-13) and row menus (KC-14) build on <see cref="Rows"/> and <see cref="ApplyFilter"/>.
+    /// <see cref="Rows"/> holds the rows that match <see cref="SearchText"/>, in the order given by <see cref="SortColumn"/>.
     /// </summary>
     public class ManagerViewModel : ObservableObject
     {
@@ -34,6 +41,10 @@ namespace keycuts.GUI.ViewModels
         private CancellationTokenSource? loadSource;
 
         private string searchText = string.Empty;
+
+        private SortColumn sortColumn = SortColumn.Shortcut;
+
+        private bool sortDescending;
 
         private bool isMenuOpen;
 
@@ -57,6 +68,7 @@ namespace keycuts.GUI.ViewModels
             this.destinationChecker = destinationChecker;
 
             ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
+            SortCommand = new RelayCommand<SortColumn>(SortBy);
         }
 
         public ICommand ShowCreatorCommand { get; }
@@ -64,6 +76,19 @@ namespace keycuts.GUI.ViewModels
         public ICommand OpenSettingsCommand { get; }
 
         public ICommand ClearSearchCommand { get; }
+
+        /// <summary>Sorts by the column passed as the command parameter, or flips the direction if it is already active.</summary>
+        public ICommand SortCommand { get; }
+
+        public SortColumn SortColumn
+        {
+            get { return sortColumn; }
+        }
+
+        public bool SortDescending
+        {
+            get { return sortDescending; }
+        }
 
         /// <summary>The rows currently shown in the table.</summary>
         public ObservableCollection<KeycutRowViewModel> Rows { get; } = new ObservableCollection<KeycutRowViewModel>();
@@ -263,16 +288,77 @@ namespace keycuts.GUI.ViewModels
             ApplyFilter();
         }
 
+        /// <summary>Default is ascending; selecting the active column again toggles the direction.</summary>
+        public void SortBy(SortColumn column)
+        {
+            if (column == sortColumn)
+            {
+                sortDescending = !sortDescending;
+            }
+            else
+            {
+                sortColumn = column;
+                sortDescending = false;
+            }
+
+            OnPropertyChanged(nameof(SortColumn));
+            OnPropertyChanged(nameof(SortDescending));
+            ApplyFilter();
+        }
+
+        /// <summary>Culture-aware, case-insensitive comparer for the column, with the name as the tie-breaker.</summary>
+        public static IComparer<KeycutRowViewModel> CreateComparer(SortColumn column, bool descending)
+        {
+            return Comparer<KeycutRowViewModel>.Create((x, y) =>
+            {
+                var result = 0;
+
+                switch (column)
+                {
+                    case SortColumn.Shortcut:
+                        result = CompareText(x.Name, y.Name);
+                        break;
+                    case SortColumn.Type:
+                        result = CompareText(x.TypeLabel, y.TypeLabel);
+                        break;
+                    case SortColumn.Description:
+                        result = CompareText(x.Description, y.Description);
+                        break;
+                }
+
+                if (descending)
+                {
+                    result = -result;
+                }
+
+                return result != 0 ? result : CompareText(x.Name, y.Name);
+            });
+        }
+
+        private static int CompareText(string left, string right)
+        {
+            return StringComparer.CurrentCultureIgnoreCase.Compare(left, right);
+        }
+
         /// <summary>
-        /// Rebuilds <see cref="Rows"/> from the loaded rows. KC-13 narrows this by <see cref="SearchText"/>.
+        /// Rebuilds <see cref="Rows"/> from the loaded rows, filtered by <see cref="SearchText"/> and sorted.
+        /// The collection is left alone when the result is unchanged, so the table keeps its scroll position.
         /// </summary>
         protected virtual void ApplyFilter()
         {
-            Rows.Clear();
+            var visible = allRows
+                .Where(row => row.Matches(searchText))
+                .OrderBy(row => row, CreateComparer(sortColumn, sortDescending))
+                .ToList();
 
-            foreach (var row in allRows)
+            if (!Rows.SequenceEqual(visible))
             {
-                Rows.Add(row);
+                Rows.Clear();
+
+                foreach (var row in visible)
+                {
+                    Rows.Add(row);
+                }
             }
 
             RaiseStateChanged();

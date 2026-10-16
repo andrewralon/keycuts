@@ -1,4 +1,5 @@
 using keycuts.Common;
+using keycuts.GUI.Controls;
 using keycuts.GUI.Mvvm;
 
 namespace keycuts.GUI.ViewModels
@@ -27,6 +28,12 @@ namespace keycuts.GUI.ViewModels
             get { return Keycut.Kind; }
         }
 
+        /// <summary>The label shown in the type badge; searched and sorted by.</summary>
+        public string TypeLabel
+        {
+            get { return TypeBadge.GetLabel(Kind); }
+        }
+
         public string Description
         {
             get { return Keycut.Description ?? string.Empty; }
@@ -52,6 +59,26 @@ namespace keycuts.GUI.ViewModels
         {
             get { return isMenuOpen; }
             set { SetProperty(ref isMenuOpen, value); }
+        }
+
+        /// <summary>
+        /// Case-insensitive substring match over name, type label, description and destination.
+        /// Blank search text matches everything.
+        /// </summary>
+        public bool Matches(string search)
+        {
+            if (string.IsNullOrWhiteSpace(search))
+            {
+                return true;
+            }
+
+            var term = search.Trim();
+            return Contains(Name, term) || Contains(TypeLabel, term) || Contains(Description, term) || Contains(Destination, term);
+        }
+
+        private static bool Contains(string value, string term)
+        {
+            return value.Contains(term, System.StringComparison.CurrentCultureIgnoreCase);
         }
 
         /// <summary>Call after the background destination check has updated the keycut.</summary>

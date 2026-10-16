@@ -24,6 +24,32 @@ With 20–100 items, users need to find a keycut quickly and order the list. The
   - **Don't** show "Sorted by …" text anywhere.
 
 ## Acceptance criteria
-- [ ] Searching "vicki" finds `l-vicki` by name and by its URL. Searching "folder" finds every Folder-type item. Searching "logs" matches the description.
-- [ ] All three sortable columns sort both ways, and the sort persists while searching.
-- [ ] View model unit tests cover the filter predicate and sort comparers.
+- [x] Searching "vicki" finds `l-vicki` by name and by its URL. Searching "folder" finds every Folder-type item. Searching "logs" matches the description.
+- [x] All three sortable columns sort both ways, and the sort persists while searching.
+- [x] View model unit tests cover the filter predicate and sort comparers.
+
+## Implementation notes
+
+**Files changed**
+- `keycuts.GUI/ViewModels/ManagerViewModel.cs`: `SortColumn` enum, `SortColumn`/`SortDescending`/`SortCommand`, `SortBy`, static `CreateComparer`, and `ApplyFilter` now filters and sorts.
+- `keycuts.GUI/ViewModels/KeycutRowViewModel.cs`: `TypeLabel` and `Matches(search)`.
+- `keycuts.GUI/Controls/SortHeaderButton.cs` (new): header button exposing sort state and UIA help text ("Sorted ascending/descending").
+- `keycuts.GUI/Views/ManagerView.xaml`: sortable Shortcut/Type/Description headers with chevron and accent styling.
+- `keycuts.GUI/Mvvm/RelayCommand.cs`: added `RelayCommand<T>`.
+- `keycuts.Tests/ManagerSearchSortTests.cs` (new): 24 test cases (predicate, comparers, sort toggling, persistence, no-op rebuild).
+
+**Decisions**
+- Search ignores leading/trailing whitespace; blank search matches everything. The type label searched is the badge label (`TypeBadge.GetLabel`).
+- Descending reverses the primary column only; the name tie-breaker is always ascending.
+- Search and sort state live on `ManagerViewModel`, so refreshes keep them. `ShowKeycuts` is only called when content changed, and `ApplyFilter` leaves `Rows` untouched when the visible sequence is identical, so scroll is preserved.
+- Escape order and the reset on returning to the creator were already in `ShellViewModel` (KC-08/KC-12) and are unchanged.
+
+**Deviations**
+- No `ICollectionView`: `Rows` remains an `ObservableCollection` of the filtered, sorted rows, rebuilt from a pure predicate and comparer. This keeps the KC-12 API and the logic unit-testable. It still never touches the disk.
+
+**Manual QA still needed**
+- Live look of headers: hover chevron, accent on the active column, keyboard focus ring, light/dark and high contrast.
+- Tab to a header and press Enter/Space; Narrator reads "Sorted ascending/descending".
+- Scroll position kept when typing a search that doesn't change the rows, and on F5/window activation.
+- Escape clears search; search clears on return to the creator; "Clear search" in the no-results state.
+- Only a smoke launch (creator view) was done headlessly; the manager view itself was not visually inspected.

@@ -47,6 +47,66 @@
       </Setter>
     </Style>
 
+    <!-- Sortable column header: label plus a chevron that shows on hover and for the active column. -->
+    <Style x:Key="SortHeaderButtonStyle" TargetType="controls:SortHeaderButton">
+      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="ActiveColumn" Value="{Binding DataContext.SortColumn, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+      <Setter Property="IsDescending" Value="{Binding DataContext.SortDescending, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+      <Setter Property="Command" Value="{Binding DataContext.SortCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+      <Setter Property="CommandParameter" Value="{Binding Column, RelativeSource={RelativeSource Self}}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="controls:SortHeaderButton">
+            <Border x:Name="Frame" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                    CornerRadius="3" Padding="3,2">
+              <StackPanel Orientation="Horizontal">
+                <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="False" />
+                <controls:Icon x:Name="Chevron" Kind="Chevron" Size="11" Margin="3,0,0,0" Opacity="0"
+                               VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                  <controls:Icon.RenderTransform>
+                    <RotateTransform Angle="90" />
+                  </controls:Icon.RenderTransform>
+                </controls:Icon>
+              </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                <Setter TargetName="Chevron" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                <Setter TargetName="Chevron" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="State" Value="Ascending">
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                <Setter TargetName="Chevron" Property="Opacity" Value="1" />
+                <Setter TargetName="Chevron" Property="RenderTransform">
+                  <Setter.Value>
+                    <RotateTransform Angle="-90" />
+                  </Setter.Value>
+                </Setter>
+              </Trigger>
+              <Trigger Property="State" Value="Descending">
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                <Setter TargetName="Chevron" Property="Opacity" Value="1" />
+                <Setter TargetName="Chevron" Property="RenderTransform">
+                  <Setter.Value>
+                    <RotateTransform Angle="90" />
+                  </Setter.Value>
+                </Setter>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <!-- Rows have no selection, focus or click behavior; only a restrained hover tint. -->
     <Style x:Key="ManagerRow" TargetType="DataGridRow">
       <Setter Property="Background" Value="Transparent" />
@@ -221,7 +281,10 @@
         <DataGrid x:Name="Table" Style="{StaticResource ManagerTable}" ItemsSource="{Binding Rows}"
                   AutomationProperties.Name="Keycuts" PreviewKeyDown="Table_PreviewKeyDown">
           <DataGrid.Columns>
-            <DataGridTemplateColumn Header="Shortcut" Width="1.7*" MinWidth="190">
+            <DataGridTemplateColumn Width="1.7*" MinWidth="190">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Shortcut" Content="Shortcut" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <StackPanel VerticalAlignment="Center">
@@ -238,14 +301,20 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="Type" Width="110">
+            <DataGridTemplateColumn Width="110">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Type" Content="Type" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <controls:TypeBadge Kind="{Binding Kind}" HorizontalAlignment="Left" VerticalAlignment="Center" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="Description" Width="1.5*" MinWidth="100">
+            <DataGridTemplateColumn Width="1.5*" MinWidth="100">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Description" Content="Description" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <TextBlock Style="{StaticResource CellText}" Text="{Binding Description}" />

@@ -37,6 +37,36 @@ namespace keycuts.GUI.Mvvm
         }
     }
 
+    /// <summary>Command that passes its parameter to the handler; non-matching parameters are ignored.</summary>
+    public class RelayCommand<T> : ICommand
+    {
+        private readonly Action<T> execute;
+
+        public RelayCommand(Action<T> execute)
+        {
+            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+        }
+
+        public event EventHandler? CanExecuteChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public bool CanExecute(object? parameter)
+        {
+            return parameter is T;
+        }
+
+        public void Execute(object? parameter)
+        {
+            if (parameter is T value)
+            {
+                execute(value);
+            }
+        }
+    }
+
     /// <summary>
     /// Runs one invocation at a time; CanExecute is false while a run is in flight.
     /// </summary>

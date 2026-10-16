@@ -12,17 +12,19 @@ using Microsoft.Win32;
 namespace keycuts.GUI.Views
 {
     /// <summary>
-    /// Creator view: drop, paste, type and Browse feed the destination. It still carries the legacy create behavior until KC-11 reworks it.
+    /// Creator view: drop, paste, type and Browse feed the destination; Enter in the name field or the Create button submits.
     /// </summary>
     public partial class CreatorView : UserControl
     {
         private static readonly TimeSpan TypingDelay = TimeSpan.FromMilliseconds(300);
 
+        private static readonly TimeSpan NameCheckDelay = TimeSpan.FromMilliseconds(250);
+
         private readonly MainFormLogic mainFormLogic = new MainFormLogic();
 
-        private readonly CommonLogic commonLogic = new CommonLogic();
-
         private readonly DispatcherTimer typingTimer;
+
+        private readonly DispatcherTimer nameTimer;
 
         private int resolveVersion;
 
@@ -35,6 +37,8 @@ namespace keycuts.GUI.Views
             InitializeComponent();
             typingTimer = new DispatcherTimer { Interval = TypingDelay };
             typingTimer.Tick += TypingTimer_Tick;
+            nameTimer = new DispatcherTimer { Interval = NameCheckDelay };
+            nameTimer.Tick += NameTimer_Tick;
             DataObject.AddPastingHandler(TextboxDestination, TextboxDestination_Pasting);
             DataContextChanged += CreatorView_DataContextChanged;
         }
@@ -50,12 +54,58 @@ namespace keycuts.GUI.Views
             {
                 oldViewModel.BrowseFileRequested -= ViewModel_BrowseFileRequested;
                 oldViewModel.BrowseFolderRequested -= ViewModel_BrowseFolderRequested;
+                oldViewModel.FocusRequested -= ViewModel_FocusRequested;
+                oldViewModel.KeycutCreated -= ViewModel_KeycutCreated;
             }
 
             if (e.NewValue is CreatorViewModel newViewModel)
             {
                 newViewModel.BrowseFileRequested += ViewModel_BrowseFileRequested;
                 newViewModel.BrowseFolderRequested += ViewModel_BrowseFolderRequested;
+                newViewModel.FocusRequested += ViewModel_FocusRequested;
+                newViewModel.KeycutCreated += ViewModel_KeycutCreated;
+            }
+        }
+
+        private void ViewModel_KeycutCreated(object? sender, EventArgs e)
+        {
+            System.Media.SystemSounds.Beep.Play();
+        }
+
+        private void ViewModel_FocusRequested(object? sender, CreatorFocusTarget target)
+        {
+            // The name and destination fields are disabled while saving; wait for the layout to re-enable them
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                var field = target == CreatorFocusTarget.Destination ? TextboxDestination : TextboxShortcut;
+                field.Focus();
+                Keyboard.Focus(field);
+                if (target == CreatorFocusTarget.NameSelectAll)
+                {
+                    field.SelectAll();
+                }
+                else
+                {
+                    field.CaretIndex = field.Text.Length;
+                }
+            }));
+        }
+
+        private void TextboxShortcut_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            nameTimer.Stop();
+            if (!string.IsNullOrWhiteSpace(TextboxShortcut.Text))
+            {
+                nameTimer.Start();
+            }
+        }
+
+        private void NameTimer_Tick(object? sender, EventArgs e)
+        {
+            nameTimer.Stop();
+            if (ViewModel != null)
+            {
+                _ = ViewModel.CheckDuplicateNameAsync();
             }
         }
 
@@ -65,18 +115,6 @@ namespace keycuts.GUI.Views
             var target = nameFirst ? TextboxShortcut : TextboxDestination;
             target.Focus();
             Keyboard.Focus(target);
-        }
-
-        private void CreatorView_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                e.Handled = true;
-                if (ViewModel?.CanCreate == true)
-                {
-                    CreateShortcut();
-                }
-            }
         }
 
         /// <summary>Ctrl+V anywhere except the two text fields pastes into the destination.</summary>
@@ -106,14 +144,6 @@ namespace keycuts.GUI.Views
             {
                 e.Handled = true;
                 ApplyInput(text);
-            }
-        }
-
-        private void CreateShortcut_Click(object sender, RoutedEventArgs e)
-        {
-            if (ViewModel?.CanCreate == true)
-            {
-                CreateShortcut();
             }
         }
 
@@ -358,57 +388,6 @@ namespace keycuts.GUI.Views
         }
 
         #endregion Destination input
-
-        private void CreateShortcut()
-        {
-            var viewModel = ViewModel;
-            if (viewModel == null)
-            {
-                return;
-            }
-
-            var owner = Window.GetWindow(this);
-            var destination = viewModel.Destination;
-            var shortcutName = viewModel.ShortcutName;
-
-            viewModel.IsSaving = true;
-            UpdateLayout();
-
-            var result = commonLogic.CreateShortcut(destination, shortcutName);
-
-            if (result == ExitCode.FileAlreadyExists)
-            {
-                var dialogResult = MessageBox.Show(owner,
-                    "Shortcut file already exists. Overwrite it?",
-                    "File already exists", MessageBoxButton.YesNo);
-
-                if (dialogResult == MessageBoxResult.Yes)
-                {
-                    result = commonLogic.CreateShortcut(destination, shortcutName, true);
-                }
-            }
-
-            System.Threading.Thread.Sleep(400);
-            System.Media.SystemSounds.Beep.Play();
-            viewModel.IsSaving = false;
-
-            if (result == ExitCode.Success)
-            {
-                viewModel.Clear();
-                viewModel.NotifyKeycutCreated();
-                TextboxDestination.Focus();
-            }
-            else if (result == ExitCode.FileAlreadyExists)
-            {
-                // User chose not to overwrite; nothing went wrong
-                TextboxShortcut.Focus();
-            }
-            else
-            {
-                TextboxShortcut.Focus();
-                MessageBox.Show(owner, $"Error: {result}\nDestination: {destination}\nShortcut: {shortcutName}");
-            }
-        }
 
         #region DragAndDrop Handlers
 

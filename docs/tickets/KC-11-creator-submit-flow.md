@@ -34,5 +34,33 @@ Creating should be: type a name → press Enter → done, with clear inline feed
 - [ ] Clicking Create does the same.
 - [ ] The Saving state is visible for slow operations. Test it with an artificial delay in a debug build. The UI never freezes.
 - [ ] Duplicate names with Force overwrite off show the inline error and create no file. With it on, the existing file is overwritten.
-- [ ] Enter does nothing when the name is empty or the destination is invalid.
-- [ ] View model unit tests cover each outcome mapping and the `CanExecute` rules, using a fake `KeycutCreator`.
+- [x] Enter does nothing when the name is empty or the destination is invalid.
+- [x] View model unit tests cover each outcome mapping and the `CanExecute` rules, using a fake `KeycutCreator`.
+
+## Implementation notes
+
+**Files changed**
+- `keycuts.GUI/ViewModels/CreatorViewModel.cs`: `CreateCommand` (`AsyncRelayCommand`), outcome mapping, success reset, duplicate-name preview, `FocusRequested` event, injectable `createAsync` / `nameExists` seams (default: `KeycutCreator.CreateAsync` and the configured output folder).
+- `keycuts.GUI/Views/CreatorView.xaml(.cs)`: Create button bound to `CreateCommand`; `KeyBinding` Enter on the name `TextBox` only; the view-level `KeyDown` Enter handler, `Thread.Sleep`, `MessageBox`, `UpdateLayout` and the old beep-on-every-outcome were removed; 250 ms debounce for the duplicate check; focus handling via `FocusRequested`.
+- `keycuts.GUI/CommonLogic.cs`: removed the temporary `CreateShortcut` adapter (the creator calls `KeycutCreator` directly).
+- `keycuts.Tests/CreatorSubmitTests.cs` (new): 16 test methods (some parameterized) with a fake creator for every outcome, `CanExecute` rules, Saving, success reset, duplicate preview.
+
+**Decisions**
+- Re-validation (KC-10 note): `CanCreate` still doesn't wait for the typing-debounce resolve. `KeycutCreator.CreateAsync` resolves the destination again, so an unresolved or stale destination comes back as `DestinationInvalid` and shows the Invalid-destination state. Nothing is created.
+- Success keeps the fields for `SuccessDuration` (2 s), then `Clear()` and focuses the destination. Editing either field in that window cancels the reset. `CanCreate` is false during Success, so a second Enter can't re-submit and hit a duplicate error.
+- The name is trimmed before it's sent (`KeycutCreator` rejects names with edge whitespace).
+- `InvalidName` reuses the duplicate-name visuals with its own message. `OutputFolderError` / `PathUpdateError` / `Unexpected` show a red helper line under the name row mentioning Settings; destination errors reuse the KC-10 messages (e.g. "That destination wasn’t found.") rather than "This file no longer exists.".
+- Force overwrite: the VM never shows a duplicate error when the setting is on (the typing preview is skipped and `KeycutCreator` overwrites).
+- The system beep now plays only on success (ticket: keep the sound).
+- Debug builds only: `KEYCUTS_CREATE_DELAY_MS` adds an artificial delay before creating, to see the Saving state.
+
+**Deviations:** none from the scope. Window-level Enter had already gone in KC-08/09; the remaining Enter handler was on the creator view (bubbling `KeyDown`).
+
+**Verification:** `dotnet build` 0 errors, 27 warnings (baseline, `--no-incremental`); `dotnet test` 313 passed; `dotnet format --verify-no-changes` 36 pre-existing WHITESPACE errors, none in new/changed files. The GUI launched with a temp `KEYCUTS_OUTPUT_FOLDER` and stayed responsive; it was closed afterwards.
+
+**Manual QA still needed** (the unchecked criteria above):
+- Drop → type name → Enter creates the `.bat` and the creator returns to Empty after ~2 s with the count incremented; the Create button does the same.
+- Saving state visible with `KEYCUTS_CREATE_DELAY_MS=1500` (Debug), UI not frozen, inputs disabled.
+- Duplicate with Force overwrite off: inline error, name selected and focused, no file; error clears on edit; shows while typing (~250 ms). With it on: silently overwritten.
+- Enter on Browse, the settings button, and the footer link doesn't create; Enter in the destination field only resolves.
+- Focus lands correctly after each outcome; the success beep sounds.

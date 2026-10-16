@@ -7,7 +7,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.CreatorUrl}"
-             Background="{DynamicResource SurfaceBrush}" Loaded="CreatorView_Loaded" KeyDown="CreatorView_KeyDown"
+             Background="{DynamicResource SurfaceBrush}" Loaded="CreatorView_Loaded"
              PreviewKeyDown="CreatorView_PreviewKeyDown"
              PreviewDragEnter="Creator_DragEnter" PreviewDragOver="Creator_DragOver" PreviewDragLeave="Creator_DragLeave"
              PreviewDrop="Creator_Drop"
@@ -309,10 +309,16 @@
                    Text="{Binding ShortcutName, UpdateSourceTrigger=PropertyChanged}"
                    themes:TextBoxChrome.Placeholder="e.g. l-vicki"
                    themes:TextBoxChrome.HasError="{Binding IsDuplicateName}"
-                   IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name" />
+                   IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
+                   TextChanged="TextboxShortcut_TextChanged">
+            <TextBox.InputBindings>
+              <!-- Enter creates only from the name field -->
+              <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+            </TextBox.InputBindings>
+          </TextBox>
           <Button x:Name="BtnCreateShortcut" Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
-                  Height="38" MinWidth="104" Padding="16,0" Click="CreateShortcut_Click"
-                  IsEnabled="{Binding CanCreate}" AutomationProperties.Name="Create">
+                  Height="38" MinWidth="104" Padding="16,0" Command="{Binding CreateCommand}"
+                  AutomationProperties.Name="Create">
             <Grid>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <StackPanel.Style>

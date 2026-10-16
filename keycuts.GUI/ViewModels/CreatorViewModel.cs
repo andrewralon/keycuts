@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using keycuts.Common;
 using keycuts.GUI.Controls;
@@ -19,6 +21,14 @@ namespace keycuts.GUI.ViewModels
         Success
     }
 
+    /// <summary>Where the view should move keyboard focus after a create attempt.</summary>
+    public enum CreatorFocusTarget
+    {
+        Destination,
+        Name,
+        NameSelectAll
+    }
+
     /// <summary>
     /// State of the compact creator. The input handling (KC-10) and submit flow (KC-11) set the flags and errors;
     /// the view binds to the derived properties.
@@ -26,6 +36,14 @@ namespace keycuts.GUI.ViewModels
     public class CreatorViewModel : ObservableObject
     {
         public const string DefaultHelperText = "Press Enter to create it";
+
+        public const string InvalidNameMessage = "Use letters, numbers, dashes, or dots \u2014 no \\ / : * ? \" < > |";
+
+        public const string OutputFolderErrorMessage = "Couldn\u2019t save to the output folder. Check Settings.";
+
+        public const string PathUpdateErrorMessage = "Couldn\u2019t update your PATH. Check Settings.";
+
+        public const string UnexpectedErrorMessage = "Something went wrong creating the keycut. Check Settings and try again.";
 
         private string destination = string.Empty;
 
@@ -47,10 +65,29 @@ namespace keycuts.GUI.ViewModels
 
         private string? successName;
 
-        public CreatorViewModel(ICommand showManagerCommand, ICommand openSettingsCommand)
+        private bool isInvalidName;
+
+        private string? submitError;
+
+        private int successVersion;
+
+        private readonly Func<string, string, CancellationToken, Task<CreateResult>> createAsync;
+
+        private readonly Func<string, bool> nameExists;
+
+        /// <param name="createAsync">Creates the keycut; defaults to <see cref="KeycutCreator"/>. Tests pass a fake.</param>
+        /// <param name="nameExists">Checks for an existing keycut while typing; defaults to the configured output folder, and is off when force overwrite is on.</param>
+        public CreatorViewModel(
+            ICommand showManagerCommand,
+            ICommand openSettingsCommand,
+            Func<string, string, CancellationToken, Task<CreateResult>>? createAsync = null,
+            Func<string, bool>? nameExists = null)
         {
             ShowManagerCommand = showManagerCommand;
             OpenSettingsCommand = openSettingsCommand;
+            this.createAsync = createAsync ?? DefaultCreateAsync;
+            this.nameExists = nameExists ?? DefaultNameExists;
+            CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
             BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
             BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
         }
@@ -63,6 +100,14 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>Raised by <see cref="BrowseFolderCommand"/>; the view shows the folder dialog and feeds the result back.</summary>
         public event EventHandler? BrowseFolderRequested;
+
+        /// <summary>Raised after a create attempt so the view can move focus (it can't know the outcome).</summary>
+        public event EventHandler<CreatorFocusTarget>? FocusRequested;
+
+        /// <summary>How long the success confirmation shows before the creator resets to Empty.</summary>
+        public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(2);
+
+        public AsyncRelayCommand CreateCommand { get; }
 
         public ICommand BrowseFileCommand { get; }
 
@@ -83,6 +128,7 @@ namespace keycuts.GUI.ViewModels
                     destinationKind = null;
                     destinationError = DestinationError.None;
                     successName = null;
+                    submitError = null;
                     OnPropertyChanged(nameof(DestinationKind));
                     OnPropertyChanged(nameof(DestinationError));
                     RaiseStateChanged();
@@ -99,7 +145,9 @@ namespace keycuts.GUI.ViewModels
                 if (SetProperty(ref shortcutName, value ?? string.Empty))
                 {
                     duplicateName = null;
+                    isInvalidName = false;
                     successName = null;
+                    submitError = null;
                     RaiseStateChanged();
                 }
             }
@@ -199,7 +247,7 @@ namespace keycuts.GUI.ViewModels
                     return CreatorState.InvalidDestination;
                 }
 
-                if (duplicateName != null)
+                if (IsDuplicateName)
                 {
                     return CreatorState.DuplicateName;
                 }
@@ -224,9 +272,10 @@ namespace keycuts.GUI.ViewModels
             get { return HasDestination && !HasDestinationError; }
         }
 
+        /// <summary>The name field shows its error look: a duplicate name, or one with characters Windows doesn't allow.</summary>
         public bool IsDuplicateName
         {
-            get { return duplicateName != null; }
+            get { return duplicateName != null || isInvalidName; }
         }
 
         public bool IsSuccess
@@ -234,10 +283,10 @@ namespace keycuts.GUI.ViewModels
             get { return successName != null && !isSaving; }
         }
 
-        /// <summary>Create needs a valid destination and a non-empty name, and is off while saving.</summary>
+        /// <summary>Create needs a valid destination and a non-empty name, and is off while saving or showing the success message.</summary>
         public bool CanCreate
         {
-            get { return !isSaving && HasValidDestination && !string.IsNullOrWhiteSpace(shortcutName); }
+            get { return !isSaving && successName == null && HasValidDestination && !string.IsNullOrWhiteSpace(shortcutName); }
         }
 
         /// <summary>The destination field, Browse, and the name field are off while saving; the drop area ignores drops too.</summary>
@@ -277,6 +326,16 @@ namespace keycuts.GUI.ViewModels
                     return string.Format("\u201C{0}\u201D already exists. Choose another name.", duplicateName);
                 }
 
+                if (isInvalidName)
+                {
+                    return InvalidNameMessage;
+                }
+
+                if (submitError != null)
+                {
+                    return submitError;
+                }
+
                 if (IsSuccess)
                 {
                     return "Created " + successName;
@@ -288,7 +347,7 @@ namespace keycuts.GUI.ViewModels
 
         public bool HelperIsError
         {
-            get { return HasDestinationError || duplicateName != null; }
+            get { return HasDestinationError || IsDuplicateName || submitError != null; }
         }
 
         /// <summary>The destination field is focused unless one is already set, in which case the name field is.</summary>
@@ -358,6 +417,7 @@ namespace keycuts.GUI.ViewModels
         public void SetDuplicateName(string name)
         {
             duplicateName = name ?? throw new ArgumentNullException(nameof(name));
+            isInvalidName = false;
             successName = null;
             RaiseStateChanged();
         }
@@ -367,6 +427,8 @@ namespace keycuts.GUI.ViewModels
         {
             successName = name ?? throw new ArgumentNullException(nameof(name));
             duplicateName = null;
+            isInvalidName = false;
+            submitError = null;
             RaiseStateChanged();
         }
 
@@ -377,6 +439,8 @@ namespace keycuts.GUI.ViewModels
             destinationKind = null;
             destinationError = DestinationError.None;
             duplicateName = null;
+            isInvalidName = false;
+            submitError = null;
             successName = null;
             OnPropertyChanged(nameof(Destination));
             OnPropertyChanged(nameof(ShortcutName));
@@ -390,8 +454,126 @@ namespace keycuts.GUI.ViewModels
             KeycutCreated?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>Shows the duplicate-name error early (while typing) when a keycut with the typed name already exists.</summary>
+        public async Task CheckDuplicateNameAsync()
+        {
+            var name = shortcutName.Trim();
+            if (name.Length == 0 || isSaving || successName != null)
+            {
+                return;
+            }
+
+            var exists = await Task.Run(() => nameExists(name));
+
+            if (exists && shortcutName.Trim() == name && !isSaving && successName == null)
+            {
+                SetDuplicateName(name);
+            }
+        }
+
+        private async Task CreateAsync()
+        {
+            // The command's CanExecute is rechecked here; the destination text may be unresolved, so KeycutCreator validates it again
+            var name = shortcutName.Trim();
+            var target = destination.Trim();
+
+            duplicateName = null;
+            isInvalidName = false;
+            submitError = null;
+            IsSaving = true;
+
+            CreateResult result;
+            try
+            {
+                result = await createAsync(target, name, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                result = CreateResult.Failure(CreateOutcome.Unexpected, ex.Message);
+            }
+
+            IsSaving = false;
+            ApplyResult(result, name);
+        }
+
+        private void ApplyResult(CreateResult result, string name)
+        {
+            switch (result.Outcome)
+            {
+                case CreateOutcome.Success:
+                    SetSuccess(name);
+                    NotifyKeycutCreated();
+                    _ = ResetAfterSuccessAsync();
+                    return;
+                case CreateOutcome.DuplicateName:
+                    SetDuplicateName(name);
+                    FocusRequested?.Invoke(this, CreatorFocusTarget.NameSelectAll);
+                    return;
+                case CreateOutcome.InvalidName:
+                    isInvalidName = true;
+                    RaiseStateChanged();
+                    FocusRequested?.Invoke(this, CreatorFocusTarget.NameSelectAll);
+                    return;
+                case CreateOutcome.DestinationInvalid:
+                    var error = result.DestinationError == DestinationError.None || result.DestinationError == DestinationError.Empty
+                        ? DestinationError.NotFound
+                        : result.DestinationError;
+                    DestinationError = error;
+                    FocusRequested?.Invoke(this, CreatorFocusTarget.Destination);
+                    return;
+                case CreateOutcome.OutputFolderError:
+                    ShowSubmitError(OutputFolderErrorMessage);
+                    return;
+                case CreateOutcome.PathUpdateError:
+                    ShowSubmitError(PathUpdateErrorMessage);
+                    return;
+                default:
+                    ShowSubmitError(UnexpectedErrorMessage);
+                    return;
+            }
+        }
+
+        private void ShowSubmitError(string message)
+        {
+            submitError = message;
+            RaiseStateChanged();
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
+        }
+
+        /// <summary>Shows the success state for <see cref="SuccessDuration"/>, then resets to Empty unless the user started typing.</summary>
+        private async Task ResetAfterSuccessAsync()
+        {
+            var version = ++successVersion;
+            await Task.Delay(SuccessDuration);
+
+            if (version == successVersion && successName != null && !isSaving)
+            {
+                Clear();
+                FocusRequested?.Invoke(this, CreatorFocusTarget.Destination);
+            }
+        }
+
+        private static async Task<CreateResult> DefaultCreateAsync(string destination, string name, CancellationToken ct)
+        {
+#if DEBUG
+            // Debug builds can slow creation down to see the Saving state
+            if (int.TryParse(Environment.GetEnvironmentVariable("KEYCUTS_CREATE_DELAY_MS"), out var delayMs) && delayMs > 0)
+            {
+                await Task.Delay(delayMs, ct);
+            }
+#endif
+            return await KeycutCreator.CreateAsync(destination, name, null, ct);
+        }
+
+        private static bool DefaultNameExists(string name)
+        {
+            // With force overwrite on, a duplicate is overwritten silently, so there is no error to preview
+            return !new Runner().GetForceOverwrite() && KeycutRepository.CreateDefault().Exists(name);
+        }
+
         private void RaiseStateChanged()
         {
+            CreateCommand.RaiseCanExecuteChanged();
             OnPropertyChanged(nameof(State));
             OnPropertyChanged(nameof(HasDestination));
             OnPropertyChanged(nameof(HasDestinationError));

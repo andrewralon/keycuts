@@ -14,9 +14,9 @@ namespace keycuts.Batmanager
     {
         private BatFormLogic batFormLogic;
 
-        private string outputFolder;
+        private string outputFolder = string.Empty;
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public MgrWindow()
         {
@@ -74,7 +74,10 @@ namespace keycuts.Batmanager
 
         private void DataGrid_CopyingRowClipboardContent(object sender, DataGridRowClipboardEventArgs e)
         {
-            batFormLogic.Copy(sender as DataGrid, e);
+            if (sender is DataGrid dataGrid)
+            {
+                batFormLogic.Copy(dataGrid, e);
+            }
         }
 
         private void DataGrid_Loaded(object sender, RoutedEventArgs e)
@@ -139,7 +142,7 @@ namespace keycuts.Batmanager
 
         #region OnPropertyChanged Handler
 
-        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = null)
+        protected void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

@@ -10,9 +10,9 @@ namespace keycuts.GUI
 {
     public class MainFormLogic
     {
-        public void OpenSettings(SettingsWindow settingsWindow)
+        public void OpenSettings()
         {
-            settingsWindow = new SettingsWindow();
+            var settingsWindow = new SettingsWindow();
             settingsWindow.Show();
         }
 

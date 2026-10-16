@@ -45,8 +45,36 @@ external `keycuts.Batmanager` launch from the GUI. Reference: the prototype's `B
   itself is KC-20.
 
 ## Acceptance criteria
-- [ ] Works comfortably with 20 and with 100 items (KC-16 fixtures): the header stays pinned, rows are 36px, and there's no horizontal scrollbar at the default size.
-- [ ] Full shortcut names stay visible for typical names (≤ 24 chars) at the default width. Description and destination truncate with tooltips.
-- [ ] Clicking or double-clicking a row does nothing. Hover styling is subtle.
+- [x] Works comfortably with 20 and with 100 items (KC-16 fixtures): the header stays pinned, rows are 36px, and there's no horizontal scrollbar at the default size.
+- [x] Full shortcut names stay visible for typical names (≤ 24 chars) at the default width. Description and destination truncate with tooltips.
+- [x] Clicking or double-clicking a row does nothing. Hover styling is subtle.
 - [ ] Empty, loading, no-results, and error states render in both themes.
-- [ ] The bottom-left count reflects the total. The toolbar count reflects the filtered results.
+- [x] The bottom-left count reflects the total. The toolbar count reflects the filtered results.
+## Implementation notes
+
+**Files changed**
+- New: `keycuts.GUI/ViewModels/KeycutRowViewModel.cs`, `keycuts.Tests/ManagerViewModelTests.cs` (20 tests).
+- Rewritten: `ViewModels/ManagerViewModel.cs` (rows, states, async load), `Views/ManagerView.xaml(.cs)` (toolbar, search row, DataGrid, states, status bar).
+- Edited: `ViewModels/ShellViewModel.cs` (optional loader/checker args; manager-mode `ReloadAsync` loads rows), `App.xaml.cs` (wires `KeycutRepository.LoadAllAsync`/`CheckDestinationsAsync`), `MainWindow.xaml.cs` (`Activated` and `F5` refresh while the manager shows), `DesignData/DesignViewModels.cs` (rows via `ShowKeycuts`, new `ManagerError` sample).
+
+**Decisions**
+- `DataGrid` with fully custom templates: pinned header, 36px rows, no selection/focus visuals, arrow cursor, hover tint (`SurfaceHover`, also when `KeycutRowViewModel.IsMenuOpen` for KC-14), virtualization with recycling, no horizontal scrollbar. Enter on the grid is swallowed; there is no click/double-click handling.
+- Columns: Shortcut 1.7* (min 190, so 24-char names fit), Type 110, Description 1.5*, Destination 2.8*, menu 44 (reserved, empty until KC-14).
+- Missing destinations: red "x Missing" under the name, tooltip with the destination.
+- `ManagerViewModel.State` (Loading/Populated/Empty/NoResults/Error) drives the views. The loading indicator shows for the first load only; later refreshes are silent. A newer load cancels the older one. If loaded content is unchanged the existing rows are kept (no flicker, scroll position preserved on window activation).
+- Without a loader (existing shell tests) the shell keeps the old count-only reload.
+- `ApplyFilter()` is the hook for KC-13; for now it shows all rows, so the No-results state and its "Clear search" button are built but only reachable once KC-13 filters.
+- The subtitle is kept. `MainFormLogic.OpenBatmanager` has no GUI callers left (the button was removed in KC-08); the method itself is left for KC-20.
+
+**Deviations**
+- "Clear search" uses `SecondaryButton` rather than a text-button style (none exists yet).
+- No-results and error states were not exercised in the real GUI (see QA).
+
+**Verification**: build 27 warnings (baseline), 333 tests pass, `dotnet format` shows only the 36 baseline WHITESPACE errors. GUI run headlessly against temp fixtures (100, 12, empty): header pinned, no horizontal scrollbar, Missing flag, empty state, light theme.
+
+**Manual QA still needed**
+- Error state (inaccessible folder) and no-results state visuals; loading spinner on a slow/network folder.
+- Dark and high-contrast themes for all states.
+- Smooth scrolling with 100+ rows; clicking/double-clicking/Enter on rows does nothing; mouse wheel and keyboard scrolling (KC-17 covers keyboard).
+- Refresh on window activation after adding/deleting a `.bat` externally, F5, and returning from Settings after changing the output folder.
+- Resize down to the minimum (720x480) and check column truncation/tooltips; DPI scaling; screen reader names.

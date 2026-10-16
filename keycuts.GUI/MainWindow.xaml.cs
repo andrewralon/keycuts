@@ -29,6 +29,15 @@ namespace keycuts.GUI
             shell.PropertyChanged += Shell_PropertyChanged;
             shell.SettingsRequested += Shell_SettingsRequested;
             Loaded += (sender, e) => _ = shell.ReloadAsync();
+
+            // Pick up keycuts changed outside the app
+            Activated += (sender, e) =>
+            {
+                if (shell.Mode == ShellMode.Manager)
+                {
+                    _ = shell.ReloadAsync();
+                }
+            };
         }
 
         public ShellViewModel Shell
@@ -55,6 +64,13 @@ namespace keycuts.GUI
 
         private void Main_KeyDown(object sender, KeyEventArgs e)
         {
+            if (e.Key == Key.F5 && shell.Mode == ShellMode.Manager)
+            {
+                e.Handled = true;
+                _ = shell.ReloadAsync();
+                return;
+            }
+
             if (e.Key != Key.Escape)
             {
                 return;

@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using keycuts.Common;
 using keycuts.GUI.Mvvm;
 
 namespace keycuts.GUI.ViewModels
@@ -33,7 +36,10 @@ namespace keycuts.GUI.ViewModels
 
         private object currentView;
 
-        public ShellViewModel(Func<Task<int>> countProvider)
+        public ShellViewModel(
+            Func<Task<int>> countProvider,
+            Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
+            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
 
@@ -42,7 +48,7 @@ namespace keycuts.GUI.ViewModels
             OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
 
             Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand);
-            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand);
+            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, destinationChecker);
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();
@@ -128,9 +134,19 @@ namespace keycuts.GUI.ViewModels
             return EscapeResult.ReturnedToCreator;
         }
 
-        /// <summary>Reloads the keycut count (and later the manager's data). A missing or unreadable folder counts as zero.</summary>
+        /// <summary>
+        /// Reloads the keycuts. While the manager is showing it loads the rows (and the count follows from them);
+        /// otherwise only the count is read. A missing or unreadable folder counts as zero.
+        /// </summary>
         public async Task ReloadAsync()
         {
+            if (mode == ShellMode.Manager && Manager.CanLoad)
+            {
+                await Manager.LoadAsync();
+                Creator.KeycutCount = Manager.KeycutCount;
+                return;
+            }
+
             int count;
             try
             {

@@ -6,14 +6,14 @@ using keycuts.GUI.ViewModels;
 
 namespace keycuts.GUI.DesignData
 {
-    /// <summary>Manager sample with its rows. KC-12 replaces <see cref="Keycuts"/> with the real row view models.</summary>
+    /// <summary>Manager sample with its rows loaded; <see cref="Keycuts"/> keeps the raw sample data.</summary>
     public class DesignManagerViewModel : ManagerViewModel
     {
         public DesignManagerViewModel(IReadOnlyList<Keycut> keycuts)
             : base(new RelayCommand(() => { }), new RelayCommand(() => { }))
         {
             Keycuts = keycuts;
-            KeycutCount = keycuts.Count;
+            ShowKeycuts(keycuts);
         }
 
         public IReadOnlyList<Keycut> Keycuts { get; }
@@ -113,6 +113,16 @@ namespace keycuts.GUI.DesignData
         public static DesignManagerViewModel ManagerLongList
         {
             get { return new DesignManagerViewModel(SampleKeycuts.Generate(25)); }
+        }
+
+        public static DesignManagerViewModel ManagerError
+        {
+            get
+            {
+                var manager = new DesignManagerViewModel(SampleKeycuts.Generate(0));
+                manager.ShowError(@"Can't read keycuts folder ""Z:\keycuts"".");
+                return manager;
+            }
         }
 
         private static CreatorViewModel NewCreator(string destination, string name, int count, KeycutKind? kind = null)

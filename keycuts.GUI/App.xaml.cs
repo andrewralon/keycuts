@@ -17,7 +17,10 @@ namespace keycuts.GUI
         {
             Themes.ThemeManager.Initialize(this);
 
-            var shell = new ViewModels.ShellViewModel(() => Common.KeycutRepository.CreateDefault().CountAsync());
+            var shell = new ViewModels.ShellViewModel(
+                () => Common.KeycutRepository.CreateDefault().CountAsync(),
+                ct => Common.KeycutRepository.CreateDefault().LoadAllAsync(ct),
+                (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct));
             var mainWindow = new MainWindow(shell);
 
             if (e.Args.Any())

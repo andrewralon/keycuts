@@ -97,7 +97,7 @@ namespace keycuts.Common
 
         #region Set Methods
 
-        public static void SetRegistryValue(RegistryKey appNameKey, string keyName, object keyValue, 
+        public static void SetRegistryValue(RegistryKey appNameKey, string keyName, object keyValue,
             RegistryValueKind registryValueKind = RegistryValueKind.String)
         {
             Console.WriteLine($"SetRegistryValue(\"{appNameKey}\", \"{keyName}\", \"{keyValue}\", \"{registryValueKind.ToString()}\")");

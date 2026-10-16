@@ -110,7 +110,7 @@ namespace keycuts.GUI
                 ForceOverwrite = CheckboxForceOverwrite.IsChecked == true,
                 RightClickContextMenus = RightClickContextMenus
             };
-            
+
             mainFormLogic.SaveSettings(settings);
         }
 

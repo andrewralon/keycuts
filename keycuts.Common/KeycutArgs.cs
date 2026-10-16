@@ -15,10 +15,10 @@ namespace keycuts.Common
         public string Description { get; set; } = "";
 
         public KeycutArgs(
-            string destination = "", 
-            string shortcut = "", 
-            string openWithApp = "", 
-            string outputFolder = "", 
+            string destination = "",
+            string shortcut = "",
+            string openWithApp = "",
+            string outputFolder = "",
             bool force = false)
         {
             if (destination != "")

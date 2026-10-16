@@ -29,6 +29,14 @@ namespace keycuts.Common
 
         public Runner()
         {
+            // Debug builds only: KEYCUTS_OUTPUT_FOLDER pins the folder and leaves the registry and PATH alone
+            var overrideFolder = DebugOverrides.GetOutputFolder();
+
+            if (overrideFolder != null)
+            {
+                _fixedOutputFolder = overrideFolder;
+                _pathUpdater = new NoOpPathUpdater();
+            }
         }
 
         /// <summary>
@@ -38,7 +46,9 @@ namespace keycuts.Common
         public Runner(string fixedOutputFolder, IPathUpdater pathUpdater)
         {
             _fixedOutputFolder = fixedOutputFolder;
-            _pathUpdater = pathUpdater ?? new SystemPathUpdater();
+            _pathUpdater = DebugOverrides.IsOverride(fixedOutputFolder)
+                ? new NoOpPathUpdater()
+                : pathUpdater ?? new SystemPathUpdater();
         }
 
         public ExitCode Run(KeycutArgs args)
@@ -99,6 +109,13 @@ namespace keycuts.Common
 
         public string GetOutputFolder()
         {
+            var overrideFolder = DebugOverrides.GetOutputFolder();
+
+            if (overrideFolder != null)
+            {
+                return overrideFolder;
+            }
+
             var outputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
 
             return outputFolder;
@@ -124,6 +141,14 @@ namespace keycuts.Common
 
         public string SetOutputFolder(string outputFolder, string currentOutputFolder = null)
         {
+            var overrideFolder = DebugOverrides.GetOutputFolder();
+
+            if (overrideFolder != null)
+            {
+                // Never persist anything while the debug override is active
+                return outputFolder ?? overrideFolder;
+            }
+
             if (currentOutputFolder == null)
             {
                 currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);

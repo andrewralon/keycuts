@@ -4,7 +4,7 @@
 
 ## Why
 Replace the current "1. / 2. / 3." step layout in `MainWindow.xaml` with the compact creator from the UI2 prototype's
-`MainWindow` component ([`Figma Redesign Keycuts UI2/src/App.tsx`](<../../Figma Redesign Keycuts UI2/src/App.tsx>), plus the
+`MainWindow` component ([`design-reference/src/App.tsx`](<../design-reference/src/App.tsx>), plus the
 `.quick-drop*`, `.quick-destination-input`, `.browse-menu-wrap`, `.browse-choice-menu`, and `.name-*` rules in `index.css`).
 This ticket covers **structure and states only**. Input is handled in KC-10 and submission in KC-11.
 

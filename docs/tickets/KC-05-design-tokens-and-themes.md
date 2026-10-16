@@ -8,7 +8,7 @@ radii, and light/dark palettes. `App.xaml` currently has an empty `Resources` bl
 
 ## Scope
 - `Themes/Light.xaml` and `Themes/Dark.xaml`: `SolidColorBrush` resources whose keys mirror the CSS variables in
-  [`index.css`](<../../Figma Redesign Keycuts UI2/src/index.css>) (`:root` and `.dark`). Keys include
+  [`index.css`](<../design-reference/src/index.css>) (`:root` and `.dark`). Keys include
   `AccentBrush`, `AccentHoverBrush`, `AccentPressedBrush`, `AccentSoftBrush`, `CanvasBrush`, `SurfaceBrush`,
   `SurfaceSubtleBrush`, `SurfaceHoverBrush`, `SurfaceRaisedBrush`, `TextBrush`, `TextSecondaryBrush`, `TextTertiaryBrush`,
   `BorderBrush`, `BorderStrongBrush`, `DangerBrush`, `DangerSoftBrush`, and `SuccessBrush`.

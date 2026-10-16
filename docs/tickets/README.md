@@ -3,12 +3,12 @@
 Implements the new compact **keycut creator** and the in-window **Keycut Manager** in the production
 WPF app (`keycuts.GUI`), using the Figma Make prototype as the visual/interaction spec.
 
-- Visual spec (current): [`Figma Redesign Keycuts UI2/src/App.tsx`](<../../Figma Redesign Keycuts UI2/src/App.tsx>)
+- Visual spec (current; moved to `docs/design-reference/`, formerly `Figma Redesign Keycuts UI2`): [`src/App.tsx`](<../design-reference/src/App.tsx>)
   (components `MainWindow`, `BatmanagerPanel`) and
-  [`src/index.css`](<../../Figma Redesign Keycuts UI2/src/index.css>) (tokens, sizes, badge colors).
+  [`src/index.css`](<../design-reference/src/index.css>) (tokens, sizes, badge colors).
   UI2 supersedes `Figma Redesign Keycuts UI`. It adds the inline destination field (paste/type) and the Browse ▾ File…/Folder… menu.
   The manager, tokens, and icons are unchanged between the two.
-- Icons: [`Figma Redesign Keycuts UI2/public/icons/`](<../../Figma Redesign Keycuts UI2/public/icons/>).
+- Icons: [`docs/design-reference/public/icons/`](<../design-reference/public/icons/>).
 - The prototype is **React**; production is **WPF on .NET 10**. Port the look and behavior, not the code.
   Ignore the prototype's preview-only chrome (sidebar, state tabs, fake title bar, style guide, mock timers).
 

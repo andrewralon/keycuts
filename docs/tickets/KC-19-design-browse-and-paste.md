@@ -1,6 +1,6 @@
 # KC-19 — Design: Browse file vs folder, and paste — RESOLVED
 
-**Area:** Design · **Status:** Resolved by [`Figma Redesign Keycuts UI2`](<../../Figma Redesign Keycuts UI2/src/App.tsx>). No engineering work in this ticket.
+**Area:** Design · **Status:** Resolved by [`docs/design-reference`](<../design-reference/src/App.tsx>) (formerly `Figma Redesign Keycuts UI2`). No engineering work in this ticket.
 
 ## The questions
 1. **File vs folder.** Windows has no native dialog that can pick *either* a file or a folder, so a single Browse button had to

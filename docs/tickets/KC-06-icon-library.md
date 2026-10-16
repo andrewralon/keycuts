@@ -8,7 +8,7 @@ more (three dots), copy, delete, external, arrow, and spark (brand/"New keycut")
 (`Images/Antu_codelite.svg_30x30.png`) for settings.
 
 ## Scope
-- Convert the SVGs in [`public/icons/`](<../../Figma Redesign Keycuts UI2/public/icons/>) to `Geometry` resources in
+- Convert the SVGs in [`public/icons/`](<../design-reference/public/icons/>) to `Geometry` resources in
   `Themes/Icons.xaml`. Also convert the icons defined only in `App.tsx` `iconPaths`: `arrow`, `check`, `chevron`, `close`, and `spark`.
   Keep the 24×24 viewbox, 1.7 stroke width, and round caps and joins.
 - Add a small `Icon` control (or a `Path` style) with `Kind` and `Size` properties. Its stroke binds to `Foreground`

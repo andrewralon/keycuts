@@ -20,4 +20,16 @@
     <SolidColorBrush x:Key="DangerSoftBrush" Color="#fff0ee" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#16794b" />
     <SolidColorBrush x:Key="OnAccentBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="BadgeUrlForegroundBrush" Color="#6d43b8" />
+    <SolidColorBrush x:Key="BadgeUrlBackgroundBrush" Color="#f3edff" />
+    <SolidColorBrush x:Key="BadgeUrlBorderBrush" Color="#dfd2f7" />
+    <SolidColorBrush x:Key="BadgeFileForegroundBrush" Color="#1c619d" />
+    <SolidColorBrush x:Key="BadgeFileBackgroundBrush" Color="#e9f4ff" />
+    <SolidColorBrush x:Key="BadgeFileBorderBrush" Color="#cfe6fa" />
+    <SolidColorBrush x:Key="BadgeFolderForegroundBrush" Color="#8a5700" />
+    <SolidColorBrush x:Key="BadgeFolderBackgroundBrush" Color="#fff5dc" />
+    <SolidColorBrush x:Key="BadgeFolderBorderBrush" Color="#f1dfae" />
+    <SolidColorBrush x:Key="BadgeCommandForegroundBrush" Color="#14734a" />
+    <SolidColorBrush x:Key="BadgeCommandBackgroundBrush" Color="#e8f7ef" />
+    <SolidColorBrush x:Key="BadgeCommandBorderBrush" Color="#c8ead8" />
 </ResourceDictionary>

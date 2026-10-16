@@ -15,6 +15,8 @@ namespace keycuts.GUI
     {
         void App_Startup(object sender, StartupEventArgs e)
         {
+            Themes.ThemeManager.Initialize(this);
+
             var mainWindow = new MainWindow();
 
             if (e.Args.Any())

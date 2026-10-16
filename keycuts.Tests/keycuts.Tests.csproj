@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>keycuts.Tests</RootNamespace>
     <AssemblyName>keycuts.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
+    <ProjectReference Include="..\keycuts.GUI\keycuts.GUI.csproj" />
   </ItemGroup>
 </Project>

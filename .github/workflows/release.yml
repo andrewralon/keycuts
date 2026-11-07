@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   release:
+    # A manual run from another branch would publish unmerged code and take the tag master needs.
+    if: github.ref == 'refs/heads/master'
     runs-on: windows-latest
     defaults:
       run:

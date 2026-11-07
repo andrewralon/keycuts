@@ -1,0 +1,79 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What keycuts is
+
+keycuts creates **generated `.bat` files** that let you open anything on your computer by nickname. The `.bat` is written into a folder on the system `PATH`, so Windows Run (`Win+R`) resolves a bare name (`npp`, `gmail`, `db`). The generated script is the whole product: there is no database and no config file holding the shortcut list. The "list" is whatever `.bat` files are in the output folder (default `%USERPROFILE%\Shortcuts`, chosen in the installer, stored in `HKCU\Software\TeamRalon\keycuts`).
+
+Entry points for creating one: the WPF app (drag/paste/browse a destination, name it, Enter), the Explorer right-click verb (launches the GUI with the destination as `args[0]`, handled in `keycuts.GUI/App.xaml.cs`), the CLI, or referencing `keycuts.Common`.
+
+## Commands
+
+.NET SDK 10, Windows only (Common, CLI and keypaste target `net10.0-windows`; GUI and Tests target `net10.0-windows10.0.19041.0`). Run from the repo root:
+
+- Build: `dotnet build keycuts.sln`
+- Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
+- Single test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
+- Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
+- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` (the version defaults to `Directory.Build.props`) publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast. WiX builds into `en-US/` because of `Package.en-us.wxl`; the script moves the output back up.
+
+Gotchas:
+- The build has **0 warnings**. Each project's `AssemblyInfo.cs` declares `SupportedOSPlatform("windows")` by hand; `Directory.Build.props` lets the SDK generate only the version attributes for projects that have one. A new project with its own `AssemblyInfo.cs` needs the same line or CA1416 comes back. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
+- If `keycuts.GUI.exe` is running, the build fails with MSB3021/MSB3027 (file locked). That is not a code error; stop the process (the user has approved force-closing it). Close any instance you launch.
+- Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
+- A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
+- Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
+- CI (`.github/workflows/ci.yml`) builds, checks format and tests on PRs into `develop`/`master`; PRs into `master` also build the MSI.
+
+## Versioning and releases
+
+`<Version>` in `Directory.Build.props` is the only version. It stamps every exe (`Runner.Version`, which goes into each `.bat` header) and the MSI. Every push to `master` runs `.github/workflows/release.yml`: if tag `v<Version>` doesn't exist yet it tests, builds the MSI, and publishes a GitHub release with `keycuts-setup.msi`, `keycuts-portable-win-x64.zip` and `SHA256SUMS.txt`; otherwise it does nothing. To release, raise the version on `develop` (three parts; MSI upgrades ignore a fourth), then merge `develop` into `master`. Don't create release tags by hand.
+
+## Architecture
+
+Five SDK-style projects in `keycuts.sln` (the old `keycuts.Batmanager` app was retired; its manager is now a view inside the GUI):
+
+- `keycuts.Common`: all domain logic, no UI. Resolves `.lnk` files through late-bound `WScript.Shell` COM (`Type.GetTypeFromProgID`), so there is no COM reference in the csproj.
+- `keycuts.GUI`: WPF, single window with two views (Creator, Manager) driven by `ViewModels/` (`ShellViewModel` switches views). Side-effects go through `IKeycutActions` so view models are testable. `Themes/` holds tokens, light/dark/high-contrast dictionaries and `ThemeManager`; `Controls/` has `Icon`, `TypeBadge`, `MenuButton`, `SortHeaderButton`.
+- `keycuts.CLI`: assembly is named **`keycuts.exe`**, not `keycuts.CLI.exe`. Uses CommandLineParser 2.9.1. Calls `Runner` directly and has no description option.
+- `keypaste`: copies a keycut's destination to the clipboard (WinForms).
+- `keycuts.Tests`: references Common and GUI; covers creation, repository, resolver, view models, accessibility, sample data.
+
+### Two layers of creation code in `keycuts.Common`
+
+The newer code wraps the legacy code rather than replacing it. Every create ends in the same place: `KeycutCreator` (GUI) validates, then calls `Runner.Run`, as the CLI does directly; `Runner.Run` builds a `Shortcut` and calls `CreateShortcutFile`. Reads also share one parser: `KeycutRepository.TryParse` wraps `ShortcutFile`. So a change to the emitter or parser affects every entry point.
+
+- **Legacy**: `Runner.Run` / `Runner.CreateShortcutFile` (the `.bat` emitter, returns `ExitCode`), `Shortcut` (classifies a destination into `ShortcutType`, resolves `.lnk`/`.url`), `ShortcutFile` (regex parser that reads a `.bat` back), `RegistryStuff` (`HKCU` settings; reads never write).
+- **Newer, structured**: `DestinationResolver` (validates and classifies a destination, returns `DestinationResult`/`DestinationError`), `KeycutCreator` (returns `CreateResult` with a `CreateOutcome`, async, takes `CreateOptions` including an injectable `IPathUpdater`), `KeycutRepository` (loads/deletes `.bat` files in one folder, background destination checks), `Keycut`/`KeycutKind` (the manager's model). Validation differs by caller: the GUI gets `DestinationResolver` and name checks first, the CLI doesn't. The legacy `GetShortcutTypeFromDestination` still runs on every create (the `Shortcut` constructor) and in `MainFormLogic`.
+
+### The `.bat` format
+
+`Runner.CreateShortcutFile` writes a header (`REM keycuts <version>`) plus `REM <shortcut>`, `<type>`, `<destination>`, and `<description>` comment lines, then the launch command and `EXIT`. The optional description is the only metadata the parser reads from those comments (regex in `ShortcutFile`); type and destination are still recovered by regex-parsing the launch command (lines containing `explorer.exe` or starting with `START`), tried in order: CLSID, folder, hosts, file, command, URL. Files without a description line show an empty description. A corpus of real `.bat` files, including a second legacy header schema (`keycuts 0.1.1.5`), lives in `tests/corpus/legacy/` (see its README).
+
+## Surprises and known landmines
+
+- `ShortcutType.Command` is parse-only: `Shortcut.GetShortcutTypeFromDestination` never returns it and the emitter has no branch for it, so a `Command` shortcut would emit an empty line then `EXIT`.
+- **PATH management** (`UserPathUpdater`, reached from `Runner.Run` and `Runner.ChangeOutputFolder` through `IPathUpdater`) edits the user `PATH` in `HKCU\Environment` directly, because `Environment.SetEnvironmentVariable` would expand `%VARS%` and rewrite the value as `REG_SZ`. It is a no-op when old and new folders match, so the installer is what first puts the output folder on `PATH`. GUI creates never change `PATH`: `KeycutCreator` uses a fixed-folder `Runner`, which passes the same folder as both. Old entries on the machine `PATH` can't be removed without elevation and are left alone.
+- `Shortcut.GetShortcutTypeFromDestination` calls `File.GetAttributes` before checking existence, so a missing path throws (`DestinationResolver` is the safe alternative).
+- **Nothing needs elevation.** Context-menu verbs live in `HKCU\Software\Classes` (`ContextMenuRegistrar`, handler resolved from `AppContext.BaseDirectory`). Never write through `Registry.ClassesRoot`: it resolves to `HKLM` for these keys, and that write crashed the Settings window. The MSI writes the same keys in `installer/Package.wxs`, and a test compares the two lists.
+- The Settings checkbox shows whether the verbs exist, not the `RightClickContextMenu` value. That value only records the user's choice, so an MSI upgrade doesn't re-add a menu they turned off.
+- Windows 11 shows these classic verbs under "Show more options". The top-level menu needs a packaged `IExplorerCommand` handler.
+- `OUTPUTFOLDER` in `installer/Package.wxs` is a directory so the stock `InstallDirDlg` can edit it, which means Windows Installer stores it with a trailing backslash; `RegistryStuff.GetOutputFolder` trims that. The dialog only shows on a first install. Windows Installer has no standard directory for the profile, so the default comes from `[%USERPROFILE]`; a test compares it to `Runner.DefaultOutputFolder`.
+- Manager rows take no keyboard focus. `ManagerView_PreviewKeyDown` handles Up, Down and Enter for the whole view, so typing in the search box keeps working, and `ManagerViewModel.SelectedRow` holds the selection.
+- The `HostsFile` check has two comparisons. The literal `C:\Windows\...\hosts` one works; the unexpanded `%windir%` one can never match, because the path has already been through `Path.GetFullPath`.
+
+## Conventions
+
+`#region` blocks, `var` everywhere, `out` parameters as the legacy return idiom, `Console.WriteLine` as logging inside the library. `.editorconfig` enforces Allman braces, 4-space C# / 2-space XAML and csproj. `keycuts.GUI` has `Nullable` enabled; `Common` does not. Match the surrounding style.
+
+## Where things are documented
+
+- `README.md`: user-facing behavior of the Creator and Manager views.
+- `docs/tickets/` (`README.md`, `HANDOFF.md`, `KC-*.md`): the UI redesign breakdown (KC-01 to KC-20) and its recorded decisions.
+- `docs/design-reference/`: the React/Figma prototype used as the visual spec. Port look and behavior, not code; don't add React/WebView to the app.
+- `gameplan.md`: phased roadmap (installer and context menu, backlog, then macOS/Avalonia). The target layout (`src/Keycuts.Core` plus per-platform projects behind interfaces like `IPathService`/`IFileSystem`) is future work, not current.
+
+## Sequencing rule
+
+The parser has thin test coverage and the plan changes both the file format and the platform underneath it. **Never move two variables in one commit.** Pin current behavior (including bugs) with characterization tests against `tests/corpus/legacy/` before changing emitter or parser logic. No test reads the corpus yet, so that harness has to be written first.

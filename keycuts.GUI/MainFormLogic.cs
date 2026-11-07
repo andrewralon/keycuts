@@ -1,4 +1,5 @@
 ﻿using keycuts.Common;
+using keycuts.GUI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,51 +11,33 @@ namespace keycuts.GUI
 {
     public class MainFormLogic
     {
-        public void OpenSettings(SettingsWindow settingsWindow)
+        /// <summary>Returns a message for the user when something couldn't be saved, otherwise null.</summary>
+        public string? SaveSettings(Settings settings)
         {
-            settingsWindow = new SettingsWindow();
-            settingsWindow.Show();
+            return settings?.SaveSettings();
         }
 
-        public void SaveSettings(Settings settings)
+        /// <summary>
+        /// Sets the creator's destination; the creator view focuses the name field when it is shown with a destination set.
+        /// </summary>
+        public void HandleNewDestination(CreatorViewModel creator, string destination)
         {
-            settings?.SaveSettings();
-        }
-
-        public void OpenBatmanager()
-        {
-            Runner.OpenBatmanager();
-        }
-
-        public void ClearDestination(MainWindow mainWindow)
-        {
-            mainWindow.TextboxDestination.Clear();
-        }
-
-        public void HandleNewDestination(MainWindow mainWindow, string destination)
-        {
-            SetDestination(mainWindow, destination);
-            ActivateShortcutTextbox(mainWindow);
+            SetDestination(creator, destination);
             ActivateThisWindow();
         }
 
         #region Private Methods
 
-        private void SetDestination(MainWindow mainWindow, string destination)
+        private void SetDestination(CreatorViewModel creator, string destination)
         {
-            // Follow the link (if it exists) and set the destination
-            Shortcut.GetShortcutType(destination, out string newDestination);
-            mainWindow.Destination = newDestination;
-            mainWindow.TextboxDestination.ScrollToEnd();
+            // Follow the link (if it exists) and set the destination. A bad path shows as a field error, not a crash.
+            var result = DestinationResolver.Resolve(destination);
+            creator.Destination = result.Destination;
+            creator.DestinationKind = result.Kind;
+            creator.DestinationError = result.Error;
         }
 
-        private void ActivateShortcutTextbox(MainWindow mainWindow)
-        {
-            // Focus on the shortcut name textbox
-            mainWindow.TextboxShortcut.Focus();
-        }
-
-        private void ActivateThisWindow()
+        public void ActivateThisWindow()
         {
             // Activate this window (normally keeps focus on whatever was previously active)
             var process = Process.GetCurrentProcess();

@@ -1,0 +1,10 @@
+{
+  "description": "Create and manage custom batch file shortcuts for files, folders, or URLs with an intuitive Windows utility featuring drag-and-drop and easy editing.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

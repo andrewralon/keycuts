@@ -259,3 +259,16 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+# Claude Code local config
+.claude/settings.local.json
+
+# Node (docs/design-reference prototype)
+node_modules/
+
+# VS Code: ignore personal files, keep shared project config
+.vscode/*
+!.vscode/mcp.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets

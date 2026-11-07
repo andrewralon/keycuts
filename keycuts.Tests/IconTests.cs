@@ -43,6 +43,17 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void SettingsGear_IsCenteredInTheViewBox()
+        {
+            var figures = LoadFigures()[Icon.GetResourceKey(IconKind.Settings)];
+            var bounds = PathGeometry.CreateFromGeometry(Geometry.Parse(figures)).Bounds;
+            var center = Icon.ViewBoxSize / 2;
+
+            Assert.Equal(center, bounds.Left + bounds.Width / 2, 0.25);
+            Assert.Equal(center, bounds.Top + bounds.Height / 2, 0.25);
+        }
+
+        [Fact]
         public void OnlyMore_IsFilled()
         {
             Assert.Equal(new[] { IconKind.More }, Enum.GetValues<IconKind>().Where(Icon.IsFilled));

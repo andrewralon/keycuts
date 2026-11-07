@@ -1,0 +1,70 @@
+# Publishes a GitHub release when master carries a version that has no tag yet.
+# To release: raise <Version> in Directory.Build.props on develop, then merge develop into master.
+# Merges that keep the same version do nothing, so re-running this is always safe.
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Read version
+        id: version
+        run: |
+          $version = (dotnet msbuild keycuts.Common/keycuts.Common.csproj -getProperty:Version).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$version' in Directory.Build.props must be x.y.z." }
+          $tag = "v$version"
+          $exists = [bool](git ls-remote --tags origin "refs/tags/$tag")
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "exists=$($exists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if ($exists) { "::notice::$tag is already released; nothing to do. Raise <Version> in Directory.Build.props to release." }
+
+      - name: Test
+        if: steps.version.outputs.exists == 'false'
+        run: dotnet test keycuts.sln -c Release
+
+      - name: Build installer
+        if: steps.version.outputs.exists == 'false'
+        run: ./tools/Build-Installer.ps1
+
+      - name: Package
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          $out = 'artifacts/release'
+          New-Item $out -ItemType Directory -Force | Out-Null
+          Copy-Item artifacts/installer/keycuts-setup.msi $out
+          Compress-Archive -Path artifacts/publish/* -DestinationPath "$out/keycuts-portable-win-x64.zip"
+          Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
+            Set-Content "$out/SHA256SUMS.txt"
+          Get-Content "$out/SHA256SUMS.txt"
+
+      - name: Create release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" (Get-ChildItem artifacts/release -File).FullName `
+            --target "${{ github.sha }}" `
+            --title "keycuts ${{ steps.version.outputs.tag }}" `
+            --generate-notes

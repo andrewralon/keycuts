@@ -22,7 +22,7 @@ Create keycuts several ways:
 
 ## Install
 
-Run `keycuts-setup.msi`. It installs for your account only and **doesn't need admin rights**: files go to
+Download `keycuts-setup.msi` from the [latest release](https://github.com/andrewralon/keycuts/releases/latest) and run it. It installs for your account only and **doesn't need admin rights**: files go to
 `%LOCALAPPDATA%\Programs\keycuts`, and the right-click menu and `PATH` entries go in your own registry hive. The .NET runtime
 is included. Turn the right-click menu off and on in Settings; on Windows 11 it appears under **Show more options**.
 
@@ -33,6 +33,9 @@ silent install, pass it on the command line: `msiexec /i keycuts-setup.msi /qn O
 Uninstalling removes the app, the menu, and the `PATH` entries. Your keycuts and settings stay.
 
 To build the installer, run `pwsh -File tools/Build-Installer.ps1`. It needs only the .NET SDK.
+
+Releases are automatic: raise `<Version>` in `Directory.Build.props`, then merge `develop` into `master`. The release workflow tags
+`v<Version>` and publishes the MSI, a portable zip, and SHA-256 checksums. Merges that don't change the version don't release.
 
 ## The app
 

@@ -1,7 +1,9 @@
 ﻿using keycuts.Common;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,6 +11,12 @@ namespace keycuts.GUI
 {
     public class Settings
     {
+        public const string InvalidOutputFolderMessage = "Enter a full path for the output folder, such as C:\\Shortcuts.";
+
+        public const string PathUpdateFailedMessage = "The output folder was saved, but your PATH couldn\u2019t be updated.";
+
+        public const string ContextMenuFailedMessage = "Couldn\u2019t update the right-click menu.";
+
         private Runner runner;
 
         public string OutputFolder { get; set; } = string.Empty;
@@ -29,11 +37,43 @@ namespace keycuts.GUI
             RightClickContextMenus = runner.GetRightClickContextMenu();
         }
 
-        public void SaveSettings()
+        public static bool IsValidOutputFolder(string? folder)
         {
-            runner.SetOutputFolder(OutputFolder);
-            runner.SetForceOverwrite(ForceOverwrite);
-            runner.SetRightClickContextMenu(RightClickContextMenus);
+            return !string.IsNullOrWhiteSpace(folder) &&
+                folder.IndexOfAny(Path.GetInvalidPathChars()) < 0 &&
+                Path.IsPathFullyQualified(folder);
+        }
+
+        /// <summary>Saves everything it can. Returns a message for the user when something failed, otherwise null.</summary>
+        public string? SaveSettings()
+        {
+            if (!IsValidOutputFolder(OutputFolder))
+            {
+                return InvalidOutputFolderMessage;
+            }
+
+            try
+            {
+                var problems = new List<string>();
+
+                if (!runner.ChangeOutputFolder(OutputFolder))
+                {
+                    problems.Add(PathUpdateFailedMessage);
+                }
+
+                runner.SetForceOverwrite(ForceOverwrite);
+
+                if (!runner.SetRightClickContextMenu(RightClickContextMenus))
+                {
+                    problems.Add(ContextMenuFailedMessage);
+                }
+
+                return problems.Count == 0 ? null : string.Join(Environment.NewLine, problems);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            {
+                return $"Couldn\u2019t save settings: {e.Message}";
+            }
         }
     }
 }

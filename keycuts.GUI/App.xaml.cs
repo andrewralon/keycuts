@@ -15,6 +15,22 @@ namespace keycuts.GUI
     {
         void App_Startup(object sender, StartupEventArgs e)
         {
+            CrashReporter.Install(this);
+
+            try
+            {
+                ShowMainWindow(e.Args);
+            }
+            catch (Exception exception)
+            {
+                // Nothing is on screen yet, so staying alive would leave an invisible process behind
+                CrashReporter.Report(exception);
+                Shutdown(1);
+            }
+        }
+
+        private void ShowMainWindow(string[] args)
+        {
             Themes.ThemeManager.Initialize(this);
 
             var shell = new ViewModels.ShellViewModel(
@@ -24,11 +40,11 @@ namespace keycuts.GUI
                 new ViewModels.SystemKeycutActions());
             var mainWindow = new MainWindow(shell);
 
-            if (e.Args.Any())
+            if (args.Any())
             {
                 // Explorer "keycut this!": pre-fill the destination; the creator view focuses the name field on load
                 MainFormLogic mainFormLogic = new MainFormLogic();
-                mainFormLogic.HandleNewDestination(shell.Creator, e.Args[0]);
+                mainFormLogic.HandleNewDestination(shell.Creator, args[0]);
             }
 
             mainWindow.Show();

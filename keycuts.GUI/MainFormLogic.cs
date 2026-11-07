@@ -11,9 +11,10 @@ namespace keycuts.GUI
 {
     public class MainFormLogic
     {
-        public void SaveSettings(Settings settings)
+        /// <summary>Returns a message for the user when something couldn't be saved, otherwise null.</summary>
+        public string? SaveSettings(Settings settings)
         {
-            settings?.SaveSettings();
+            return settings?.SaveSettings();
         }
 
         /// <summary>
@@ -29,10 +30,11 @@ namespace keycuts.GUI
 
         private void SetDestination(CreatorViewModel creator, string destination)
         {
-            // Follow the link (if it exists) and set the destination
-            var type = Shortcut.GetShortcutTypeFromDestination(destination, out string newDestination);
-            creator.Destination = newDestination;
-            creator.DestinationKind = KeycutKinds.FromShortcutType(type);
+            // Follow the link (if it exists) and set the destination. A bad path shows as a field error, not a crash.
+            var result = DestinationResolver.Resolve(destination);
+            creator.Destination = result.Destination;
+            creator.DestinationKind = result.Kind;
+            creator.DestinationError = result.Error;
         }
 
         public void ActivateThisWindow()

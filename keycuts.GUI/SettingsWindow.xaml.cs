@@ -70,7 +70,7 @@ namespace keycuts.GUI
             set
             {
                 rightClickContextMenus = value;
-                NotifyPropertyChanged("RightClickContextMenu");
+                NotifyPropertyChanged("RightClickContextMenus");
             }
         }
 
@@ -111,7 +111,12 @@ namespace keycuts.GUI
                 RightClickContextMenus = RightClickContextMenus
             };
 
-            mainFormLogic.SaveSettings(settings);
+            var error = mainFormLogic.SaveSettings(settings);
+
+            if (error != null)
+            {
+                MessageBox.Show(this, error, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private void Settings_KeyDown(object sender, KeyEventArgs e)

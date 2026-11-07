@@ -19,11 +19,9 @@ namespace keycuts.Common
 
         public static readonly bool DefaultForceOverwrite = false;
 
-        public static readonly bool DefaultRightClickContextMenu = true;
-
         public static readonly string RightClickContextMenuText = "keycut this!";
 
-        private readonly IPathUpdater _pathUpdater = new SystemPathUpdater();
+        private readonly IPathUpdater _pathUpdater = new UserPathUpdater();
 
         private readonly string _fixedOutputFolder;
 
@@ -48,7 +46,7 @@ namespace keycuts.Common
             _fixedOutputFolder = fixedOutputFolder;
             _pathUpdater = DebugOverrides.IsOverride(fixedOutputFolder)
                 ? new NoOpPathUpdater()
-                : pathUpdater ?? new SystemPathUpdater();
+                : pathUpdater ?? new UserPathUpdater();
         }
 
         public ExitCode Run(KeycutArgs args)
@@ -130,9 +128,7 @@ namespace keycuts.Common
 
         public bool GetRightClickContextMenu()
         {
-            var rightClickContextMenu = RegistryStuff.GetRightClickContextMenu(DefaultRightClickContextMenu);
-
-            return rightClickContextMenu;
+            return RegistryStuff.GetRightClickContextMenu();
         }
 
         #endregion Get Methods
@@ -179,14 +175,21 @@ namespace keycuts.Common
             }
         }
 
-        public void SetRightClickContextMenu(bool rightClickContextMenu)
+        /// <summary>Saves the folder and moves the PATH entry with it, so Win+R keeps finding keycuts. False if PATH couldn't be updated.</summary>
+        public bool ChangeOutputFolder(string outputFolder)
         {
-            var currentRightClickContextMenu = RegistryStuff.GetRightClickContextMenu(DefaultForceOverwrite);
+            var currentOutputFolder = GetOutputFolder();
 
-            if (currentRightClickContextMenu != rightClickContextMenu)
-            {
+            SetOutputFolder(outputFolder, currentOutputFolder);
+
+            return _pathUpdater.AddToOrReplace(currentOutputFolder, outputFolder);
+        }
+
+        /// <summary>Adds or removes the Explorer verbs if they differ from what's asked for. False on failure.</summary>
+        public bool SetRightClickContextMenu(bool rightClickContextMenu)
+        {
+            return GetRightClickContextMenu() == rightClickContextMenu ||
                 RegistryStuff.SetRightClickContextMenu(rightClickContextMenu);
-            }
         }
 
         #endregion Get Methods

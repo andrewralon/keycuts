@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What keycuts is
 
-keycuts creates **generated `.bat` files** that let you open anything on your computer by nickname. The `.bat` is written into a folder on the system `PATH`, so Windows Run (`Win+R`) resolves a bare name (`npp`, `gmail`, `db`). The generated script is the whole product: there is no database and no config file holding the shortcut list. The "list" is whatever `.bat` files are in the output folder (default `C:\Shortcuts`, stored in `HKCU\Software\TeamRalon\keycuts`).
+keycuts creates **generated `.bat` files** that let you open anything on your computer by nickname. The `.bat` is written into a folder on the system `PATH`, so Windows Run (`Win+R`) resolves a bare name (`npp`, `gmail`, `db`). The generated script is the whole product: there is no database and no config file holding the shortcut list. The "list" is whatever `.bat` files are in the output folder (default `%USERPROFILE%\Shortcuts`, chosen in the installer, stored in `HKCU\Software\TeamRalon\keycuts`).
 
 Entry points for creating one: the WPF app (drag/paste/browse a destination, name it, Enter), the Explorer right-click verb (launches the GUI with the destination as `args[0]`, handled in `keycuts.GUI/App.xaml.cs`), the CLI, or referencing `keycuts.Common`.
 
@@ -16,7 +16,7 @@ Entry points for creating one: the WPF app (drag/paste/browse a destination, nam
 - Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
 - Single test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
-- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast.
+- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast. WiX builds into `en-US/` because of `Package.en-us.wxl`; the script moves the output back up.
 
 Gotchas:
 - The build has **0 warnings**. Each project's `AssemblyInfo.cs` declares `SupportedOSPlatform("windows")` by hand, because `GenerateAssemblyInfo` is off; a new project needs the same line or CA1416 comes back. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
@@ -55,6 +55,8 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 - **Nothing needs elevation.** Context-menu verbs live in `HKCU\Software\Classes` (`ContextMenuRegistrar`, handler resolved from `AppContext.BaseDirectory`). Never write through `Registry.ClassesRoot`: it resolves to `HKLM` for these keys, and that write crashed the Settings window. The MSI writes the same keys in `installer/Package.wxs`, and a test compares the two lists.
 - The Settings checkbox shows whether the verbs exist, not the `RightClickContextMenu` value. That value only records the user's choice, so an MSI upgrade doesn't re-add a menu they turned off.
 - Windows 11 shows these classic verbs under "Show more options". The top-level menu needs a packaged `IExplorerCommand` handler.
+- `OUTPUTFOLDER` in `installer/Package.wxs` is a directory so the stock `InstallDirDlg` can edit it, which means Windows Installer stores it with a trailing backslash; `RegistryStuff.GetOutputFolder` trims that. The dialog only shows on a first install. Windows Installer has no standard directory for the profile, so the default comes from `[%USERPROFILE]`; a test compares it to `Runner.DefaultOutputFolder`.
+- Manager rows take no keyboard focus. `ManagerView_PreviewKeyDown` handles Up, Down and Enter for the whole view, so typing in the search box keeps working, and `ManagerViewModel.SelectedRow` holds the selection.
 - The `HostsFile` check has two comparisons. The literal `C:\Windows\...\hosts` one works; the unexpanded `%windir%` one can never match, because the path has already been through `Path.GetFullPath`.
 
 ## Conventions

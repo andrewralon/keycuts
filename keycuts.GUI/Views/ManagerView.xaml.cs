@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -43,12 +44,47 @@ namespace keycuts.GUI.Views
             TableHost.Clip = new RectangleGeometry(new Rect(0, 0, TableHost.ActualWidth, TableHost.ActualHeight), radius, radius);
         }
 
-        // Rows have no click or Enter behavior; stop the grid from moving focus on Enter.
-        private void Table_PreviewKeyDown(object sender, KeyEventArgs e)
+        // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.
+        private void ManagerView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
+            if (ViewModel == null || ViewModel.IsMenuOpen || Keyboard.Modifiers != ModifierKeys.None)
             {
-                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Up || e.Key == Key.Down)
+            {
+                MoveSelection(e, e.Key == Key.Down ? 1 : -1);
+            }
+            else if (e.Key == Key.Enter && e.OriginalSource is not ButtonBase)
+            {
+                e.Handled = ViewModel.OpenSelected();
+            }
+        }
+
+        private void MoveSelection(KeyEventArgs e, int direction)
+        {
+            // Tabbing to a row's menu button puts the user on that row, so move from there and keep the focus with the selection
+            var focusedRow = (Keyboard.FocusedElement as MenuButton)?.DataContext as KeycutRowViewModel;
+
+            if (focusedRow != null)
+            {
+                ViewModel!.SelectedRow = focusedRow;
+            }
+
+            if (!ViewModel!.MoveSelection(direction))
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            var row = ViewModel.SelectedRow!;
+            Table.ScrollIntoView(row);
+
+            if (focusedRow != null)
+            {
+                FocusRowMenuButton(row);
             }
         }
 
@@ -179,18 +215,9 @@ namespace keycuts.GUI.Views
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
-                if (row != null)
+                if (row != null && FocusRowMenuButton(row))
                 {
-                    Table.ScrollIntoView(row);
-                    Table.UpdateLayout();
-
-                    if (Table.ItemContainerGenerator.ContainerFromItem(row) is DataGridRow container &&
-                        FindDescendant<MenuButton>(container) is MenuButton button)
-                    {
-                        button.Focus();
-                        Keyboard.Focus(button);
-                        return;
-                    }
+                    return;
                 }
 
                 if (SearchBox.IsEnabled)
@@ -202,6 +229,22 @@ namespace keycuts.GUI.Views
                     EmptyCreateButton.Focus();
                 }
             }));
+        }
+
+        private bool FocusRowMenuButton(KeycutRowViewModel row)
+        {
+            Table.ScrollIntoView(row);
+            Table.UpdateLayout();
+
+            if (Table.ItemContainerGenerator.ContainerFromItem(row) is DataGridRow container &&
+                FindDescendant<MenuButton>(container) is MenuButton button)
+            {
+                button.Focus();
+                Keyboard.Focus(button);
+                return true;
+            }
+
+            return false;
         }
 
         private static T? FindDescendant<T>(DependencyObject parent)

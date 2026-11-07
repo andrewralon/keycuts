@@ -7,6 +7,8 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RootNamespace>keycuts.GUI</RootNamespace>
     <AssemblyName>keycuts.GUI</AssemblyName>
+    <!-- Windows without an Icon of their own take this one, so it covers the title bar and the taskbar too -->
+    <ApplicationIcon>Images\TR_256_ico.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <None Include="App.config" />

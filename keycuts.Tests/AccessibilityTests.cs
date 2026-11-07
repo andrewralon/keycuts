@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using keycuts.Common;
@@ -357,6 +359,195 @@ namespace keycuts.Tests
 
                     var name = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Keycut name");
                     Assert.Contains("already exists", AutomationProperties.GetHelpText(name));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        class RecordingActions : IKeycutActions
+        {
+            public List<string> Launched { get; } = new List<string>();
+
+            public void Launch(string path)
+            {
+                Launched.Add(path);
+            }
+
+            public void Edit(string path)
+            {
+            }
+
+            public void CopyText(string text)
+            {
+            }
+
+            public Task DeleteAsync(Keycut keycut)
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        static ManagerViewModel LoadedManager(IKeycutActions actions, params string[] names)
+        {
+            var noop = new RelayCommand(() => { });
+            var keycuts = names.Select(name => new Keycut
+            {
+                Name = name,
+                Kind = KeycutKind.File,
+                RawType = ShortcutType.File,
+                Destination = @"C:\temp\" + name + ".txt",
+                FilePath = @"C:\fixture\" + name + ".bat"
+            }).ToList();
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, actions);
+            manager.LoadAsync().GetAwaiter().GetResult();
+            return manager;
+        }
+
+        static bool Press(UIElement target, Key key)
+        {
+            var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(target), 0, key)
+            {
+                RoutedEvent = Keyboard.PreviewKeyDownEvent
+            };
+            target.RaiseEvent(args);
+            Pump();
+            return args.Handled;
+        }
+
+        [Fact]
+        public void Manager_UpAndDownSelectRowsFromTheSearchBox_AndEnterOpensTheSelection()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo", "charlie");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var table = Descendants<DataGrid>(window).Single();
+
+                    Assert.False(Press(search, Key.Enter));
+                    Assert.Empty(actions.Launched);
+
+                    Assert.True(Press(search, Key.Down));
+                    Assert.True(Press(search, Key.Down));
+                    Assert.Equal("bravo", manager.SelectedRow?.Name);
+                    Assert.Same(manager.SelectedRow, table.SelectedItem);
+
+                    Assert.True(Press(search, Key.Up));
+                    Assert.Equal("alpha", manager.SelectedRow?.Name);
+
+                    Assert.True(Press(search, Key.Enter));
+                    Assert.Equal(new[] { @"C:\fixture\alpha.bat" }, actions.Launched);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_SelectedRowIsMarkedWithMoreThanColor()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    manager.MoveSelection(1);
+                    Pump();
+
+                    var table = Descendants<DataGrid>(window).Single();
+                    var selected = (DataGridRow)table.ItemContainerGenerator.ContainerFromIndex(0);
+                    var other = (DataGridRow)table.ItemContainerGenerator.ContainerFromIndex(1);
+
+                    Assert.Equal(Visibility.Visible, ((FrameworkElement)selected.Template.FindName("SelectionBar", selected)).Visibility);
+                    Assert.Equal(Visibility.Collapsed, ((FrameworkElement)other.Template.FindName("SelectionBar", other)).Visibility);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // The table drops its selection when the rows are rebuilt, and that reaches the view model through the binding.
+        [Fact]
+        public void Manager_TableKeepsTheSelectionWhenSearchRebuildsTheRows()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    manager.MoveSelection(1);
+                    Pump();
+
+                    manager.SearchText = "alp";
+                    Pump();
+
+                    var table = Descendants<DataGrid>(window).Single();
+                    Assert.Equal("alpha", manager.SelectedRow?.Name);
+                    Assert.Same(manager.SelectedRow, table.SelectedItem);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_EnterOnAButtonStaysWithTheButton()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    manager.MoveSelection(1);
+                    Pump();
+
+                    var menuButton = Descendants<MenuButton>(window).Single();
+
+                    Assert.False(Press(menuButton, Key.Enter));
+                    Assert.Empty(actions.Launched);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_ArrowsAreIgnoredWhileARowMenuIsOpen()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    manager.IsMenuOpen = true;
+
+                    Assert.False(Press(search, Key.Down));
+                    Assert.Null(manager.SelectedRow);
                 }
                 finally
                 {

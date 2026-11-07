@@ -15,7 +15,8 @@ namespace keycuts.Common
 
         public static readonly string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
-        public static readonly string DefaultOutputFolder = @"C:\Shortcuts";
+        /// <summary>Per-user, so a non-admin can write to it. The installer's default must match; a test compares the two.</summary>
+        public static readonly string DefaultOutputFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Shortcuts");
 
         public static readonly bool DefaultForceOverwrite = false;
 

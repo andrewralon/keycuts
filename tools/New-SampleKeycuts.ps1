@@ -9,7 +9,7 @@
     File items whose targets don't exist (the Missing state).
 
     Safety: this script only ever writes inside -Folder, and it refuses to run when -Folder
-      * is C:\Shortcuts, or the output folder configured in the keycuts registry value (read only), or a parent/child of either,
+      * is C:\Shortcuts, the default %USERPROFILE%\Shortcuts, or the output folder configured in the keycuts registry value (read only), or a parent/child of either,
       * is a drive root,
       * is outside the temp folder (unless -AllowNonTemp is given),
       * already contains .bat files that this script did not create (no .keycuts-sample marker).
@@ -25,7 +25,7 @@
     Number of keycuts to write (2 to 1000). Default 100.
 
 .PARAMETER AllowNonTemp
-    Allows a folder outside the temp folder. C:\Shortcuts and the configured output folder stay forbidden.
+    Allows a folder outside the temp folder. C:\Shortcuts, %USERPROFILE%\Shortcuts and the configured output folder stay forbidden.
 
 .EXAMPLE
     .\tools\New-SampleKeycuts.ps1 -Folder "$env:TEMP\keycuts-fixtures-100" -Count 100
@@ -63,7 +63,7 @@ if ([System.IO.Path]::GetPathRoot($target).TrimEnd('\').Equals($target, [System.
     throw "Refusing to write into a drive root: $target"
 }
 
-$forbidden = @('C:\Shortcuts')
+$forbidden = @('C:\Shortcuts', (Join-Path $env:USERPROFILE 'Shortcuts'))
 $registryFolder = (Get-ItemProperty -Path 'HKCU:\Software\TeamRalon\keycuts' -Name 'OutputFolder' -ErrorAction SilentlyContinue).OutputFolder
 
 if ($registryFolder)

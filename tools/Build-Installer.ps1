@@ -34,4 +34,9 @@ dotnet build (Join-Path $root 'installer\keycuts.Installer.wixproj') -c Release 
     -p:ProductVersion=$Version -p:PublishDir=$publish -o $output
 if ($LASTEXITCODE -ne 0) { throw 'Building the MSI failed.' }
 
+# A project with a .wxl file builds into a folder per culture
+$culture = Join-Path $output 'en-US'
+Move-Item (Join-Path $culture '*') $output
+Remove-Item $culture
+
 Get-Item (Join-Path $output 'keycuts-setup.msi') | Select-Object FullName, @{ n = 'SizeMB'; e = { [math]::Round($_.Length / 1MB, 1) } }

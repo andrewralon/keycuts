@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The stock folder dialog talks about installing the app; here it picks the keycuts folder instead -->
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en-US">
+  <String Id="InstallDirDlgTitle" Value="{\WixUI_Font_Title}Keycuts folder" />
+  <String Id="InstallDirDlgDescription" Value="Your keycuts live here. It is added to your PATH so Win+R can find them." />
+  <String Id="InstallDirDlgFolderLabel" Value="Save keycuts to:" />
+</WixLocalization>

@@ -47,6 +47,8 @@ Four phases, executed in order. Within a phase, items are listed in recommended 
 | 5 | #11 CLI — create a keycut to the app itself on first run | S | Small, and belongs directly in the first-run flow the installer sets up. |
 | 6 | #61 BUG — after install, user has no idea how to find/use it | — | Closed by #105 + #11 together: installer finishes with "launch keycuts," first run explains the Win+R workflow and offers to create the self-keycut. |
 
+**Status (2026-11-07):** the Settings binding fix, #99, and the core of #105 are done. Installs are per-user with no elevation, from `installer/Package.wxs` (WiX v6). Still open from #105: code signing and the `keypaste` shim. The context-menu checkbox became a Settings toggle plus the `CONTEXTMENU=0` MSI property. The machine `PATH` code (`PathSetup`) was replaced by `UserPathUpdater`, which also covers the substring-match part of #94. #64's repro still needs a manual check in Explorer.
+
 ### Note on #99 vs. the tracker
 
 The original #99 body describes wrapping this behind `IShellIntegration`, gated on #90 (the seam). That's the *right* long-term shape, but the bug fix itself — swap the registry hive, fix the handler path — is about 20 lines in the existing `RegistryStuff.cs` and doesn't need an interface to ship. Do the direct fix now; the `IShellIntegration` wrapper happens in Phase 4 as part of the general core rework, at which point it should be a refactor of already-correct behavior, not a new bug fix.

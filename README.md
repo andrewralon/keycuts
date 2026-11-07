@@ -20,6 +20,16 @@ Create keycuts several ways:
 * CLI -- for all the hard-core nerds and brogrammers
 * Common -- for forking your own implementation
 
+## Install
+
+Run `keycuts-setup.msi`. It installs for your account only and **doesn't need admin rights**: files go to
+`%LOCALAPPDATA%\Programs\keycuts`, and the right-click menu and `PATH` entries go in your own registry hive. The .NET runtime
+is included. Turn the right-click menu off and on in Settings; on Windows 11 it appears under **Show more options**.
+
+Uninstalling removes the app, the menu, and the `PATH` entries. Your keycuts and settings stay.
+
+To build the installer, run `pwsh -File tools/Build-Installer.ps1`. It needs only the .NET SDK.
+
 ## The app
 
 The app is one compact window with two views.

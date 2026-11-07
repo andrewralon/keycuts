@@ -16,11 +16,12 @@ Entry points for creating one: the WPF app (drag/paste/browse a destination, nam
 - Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
 - Single test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
+- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast.
 
 Gotchas:
-- The build has **27 baseline CA1416** (Windows-only API) warnings, so `-warnaserror` isn't used. Don't add new ones. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
+- The build has **0 warnings**. Each project's `AssemblyInfo.cs` declares `SupportedOSPlatform("windows")` by hand, because `GenerateAssemblyInfo` is off; a new project needs the same line or CA1416 comes back. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
 - If `keycuts.GUI.exe` is running, the build fails with MSB3021/MSB3027 (file locked). That is not a code error; stop the process (the user has approved force-closing it). Close any instance you launch.
-- Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads (and can create) the `HKCU` key.
+- Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
 - A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
 - Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
 - No CI exists yet.
@@ -39,7 +40,7 @@ Five SDK-style projects in `keycuts.sln` (the old `keycuts.Batmanager` app was r
 
 The newer code wraps the legacy code rather than replacing it. Every create ends in the same place: `KeycutCreator` (GUI) validates, then calls `Runner.Run`, as the CLI does directly; `Runner.Run` builds a `Shortcut` and calls `CreateShortcutFile`. Reads also share one parser: `KeycutRepository.TryParse` wraps `ShortcutFile`. So a change to the emitter or parser affects every entry point.
 
-- **Legacy**: `Runner.Run` / `Runner.CreateShortcutFile` (the `.bat` emitter, returns `ExitCode`), `Shortcut` (classifies a destination into `ShortcutType`, resolves `.lnk`/`.url`), `ShortcutFile` (regex parser that reads a `.bat` back), `PathSetup`, `RegistryStuff` (`HKCU` settings plus `HKCR` context-menu verbs).
+- **Legacy**: `Runner.Run` / `Runner.CreateShortcutFile` (the `.bat` emitter, returns `ExitCode`), `Shortcut` (classifies a destination into `ShortcutType`, resolves `.lnk`/`.url`), `ShortcutFile` (regex parser that reads a `.bat` back), `RegistryStuff` (`HKCU` settings; reads never write).
 - **Newer, structured**: `DestinationResolver` (validates and classifies a destination, returns `DestinationResult`/`DestinationError`), `KeycutCreator` (returns `CreateResult` with a `CreateOutcome`, async, takes `CreateOptions` including an injectable `IPathUpdater`), `KeycutRepository` (loads/deletes `.bat` files in one folder, background destination checks), `Keycut`/`KeycutKind` (the manager's model). Validation differs by caller: the GUI gets `DestinationResolver` and name checks first, the CLI doesn't. The legacy `GetShortcutTypeFromDestination` still runs on every create (the `Shortcut` constructor) and in `MainFormLogic`.
 
 ### The `.bat` format
@@ -49,11 +50,11 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 ## Surprises and known landmines
 
 - `ShortcutType.Command` is parse-only: `Shortcut.GetShortcutTypeFromDestination` never returns it and the emitter has no branch for it, so a `Command` shortcut would emit an empty line then `EXIT`.
-- **PATH management** (`PathSetup`, reached from `Runner.Run` through `IPathUpdater`/`SystemPathUpdater`, Machine scope, needs elevation) is almost always a no-op, because old and new paths are usually equal. GUI creates never change `PATH`: `KeycutCreator` uses a fixed-folder `Runner`, which passes the same folder as both. Nothing proactively puts the output folder on `PATH` (the old installer did, and was deleted). In the rare `-o` case, `AddToSystemPath` returns `false` if the folder is already present, which surfaces as `ExitCode.CannotUpdatePath` and aborts creation. `ExistsInSystemPath` uses a substring `Contains`, so `C:\Shortcuts` matches `C:\Shortcuts2`. Read `gameplan.md` Phase 3.1 notes before touching `PathSetup.cs`.
+- **PATH management** (`UserPathUpdater`, reached from `Runner.Run` and `Runner.ChangeOutputFolder` through `IPathUpdater`) edits the user `PATH` in `HKCU\Environment` directly, because `Environment.SetEnvironmentVariable` would expand `%VARS%` and rewrite the value as `REG_SZ`. It is a no-op when old and new folders match, so the installer is what first puts the output folder on `PATH`. GUI creates never change `PATH`: `KeycutCreator` uses a fixed-folder `Runner`, which passes the same folder as both. Old entries on the machine `PATH` can't be removed without elevation and are left alone.
 - `Shortcut.GetShortcutTypeFromDestination` calls `File.GetAttributes` before checking existence, so a missing path throws (`DestinationResolver` is the safe alternative).
-- `RegistryStuff.CreateSubKey` is get-or-create and is used on read paths, so reads have write side effects.
-- Context-menu registration writes `Process.GetCurrentProcess().MainModule.FileName` as the handler, so whichever executable toggles the setting becomes the shell handler. `Runner.SetRightClickContextMenu` also reads the current value with `DefaultForceOverwrite` as its default instead of `DefaultRightClickContextMenu`.
-- `SettingsWindow.RightClickContextMenus` raises `NotifyPropertyChanged("RightClickContextMenu")`; the name doesn't match the property, so that binding never updates.
+- **Nothing needs elevation.** Context-menu verbs live in `HKCU\Software\Classes` (`ContextMenuRegistrar`, handler resolved from `AppContext.BaseDirectory`). Never write through `Registry.ClassesRoot`: it resolves to `HKLM` for these keys, and that write crashed the Settings window. The MSI writes the same keys in `installer/Package.wxs`, and a test compares the two lists.
+- The Settings checkbox shows whether the verbs exist, not the `RightClickContextMenu` value. That value only records the user's choice, so an MSI upgrade doesn't re-add a menu they turned off.
+- Windows 11 shows these classic verbs under "Show more options". The top-level menu needs a packaged `IExplorerCommand` handler.
 - The `HostsFile` check has two comparisons. The literal `C:\Windows\...\hosts` one works; the unexpanded `%windir%` one can never match, because the path has already been through `Path.GetFullPath`.
 
 ## Conventions

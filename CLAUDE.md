@@ -1,79 +1,70 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working in this repository.
 
 ## What keycuts is
 
-keycuts creates **generated script files** that let you open anything on your computer by nickname.
+keycuts creates **generated `.bat` files** that let you open anything on your computer by nickname. The `.bat` is written into a folder on the system `PATH`, so Windows Run (`Win+R`) resolves a bare name (`npp`, `gmail`, `db`). The generated script is the whole product: there is no database and no config file holding the shortcut list. The "list" is whatever `.bat` files are in the output folder (default `C:\Shortcuts`, stored in `HKCU`).
 
-On Windows, it writes a `.bat` file into a folder that is on the system `PATH`, so Windows Run (`Win+R`) resolves a bare name: `npp`, `rb`, `gmail`, `db`. The generated script is the entire product — there is no database and no config file holding the shortcut list.
+Entry points for creating one: the WPF app (drag/paste/browse a destination, name it, Enter), the Explorer right-click verb (launches the GUI with the destination as `args[0]`, handled in `keycuts.GUI/App.xaml.cs`), the CLI, or referencing `keycuts.Common`.
 
-Four ways to create one: the WPF GUI (drag a file in, name it), the Windows right-click context menu (opens the GUI with the destination pre-filled), the CLI, or by referencing `keycuts.Common` directly.
+## Commands
 
-## ⚠️ Current state: the repo does not build
+.NET SDK 10, Windows only (all projects target `net10.0-windows`; WPF and `Microsoft.Win32` registry). Run from the repo root:
 
-Do not assume a clean build. The only NuGet dependency is `CommandLineParser20` version `2.0.0.0`, an unofficial/repackaged build that **is not on nuget.org**. `packages/` is gitignored and absent, so restore fails. Its API does not match modern CommandLineParser 2.9 — it uses `DefaultValue =` on `[Option]` and reads `parsedArgs.Value` / `parsedArgs.Errors` directly.
+- Build: `dotnet build keycuts.sln`
+- Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
+- Single test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
+- Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
 
-`keycuts.Common` carries a reference to that package and a `packages.config` entry but contains **zero** `using CommandLine` statements. Removing it there is safe and unblocks the library.
+Gotchas:
+- The build has **27 baseline CA1416** (Windows-only API) warnings, so `-warnaserror` isn't used. Don't add new ones. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
+- If `keycuts.GUI.exe` is running, the build fails with MSB3021/MSB3027 (file locked). That is not a code error; stop the process (the user has approved force-closing it). Close any instance you launch.
+- Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder` and a fake `IPathUpdater`.
+- Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
+- No CI exists yet.
 
-There are no tests, no CI, no installer, no `.editorconfig`, and no `Directory.Build.props`.
+## Architecture
 
-## Current layout
+Five SDK-style projects in `keycuts.sln` (the old `keycuts.Batmanager` app was retired; its manager is now a view inside the GUI):
 
-All five projects are non-SDK-style, `TargetFrameworkVersion v4.6.1`, `AnyCPU`, VS2017 solution format.
+- `keycuts.Common`: all domain logic, no UI. Has a Shell32 COM reference (for `.lnk` resolution).
+- `keycuts.GUI`: WPF, single window with two views (Creator, Manager) driven by `ViewModels/` (`ShellViewModel` switches views). Side-effects go through `IKeycutActions` so view models are testable. `Themes/` holds tokens, light/dark/high-contrast dictionaries and `ThemeManager`; `Controls/` has `Icon`, `TypeBadge`, `MenuButton`, `SortHeaderButton`.
+- `keycuts.CLI`: assembly is named **`keycuts.exe`**, not `keycuts.CLI.exe`. Uses CommandLineParser 2.9.1.
+- `keypaste`: copies a keycut's destination to the clipboard (WinForms).
+- `keycuts.Tests`: references Common and GUI; covers creation, repository, resolver, view models, accessibility, sample data.
 
-| Project | Output | Notes |
-|---|---|---|
-| `keycuts.Common` | Library | All domain logic. Has a `COMReference` to Shell32. |
-| `keycuts.CLI` | Exe | Assembly is named **`keycuts.exe`**, not `keycuts.CLI.exe`. |
-| `keycuts.GUI` | WinExe (WPF) | `App.xaml.cs` takes `e.Args[0]` as the destination — this is the context-menu entry point. |
-| `keycuts.Batmanager` | WinExe (WPF) | DataGrid listing existing `.bat` files. |
-| `keypaste` | Exe | Copies a keycut's destination to the clipboard via `System.Windows.Forms`. |
+### Two generations of creation code in `keycuts.Common`
 
-### The core files, in the order they matter
+- **Legacy**: `Runner.Run` / `Runner.CreateShortcutFile` (the `.bat` emitter, returns `ExitCode`), `Shortcut` (classifies a destination into `ShortcutType`, resolves `.lnk`/`.url`), `ShortcutFile` (regex parser that reads a `.bat` back), `PathSetup`, `RegistryStuff` (`HKCU` settings plus `HKCR` context-menu verbs).
+- **Newer, structured**: `DestinationResolver` (validates and classifies a destination, returns `DestinationResult`/`DestinationError`), `KeycutCreator` (returns `CreateResult` with a `CreateOutcome`, async, takes `CreateOptions` including an injectable `IPathUpdater`), `KeycutRepository` (loads/deletes `.bat` files in one folder, background destination checks), `Keycut`/`KeycutKind` (the manager's model). The GUI uses the newer path; check which one a caller uses before assuming behavior. The legacy `GetShortcutTypeFromDestination` is still called by `MainFormLogic`.
 
-- `keycuts.Common/Runner.cs` — the **emitter**. `CreateShortcutFile` builds the `.bat` line list and writes it.
-- `keycuts.Common/ShortcutFile.cs` — the **parser**. Regex-based; reads a `.bat` back into a model.
-- `keycuts.Common/Shortcut.cs` — classifies a destination into `ShortcutType`; resolves `.lnk` and `.url`.
-- `keycuts.Common/RegistryStuff.cs` — `HKCU` settings plus `HKCR` context-menu verbs.
-- `keycuts.Common/PathSetup.cs` — machine-level `PATH` management. Coupled into every shortcut creation, but rarely actually touches `PATH` in practice — see below.
+### The `.bat` format
 
-## Three things that will surprise you
+`Runner.CreateShortcutFile` writes a header (`REM keycuts <version>`) plus `REM <shortcut>`, `<type>`, `<destination>`, and `<description>` comment lines, then the launch command and `EXIT`. The optional description is the only metadata the parser reads from those comments (regex in `ShortcutFile`); type and destination are still recovered by regex-parsing the launch command (lines containing `explorer.exe` or starting with `START`). Files without a description line show an empty description. A corpus of real `.bat` files, including a second legacy header schema (`keycuts 0.1.1.5`), lives in `tests/corpus/legacy/` (see its README).
 
-Read these before touching the emitter or parser.
+## Surprises and known landmines
 
-**1. The metadata sidecar already exists, and the parser ignores it.**
-`Runner.CreateShortcutFile` writes `REM <shortcut>…</shortcut>`, `REM <type>…</type>`, and `REM <destination>…</destination>` into every generated file. `ShortcutFile`'s constructor filters lines down to those containing `explorer.exe` or starting with `START`, then regex-parses the *command* to recover the type and destination. The structured metadata is written on every create and read on none.
-
-**2. `ShortcutType.Command` is parse-only.**
-`Shortcut.GetShortcutTypeFromDestination` never returns `Command`, and `Runner.CreateShortcutFile`'s `if/else` ladder has no branch for it. A `Command` shortcut emits an **empty line** followed by `EXIT`. Only `ShortcutFile` produces the value, on read. The emitter and the parser have asymmetric type domains.
-
-**3. `PATH` is coupled to shortcut creation, but almost never actually touches `PATH`.**
-`Runner.Run` calls `PathSetup.AddToOrReplaceInSystemPath(oldPath, newPath)` on every creation, at `EnvironmentVariableTarget.Machine` scope (requiring elevation) — but that call is a no-op unless `oldPath != newPath`, and `oldPath`/`newPath` are both derived from the same registry-stored output folder. In the ordinary flow (no `-o` flag, Settings already synced), `Environment.SetEnvironmentVariable` is never reached. The real problem is the opposite of what it looks like: **the app essentially never proactively puts its own output folder on `PATH`.** The deleted installer (`cdf5115`, "Remove terrible installer") almost certainly did that job, and nothing replaced it. The narrow case where `AddToSystemPath` *is* reached (an explicit `-o` pointing somewhere new) does have a real bug — it returns `false` when the folder is already present, which propagates to `ExitCode.CannotUpdatePath` and aborts the creation — but this is a rare trigger, not a per-create one. Separately, `ExistsInSystemPath` does a substring `Contains` over the whole `PATH` string, so `C:\Shortcuts` matches `C:\Shortcuts2`.
-
-## Other known landmines
-
-- `Shortcut.GetShortcutTypeFromDestination` calls `File.GetAttributes(destination)` **before** checking existence, so a missing or permission-denied path throws instead of yielding `ShortcutType.Unknown`.
-- The `HostsFile` check compares against `%windir%\System32\drivers\etc\hosts` *after* `Path.GetFullPath`, which does not expand environment variables. That branch is dead.
-- `RegistryStuff.CreateSubKey` is get-or-create and is used on read paths, so **reads have write side effects**.
+- `ShortcutType.Command` is parse-only: `Shortcut.GetShortcutTypeFromDestination` never returns it and the emitter has no branch for it, so a `Command` shortcut would emit an empty line then `EXIT`.
+- **PATH management** (`PathSetup`, called from `Runner.Run`, Machine scope, needs elevation) is almost always a no-op, because old and new paths come from the same registry value. Nothing proactively puts the output folder on `PATH` (the old installer did, and was deleted). In the rare `-o` case, `AddToSystemPath` returns `false` if the folder is already present, which surfaces as `ExitCode.CannotUpdatePath` and aborts creation. `ExistsInSystemPath` uses a substring `Contains`, so `C:\Shortcuts` matches `C:\Shortcuts2`. Read `gameplan.md` Phase 3.1 notes before touching `PathSetup.cs`.
+- `Shortcut.GetShortcutTypeFromDestination` calls `File.GetAttributes` before checking existence, so a missing path throws (`DestinationResolver` is the safe alternative).
+- `RegistryStuff.CreateSubKey` is get-or-create and is used on read paths, so reads have write side effects.
 - Context-menu registration writes `Process.GetCurrentProcess().MainModule.FileName` as the handler, so whichever executable toggles the setting becomes the shell handler.
-- `Runner.OpenBatmanager` locates its sibling exe by guessing paths, with a `#if DEBUG` `..\..\..` walk.
-- `SettingsWindow.RightClickContextMenus` raises `NotifyPropertyChanged("RightClickContextMenu")` — the name does not match the property, so the binding never updates.
+- `SettingsWindow.RightClickContextMenus` raises `NotifyPropertyChanged("RightClickContextMenu")`; the name doesn't match the property, so that binding never updates.
+- The `HostsFile` check compares against an unexpanded `%windir%` path, so that branch is dead.
+- `Runner.OpenBatmanager` may still exist in `Common`; the Batmanager exe it launches is gone.
 
-## Conventions in the existing code
+## Conventions
 
-`#region` blocks throughout; `var` everywhere; `out` parameters as the primary return idiom (`IsLink`, `MatchesRegex`, `IsValidUrl`, `GetShortcutTypeFromDestination`); `Console.WriteLine` used as logging *inside the library*. No `async` anywhere. No nullable annotations. Match the surrounding style when editing existing files.
+`#region` blocks, `var` everywhere, `out` parameters as the legacy return idiom, `Console.WriteLine` as logging inside the library. `.editorconfig` enforces Allman braces, 4-space C# / 2-space XAML and csproj. `keycuts.GUI` has `Nullable` enabled; `Common` does not. Match the surrounding style.
 
-## Where this is going
+## Where things are documented
 
-A modernization backlog is tracked in GitHub issues under milestones `M1 Foundation` through `M6 Polish`: .NET 10, SDK-style projects, an Avalonia UI replacing both WPF apps, macOS support, a WiX v6 MSI, and a signed macOS `.pkg`.
+- `README.md`: user-facing behavior of the Creator and Manager views.
+- `docs/tickets/` (`README.md`, `HANDOFF.md`, `KC-*.md`): the UI redesign breakdown (KC-01 to KC-20) and its recorded decisions.
+- `docs/design-reference/`: the React/Figma prototype used as the visual spec. Port look and behavior, not code; don't add React/WebView to the app.
+- `gameplan.md`: phased roadmap (installer and context menu, backlog, then macOS/Avalonia). The target layout (`src/Keycuts.Core` plus per-platform projects behind interfaces like `IPathService`/`IFileSystem`) is future work, not current.
 
-The target layout introduces `src/Keycuts.Core` plus `Keycuts.Platform.Windows` / `Keycuts.Platform.MacOS` behind a set of interfaces.
+## Sequencing rule
 
-**The rule that makes it work:** `Keycuts.Core` must never call `Path.GetFullPath`, `File.*`, `Process.Start`, `Environment.SetEnvironmentVariable`, or `Microsoft.Win32.*` directly. Everything goes through injected abstractions (`IPathService`, `IFileSystem`, `IDestinationLauncher`, …). This is what lets Windows-specific logic be unit-tested from a Mac, which matters because development happens on macOS.
-
-### Sequencing rule
-
-There is a regex parser that has never had a test, and the plan changes both the file format and the platform underneath it. **Never move two variables in one commit.** A corpus of real `.bat` files already exists at `tests/corpus/legacy/` (see its own `README.md` — it includes a previously unknown second header schema found in the wild, `keycuts 0.1.1.5`, in addition to the current one). Pin current behavior with characterization tests against it — including the bugs — before changing any emitter or parser logic.
-
-See `gameplan.md` at the repo root for the current phase-by-phase execution order and the reasoning behind it, including corrections made after reading the relevant code directly (in particular: the `PATH` behavior described above was originally mischaracterized as "rewritten on every create" — read the gameplan's Phase 3.1 notes before touching `PathSetup.cs`).
+The parser has thin test coverage and the plan changes both the file format and the platform underneath it. **Never move two variables in one commit.** Pin current behavior (including bugs) with characterization tests against `tests/corpus/legacy/` before changing emitter or parser logic.

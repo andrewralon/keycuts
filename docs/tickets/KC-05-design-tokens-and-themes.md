@@ -23,7 +23,7 @@ radii, and light/dark palettes. `App.xaml` currently has an empty `Resources` bl
   - `FocusVisualStyle`: 2px accent outline offset by 2px, matching `:focus-visible`. Show it **only** for keyboard focus,
     which is WPF's default `FocusVisualStyle` behavior.
   - `ContextMenu` / `MenuItem` (used by KC-14), `ToolTip`, `ScrollBar` (slim and unobtrusive), and an inline spinner.
-- Theme switching (decided: follow Windows, no in-app toggle):
+- Theme switching (decided: follow Windows, no in-app toggle; later superseded by the System, Light, Dark choice in Settings):
   - Follow the Windows app theme by reading `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme`.
     Listen with `SystemEvents.UserPreferenceChanged` and swap the merged dictionary at runtime.
   - Use a dark title bar in dark mode (`DwmSetWindowAttribute`, `DWMWA_USE_IMMERSIVE_DARK_MODE` = 20) so the native chrome matches.

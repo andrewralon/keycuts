@@ -25,6 +25,8 @@ namespace keycuts.GUI
 
         public bool RightClickContextMenus { get; set; }
 
+        public ThemePreference Theme { get; set; }
+
         public Settings()
         {
             runner = new Runner();
@@ -35,6 +37,7 @@ namespace keycuts.GUI
             OutputFolder = runner.GetOutputFolder();
             ForceOverwrite = runner.GetForceOverwrite();
             RightClickContextMenus = runner.GetRightClickContextMenu();
+            Theme = runner.GetThemePreference();
         }
 
         public static bool IsValidOutputFolder(string? folder)
@@ -62,6 +65,7 @@ namespace keycuts.GUI
                 }
 
                 runner.SetForceOverwrite(ForceOverwrite);
+                runner.SetThemePreference(Theme);
 
                 if (!runner.SetRightClickContextMenu(RightClickContextMenus))
                 {

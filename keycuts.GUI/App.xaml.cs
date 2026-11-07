@@ -31,7 +31,8 @@ namespace keycuts.GUI
 
         private void ShowMainWindow(string[] args)
         {
-            Themes.ThemeManager.Initialize(this);
+            // Before the first window, so a saved theme never flashes the wrong palette
+            Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
 
             var shell = new ViewModels.ShellViewModel(
                 () => Common.KeycutRepository.CreateDefault().CountAsync(),

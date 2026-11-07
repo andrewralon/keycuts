@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:keycuts.GUI"
+        xmlns:common="clr-namespace:keycuts.Common;assembly=keycuts.Common"
         mc:Ignorable="d"
-        Title="Settings" Height="350" Width="425" FontSize="18" MinWidth="425" MinHeight="350" KeyDown="Settings_KeyDown">
+        Title="Settings" Height="460" Width="425" FontSize="18" MinWidth="425" MinHeight="460" KeyDown="Settings_KeyDown" Closed="Settings_Closed">
     <Grid>
         <Grid x:Name="GridSettingsMargin" Margin="20">
             <Grid.RowDefinitions>
@@ -13,6 +14,7 @@
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
+                <RowDefinition Height="1.6*"/>
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
@@ -32,7 +34,18 @@
                           Content="{Binding Path=LabelRightClickContextMenus, FallbackValue='Right Click Context Menus'}" 
                           HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
             </Grid>
-            <Grid Grid.Row="4">
+            <StackPanel Grid.Row="4" VerticalAlignment="Center">
+                <Label Content="{Binding Path=LabelTheme, FallbackValue='Theme'}" HorizontalAlignment="Left"/>
+                <StackPanel x:Name="ThemeChoices" Orientation="Horizontal" Margin="10,4,10,0">
+                    <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
+                                 AutomationProperties.Name="System theme" Checked="Theme_Checked" Margin="0,0,16,0"/>
+                    <RadioButton Content="Light" GroupName="Theme" Tag="{x:Static common:ThemePreference.Light}"
+                                 AutomationProperties.Name="Light theme" Checked="Theme_Checked" Margin="0,0,16,0"/>
+                    <RadioButton Content="Dark" GroupName="Theme" Tag="{x:Static common:ThemePreference.Dark}"
+                                 AutomationProperties.Name="Dark theme" Checked="Theme_Checked"/>
+                </StackPanel>
+            </StackPanel>
+            <Grid Grid.Row="5">
                 <Button Content="Save Settings" Click="SaveSettings_Click" HorizontalAlignment="Center" Margin="10" MinWidth="170"/>
             </Grid>
         </Grid>

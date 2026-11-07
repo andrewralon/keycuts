@@ -46,7 +46,7 @@ Batmanager app, which has been removed).
   **Copy destination**, and **Delete**. Delete has no confirmation.
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
-The app follows the Windows light/dark setting and high-contrast themes.
+Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.
 
 Screenshots aren't included: they couldn't be captured headlessly and should be added by hand.
 

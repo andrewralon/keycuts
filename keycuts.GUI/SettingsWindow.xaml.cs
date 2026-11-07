@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using keycuts.Common;
+using keycuts.GUI.Themes;
 
 namespace keycuts.GUI
 {
@@ -32,6 +35,8 @@ namespace keycuts.GUI
 
         private bool rightClickContextMenus;
 
+        private ThemePreference theme;
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         #endregion Fields
@@ -43,6 +48,8 @@ namespace keycuts.GUI
         public string LabelForceOverwrite { get; } = "Force Overwrite (if shortcut exists)";
 
         public string LabelRightClickContextMenus { get; } = "Right Click Context Menus";
+
+        public string LabelTheme { get; } = "Theme";
 
         public string OutputFolder
         {
@@ -93,6 +100,9 @@ namespace keycuts.GUI
             OutputFolder = settings.OutputFolder;
             ForceOverwrite = settings.ForceOverwrite;
             RightClickContextMenus = settings.RightClickContextMenus;
+
+            theme = settings.Theme;
+            ThemeChoices.Children.OfType<RadioButton>().First(choice => (ThemePreference)choice.Tag == theme).IsChecked = true;
         }
 
         private void CloseWindow()
@@ -108,7 +118,8 @@ namespace keycuts.GUI
             {
                 OutputFolder = OutputFolder,
                 ForceOverwrite = CheckboxForceOverwrite.IsChecked == true,
-                RightClickContextMenus = RightClickContextMenus
+                RightClickContextMenus = RightClickContextMenus,
+                Theme = theme
             };
 
             var error = mainFormLogic.SaveSettings(settings);
@@ -117,6 +128,19 @@ namespace keycuts.GUI
             {
                 MessageBox.Show(this, error, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        // A click previews the theme right away; only Save keeps it.
+        private void Theme_Checked(object sender, RoutedEventArgs e)
+        {
+            theme = (ThemePreference)((RadioButton)sender).Tag;
+            ThemeManager.SetPreference(theme);
+        }
+
+        // Drops an unsaved preview. After a save this reads back the same choice, so nothing changes.
+        private void Settings_Closed(object? sender, EventArgs e)
+        {
+            ThemeManager.SetPreference(RegistryStuff.GetThemePreference());
         }
 
         private void Settings_KeyDown(object sender, KeyEventArgs e)

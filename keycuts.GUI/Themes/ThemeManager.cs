@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using keycuts.Common;
 using Microsoft.Win32;
 
 // This app is Windows-only; the CA1416 platform analyzer doesn't recognise the Windows TFM here.
@@ -19,7 +20,7 @@ namespace keycuts.GUI.Themes
     }
 
     /// <summary>
-    /// Follows the Windows app theme (light/dark, no in-app toggle) by swapping the palette dictionary at runtime.
+    /// Applies the user's theme choice by swapping the palette dictionary at runtime. The System choice follows the Windows app theme live.
     /// </summary>
     public static class ThemeManager
     {
@@ -31,17 +32,25 @@ namespace keycuts.GUI.Themes
 
         public static ThemeVariant Current { get; private set; } = ThemeVariant.Light;
 
+        public static ThemePreference Preference { get; private set; }
+
         /// <summary>
-        /// High contrast wins; otherwise AppsUseLightTheme = 0 means dark. A missing value means light.
+        /// High contrast always wins, because it is an accessibility need. Then the user's choice; with System,
+        /// AppsUseLightTheme = 0 means dark and a missing value means light.
         /// </summary>
-        public static ThemeVariant Resolve(int? appsUseLightTheme, bool highContrast)
+        public static ThemeVariant Resolve(int? appsUseLightTheme, bool highContrast, ThemePreference preference = ThemePreference.System)
         {
             if (highContrast)
             {
                 return ThemeVariant.HighContrast;
             }
 
-            return appsUseLightTheme == 0 ? ThemeVariant.Dark : ThemeVariant.Light;
+            return preference switch
+            {
+                ThemePreference.Light => ThemeVariant.Light,
+                ThemePreference.Dark => ThemeVariant.Dark,
+                _ => appsUseLightTheme == 0 ? ThemeVariant.Dark : ThemeVariant.Light
+            };
         }
 
         public static string GetPaletteFileName(ThemeVariant variant)
@@ -54,9 +63,10 @@ namespace keycuts.GUI.Themes
             };
         }
 
-        public static void Initialize(Application app)
+        public static void Initialize(Application app, ThemePreference preference = ThemePreference.System)
         {
             application = app;
+            Preference = preference;
             EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnWindowLoaded));
             SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
             app.Exit += (_, _) => SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
@@ -65,7 +75,19 @@ namespace keycuts.GUI.Themes
 
         public static ThemeVariant DetectVariant()
         {
-            return Resolve(ReadAppsUseLightTheme(), SystemParameters.HighContrast);
+            return Resolve(ReadAppsUseLightTheme(), SystemParameters.HighContrast, Preference);
+        }
+
+        /// <summary>Re-themes every open window now. Saving the choice is the caller's job.</summary>
+        public static void SetPreference(ThemePreference preference)
+        {
+            Preference = preference;
+
+            var variant = DetectVariant();
+            if (variant != Current)
+            {
+                Apply(variant);
+            }
         }
 
         static int? ReadAppsUseLightTheme()

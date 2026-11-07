@@ -16,6 +16,8 @@ namespace keycuts.Common
         /// <summary>The user's last choice. The installer reads it so an upgrade doesn't bring back a menu they turned off.</summary>
         public static readonly string RightClickContextMenuKeyName = "RightClickContextMenu";
 
+        public static readonly string ThemeKeyName = "Theme";
+
         #region Get Methods
 
         /// <summary>Reads never write: a missing or unreadable value just yields the default.</summary>
@@ -51,6 +53,11 @@ namespace keycuts.Common
             return new ContextMenuRegistrar().IsRegistered();
         }
 
+        public static ThemePreference GetThemePreference()
+        {
+            return ThemePreferences.Parse(ReadValue(ThemeKeyName) as string);
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -73,6 +80,11 @@ namespace keycuts.Common
         public static void SetForceOverwrite(bool forceOverwrite)
         {
             SetRegistryValue(ForceOverwriteKeyName, forceOverwrite, RegistryValueKind.DWord);
+        }
+
+        public static void SetThemePreference(ThemePreference preference)
+        {
+            SetRegistryValue(ThemeKeyName, preference.ToString(), RegistryValueKind.String);
         }
 
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>

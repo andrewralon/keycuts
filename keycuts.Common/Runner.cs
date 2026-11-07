@@ -131,6 +131,11 @@ namespace keycuts.Common
             return RegistryStuff.GetRightClickContextMenu();
         }
 
+        public ThemePreference GetThemePreference()
+        {
+            return RegistryStuff.GetThemePreference();
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -172,6 +177,14 @@ namespace keycuts.Common
             if (currentForceOverwrite != forceOverwrite)
             {
                 RegistryStuff.SetForceOverwrite(forceOverwrite);
+            }
+        }
+
+        public void SetThemePreference(ThemePreference preference)
+        {
+            if (RegistryStuff.GetThemePreference() != preference)
+            {
+                RegistryStuff.SetThemePreference(preference);
             }
         }
 

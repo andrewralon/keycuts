@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using keycuts.Common;
 using keycuts.GUI.Themes;
 using Xunit;
 
@@ -22,6 +23,51 @@ namespace keycuts.Tests
         public void Resolve_PicksVariantFromWindowsSettings(int? appsUseLightTheme, bool highContrast, ThemeVariant expected)
         {
             Assert.Equal(expected, ThemeManager.Resolve(appsUseLightTheme, highContrast));
+        }
+
+        [Theory]
+        [InlineData(0, ThemePreference.Light, ThemeVariant.Light)]
+        [InlineData(1, ThemePreference.Light, ThemeVariant.Light)]
+        [InlineData(null, ThemePreference.Light, ThemeVariant.Light)]
+        [InlineData(0, ThemePreference.Dark, ThemeVariant.Dark)]
+        [InlineData(1, ThemePreference.Dark, ThemeVariant.Dark)]
+        [InlineData(null, ThemePreference.Dark, ThemeVariant.Dark)]
+        [InlineData(0, ThemePreference.System, ThemeVariant.Dark)]
+        [InlineData(1, ThemePreference.System, ThemeVariant.Light)]
+        public void Resolve_TheUsersChoiceBeatsWindows_UnlessItIsSystem(int? appsUseLightTheme, ThemePreference preference, ThemeVariant expected)
+        {
+            Assert.Equal(expected, ThemeManager.Resolve(appsUseLightTheme, false, preference));
+        }
+
+        [Theory]
+        [InlineData(ThemePreference.Light)]
+        [InlineData(ThemePreference.Dark)]
+        [InlineData(ThemePreference.System)]
+        public void Resolve_HighContrastBeatsTheUsersChoice(ThemePreference preference)
+        {
+            Assert.Equal(ThemeVariant.HighContrast, ThemeManager.Resolve(0, true, preference));
+        }
+
+        [Theory]
+        [InlineData("Light", ThemePreference.Light)]
+        [InlineData("dark", ThemePreference.Dark)]
+        [InlineData("System", ThemePreference.System)]
+        [InlineData(null, ThemePreference.System)]
+        [InlineData("", ThemePreference.System)]
+        [InlineData("1", ThemePreference.System)]
+        [InlineData("Sepia", ThemePreference.System)]
+        public void ThemePreference_ParsesSavedValues_AndFallsBackToSystem(string value, ThemePreference expected)
+        {
+            Assert.Equal(expected, ThemePreferences.Parse(value));
+        }
+
+        [Fact]
+        public void ThemePreference_RoundTripsThroughItsSavedName()
+        {
+            foreach (var preference in Enum.GetValues<ThemePreference>())
+            {
+                Assert.Equal(preference, ThemePreferences.Parse(preference.ToString()));
+            }
         }
 
         [Theory]

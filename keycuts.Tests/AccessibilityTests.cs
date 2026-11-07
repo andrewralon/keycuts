@@ -210,6 +210,96 @@ namespace keycuts.Tests
             });
         }
 
+        // WPF's default Label and CheckBox styles set the system control-text color, so they don't inherit the window's Foreground.
+        [Fact]
+        public void LabelAndCheckBox_UseThePaletteTextColor()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var label = new Label { Content = "Output Folder" };
+                var checkBox = new CheckBox { Content = "Force Overwrite" };
+                var panel = new StackPanel();
+                panel.Children.Add(label);
+                panel.Children.Add(checkBox);
+                var window = Host(panel, new object());
+                try
+                {
+                    var expected = ((SolidColorBrush)Application.Current.FindResource("TextBrush")).Color;
+                    Assert.Equal(expected, ((SolidColorBrush)label.Foreground).Color);
+                    Assert.Equal(expected, ((SolidColorBrush)checkBox.Foreground).Color);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void CheckBox_DrawsItsStateFromThePalette()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var checkBox = new CheckBox { Content = "Force Overwrite" };
+                var window = Host(checkBox, new object());
+                try
+                {
+                    var box = (Border)checkBox.Template.FindName("Box", checkBox);
+                    var mark = (Icon)checkBox.Template.FindName("Mark", checkBox);
+                    var surface = ((SolidColorBrush)Application.Current.FindResource("SurfaceBrush")).Color;
+                    var accent = ((SolidColorBrush)Application.Current.FindResource("AccentBrush")).Color;
+
+                    Assert.Equal(surface, ((SolidColorBrush)box.Background).Color);
+                    Assert.Equal(Visibility.Collapsed, mark.Visibility);
+
+                    checkBox.IsChecked = true;
+                    Pump();
+                    Assert.Equal(accent, ((SolidColorBrush)box.Background).Color);
+                    Assert.Equal(Visibility.Visible, mark.Visibility);
+
+                    Assert.Same(Application.Current.FindResource("AppFocusVisual"), checkBox.FocusVisualStyle);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void RadioButton_DrawsItsStateFromThePalette()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var radio = new RadioButton { Content = "Dark" };
+                var window = Host(radio, new object());
+                try
+                {
+                    var box = (Border)radio.Template.FindName("Box", radio);
+                    var mark = (System.Windows.Shapes.Ellipse)radio.Template.FindName("Mark", radio);
+                    var text = ((SolidColorBrush)Application.Current.FindResource("TextBrush")).Color;
+                    var accent = ((SolidColorBrush)Application.Current.FindResource("AccentBrush")).Color;
+
+                    Assert.Equal(text, ((SolidColorBrush)radio.Foreground).Color);
+                    Assert.Equal(Visibility.Collapsed, mark.Visibility);
+
+                    radio.IsChecked = true;
+                    Pump();
+                    Assert.Equal(accent, ((SolidColorBrush)box.Background).Color);
+                    Assert.Equal(Visibility.Visible, mark.Visibility);
+
+                    Assert.Same(Application.Current.FindResource("AppFocusVisual"), radio.FocusVisualStyle);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         static string FocusedName()
         {
             var focused = System.Windows.Input.Keyboard.FocusedElement as DependencyObject;

@@ -24,6 +24,7 @@ external `keycuts.Batmanager` launch from the GUI. Reference: the prototype's `B
    - **Missing destination:** if `DestinationStatus == Missing`, show a small `Danger` "Missing" indicator (icon plus text)
      next to or under the name, with a tooltip. Color must not be the only cue.
    - **No whole-row click behavior.** No row selection highlight, no double-click handling, and Enter on a row does nothing.
+     *Superseded:* Up and Down now select rows (a click does too), and Enter opens the selected keycut. There is still no double-click handling.
      Rows get only a restrained `SurfaceHover` background on hover, with an arrow cursor rather than a hand. The row whose menu
      is open keeps that tint.
    - UI virtualization is on (`VirtualizingPanel.IsVirtualizing`, `VirtualizationMode=Recycling`), and scrolling is smooth with 100+ rows.

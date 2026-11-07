@@ -26,6 +26,10 @@ Run `keycuts-setup.msi`. It installs for your account only and **doesn't need ad
 `%LOCALAPPDATA%\Programs\keycuts`, and the right-click menu and `PATH` entries go in your own registry hive. The .NET runtime
 is included. Turn the right-click menu off and on in Settings; on Windows 11 it appears under **Show more options**.
 
+The installer asks where to keep your keycuts and adds that folder to your `PATH`. The default is `%USERPROFILE%\Shortcuts`, and any
+folder you can write to works, such as `C:\Shortcuts`. Upgrades keep your folder without asking; change it later in Settings. For a
+silent install, pass it on the command line: `msiexec /i keycuts-setup.msi /qn OUTPUTFOLDER="C:\Shortcuts"`.
+
 Uninstalling removes the app, the menu, and the `PATH` entries. Your keycuts and settings stay.
 
 To build the installer, run `pwsh -File tools/Build-Installer.ps1`. It needs only the .NET SDK.
@@ -41,6 +45,7 @@ The type icon updates as you go, and invalid destinations or duplicate names are
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).
 * Search by name, type, description, or destination. Escape clears the search.
+* Up and Down select a row, even while you're typing in the search box, and Enter opens the selected keycut. Clicking a row selects it too.
 * Sort by Shortcut, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
   **Copy destination**, and **Delete**. Delete has no confirmation.
@@ -60,7 +65,7 @@ registry or PATH. Generate fixtures with `tools/New-SampleKeycuts.ps1`:
 $env:KEYCUTS_OUTPUT_FOLDER = "$env:TEMP\keycuts-fixtures-100"
 ```
 
-The script refuses to write into the real output folder (default `C:\Shortcuts`). The override is ignored in Release builds.
+The script refuses to write into `C:\Shortcuts`, `%USERPROFILE%\Shortcuts`, or your configured output folder. The override is ignored in Release builds.
 
 ## Development
 

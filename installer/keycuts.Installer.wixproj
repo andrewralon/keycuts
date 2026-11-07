@@ -1,0 +1,15 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+  <PropertyGroup>
+    <OutputName>keycuts-setup</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <PublishDir Condition="'$(PublishDir)' == ''">..\artifacts\publish</PublishDir>
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir)</DefineConstants>
+    <!-- ICE38/ICE64 want an HKCU key path on every per-user component. The harvested files are removed with the
+         product regardless, and those rules only matter for roaming profiles. -->
+    <SuppressIces>ICE38;ICE64;ICE91</SuppressIces>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
+  </ItemGroup>
+</Project>

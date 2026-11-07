@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Per-user install: every write below lands in the user's own profile or HKCU, so the MSI never asks for
+  elevation. The verbs must match ContextMenuRegistrar in keycuts.Common; a test compares the two.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package Name="keycuts"
+           Manufacturer="TeamRalon"
+           Version="$(ProductVersion)"
+           UpgradeCode="8DDBEB51-4EB5-4F48-8BAA-6CC8C2F49B44"
+           Scope="perUser"
+           Compressed="yes">
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of keycuts is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="keycuts.ico" SourceFile="..\keycuts.GUI\Images\TR_256_ico.ico" />
+    <Property Id="ARPPRODUCTICON" Value="keycuts.ico" />
+
+    <!-- Existing settings win over the defaults, so upgrades keep a custom folder and a menu the user turned off -->
+    <Property Id="OUTPUTFOLDER" Value="C:\Shortcuts" Secure="yes">
+      <RegistrySearch Id="ExistingOutputFolder" Root="HKCU" Key="Software\TeamRalon\keycuts" Name="OutputFolder" Type="raw" />
+    </Property>
+    <Property Id="CONTEXTMENUCHOICE">
+      <RegistrySearch Id="ExistingContextMenuChoice" Root="HKCU" Key="Software\TeamRalon\keycuts" Name="RightClickContextMenu" Type="raw" />
+    </Property>
+    <Property Id="CONTEXTMENU" Value="1" Secure="yes" />
+    <SetProperty Id="CONTEXTMENU" Value="0" After="AppSearch" Sequence="both" Condition="CONTEXTMENUCHOICE = &quot;#0&quot;" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="UserProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="keycuts" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PublishDir)\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="UserIntegration" Directory="INSTALLFOLDER">
+      <Component Id="Core" Guid="6F0C5C0B-2C3B-4B1E-9D54-7C2E1B7E3A10">
+        <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="InstallFolder" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+
+        <!-- Win+R finds keycuts through the output folder; the install folder exposes keycuts.exe and keypaste.exe -->
+        <Environment Id="PathOutputFolder" Name="PATH" Value="[OUTPUTFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
+        <Environment Id="PathInstallFolder" Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
+
+        <!-- Settings can add these after install, so uninstall removes them even when the component below is absent -->
+        <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Directory\shell\keycuts" />
+        <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Directory\Background\shell\keycuts" />
+        <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\*\shell\keycuts" />
+        <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Folder\shell\keycuts" />
+
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveUserProgramsFolder" Directory="UserProgramsFolder" On="uninstall" />
+      </Component>
+
+      <Component Id="StartMenu" Guid="B7C1E7A4-3D0F-4B7B-8E4F-1F7A2D9C6E21">
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="keycuts" Target="[INSTALLFOLDER]keycuts.GUI.exe" WorkingDirectory="INSTALLFOLDER" Icon="keycuts.ico" />
+        <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ContextMenu" Guid="2E9A4B6C-7D15-4C38-A0F1-5B3C8E6D9F32" Condition="CONTEXTMENU = &quot;1&quot;">
+        <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="ContextMenuInstalled" Type="integer" Value="1" KeyPath="yes" />
+
+        <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\keycuts">
+          <RegistryValue Type="string" Value="keycut this!" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Classes\Directory\shell\keycuts\command">
+          <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]keycuts.GUI.exe&quot; &quot;%1&quot;" />
+        </RegistryKey>
+
+        <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\keycuts">
+          <RegistryValue Type="string" Value="keycut this!" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Classes\Directory\Background\shell\keycuts\command">
+          <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]keycuts.GUI.exe&quot; &quot;%V&quot;" />
+        </RegistryKey>
+
+        <RegistryKey Root="HKCU" Key="Software\Classes\*\shell\keycuts">
+          <RegistryValue Type="string" Value="keycut this!" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Classes\*\shell\keycuts\command">
+          <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]keycuts.GUI.exe&quot; &quot;%1&quot;" />
+        </RegistryKey>
+
+        <RegistryKey Root="HKCU" Key="Software\Classes\Folder\shell\keycuts">
+          <RegistryValue Type="string" Value="keycut this!" />
+        </RegistryKey>
+        <RegistryKey Root="HKCU" Key="Software\Classes\Folder\shell\keycuts\command">
+          <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]keycuts.GUI.exe&quot; &quot;%1&quot;" />
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="keycuts">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="UserIntegration" />
+    </Feature>
+
+    <!-- Welcome, confirm, install: there is no license to accept and no folder to choose in a per-user install -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch keycuts" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <CustomAction Id="LaunchKeycuts" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]keycuts.GUI.exe&quot;" Return="asyncNoWait" Impersonate="yes" />
+    <UI>
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="10" Condition="NOT Installed" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="10" Condition="NOT Installed" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchKeycuts" Order="10" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+  </Package>
+</Wix>

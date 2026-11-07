@@ -4,7 +4,6 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <RootNamespace>keycuts.GUI</RootNamespace>
     <AssemblyName>keycuts.GUI</AssemblyName>
     <!-- Windows without an Icon of their own take this one, so it covers the title bar and the taskbar too -->

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputName>keycuts-setup</OutputName>
     <InstallerPlatform>x64</InstallerPlatform>
-    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">$(Version)</ProductVersion>
     <PublishDir Condition="'$(PublishDir)' == ''">..\artifacts\publish</PublishDir>
     <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir)</DefineConstants>
     <!-- ICE38/ICE64 want an HKCU key path on every per-user component. The harvested files are removed with the

@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <!-- The one place the version lives. It stamps the exes and the MSI, and a merge into master that raises it
+         publishes a GitHub release tagged v<Version> (.github/workflows/release.yml). Three parts: MSI upgrades
+         ignore a fourth. -->
+    <Version>1.1.0</Version>
+  </PropertyGroup>
+
+  <!-- Projects with a hand-written Properties\AssemblyInfo.cs keep it, so let the SDK generate only the version
+       attributes. Everything else it would generate is already in that file (SupportedOSPlatform included). -->
+  <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)\Properties\AssemblyInfo.cs')">
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <GenerateAssemblyVersionAttribute>true</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>true</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>true</GenerateAssemblyInformationalVersionAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyTrademarkAttribute>false</GenerateAssemblyTrademarkAttribute>
+    <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
+    <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
+    <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
+  </PropertyGroup>
+</Project>

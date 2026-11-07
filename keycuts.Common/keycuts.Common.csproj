@@ -3,7 +3,6 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>keycuts.Common</RootNamespace>
     <AssemblyName>keycuts.Common</AssemblyName>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>false</UseWindowsForms>
     <UseWPF>false</UseWPF>
   </PropertyGroup>

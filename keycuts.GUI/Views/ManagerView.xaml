@@ -8,7 +8,7 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.ManagerTwoItems}"
              Background="{DynamicResource SurfaceBrush}"
-             Loaded="ManagerView_Loaded">
+             Loaded="ManagerView_Loaded" PreviewKeyDown="ManagerView_PreviewKeyDown">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
@@ -107,7 +107,8 @@
       </Setter>
     </Style>
 
-    <!-- Rows have no selection, focus or click behavior; only a restrained hover tint. -->
+    <!-- Rows take no keyboard focus: Up and Down move the selection while focus stays in the search box.
+         The bar keeps the selection visible in high contrast, where the tint disappears. -->
     <Style x:Key="ManagerRow" TargetType="DataGridRow">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Cursor" Value="Arrow" />
@@ -119,9 +120,18 @@
           <ControlTemplate TargetType="DataGridRow">
             <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,0,1" SnapsToDevicePixels="True">
-              <DataGridCellsPresenter ItemsPanel="{TemplateBinding ItemsPanel}"
-                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+              <Grid>
+                <DataGridCellsPresenter ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                <Rectangle x:Name="SelectionBar" Width="3" HorizontalAlignment="Left" Visibility="Collapsed"
+                           Fill="{DynamicResource AccentBrush}" />
+              </Grid>
             </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="SelectionBar" Property="Visibility" Value="Visible" />
+              </Trigger>
+            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
@@ -132,6 +142,9 @@
         <DataTrigger Binding="{Binding IsMenuOpen}" Value="True">
           <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
         </DataTrigger>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        </Trigger>
       </Style.Triggers>
     </Style>
 
@@ -275,7 +288,7 @@
               CornerRadius="{StaticResource RadiusMd}" SizeChanged="TableHost_SizeChanged"
               Visibility="{Binding IsTableVisible, Converter={StaticResource BoolToVisibility}}">
         <DataGrid x:Name="Table" Style="{StaticResource ManagerTable}" ItemsSource="{Binding Rows}"
-                  AutomationProperties.Name="Keycuts" PreviewKeyDown="Table_PreviewKeyDown"
+                  SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="Keycuts"
                   KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
             <DataGridTemplateColumn Width="1.7*" MinWidth="190">

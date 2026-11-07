@@ -93,6 +93,7 @@ namespace keycuts.GUI.ViewModels
             }
 
             Manager.SearchText = string.Empty;
+            Manager.SelectedRow = null;
             Manager.IsMenuOpen = false;
             SetMode(ShellMode.Manager, Manager);
             _ = ReloadAsync();

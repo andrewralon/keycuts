@@ -383,5 +383,129 @@ namespace keycuts.Tests
 
             Assert.Equal(1, shell.Creator.KeycutCount);
         }
+
+        #region Selection
+
+        [Fact]
+        public async Task MoveSelection_StartsAtTheFirstRowGoingDown_AndTheLastGoingUp()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b", "c");
+
+            Assert.True(manager.MoveSelection(1));
+            Assert.Equal("a", manager.SelectedRow?.Name);
+
+            manager.SelectedRow = null;
+
+            Assert.True(manager.MoveSelection(-1));
+            Assert.Equal("c", manager.SelectedRow?.Name);
+        }
+
+        [Fact]
+        public async Task MoveSelection_StopsAtBothEnds()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b");
+
+            manager.MoveSelection(1);
+            manager.MoveSelection(1);
+            manager.MoveSelection(1);
+            Assert.Equal("b", manager.SelectedRow?.Name);
+
+            manager.MoveSelection(-1);
+            manager.MoveSelection(-1);
+            Assert.Equal("a", manager.SelectedRow?.Name);
+        }
+
+        [Fact]
+        public async Task MoveSelection_WithNoRows_ReportsThatNothingMoved()
+        {
+            var manager = await LoadedAsync(new FakeActions());
+
+            Assert.False(manager.MoveSelection(1));
+            Assert.Null(manager.SelectedRow);
+        }
+
+        [Fact]
+        public async Task OpenSelected_LaunchesTheSelectedRow()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.MoveSelection(1);
+            manager.MoveSelection(1);
+
+            Assert.True(manager.OpenSelected());
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Launched);
+        }
+
+        [Fact]
+        public async Task OpenSelected_WithoutASelection_DoesNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+
+            Assert.False(manager.OpenSelected());
+            Assert.Empty(actions.Launched);
+        }
+
+        [Fact]
+        public async Task Selection_SurvivesASearchThatKeepsTheRow_AndClearsWhenItIsFilteredOut()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "alpha", "bravo");
+            manager.MoveSelection(1);
+
+            manager.SearchText = "alp";
+            Assert.Equal("alpha", manager.SelectedRow?.Name);
+
+            manager.SearchText = "bra";
+            Assert.Null(manager.SelectedRow);
+        }
+
+        [Fact]
+        public async Task Selection_SurvivesSorting()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b");
+            manager.MoveSelection(1);
+
+            manager.SortBy(SortColumn.Shortcut);
+
+            Assert.Equal(new[] { "b", "a" }, manager.Rows.Select(row => row.Name));
+            Assert.Equal("a", manager.SelectedRow?.Name);
+        }
+
+        [Fact]
+        public async Task Selection_FollowsTheKeycutThroughAReload()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b");
+            manager.MoveSelection(1);
+            manager.MoveSelection(1);
+
+            manager.ShowKeycuts(new[] { NewKeycut("a"), NewKeycut("b"), NewKeycut("c") });
+
+            Assert.Equal("b", manager.SelectedRow?.Name);
+            Assert.Contains(manager.SelectedRow, manager.Rows);
+        }
+
+        [Fact]
+        public async Task DeletingTheSelectedRow_SelectsTheNextOne()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b", "c");
+            manager.MoveSelection(1);
+
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal("b", manager.SelectedRow?.Name);
+        }
+
+        [Fact]
+        public async Task DeletingAnotherRow_KeepsTheSelection()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b", "c");
+            manager.MoveSelection(-1);
+
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal("c", manager.SelectedRow?.Name);
+        }
+
+        #endregion Selection
     }
 }

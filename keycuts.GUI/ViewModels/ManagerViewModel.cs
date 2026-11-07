@@ -58,6 +58,8 @@ namespace keycuts.GUI.ViewModels
 
         private bool isMenuOpen;
 
+        private KeycutRowViewModel? selectedRow;
+
         private int keycutCount;
 
         private bool isLoading = true;
@@ -104,6 +106,13 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>The rows currently shown in the table.</summary>
         public ObservableCollection<KeycutRowViewModel> Rows { get; } = new ObservableCollection<KeycutRowViewModel>();
+
+        /// <summary>The highlighted row, moved with Up and Down and opened with Enter. Survives searching and sorting while it stays visible.</summary>
+        public KeycutRowViewModel? SelectedRow
+        {
+            get { return selectedRow; }
+            set { SetProperty(ref selectedRow, value); }
+        }
 
         /// <summary>True when this view model can load keycuts itself.</summary>
         public bool CanLoad
@@ -242,6 +251,44 @@ namespace keycuts.GUI.ViewModels
             get { return statusIsError; }
         }
 
+        /// <summary>
+        /// Moves the selection by one row, stopping at either end. With nothing selected, Down starts at the first row and Up at the last.
+        /// False when there are no rows to move through.
+        /// </summary>
+        public bool MoveSelection(int direction)
+        {
+            if (Rows.Count == 0)
+            {
+                return false;
+            }
+
+            var index = selectedRow == null ? -1 : Rows.IndexOf(selectedRow);
+
+            if (index < 0)
+            {
+                index = direction > 0 ? 0 : Rows.Count - 1;
+            }
+            else
+            {
+                index = Math.Clamp(index + direction, 0, Rows.Count - 1);
+            }
+
+            SelectedRow = Rows[index];
+            return true;
+        }
+
+        /// <summary>Opens the selected row. False when nothing is selected.</summary>
+        public bool OpenSelected()
+        {
+            if (selectedRow == null)
+            {
+                return false;
+            }
+
+            OpenKeycut(selectedRow);
+            return true;
+        }
+
         public void OpenKeycut(KeycutRowViewModel row)
         {
             Perform(row, "open", () => actions?.Launch(row.Keycut.FilePath));
@@ -326,6 +373,7 @@ namespace keycuts.GUI.ViewModels
         private void RemoveRow(KeycutRowViewModel row)
         {
             var index = Rows.IndexOf(row);
+            var wasSelected = ReferenceEquals(row, selectedRow);
             IsMenuOpen = false;
             allRows.Remove(row);
             KeycutCount = allRows.Count;
@@ -336,6 +384,11 @@ namespace keycuts.GUI.ViewModels
             if (Rows.Count > 0)
             {
                 next = Rows[Math.Min(Math.Max(index, 0), Rows.Count - 1)];
+            }
+
+            if (wasSelected)
+            {
+                SelectedRow = next;
             }
 
             KeycutDeleted?.Invoke(this, EventArgs.Empty);
@@ -426,6 +479,8 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Replaces the rows with the given keycuts and leaves the loading and error states.</summary>
         public void ShowKeycuts(IReadOnlyList<Keycut> keycuts)
         {
+            var selectedPath = selectedRow?.Keycut.FilePath;
+
             allRows.Clear();
             allRows.AddRange(keycuts.Select(keycut => new KeycutRowViewModel(keycut, this)));
             errorMessage = null;
@@ -433,6 +488,9 @@ namespace keycuts.GUI.ViewModels
             hasLoaded = true;
             KeycutCount = allRows.Count;
             ApplyFilter();
+
+            // A reload builds new rows, so find the selected keycut again
+            SelectedRow = Rows.FirstOrDefault(row => row.Keycut.FilePath == selectedPath);
         }
 
         public void ShowError(string message)
@@ -503,6 +561,9 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         protected virtual void ApplyFilter()
         {
+            // The table clears its selection along with the rows, so hold on to it
+            var selected = selectedRow;
+
             var visible = allRows
                 .Where(row => row.Matches(searchText))
                 .OrderBy(row => row, CreateComparer(sortColumn, sortDescending))
@@ -517,6 +578,8 @@ namespace keycuts.GUI.ViewModels
                     Rows.Add(row);
                 }
             }
+
+            SelectedRow = selected != null && Rows.Contains(selected) ? selected : null;
 
             RaiseStateChanged();
         }

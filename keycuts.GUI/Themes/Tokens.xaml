@@ -1,0 +1,38 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Radii: sm / md / lg / xl -->
+    <CornerRadius x:Key="RadiusSm">5</CornerRadius>
+    <CornerRadius x:Key="RadiusMd">8</CornerRadius>
+    <CornerRadius x:Key="RadiusLg">12</CornerRadius>
+    <CornerRadius x:Key="RadiusXl">16</CornerRadius>
+
+    <!-- 4px spacing grid -->
+    <sys:Double x:Key="Space1">4</sys:Double>
+    <sys:Double x:Key="Space2">8</sys:Double>
+    <sys:Double x:Key="Space3">12</sys:Double>
+    <sys:Double x:Key="Space4">16</sys:Double>
+    <sys:Double x:Key="Space5">20</sys:Double>
+    <sys:Double x:Key="Space6">24</sys:Double>
+    <sys:Double x:Key="Space8">32</sys:Double>
+    <Thickness x:Key="Inset1">4</Thickness>
+    <Thickness x:Key="Inset2">8</Thickness>
+    <Thickness x:Key="Inset3">12</Thickness>
+    <Thickness x:Key="Inset4">16</Thickness>
+
+    <!-- Control metrics -->
+    <sys:Double x:Key="ControlHeight">34</sys:Double>
+    <sys:Double x:Key="InputHeight">36</sys:Double>
+    <sys:Double x:Key="IconButtonSize">32</sys:Double>
+
+    <!-- Typography -->
+    <FontFamily x:Key="AppFontFamily">Segoe UI Variable, Segoe UI</FontFamily>
+    <sys:Double x:Key="FontSizeEyebrow">11</sys:Double>
+    <sys:Double x:Key="FontSizeCaption">12</sys:Double>
+    <sys:Double x:Key="FontSizeBody">13</sys:Double>
+    <sys:Double x:Key="FontSizeInput">14</sys:Double>
+    <sys:Double x:Key="FontSizeSubheading">16</sys:Double>
+    <sys:Double x:Key="FontSizeHeading">20</sys:Double>
+    <sys:Double x:Key="FontSizeHeadingLarge">22</sys:Double>
+</ResourceDictionary>

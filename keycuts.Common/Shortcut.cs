@@ -41,7 +41,7 @@ namespace keycuts.Common
             Type = GetShortcutTypeFromDestination(destination, out string newDestination);
             Destination = newDestination;
             Extension = ".bat";
-            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ? 
+            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
                 shortcut :
                 Path.GetFileNameWithoutExtension(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";

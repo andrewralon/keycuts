@@ -10,12 +10,14 @@ namespace keycuts.Common
         private readonly string explorer = "\\explorer.exe\"";
         private readonly string start = "START ";
 
-        private static readonly string patternCLSID =       "\".+explorer.exe\" \"[shell:]?::({.+})\"";
-        private static readonly string patternFolder =      "\".+explorer.exe\" (\".+\")";
-        private static readonly string patternHostsFile =   "START \"\" \\/[BD] (\".+\") \"(.+hosts)\"$";
-        private static readonly string patternFile =        "START \"\" \\/[BD] (\".+\")( \"(.+)\")?$";
-        private static readonly string patternCommand =     "START \"\" \\/[BD] (\".+)?";
-        private static readonly string patternUrl =         "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
+        private static readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
+        private static readonly string patternFolder = "\".+explorer.exe\" (\".+\")";
+        private static readonly string patternHostsFile = "START \"\" \\/[BD] (\".+\") \"(.+hosts)\"$";
+        private static readonly string patternFile = "START \"\" \\/[BD] (\".+\")( \"(.+)\")?$";
+        private static readonly string patternCommand = "START \"\" \\/[BD] (\".+)?";
+        private static readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
+
+        private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static readonly string Extension = ".bat";
 
@@ -26,6 +28,8 @@ namespace keycuts.Common
         public string OpenWithApp { get; set; }
         public string Command { get; set; }
 
+        public string Description { get; set; } = "";
+
         public ShortcutFile()
         {
         }
@@ -34,9 +38,12 @@ namespace keycuts.Common
         {
             var allLines = File.ReadAllLines(file);
             var lines = allLines
-                .Where(x => x.Contains(explorer) ||
-                            x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))
+                .Where(x => !IsRemLine(x) &&
+                            (x.Contains(explorer) ||
+                             x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase)))
                 .ToList();
+
+            Description = ParseDescription(allLines);
 
             Path = file;
             Shortcut = System.IO.Path.GetFileNameWithoutExtension(file);
@@ -90,6 +97,27 @@ namespace keycuts.Common
             {
                 OpenWithApp = $"\"{OpenWithApp}\"";
             }
+        }
+
+        public static bool IsRemLine(string line)
+        {
+            return line.TrimStart().StartsWith("REM ", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Returns the trimmed text of the first well-formed description line, or empty.</summary>
+        public static string ParseDescription(string[] lines)
+        {
+            foreach (var line in lines)
+            {
+                var match = regexDescription.Match(line);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value.Trim();
+                }
+            }
+
+            return "";
         }
 
         public static bool IsCLSIDKey(string line, out string clsidKey)

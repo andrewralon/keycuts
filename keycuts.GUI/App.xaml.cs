@@ -15,12 +15,20 @@ namespace keycuts.GUI
     {
         void App_Startup(object sender, StartupEventArgs e)
         {
-            var mainWindow = new MainWindow();
+            Themes.ThemeManager.Initialize(this);
+
+            var shell = new ViewModels.ShellViewModel(
+                () => Common.KeycutRepository.CreateDefault().CountAsync(),
+                ct => Common.KeycutRepository.CreateDefault().LoadAllAsync(ct),
+                (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
+                new ViewModels.SystemKeycutActions());
+            var mainWindow = new MainWindow(shell);
 
             if (e.Args.Any())
             {
+                // Explorer "keycut this!": pre-fill the destination; the creator view focuses the name field on load
                 MainFormLogic mainFormLogic = new MainFormLogic();
-                mainFormLogic.HandleNewDestination(mainWindow, e.Args[0]);
+                mainFormLogic.HandleNewDestination(shell.Creator, e.Args[0]);
             }
 
             mainWindow.Show();

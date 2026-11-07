@@ -23,24 +23,57 @@ namespace keycuts.Common
 
         public static readonly string RightClickContextMenuText = "keycut this!";
 
+        private readonly IPathUpdater _pathUpdater = new SystemPathUpdater();
+
+        private readonly string _fixedOutputFolder;
+
         public Runner()
         {
+            // Debug builds only: KEYCUTS_OUTPUT_FOLDER pins the folder and leaves the registry and PATH alone
+            var overrideFolder = DebugOverrides.GetOutputFolder();
+
+            if (overrideFolder != null)
+            {
+                _fixedOutputFolder = overrideFolder;
+                _pathUpdater = new NoOpPathUpdater();
+            }
+        }
+
+        /// <summary>
+        /// Runner with a fixed output folder (the registry is neither read nor written for it) and a custom PATH updater.
+        /// Lets tests avoid the real registry and PATH.
+        /// </summary>
+        public Runner(string fixedOutputFolder, IPathUpdater pathUpdater)
+        {
+            _fixedOutputFolder = fixedOutputFolder;
+            _pathUpdater = DebugOverrides.IsOverride(fixedOutputFolder)
+                ? new NoOpPathUpdater()
+                : pathUpdater ?? new SystemPathUpdater();
         }
 
         public ExitCode Run(KeycutArgs args)
         {
-            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force);
+            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description);
         }
 
-        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false)
+        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "")
         {
             var result = ExitCode.NotStarted;
 
-            var currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+            string currentOutputFolder;
 
-            outputFolder = SetOutputFolder(outputFolder, currentOutputFolder);
+            if (_fixedOutputFolder != null)
+            {
+                currentOutputFolder = _fixedOutputFolder;
+                outputFolder = _fixedOutputFolder;
+            }
+            else
+            {
+                currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
+                outputFolder = SetOutputFolder(outputFolder, currentOutputFolder);
+            }
 
-            var systemPathResult = PathSetup.AddToOrReplaceInSystemPath(currentOutputFolder, outputFolder);
+            var systemPathResult = _pathUpdater.AddToOrReplace(currentOutputFolder, outputFolder);
 
             if (!systemPathResult)
             {
@@ -60,7 +93,7 @@ namespace keycuts.Common
                     }
                     else
                     {
-                        var createShortcutResult = CreateShortcutFile(shortcut, force);
+                        var createShortcutResult = CreateShortcutFile(shortcut, force, description);
 
                         result = createShortcutResult ?
                             ExitCode.Success :
@@ -76,6 +109,13 @@ namespace keycuts.Common
 
         public string GetOutputFolder()
         {
+            var overrideFolder = DebugOverrides.GetOutputFolder();
+
+            if (overrideFolder != null)
+            {
+                return overrideFolder;
+            }
+
             var outputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
 
             return outputFolder;
@@ -101,6 +141,14 @@ namespace keycuts.Common
 
         public string SetOutputFolder(string outputFolder, string currentOutputFolder = null)
         {
+            var overrideFolder = DebugOverrides.GetOutputFolder();
+
+            if (overrideFolder != null)
+            {
+                // Never persist anything while the debug override is active
+                return outputFolder ?? overrideFolder;
+            }
+
             if (currentOutputFolder == null)
             {
                 currentOutputFolder = RegistryStuff.GetOutputFolder(DefaultOutputFolder);
@@ -150,13 +198,20 @@ namespace keycuts.Common
             // Create the shortcuts folder if it doesn't exist already
             if (!Directory.Exists(folder))
             {
-                Directory.CreateDirectory(folder);
+                try
+                {
+                    Directory.CreateDirectory(folder);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException || ex is ArgumentException)
+                {
+                    result = false;
+                }
             }
 
             return result;
         }
 
-        private bool CreateShortcutFile(Shortcut shortcut, bool overwrite = false)
+        public bool CreateShortcutFile(Shortcut shortcut, bool overwrite = false, string description = "")
         {
             var result = false;
 
@@ -173,6 +228,7 @@ namespace keycuts.Common
                     $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                     $"REM <type>{shortcutTypeLower}</type>",
                     $"REM <destination>{shortcut.Destination}</destination>",
+                    $"REM <description>{SanitizeDescription(description)}</description>",
                 };
 
                 // START: "" = Title (empty) of console window
@@ -228,40 +284,9 @@ namespace keycuts.Common
 
         #region Static Methods
 
-        public static void OpenBatmanager()
+        private static string SanitizeDescription(string description)
         {
-            var batmanager = FindBatmanager();
-            if (batmanager == null)
-            {
-                throw new FileNotFoundException("Could not find keycuts.Batmanager.exe. Build the Batmanager project first.");
-            }
-
-            Process.Start(new ProcessStartInfo(batmanager) { UseShellExecute = true });
-        }
-
-        private static string FindBatmanager()
-        {
-            const string exeName = "keycuts.Batmanager.exe";
-
-            var sibling = Path.Combine(AppContext.BaseDirectory, exeName);
-            if (File.Exists(sibling))
-            {
-                return sibling;
-            }
-
-            // Development layout: <repo>\keycuts.Batmanager\bin\<config>\<tfm>\keycuts.Batmanager.exe
-            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-            {
-                var binFolder = Path.Combine(dir.FullName, "keycuts.Batmanager", "bin");
-                if (Directory.Exists(binFolder))
-                {
-                    return Directory.EnumerateFiles(binFolder, exeName, SearchOption.AllDirectories)
-                        .OrderByDescending(File.GetLastWriteTimeUtc)
-                        .FirstOrDefault();
-                }
-            }
-
-            return null;
+            return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
         }
 
         #endregion Static Methods

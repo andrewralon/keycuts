@@ -16,15 +16,19 @@ Entry points for creating one: the WPF app (drag/paste/browse a destination, nam
 - Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
 - Single test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
-- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast. WiX builds into `en-US/` because of `Package.en-us.wxl`; the script moves the output back up.
+- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` (the version defaults to `Directory.Build.props`) publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast. WiX builds into `en-US/` because of `Package.en-us.wxl`; the script moves the output back up.
 
 Gotchas:
-- The build has **0 warnings**. Each project's `AssemblyInfo.cs` declares `SupportedOSPlatform("windows")` by hand, because `GenerateAssemblyInfo` is off; a new project needs the same line or CA1416 comes back. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
+- The build has **0 warnings**. Each project's `AssemblyInfo.cs` declares `SupportedOSPlatform("windows")` by hand; `Directory.Build.props` lets the SDK generate only the version attributes for projects that have one. A new project with its own `AssemblyInfo.cs` needs the same line or CA1416 comes back. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
 - If `keycuts.GUI.exe` is running, the build fails with MSB3021/MSB3027 (file locked). That is not a code error; stop the process (the user has approved force-closing it). Close any instance you launch.
 - Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
 - A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
 - Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
-- No CI exists yet.
+- CI (`.github/workflows/ci.yml`) builds, checks format and tests on PRs into `develop`/`master`; PRs into `master` also build the MSI.
+
+## Versioning and releases
+
+`<Version>` in `Directory.Build.props` is the only version. It stamps every exe (`Runner.Version`, which goes into each `.bat` header) and the MSI. Every push to `master` runs `.github/workflows/release.yml`: if tag `v<Version>` doesn't exist yet it tests, builds the MSI, and publishes a GitHub release with `keycuts-setup.msi`, `keycuts-portable-win-x64.zip` and `SHA256SUMS.txt`; otherwise it does nothing. To release, raise the version on `develop` (three parts; MSI upgrades ignore a fourth), then merge `develop` into `master`. Don't create release tags by hand.
 
 ## Architecture
 

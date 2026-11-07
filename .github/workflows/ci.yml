@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build keycuts.sln -c Release
+
+      - name: Format
+        run: dotnet format keycuts.sln --verify-no-changes --severity error --no-restore
+
+      - name: Test
+        run: dotnet test keycuts.sln -c Release --no-build
+
+      # A PR into master is a release candidate: prove the MSI builds and say whether merging will release.
+      - name: Build installer
+        if: github.base_ref == 'master'
+        run: ./tools/Build-Installer.ps1
+
+      - name: Release preview
+        if: github.base_ref == 'master'
+        run: |
+          $tag = "v$((dotnet msbuild keycuts.Common/keycuts.Common.csproj -getProperty:Version).Trim())"
+          if (git ls-remote --tags origin "refs/tags/$tag") {
+            "::warning::$tag already exists, so merging this will not publish a release. Raise <Version> in Directory.Build.props to release."
+          } else {
+            "::notice::Merging this publishes release $tag."
+          }

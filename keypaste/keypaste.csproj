@@ -4,7 +4,6 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>keypaste</RootNamespace>
     <AssemblyName>keypaste</AssemblyName>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <ItemGroup>

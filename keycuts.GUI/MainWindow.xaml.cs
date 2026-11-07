@@ -29,13 +29,11 @@ namespace keycuts.GUI
 
         private CommonLogic commonLogic;
 
-        private string destination;
+        private string destination = string.Empty;
 
-        private string shortcutName;
+        private string shortcutName = string.Empty;
 
-        private SettingsWindow settingsWindow = null;
-
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         #endregion Fields
 
@@ -120,7 +118,19 @@ namespace keycuts.GUI
 
             Refresh();
 
-            if (result != (int)ExitCode.Success)
+            if (result == ExitCode.Success)
+            {
+                Destination = string.Empty;
+                ShortcutName = string.Empty;
+                TextboxDestination.Text = string.Empty;
+                TextboxShortcut.Text = string.Empty;
+                TextboxDestination.Focus();
+            }
+            else if (result == ExitCode.FileAlreadyExists)
+            {
+                // User chose not to overwrite; nothing went wrong
+            }
+            else
             {
                 MessageBox.Show($"Error: {result}\nDestination: {Destination}\nShortcut: {ShortcutName}");
             }
@@ -128,7 +138,7 @@ namespace keycuts.GUI
 
         private void OpenSettings()
         {
-            mainFormLogic.OpenSettings(settingsWindow);
+            mainFormLogic.OpenSettings();
         }
 
         private void ChangeOutputFolder(string outputFolder)
@@ -264,7 +274,7 @@ namespace keycuts.GUI
 
         #region OnPropertyChanged Handler
 
-        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = null)
+        protected void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

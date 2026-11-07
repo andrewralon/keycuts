@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -229,13 +230,38 @@ namespace keycuts.Common
 
         public static void OpenBatmanager()
         {
-            var projectFolder = Directory.GetCurrentDirectory();
-            var batmanager = Path.Combine(projectFolder, "keycuts.Batmanager.exe");
-#if DEBUG
-            projectFolder = Directory.GetParent(projectFolder).Parent.Parent.FullName;
-            batmanager = Path.Combine(projectFolder, "keycuts.Batmanager\\bin\\Debug\\keycuts.Batmanager.exe");
-#endif
-            Process.Start(batmanager);
+            var batmanager = FindBatmanager();
+            if (batmanager == null)
+            {
+                throw new FileNotFoundException("Could not find keycuts.Batmanager.exe. Build the Batmanager project first.");
+            }
+
+            Process.Start(new ProcessStartInfo(batmanager) { UseShellExecute = true });
+        }
+
+        private static string FindBatmanager()
+        {
+            const string exeName = "keycuts.Batmanager.exe";
+
+            var sibling = Path.Combine(AppContext.BaseDirectory, exeName);
+            if (File.Exists(sibling))
+            {
+                return sibling;
+            }
+
+            // Development layout: <repo>\keycuts.Batmanager\bin\<config>\<tfm>\keycuts.Batmanager.exe
+            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+            {
+                var binFolder = Path.Combine(dir.FullName, "keycuts.Batmanager", "bin");
+                if (Directory.Exists(binFolder))
+                {
+                    return Directory.EnumerateFiles(binFolder, exeName, SearchOption.AllDirectories)
+                        .OrderByDescending(File.GetLastWriteTimeUtc)
+                        .FirstOrDefault();
+                }
+            }
+
+            return null;
         }
 
         #endregion Static Methods

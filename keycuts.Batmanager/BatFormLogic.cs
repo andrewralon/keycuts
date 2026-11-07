@@ -79,7 +79,7 @@ namespace keycuts.Batmanager
             return shortcuts;
         }
 
-        public static bool IsShortcutFile(DataGrid dataGrid, out ShortcutFile shortcutFile)
+        public static bool IsShortcutFile(DataGrid dataGrid, out ShortcutFile? shortcutFile)
         {
             shortcutFile = null;
             var result = false;
@@ -97,26 +97,26 @@ namespace keycuts.Batmanager
 
         public void Edit(DataGrid dataGrid)
         {
-            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile? shortcutFile))
             {
-                Process.Start("notepad.exe", shortcutFile.Path);
+                Process.Start("notepad.exe", shortcutFile!.Path);
             }
         }
 
         public void Run(DataGrid dataGrid)
         {
-            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile? shortcutFile))
             {
-                Process.Start(shortcutFile.Path);
+                Process.Start(shortcutFile!.Path);
             }
         }
 
         public void OpenDestinationLocation(DataGrid dataGrid)
         {
-            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile? shortcutFile))
             {
-                var location = Path.GetDirectoryName(shortcutFile?.Destination);
-                if (location != "")
+                var location = Path.GetDirectoryName(shortcutFile!.Destination);
+                if (!string.IsNullOrWhiteSpace(location))
                 {
                     Process.Start(location);
                 }
@@ -130,16 +130,22 @@ namespace keycuts.Batmanager
 
         public void Copy(DataGrid dataGrid, DataGridRowClipboardEventArgs e)
         {
-            var currentCell = e.ClipboardRowContent[dataGrid.CurrentCell.Column.DisplayIndex - 1];
+            var currentCellInfo = dataGrid.CurrentCell;
+            if (currentCellInfo.Column == null)
+            {
+                return;
+            }
+
+            var currentCell = e.ClipboardRowContent[currentCellInfo.Column.DisplayIndex - 1];
             e.ClipboardRowContent.Clear();
             e.ClipboardRowContent.Add(currentCell);
         }
 
         public void Delete(DataGrid dataGrid)
         {
-            if (IsShortcutFile(dataGrid, out ShortcutFile shortcutFile))
+            if (IsShortcutFile(dataGrid, out ShortcutFile? shortcutFile))
             {
-                File.Delete(shortcutFile.Path);
+                File.Delete(shortcutFile!.Path);
                 shortcuts.Remove(shortcutFile);
                 dataGrid.Items.Refresh();
             }

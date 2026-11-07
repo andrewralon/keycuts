@@ -11,7 +11,7 @@ namespace keycuts.GUI
     {
         private Runner runner;
 
-        public string OutputFolder { get; set; }
+        public string OutputFolder { get; set; } = string.Empty;
 
         public bool ForceOverwrite { get; set; }
 

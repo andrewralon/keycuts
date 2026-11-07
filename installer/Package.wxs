@@ -20,9 +20,11 @@
     <Property Id="ARPPRODUCTICON" Value="keycuts.ico" />
 
     <!-- Existing settings win over the defaults, so upgrades keep a custom folder and a menu the user turned off -->
-    <Property Id="OUTPUTFOLDER" Value="C:\Shortcuts" Secure="yes">
+    <Property Id="OUTPUTFOLDER" Secure="yes">
       <RegistrySearch Id="ExistingOutputFolder" Root="HKCU" Key="Software\TeamRalon\keycuts" Name="OutputFolder" Type="raw" />
     </Property>
+    <!-- Windows Installer has no standard directory for the profile itself. Must match Runner.DefaultOutputFolder; a test compares the two. -->
+    <SetProperty Id="OUTPUTFOLDER" Value="[%USERPROFILE]\Shortcuts" After="AppSearch" Sequence="both" Condition="NOT OUTPUTFOLDER" />
     <Property Id="CONTEXTMENUCHOICE">
       <RegistrySearch Id="ExistingContextMenuChoice" Root="HKCU" Key="Software\TeamRalon\keycuts" Name="RightClickContextMenu" Type="raw" />
     </Property>
@@ -35,6 +37,10 @@
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
+    <!-- Always resolved from the OUTPUTFOLDER property above; a directory is what lets the folder dialog edit it -->
+    <StandardDirectory Id="TARGETDIR">
+      <Directory Id="OUTPUTFOLDER" Name="Shortcuts" />
+    </StandardDirectory>
 
     <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
       <Files Include="$(PublishDir)\**" />
@@ -43,6 +49,9 @@
     <ComponentGroup Id="UserIntegration" Directory="INSTALLFOLDER">
       <Component Id="Core" Guid="6F0C5C0B-2C3B-4B1E-9D54-7C2E1B7E3A10">
         <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="InstallFolder" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+
+        <!-- Uninstall leaves the folder alone unless it is empty, so keycuts survive -->
+        <CreateFolder Directory="OUTPUTFOLDER" />
 
         <!-- Win+R finds keycuts through the output folder; the install folder exposes keycuts.exe and keypaste.exe -->
         <Environment Id="PathOutputFolder" Name="PATH" Value="[OUTPUTFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
@@ -56,6 +65,11 @@
 
         <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveUserProgramsFolder" Directory="UserProgramsFolder" On="uninstall" />
+      </Component>
+
+      <!-- Permanent so a reinstall finds the keycuts the uninstall left behind -->
+      <Component Id="OutputFolderSetting" Guid="C919B780-2811-4CA1-BD47-AE9D6AB2E565" Permanent="yes">
+        <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="OutputFolder" Type="string" Value="[OUTPUTFOLDER]" KeyPath="yes" />
       </Component>
 
       <Component Id="StartMenu" Guid="B7C1E7A4-3D0F-4B7B-8E4F-1F7A2D9C6E21">
@@ -101,14 +115,17 @@
       <ComponentGroupRef Id="UserIntegration" />
     </Feature>
 
-    <!-- Welcome, confirm, install: there is no license to accept and no folder to choose in a per-user install -->
-    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <!-- Welcome, keycuts folder, confirm, install. There is no license to accept, and upgrades skip the folder: Settings moves it. -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="OUTPUTFOLDER" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch keycuts" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
     <CustomAction Id="LaunchKeycuts" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]keycuts.GUI.exe&quot;" Return="asyncNoWait" Impersonate="yes" />
     <UI>
-      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="10" Condition="NOT Installed" />
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="10" Condition="NOT Installed" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="10" Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="10" Condition="NOT Installed AND WIX_UPGRADE_DETECTED" />
+      <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="10" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" Order="10" Condition="NOT Installed AND NOT WIX_UPGRADE_DETECTED" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="10" Condition="NOT Installed AND WIX_UPGRADE_DETECTED" />
       <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchKeycuts" Order="10" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
     </UI>
   </Package>

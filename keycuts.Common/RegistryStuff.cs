@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.IO;
 
 namespace keycuts.Common
 {
@@ -39,7 +40,13 @@ namespace keycuts.Common
         {
             var value = ReadValue(OutputFolderKeyName) as string;
 
-            return string.IsNullOrWhiteSpace(value) ? path : value;
+            return string.IsNullOrWhiteSpace(value) ? path : TrimFolder(value);
+        }
+
+        /// <summary>The installer stores the folder as Windows Installer resolves it, with a trailing backslash.</summary>
+        public static string TrimFolder(string folder)
+        {
+            return Path.TrimEndingDirectorySeparator(folder);
         }
 
         public static bool GetForceOverwrite(bool forceOverwrite)

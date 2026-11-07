@@ -131,7 +131,7 @@ namespace keycuts.Tests
             Assert.Equal(ContextMenuRegistrar.VerbKeys.OrderBy(key => key), installerKeys);
         }
 
-        private static string FindRepoFile(string relativePath)
+        internal static string FindRepoFile(string relativePath)
         {
             for (var folder = new DirectoryInfo(AppContext.BaseDirectory); folder != null; folder = folder.Parent)
             {

@@ -1,6 +1,6 @@
 # Round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 10 ok, 32 fail, 1 skipped
+# 7 ok, 35 fail, 1 skipped
 
 edge-cases/command-type.bat: FAILS
     Destination: |"ipconfig /all"| -> |""ipconfig /all""|
@@ -8,7 +8,9 @@ edge-cases/command-type.bat: FAILS
 edge-cases/embedded-quote.bat: FAILS
     Destination: |"C:\Users\me\Documents\Say "Hi".txt"| -> |""C:\Users\me\Documents\Say "Hi".txt""|
     emitted: |START "" /B ""C:\Users\me\Documents\Say "Hi".txt""|
-edge-cases/empty.bat: ok
+edge-cases/empty.bat: FAILS
+    Destination: <null> -> ||
+    emitted: |START "" /B cmd /C ""|
 edge-cases/header-content-drift.bat: FAILS
     Destination: |"\chrome" "? %*"| -> |"\ "? %*""|
     emitted: |START "" /B ""\chrome" "? %*""|
@@ -44,11 +46,11 @@ new-format/keycuts.bat: FAILS
     Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"| -> |""C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe""|
     emitted: |START "" /B ""C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe""|
 new-format/keypaste.bat: FAILS
-    Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*| -> <null>
-    emitted: ||
+    Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*| -> ||
+    emitted: |START "" /B cmd /C ""C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*"|
 new-format/kp.bat: FAILS
-    Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*| -> <null>
-    emitted: ||
+    Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*| -> ||
+    emitted: |START "" /B cmd /C ""C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*"|
 new-format/programs.bat: FAILS
     Type:        CLSIDKey -> Folder
     Destination: |{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}| -> |"{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}"|
@@ -64,7 +66,9 @@ new-format/recyclebin.bat: FAILS
 not-keycuts/chromep0.bat: FAILS
     Destination: |"%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default"| -> |""%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default""|
     emitted: |START "" /B ""%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default""|
-not-keycuts/dequote.bat: ok
+not-keycuts/dequote.bat: FAILS
+    Destination: <null> -> ||
+    emitted: |START "" /B cmd /C ""|
 not-keycuts/jira.bat: FAILS
     Destination: |%JIRAURL%/browse/%1| -> |%%JIRAURL%%/browse/%%1|
     emitted: |START %%JIRAURL%%/browse/%%1|
@@ -108,7 +112,9 @@ old-format/npp.bat: FAILS
 old-format/pdn.bat: FAILS
     Destination: |"C:\Program Files\paint.net\PaintDotNet.exe"| -> |""C:\Program Files\paint.net\PaintDotNet.exe""|
     emitted: |START "" /B ""C:\Program Files\paint.net\PaintDotNet.exe""|
-old-format/pm.bat: ok
+old-format/pm.bat: FAILS
+    Destination: <null> -> ||
+    emitted: |START "" /B cmd /C ""|
 old-format/shortcuts.bat: FAILS
     Destination: |"%SHORTCUTS%"| -> |""%SHORTCUTS%""|
     emitted: |"%SystemRoot%\explorer.exe" ""%SHORTCUTS%""|

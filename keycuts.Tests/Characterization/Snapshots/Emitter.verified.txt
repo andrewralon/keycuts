@@ -142,26 +142,18 @@
 |EXIT|
 
 ## command
-# Note: The emitter has no Command branch, so the command line is empty (#93).
 |@ECHO OFF|
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\command.bat</shortcut>|
 |REM <type>command</type>|
 |REM <destination>ipconfig /all</destination>|
 |REM <description></description>|
-||
+|START "" /B cmd /C "ipconfig /all"|
 |EXIT|
 
 ## unknown
-# Note: Runner.Run never emits Unknown; called directly, the command line is empty.
-|@ECHO OFF|
-|REM keycuts <version>|
-|REM <shortcut>C:\Shortcuts\unknown.bat</shortcut>|
-|REM <type>unknown</type>|
-|REM <destination>C:\missing.txt</destination>|
-|REM <description></description>|
-||
-|EXIT|
+# Note: Runner.Run never emits Unknown; there is no launch line to write.
+throws InvalidOperationException: Can't write a keycut of type Unknown.
 
 ## description
 |@ECHO OFF|

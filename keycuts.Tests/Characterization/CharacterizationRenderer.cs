@@ -99,8 +99,8 @@ namespace keycuts.Tests.Characterization
             new EmitterCase { Name = "folder-with-variable", Type = ShortcutType.Folder, Destination = @"%USERPROFILE%\Google Drive" },
             new EmitterCase { Name = "clsidkey", Type = ShortcutType.CLSIDKey, Destination = "::{645FF040-5081-101B-9F08-00AA002F954E}" },
             new EmitterCase { Name = "clsidkey-nested", Type = ShortcutType.CLSIDKey, Destination = @"::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}" },
-            new EmitterCase { Name = "command", Type = ShortcutType.Command, Destination = "ipconfig /all", Note = "The emitter has no Command branch, so the command line is empty (#93)." },
-            new EmitterCase { Name = "unknown", Type = ShortcutType.Unknown, Destination = @"C:\missing.txt", Note = "Runner.Run never emits Unknown; called directly, the command line is empty." },
+            new EmitterCase { Name = "command", Type = ShortcutType.Command, Destination = "ipconfig /all" },
+            new EmitterCase { Name = "unknown", Type = ShortcutType.Unknown, Destination = @"C:\missing.txt", Note = "Runner.Run never emits Unknown; there is no launch line to write." },
             new EmitterCase { Name = "description", Type = ShortcutType.Url, Destination = "https://example.com", Description = "  Line one\r\nline two  " },
             new EmitterCase { Name = "description-null", Type = ShortcutType.Url, Destination = "https://example.com", Description = null },
         };
@@ -114,13 +114,23 @@ namespace keycuts.Tests.Characterization
             foreach (var item in EmitterCases)
             {
                 var shortcut = Shortcut.FromParts(item.Type, item.Destination, $@"C:\Shortcuts\{item.Name}.bat", item.OpenWithAppPath);
-                var lines = Runner.BuildShortcutLines(shortcut, item.Description);
 
                 builder.Append('\n').Append("## ").Append(item.Name).Append('\n');
 
                 if (item.Note != null)
                 {
                     builder.Append("# Note: ").Append(item.Note).Append('\n');
+                }
+
+                List<string> lines;
+                try
+                {
+                    lines = Runner.BuildShortcutLines(shortcut, item.Description);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    builder.Append("throws ").Append(nameof(InvalidOperationException)).Append(": ").Append(ex.Message).Append('\n');
+                    continue;
                 }
 
                 foreach (var line in lines)

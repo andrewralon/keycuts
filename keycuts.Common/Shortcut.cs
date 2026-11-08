@@ -111,9 +111,12 @@ namespace keycuts.Common
                 destination = Path.GetFullPath(destination);
                 newDestination = destination;
 
-                var attributes = File.GetAttributes(destination);
-
-                if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                if (!TryGetAttributes(destination, out var attributes))
+                {
+                    // Missing, or not readable by this user: report Unknown rather than crash (#68)
+                    type = ShortcutType.Unknown;
+                }
+                else if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
                     type = ShortcutType.Folder;
                 }
@@ -137,6 +140,20 @@ namespace keycuts.Common
             }
 
             return type;
+        }
+
+        private static bool TryGetAttributes(string path, out FileAttributes attributes)
+        {
+            try
+            {
+                attributes = File.GetAttributes(path);
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                attributes = default;
+                return false;
+            }
         }
 
         public static bool IsValidUrl(string destination, out string url)

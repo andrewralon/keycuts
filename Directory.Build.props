@@ -4,20 +4,26 @@
          publishes a GitHub release tagged v<Version> (.github/workflows/release.yml). Three parts: MSI upgrades
          ignore a fourth. -->
     <Version>1.1.0</Version>
+
+    <!-- Shared assembly metadata, so every exe shows the same company, product and copyright in Explorer. -->
+    <Company>TeamRalon</Company>
+    <Product>keycuts</Product>
+    <Copyright>Copyright © TeamRalon 2018</Copyright>
+
+    <!-- The build has 0 warnings; keep it that way. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!-- Projects with a hand-written Properties\AssemblyInfo.cs keep it, so let the SDK generate only the version
-       attributes. Everything else it would generate is already in that file (SupportedOSPlatform included). -->
+       and shared metadata attributes. Everything else it would generate is already in that file (SupportedOSPlatform
+       included). -->
   <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)\Properties\AssemblyInfo.cs')">
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <GenerateAssemblyVersionAttribute>true</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>true</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>true</GenerateAssemblyInformationalVersionAttribute>
-    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyTrademarkAttribute>false</GenerateAssemblyTrademarkAttribute>
     <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>

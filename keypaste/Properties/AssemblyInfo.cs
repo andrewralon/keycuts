@@ -8,9 +8,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("keypaste")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("keypaste")]
-[assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -22,6 +19,6 @@ using System.Runtime.InteropServices;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("3e4d2de8-eac1-4b5d-88aa-5a553e2ba151")]
 
-// The version comes from Directory.Build.props at the repo root.
+// The version, company, product and copyright come from Directory.Build.props at the repo root.
 
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]

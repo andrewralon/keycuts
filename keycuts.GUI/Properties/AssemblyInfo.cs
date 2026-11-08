@@ -10,9 +10,6 @@ using System.Windows;
 [assembly: AssemblyTitle("keycuts.GUI")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("TeamRalon")]
-[assembly: AssemblyProduct("keycuts.GUI")]
-[assembly: AssemblyCopyright("Copyright © TeamRalon 2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -41,6 +38,6 @@ using System.Windows;
 )]
 
 
-// The version comes from Directory.Build.props at the repo root.
+// The version, company, product and copyright come from Directory.Build.props at the repo root.
 
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]

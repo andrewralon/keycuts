@@ -8,9 +8,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("keycuts")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("TeamRalon")]
-[assembly: AssemblyProduct("keycuts")]
-[assembly: AssemblyCopyright("Copyright © TeamRalon 2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -22,6 +19,6 @@ using System.Runtime.InteropServices;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("5e4a91b5-cb7a-4284-88c6-c62f8f3c3c61")]
 
-// The version comes from Directory.Build.props at the repo root.
+// The version, company, product and copyright come from Directory.Build.props at the repo root.
 
 [assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]

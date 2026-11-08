@@ -8,7 +8,7 @@
     <UseWPF>false</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="CommandLineParser" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />

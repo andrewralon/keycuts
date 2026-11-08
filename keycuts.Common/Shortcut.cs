@@ -53,6 +53,32 @@ namespace keycuts.Common
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
         }
 
+        private Shortcut()
+        {
+        }
+
+        /// <summary>
+        /// A shortcut whose type and destination are already known, so nothing on disk is checked. Lets tests emit
+        /// any type, including ones the classifier never returns.
+        /// </summary>
+        public static Shortcut FromParts(ShortcutType type, string destination, string fullPath, string openWithAppPath = null)
+        {
+            var folder = Path.GetDirectoryName(fullPath);
+            var filename = Path.GetFileNameWithoutExtension(fullPath);
+
+            return new Shortcut
+            {
+                Type = type,
+                Destination = destination,
+                Filename = filename,
+                FilenameWithExtension = $"{filename}.bat",
+                Folder = folder,
+                FullPath = fullPath,
+                OpenWithAppPath = openWithAppPath,
+                OpenWithApp = openWithAppPath != null,
+            };
+        }
+
         #endregion Constructors
 
         #region Private Methods
@@ -85,9 +111,12 @@ namespace keycuts.Common
                 destination = Path.GetFullPath(destination);
                 newDestination = destination;
 
-                var attributes = File.GetAttributes(destination);
-
-                if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                if (!TryGetAttributes(destination, out var attributes))
+                {
+                    // Missing, or not readable by this user: report Unknown rather than crash (#68)
+                    type = ShortcutType.Unknown;
+                }
+                else if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
                     type = ShortcutType.Folder;
                 }
@@ -111,6 +140,20 @@ namespace keycuts.Common
             }
 
             return type;
+        }
+
+        private static bool TryGetAttributes(string path, out FileAttributes attributes)
+        {
+            try
+            {
+                attributes = File.GetAttributes(path);
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                attributes = default;
+                return false;
+            }
         }
 
         public static bool IsValidUrl(string destination, out string url)

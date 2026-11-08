@@ -69,6 +69,12 @@ namespace keycuts.CLI
                             keycutArgs.Force = true;
                             result = app.Run(keycutArgs);
                         }
+                        else
+                        {
+                            // Declining is a choice, not a failure (#65)
+                            Console.WriteLine("Kept the existing shortcut.");
+                            result = ExitCode.Success;
+                        }
                     }
                 }
                 else

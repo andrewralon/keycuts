@@ -35,8 +35,13 @@ namespace keycuts.Common
         }
 
         public ShortcutFile(string file)
+            : this(file, File.ReadAllLines(file))
         {
-            var allLines = File.ReadAllLines(file);
+        }
+
+        /// <summary>Parses lines already read from <paramref name="file"/>, which is only used for its name.</summary>
+        public ShortcutFile(string file, string[] allLines)
+        {
             var lines = allLines
                 .Where(x => !IsRemLine(x) &&
                             (x.Contains(explorer) ||

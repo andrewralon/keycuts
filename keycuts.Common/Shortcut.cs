@@ -53,6 +53,32 @@ namespace keycuts.Common
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
         }
 
+        private Shortcut()
+        {
+        }
+
+        /// <summary>
+        /// A shortcut whose type and destination are already known, so nothing on disk is checked. Lets tests emit
+        /// any type, including ones the classifier never returns.
+        /// </summary>
+        public static Shortcut FromParts(ShortcutType type, string destination, string fullPath, string openWithAppPath = null)
+        {
+            var folder = Path.GetDirectoryName(fullPath);
+            var filename = Path.GetFileNameWithoutExtension(fullPath);
+
+            return new Shortcut
+            {
+                Type = type,
+                Destination = destination,
+                Filename = filename,
+                FilenameWithExtension = $"{filename}.bat",
+                Folder = folder,
+                FullPath = fullPath,
+                OpenWithAppPath = openWithAppPath,
+                OpenWithApp = openWithAppPath != null,
+            };
+        }
+
         #endregion Constructors
 
         #region Private Methods

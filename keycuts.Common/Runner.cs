@@ -235,58 +235,7 @@ namespace keycuts.Common
             // If the shortcut file already exists, let overwrite decide
             if (!File.Exists(shortcut.FullPath) || overwrite)
             {
-                // Create lines with comments and command based on type (file or folder)
-                var shortcutTypeLower = shortcut.Type.ToString().ToLower();
-
-                var lines = new List<string>
-                {
-                    "@ECHO OFF",
-                    $"REM {AppName} {Version}",
-                    $"REM <shortcut>{shortcut.FullPath}</shortcut>",
-                    $"REM <type>{shortcutTypeLower}</type>",
-                    $"REM <destination>{shortcut.Destination}</destination>",
-                    $"REM <description>{SanitizeDescription(description)}</description>",
-                };
-
-                // START: "" = Title (empty) of console window
-                //  /B = don't create a new window
-                //  "{0}" = command/program
-                //  "{1}" = parameters
-                var start = "START \"\" /B \"{0}\"";
-                var command = "";
-
-                if (shortcut.OpenWithApp)
-                {
-                    start = $"{start} \"{{1}}\"";
-                    command = string.Format(start, shortcut.OpenWithAppPath, shortcut.Destination);
-                }
-                else
-                {
-                    if (shortcut.Type == ShortcutType.Url)
-                    {
-                        var sanitized = Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination);
-
-                        command = $"START {sanitized}";
-                    }
-                    else if (shortcut.Type == ShortcutType.File)
-                    {
-                        command = string.Format(start, shortcut.Destination);
-                    }
-                    else if (shortcut.Type == ShortcutType.HostsFile)
-                    {
-                        var notepadPath = @"%windir%\system32\notepad.exe";
-
-                        start = $"{start} \"{{1}}\"";
-                        command = string.Format(start, notepadPath, shortcut.Destination);
-                    }
-                    else if (shortcut.Type == ShortcutType.Folder || shortcut.Type == ShortcutType.CLSIDKey)
-                    {
-                        command = $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"";
-                    }
-                }
-
-                lines.Add(command);
-                lines.Add("EXIT");
+                var lines = BuildShortcutLines(shortcut, description);
 
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
@@ -297,6 +246,65 @@ namespace keycuts.Common
             }
 
             return result;
+        }
+
+        /// <summary>The lines of a keycut's .bat file. Touches no files, so tests can pin the output.</summary>
+        public static List<string> BuildShortcutLines(Shortcut shortcut, string description = "")
+        {
+            // Create lines with comments and command based on type (file or folder)
+            var shortcutTypeLower = shortcut.Type.ToString().ToLower();
+
+            var lines = new List<string>
+            {
+                "@ECHO OFF",
+                $"REM {AppName} {Version}",
+                $"REM <shortcut>{shortcut.FullPath}</shortcut>",
+                $"REM <type>{shortcutTypeLower}</type>",
+                $"REM <destination>{shortcut.Destination}</destination>",
+                $"REM <description>{SanitizeDescription(description)}</description>",
+            };
+
+            // START: "" = Title (empty) of console window
+            //  /B = don't create a new window
+            //  "{0}" = command/program
+            //  "{1}" = parameters
+            var start = "START \"\" /B \"{0}\"";
+            var command = "";
+
+            if (shortcut.OpenWithApp)
+            {
+                start = $"{start} \"{{1}}\"";
+                command = string.Format(start, shortcut.OpenWithAppPath, shortcut.Destination);
+            }
+            else
+            {
+                if (shortcut.Type == ShortcutType.Url)
+                {
+                    var sanitized = Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination);
+
+                    command = $"START {sanitized}";
+                }
+                else if (shortcut.Type == ShortcutType.File)
+                {
+                    command = string.Format(start, shortcut.Destination);
+                }
+                else if (shortcut.Type == ShortcutType.HostsFile)
+                {
+                    var notepadPath = @"%windir%\system32\notepad.exe";
+
+                    start = $"{start} \"{{1}}\"";
+                    command = string.Format(start, notepadPath, shortcut.Destination);
+                }
+                else if (shortcut.Type == ShortcutType.Folder || shortcut.Type == ShortcutType.CLSIDKey)
+                {
+                    command = $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"";
+                }
+            }
+
+            lines.Add(command);
+            lines.Add("EXIT");
+
+            return lines;
         }
 
         #region Static Methods

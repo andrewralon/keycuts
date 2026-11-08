@@ -15,12 +15,14 @@ Entry points for creating one: the WPF app (drag/paste/browse a destination, nam
 - Build: `dotnet build keycuts.sln`
 - Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
 - Single test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
+- On macOS/Linux: `dotnet build keycuts.sln -p:EnableWindowsTargeting=true` and `EnableWindowsTargeting=true dotnet format ...` work, but the tests can't run there (the test host needs the WPF runtime), so CI is the test run.
 - Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
 - Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z]` (the version defaults to `Directory.Build.props`) publishes self-contained to `artifacts/publish` and builds `artifacts/installer/keycuts-setup.msi`. Needs only the .NET SDK; WiX restores from NuGet. `installer/` is deliberately not in `keycuts.sln`, so normal builds stay fast. WiX builds into `en-US/` because of `Package.en-us.wxl`; the script moves the output back up.
 
 Gotchas:
 - The build has **0 warnings**. Each project's `AssemblyInfo.cs` declares `SupportedOSPlatform("windows")` by hand; `Directory.Build.props` lets the SDK generate only the version attributes for projects that have one. A new project with its own `AssemblyInfo.cs` needs the same line or CA1416 comes back. Count with `--no-incremental`; an incremental build skips compilation and reports 0.
 - If `keycuts.GUI.exe` is running, the build fails with MSB3021/MSB3027 (file locked). That is not a code error; stop the process (the user has approved force-closing it). Close any instance you launch.
+- Package versions live only in `Directory.Packages.props` (Central Package Management); `PackageReference` items carry no `Version`. `nuget.config` restores from nuget.org only. There are no lockfiles, because the installer's `-r win-x64` publish would rewrite them.
 - Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
 - A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
 - Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
@@ -53,9 +55,11 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 
 ## Surprises and known landmines
 
-- `ShortcutType.Command` is parse-only: `Shortcut.GetShortcutTypeFromDestination` never returns it and the emitter has no branch for it, so a `Command` shortcut would emit an empty line then `EXIT`.
+- `ShortcutType.Command` is still never produced by a create: `Shortcut.GetShortcutTypeFromDestination` never returns it. The emitter writes `START "" /B cmd /C "<command>"` for it, but the parser can't read that line back, and it reads `START "" /B "<anything>"` as File before it tries Command.
+- The emitter's launch line (`Runner.BuildCommand`) is a `switch` with no discard arm, so adding a `ShortcutType` without a case is a build error (CS8509). `Unknown` throws.
 - **PATH management** (`UserPathUpdater`, reached from `Runner.Run` and `Runner.ChangeOutputFolder` through `IPathUpdater`) edits the user `PATH` in `HKCU\Environment` directly, because `Environment.SetEnvironmentVariable` would expand `%VARS%` and rewrite the value as `REG_SZ`. It is a no-op when old and new folders match, so the installer is what first puts the output folder on `PATH`. GUI creates never change `PATH`: `KeycutCreator` uses a fixed-folder `Runner`, which passes the same folder as both. Old entries on the machine `PATH` can't be removed without elevation and are left alone.
-- `Shortcut.GetShortcutTypeFromDestination` calls `File.GetAttributes` before checking existence, so a missing path throws (`DestinationResolver` is the safe alternative).
+- `Shortcut.GetShortcutTypeFromDestination` returns `Unknown` for a missing or unreadable path, which `Runner.Run` reports as `ExitCode.NotStarted`. `DestinationResolver` is still the validator that gives a reason.
+- The parser returns File and Folder destinations with their surrounding quotes, and CLSID keys without their leading `::`. The manager hides the quotes with `Trim('"')` in `KeycutRepository.TryParse`. Both are pinned in the snapshots; fixing them is #91.
 - **Nothing needs elevation.** Context-menu verbs live in `HKCU\Software\Classes` (`ContextMenuRegistrar`, handler resolved from `AppContext.BaseDirectory`). Never write through `Registry.ClassesRoot`: it resolves to `HKLM` for these keys, and that write crashed the Settings window. The MSI writes the same keys in `installer/Package.wxs`, and a test compares the two lists.
 - The Settings checkbox shows whether the verbs exist, not the `RightClickContextMenu` value. That value only records the user's choice, so an MSI upgrade doesn't re-add a menu they turned off.
 - Windows 11 shows these classic verbs under "Show more options". The top-level menu needs a packaged `IExplorerCommand` handler.
@@ -76,4 +80,4 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 
 ## Sequencing rule
 
-The parser has thin test coverage and the plan changes both the file format and the platform underneath it. **Never move two variables in one commit.** Pin current behavior (including bugs) with characterization tests against `tests/corpus/legacy/` before changing emitter or parser logic. No test reads the corpus yet, so that harness has to be written first.
+The parser has thin test coverage and the plan changes both the file format and the platform underneath it. **Never move two variables in one commit.** Current behavior (bugs included) is pinned by `keycuts.Tests/Characterization/`. `CharacterizationRenderer` renders the parse of every corpus file, the emitter output for each type, and a `Parse(Emit(Parse(f)))` round trip as text; `CharacterizationTests` compares each rendering with `Snapshots/*.verified.txt`. When one differs, the test writes a `.received.txt` next to it (gitignored). If the change is intended, copy it over the `.verified.txt` in the same commit, so the behavior change is a reviewable diff. Known wrong answers are annotated in `ParserNotes` and the emitter cases. Pure entry points for this: `Runner.BuildShortcutLines`, `new ShortcutFile(path, lines)` and `Shortcut.FromParts`.

@@ -42,6 +42,7 @@ namespace keycuts.Tests
         [Theory]
         [InlineData("ipconfig /all")]
         [InlineData("\"C:\\a b\\tool.exe\" \"arg one\" /x")]
+        [InlineData("\"C:\\Windows\\explorer.exe\" \"C:\\My Folder\"")]
         public void Command_EmittedWithoutRemLines_ReadsBackTheSameCommand(string command)
         {
             var emitted = Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, command, @"C:\Shortcuts\cmd.bat"));

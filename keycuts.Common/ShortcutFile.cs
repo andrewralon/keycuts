@@ -63,7 +63,13 @@ namespace keycuts.Common
             {
                 Command = line;
 
-                if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
+                if (ShortcutFile.IsEmittedCommand(line, out string emittedCommand))
+                {
+                    Destination = emittedCommand;
+                    Type = ShortcutType.Command;
+                    break;
+                }
+                else if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
                 {
                     Destination = clsidKey;
                     Type = ShortcutType.CLSIDKey;
@@ -223,17 +229,20 @@ namespace keycuts.Common
             return MatchesRegex(patternFile, line, ShortcutType.File, out file);
         }
 
-        public static bool IsCommand(string line, out string command)
+        /// <summary>
+        /// Matches the emitter's Command line exactly. Try it before the Explorer patterns, which aren't anchored and
+        /// would match an explorer.exe call inside the command.
+        /// </summary>
+        public static bool IsEmittedCommand(string line, out string command)
         {
             // Not through MatchesRegex: its quote splicing would rewrite a command with quoted arguments.
             var match = regexCmdCommand.Match(line);
+            command = match.Success ? match.Groups[1].Value : "";
+            return match.Success;
+        }
 
-            if (match.Success)
-            {
-                command = match.Groups[1].Value;
-                return true;
-            }
-
+        public static bool IsCommand(string line, out string command)
+        {
             return MatchesRegex(patternCommand, line, ShortcutType.Command, out command);
         }
 

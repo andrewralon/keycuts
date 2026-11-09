@@ -191,7 +191,7 @@ namespace keycuts.Common
                     Kind = KeycutKinds.FromShortcutType(shortcut.Type),
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
-                    Destination = (shortcut.Destination ?? "").Trim('"'),
+                    Destination = shortcut.Destination ?? "",
                     FilePath = file
                 };
             }

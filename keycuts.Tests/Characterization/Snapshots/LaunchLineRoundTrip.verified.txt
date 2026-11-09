@@ -2,7 +2,7 @@
 # parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 30 ok, 12 fail, 1 skipped
+# 33 ok, 9 fail, 1 skipped
 
 edge-cases/command-type.bat: FAILS
     Destination: |ipconfig /all| -> ||
@@ -29,15 +29,9 @@ new-format/kc.bat: ok
 new-format/keycuts.bat: ok
 new-format/keypaste.bat: ok
 new-format/kp.bat: ok
-new-format/programs.bat: FAILS
-    Destination: |::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}| -> |{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}|
-    emitted: |"%SystemRoot%\explorer.exe" "::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}"|
-new-format/rb.bat: FAILS
-    Destination: |::{645FF040-5081-101B-9F08-00AA002F954E}| -> |{645FF040-5081-101B-9F08-00AA002F954E}|
-    emitted: |"%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
-new-format/recyclebin.bat: FAILS
-    Destination: |::{645FF040-5081-101B-9F08-00AA002F954E}| -> |{645FF040-5081-101B-9F08-00AA002F954E}|
-    emitted: |"%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
+new-format/programs.bat: ok
+new-format/rb.bat: ok
+new-format/recyclebin.bat: ok
 not-keycuts/chromep0.bat: ok
 not-keycuts/dequote.bat: FAILS
     Destination: <null> -> ||

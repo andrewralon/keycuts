@@ -41,8 +41,7 @@ namespace keycuts.Tests.Characterization
             var builder = new StringBuilder();
             builder.Append("# ShortcutFile parse of every file in ").Append(CorpusRelativePath).Append('\n');
             builder.Append("# Values are wrapped in | | so leading and trailing spaces show.\n");
-            builder.Append("# Bugs that affect most files: File and Folder destinations keep their surrounding quotes, and CLSID\n");
-            builder.Append("# keys lose their leading ::. Notes below cover the rest.\n");
+            builder.Append("# Notes below cover the known wrong answers.\n");
 
             foreach (var (relativePath, lines) in ReadCorpus(repoRoot))
             {

@@ -1,7 +1,6 @@
 # ShortcutFile parse of every file in tests/corpus/legacy
 # Values are wrapped in | | so leading and trailing spaces show.
-# Bugs that affect most files: File and Folder destinations keep their surrounding quotes, and CLSID
-# keys lose their leading ::. Notes below cover the rest.
+# Notes below cover the known wrong answers.
 
 ## edge-cases/command-type.bat
 Shortcut:    |command-type|

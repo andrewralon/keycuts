@@ -189,7 +189,7 @@ Description: ||
 ## not-keycuts/chromep0.bat
 Shortcut:    |chromep0|
 Type:        File
-Destination: |"%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default"|
+Destination: |%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default|
 OpenWithApp: <null>
 Command:     |START "" /D "%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default"|
 Description: ||
@@ -247,7 +247,7 @@ Description: ||
 ## old-format/db.bat
 Shortcut:    |db|
 Type:        Folder
-Destination: |"%DROPBOX%"|
+Destination: |%DROPBOX%|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%DROPBOX%"|
 Description: ||
@@ -255,7 +255,7 @@ Description: ||
 ## old-format/dl.bat
 Shortcut:    |dl|
 Type:        Folder
-Destination: |"%USERPROFILE%\Downloads"|
+Destination: |%USERPROFILE%\Downloads|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%USERPROFILE%\Downloads"|
 Description: ||
@@ -263,7 +263,7 @@ Description: ||
 ## old-format/docs.bat
 Shortcut:    |docs|
 Type:        Folder
-Destination: |"%USERPROFILE%\Documents"|
+Destination: |%USERPROFILE%\Documents|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%USERPROFILE%\Documents"|
 Description: ||
@@ -271,7 +271,7 @@ Description: ||
 ## old-format/ff.bat
 Shortcut:    |ff|
 Type:        File
-Destination: |"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"|
+Destination: |C:\Program Files (x86)\Mozilla Firefox\firefox.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files (x86)\Mozilla Firefox" "firefox.exe"|
 Description: ||
@@ -287,7 +287,7 @@ Description: ||
 ## old-format/gg.bat
 Shortcut:    |gg|
 Type:        File
-Destination: |"\chrome" "? %*"|
+Destination: |\chrome" "? %*|
 OpenWithApp: <null>
 Command:     |START "" /D "" "chrome" "? %*"|
 Description: ||
@@ -296,7 +296,7 @@ Note:        Header says url, but the command is a hand-edited Chrome launcher; 
 ## old-format/ghd.bat
 Shortcut:    |ghd|
 Type:        File
-Destination: |"C:\Users\000000000\AppData\Local\GitHubDesktop\GitHubDesktop.exe"|
+Destination: |C:\Users\000000000\AppData\Local\GitHubDesktop\GitHubDesktop.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Users\000000000\AppData\Local\GitHubDesktop" "GitHubDesktop.exe"|
 Description: ||
@@ -312,7 +312,7 @@ Description: ||
 ## old-format/ie.bat
 Shortcut:    |ie|
 Type:        File
-Destination: |"C:\Program Files\Internet Explorer\iexplore.exe"|
+Destination: |C:\Program Files\Internet Explorer\iexplore.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files\Internet Explorer" "iexplore.exe"|
 Description: ||
@@ -320,7 +320,7 @@ Description: ||
 ## old-format/iis.bat
 Shortcut:    |iis|
 Type:        File
-Destination: |"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\IIS Manager.lnk"|
+Destination: |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\IIS Manager.lnk|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools" "IIS Manager.lnk"|
 Description: ||
@@ -328,7 +328,7 @@ Description: ||
 ## old-format/npp.bat
 Shortcut:    |npp|
 Type:        File
-Destination: |"C:\Program Files (x86)\Notepad++\notepad++.exe"|
+Destination: |C:\Program Files (x86)\Notepad++\notepad++.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files (x86)\Notepad++" "notepad++.exe"|
 Description: ||
@@ -336,7 +336,7 @@ Description: ||
 ## old-format/pdn.bat
 Shortcut:    |pdn|
 Type:        File
-Destination: |"C:\Program Files\paint.net\PaintDotNet.exe"|
+Destination: |C:\Program Files\paint.net\PaintDotNet.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files\paint.net" "PaintDotNet.exe"|
 Description: ||
@@ -353,7 +353,7 @@ Note:        The command line starts with a quoted path rather than START, so it
 ## old-format/shortcuts.bat
 Shortcut:    |shortcuts|
 Type:        Folder
-Destination: |"%SHORTCUTS%"|
+Destination: |%SHORTCUTS%|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%SHORTCUTS%"|
 Description: ||

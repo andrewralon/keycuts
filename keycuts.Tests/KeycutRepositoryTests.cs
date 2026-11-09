@@ -103,6 +103,24 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task LoadAll_OldFormatFile_HasNoQuotes()
+        {
+            WriteBat("npp", "@ECHO OFF", "START \"\" /B \"C:\\Program Files\\npp.exe\"", "EXIT");
+
+            Assert.Equal(@"C:\Program Files\npp.exe", (await Repo().LoadAllAsync()).Single().Destination);
+        }
+
+        [Theory]
+        [InlineData("START \"\" /B \"cmd.exe\" /k echo hi", "\"cmd.exe\" /k echo hi")]
+        [InlineData("START tool.exe -Command \"& 'x.ps1'\"", "tool.exe -Command \"& 'x.ps1'\"")]
+        public async Task LoadAll_QuotesThatBelongToTheCommand_AreKept(string launchLine, string expected)
+        {
+            WriteBat("c", "@ECHO OFF", launchLine, "EXIT");
+
+            Assert.Equal(expected, (await Repo().LoadAllAsync()).Single().Destination);
+        }
+
+        [Fact]
         public async Task LoadAll_UnparseableFile_IsSkipped()
         {
             WriteUrl("good");

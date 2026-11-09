@@ -19,6 +19,9 @@ namespace keycuts.Common
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex regexRemType = new Regex(@"^\s*REM\s+<type>(.*)</type>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex regexRemDestination = new Regex(@"^\s*REM\s+<destination>(.*)</destination>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         public static readonly string Extension = ".bat";
 
         public string Path { get; set; }
@@ -102,6 +105,58 @@ namespace keycuts.Common
             {
                 OpenWithApp = $"\"{OpenWithApp}\"";
             }
+
+            // The comment lines hold the type and destination exactly as the emitter was given them, so they beat
+            // the regexes above, which are the fallback for files that don't have them (the 0.1.x format).
+            // They win even when the launch command disagrees (hand-edited %* arguments, a changed program, a legacy
+            // file whose REM holds the expanded path). That is deliberate: this parser only feeds display and checks,
+            // the .bat still runs its own command, and Command keeps the full launch line. Don't re-emit a file from
+            // these fields without keeping Command, or hand-added arguments are lost.
+            if (TryParseRemTypeAndDestination(allLines, out var remType, out var remDestination))
+            {
+                Type = remType;
+                Destination = remDestination;
+            }
+        }
+
+        /// <summary>
+        /// Reads the first well-formed <c>REM &lt;type&gt;</c> and <c>REM &lt;destination&gt;</c> lines. Both must be present,
+        /// the type must be a known one other than Unknown, and the destination must not be empty, or neither is used.
+        /// </summary>
+        public static bool TryParseRemTypeAndDestination(string[] lines, out ShortcutType type, out string destination)
+        {
+            type = ShortcutType.Unknown;
+            destination = null;
+
+            var typeText = FirstRemValue(lines, regexRemType);
+            var destinationText = FirstRemValue(lines, regexRemDestination);
+
+            if (typeText == null || string.IsNullOrEmpty(destinationText) ||
+                !Enum.TryParse(typeText, true, out ShortcutType parsed) ||
+                !Enum.IsDefined(typeof(ShortcutType), parsed) ||
+                parsed == ShortcutType.Unknown)
+            {
+                return false;
+            }
+
+            type = parsed;
+            destination = destinationText;
+            return true;
+        }
+
+        private static string FirstRemValue(string[] lines, Regex regex)
+        {
+            foreach (var line in lines)
+            {
+                var match = regex.Match(line);
+
+                if (match.Success)
+                {
+                    return match.Groups[1].Value.Trim();
+                }
+            }
+
+            return null;
         }
 
         public static bool IsRemLine(string line)

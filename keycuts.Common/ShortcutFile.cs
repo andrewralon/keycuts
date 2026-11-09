@@ -106,8 +106,9 @@ namespace keycuts.Common
                 OpenWithApp = $"\"{OpenWithApp}\"";
             }
 
-            // The comment lines hold the type and destination exactly as the emitter was given them, so they beat
-            // the regexes above, which are the fallback for files that don't have them (the 0.1.x format).
+            // The comment lines hold the type and destination as the emitter was given them (only surrounding
+            // whitespace is trimmed: Windows paths can't start or end with it), so they beat the regexes above,
+            // which are the fallback for files that don't have them (the 0.1.x format).
             // They win even when the launch command disagrees (hand-edited %* arguments, a changed program, a legacy
             // file whose REM holds the expanded path). That is deliberate: this parser only feeds display and checks,
             // the .bat still runs its own command, and Command keeps the full launch line. Don't re-emit a file from
@@ -131,9 +132,12 @@ namespace keycuts.Common
             var typeText = FirstRemValue(lines, regexRemType);
             var destinationText = FirstRemValue(lines, regexRemDestination);
 
+            // The name must match a defined value exactly (ignoring case): Enum.TryParse alone also accepts numbers
+            // ("3" is Folder, "-1" is an undefined value whose name is "-1") and lists ("file,folder").
             if (typeText == null || string.IsNullOrEmpty(destinationText) ||
                 !Enum.TryParse(typeText, true, out ShortcutType parsed) ||
                 !Enum.IsDefined(typeof(ShortcutType), parsed) ||
+                !string.Equals(parsed.ToString(), typeText, StringComparison.OrdinalIgnoreCase) ||
                 parsed == ShortcutType.Unknown)
             {
                 return false;

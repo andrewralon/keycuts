@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using keycuts.Common;
 
 namespace keycuts.Tests.Characterization
@@ -152,9 +153,33 @@ namespace keycuts.Tests.Characterization
         /// </summary>
         public static string RenderRoundTrip(string repoRoot)
         {
+            var header =
+                "# Round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field.\n" +
+                "# Files that parse as Unknown have nothing to emit and are listed as skipped.\n";
+
+            return RenderRoundTrip(repoRoot, header, launchLineOnly: false);
+        }
+
+        /// <summary>
+        /// Same as <see cref="RenderRoundTrip(string)"/>, but the second parse doesn't see the emitted REM &lt;type&gt; and
+        /// REM &lt;destination&gt; lines. Those lines copy whatever the first parse returned, so with them the round trip
+        /// passes even when the emitted launch line is broken. Without them, only the launch line carries the keycut.
+        /// </summary>
+        public static string RenderLaunchLineRoundTrip(string repoRoot)
+        {
+            var header =
+                "# Launch-line round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field, where the second\n" +
+                "# parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch\n" +
+                "# line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.\n" +
+                "# Files that parse as Unknown have nothing to emit and are listed as skipped.\n";
+
+            return RenderRoundTrip(repoRoot, header, launchLineOnly: true);
+        }
+
+        private static string RenderRoundTrip(string repoRoot, string header, bool launchLineOnly)
+        {
             var builder = new StringBuilder();
-            builder.Append("# Round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field.\n");
-            builder.Append("# Files that parse as Unknown have nothing to emit and are listed as skipped.\n");
+            builder.Append(header);
 
             var passed = 0;
             var failed = 0;
@@ -176,7 +201,8 @@ namespace keycuts.Tests.Characterization
                 var openWithApp = string.IsNullOrEmpty(first.OpenWithApp) ? null : first.OpenWithApp;
                 var shortcut = Shortcut.FromParts(first.Type, first.Destination, $@"C:\Shortcuts\{name}.bat", openWithApp);
                 var emitted = Runner.BuildShortcutLines(shortcut, first.Description).ToArray();
-                var second = new ShortcutFile(relativePath, emitted);
+                var reparsed = launchLineOnly ? emitted.Where(line => !IsTypeOrDestinationRem(line)).ToArray() : emitted;
+                var second = new ShortcutFile(relativePath, reparsed);
 
                 var differences = Compare(first, second).ToList();
 
@@ -203,6 +229,14 @@ namespace keycuts.Tests.Characterization
             builder.Append(body);
 
             return builder.ToString();
+        }
+
+        // The tag must come right after REM, so a description that mentions <type> is kept
+        private static readonly Regex TypeOrDestinationRem = new Regex(@"^\s*REM\s+<(type|destination)>", RegexOptions.IgnoreCase);
+
+        private static bool IsTypeOrDestinationRem(string line)
+        {
+            return TypeOrDestinationRem.IsMatch(line);
         }
 
         private static IEnumerable<string> Compare(ShortcutFile first, ShortcutFile second)

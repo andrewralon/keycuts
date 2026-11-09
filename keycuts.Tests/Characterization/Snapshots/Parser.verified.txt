@@ -5,8 +5,8 @@
 
 ## edge-cases/command-type.bat
 Shortcut:    |command-type|
-Type:        File
-Destination: |"ipconfig /all"|
+Type:        Command
+Destination: |ipconfig /all|
 OpenWithApp: <null>
 Command:     |START "" /B "ipconfig /all"|
 Description: ||
@@ -15,7 +15,7 @@ Note:        Parsed as File, not Command: the file pattern is tried first and ma
 ## edge-cases/embedded-quote.bat
 Shortcut:    |embedded-quote|
 Type:        File
-Destination: |"C:\Users\me\Documents\Say "Hi".txt"|
+Destination: |C:\Users\me\Documents\Say "Hi".txt|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Users\me\Documents\Say "Hi".txt"|
 Description: ||
@@ -31,8 +31,8 @@ Note:        No command line, so the type is never set and stays default(Shortcu
 
 ## edge-cases/header-content-drift.bat
 Shortcut:    |header-content-drift|
-Type:        File
-Destination: |"\chrome" "? %*"|
+Type:        Url
+Destination: |https://example.com|
 OpenWithApp: <null>
 Command:     |START "" /D "" "chrome" "? %*"|
 Description: ||
@@ -58,7 +58,7 @@ Description: ||
 ## edge-cases/openwithapp.bat
 Shortcut:    |openwithapp|
 Type:        File
-Destination: |"C:\Program Files\Notepad++\notepad++.exe\C:\Shortcuts\README.txt"|
+Destination: |C:\Shortcuts\README.txt|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files\Notepad++\notepad++.exe" "C:\Shortcuts\README.txt"|
 Description: ||
@@ -67,7 +67,7 @@ Note:        The app and the destination are joined into one path with a backsla
 ## edge-cases/trailing-whitespace.bat
 Shortcut:    |trailing-whitespace|
 Type:        Folder
-Destination: |"C:\Shortcuts"|
+Destination: |C:\Shortcuts|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "C:\Shortcuts"   |
 Description: ||
@@ -75,7 +75,7 @@ Description: ||
 ## edge-cases/unc-path.bat
 Shortcut:    |unc-path|
 Type:        Folder
-Destination: |"\\fileserver\share\Team Docs"|
+Destination: |\\fileserver\share\Team Docs|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "\\fileserver\share\Team Docs"|
 Description: ||
@@ -83,7 +83,7 @@ Description: ||
 ## edge-cases/unicode-destination.bat
 Shortcut:    |unicode-destination|
 Type:        File
-Destination: |"C:\Users\me\Documents\résumé.docx"|
+Destination: |C:\Users\me\Documents\résumé.docx|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Users\me\Documents\résumé.docx"|
 Description: ||
@@ -91,7 +91,7 @@ Description: ||
 ## new-format/d.bat
 Shortcut:    |d|
 Type:        Folder
-Destination: |"%USERPROFILE%\Desktop"|
+Destination: |C:\Users\USERNAME\Desktop|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%USERPROFILE%\Desktop"|
 Description: ||
@@ -107,7 +107,7 @@ Description: ||
 ## new-format/gdrive.bat
 Shortcut:    |gdrive|
 Type:        Folder
-Destination: |"%USERPROFILE%\Google Drive"|
+Destination: |%USERPROFILE%\Google Drive|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%USERPROFILE%\Google Drive"|
 Description: ||
@@ -131,7 +131,7 @@ Description: ||
 ## new-format/kc.bat
 Shortcut:    |kc|
 Type:        File
-Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"|
+Destination: |C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"|
 Description: ||
@@ -139,15 +139,15 @@ Description: ||
 ## new-format/keycuts.bat
 Shortcut:    |keycuts|
 Type:        File
-Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"|
+Destination: |C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"|
 Description: ||
 
 ## new-format/keypaste.bat
 Shortcut:    |keypaste|
-Type:        Command
-Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
+Type:        File
+Destination: |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
 Description: ||
@@ -155,8 +155,8 @@ Note:        Hand-edited %* after the closing quote fails the file pattern, so i
 
 ## new-format/kp.bat
 Shortcut:    |kp|
-Type:        Command
-Destination: |"C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
+Type:        File
+Destination: |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
 Description: ||
@@ -165,7 +165,7 @@ Note:        Hand-edited %* after the closing quote fails the file pattern, so i
 ## new-format/programs.bat
 Shortcut:    |programs|
 Type:        CLSIDKey
-Destination: |{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}|
+Destination: |::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}"|
 Description: ||
@@ -173,7 +173,7 @@ Description: ||
 ## new-format/rb.bat
 Shortcut:    |rb|
 Type:        CLSIDKey
-Destination: |{645FF040-5081-101B-9F08-00AA002F954E}|
+Destination: |::{645FF040-5081-101B-9F08-00AA002F954E}|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
 Description: ||
@@ -181,7 +181,7 @@ Description: ||
 ## new-format/recyclebin.bat
 Shortcut:    |recyclebin|
 Type:        CLSIDKey
-Destination: |{645FF040-5081-101B-9F08-00AA002F954E}|
+Destination: |::{645FF040-5081-101B-9F08-00AA002F954E}|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
 Description: ||

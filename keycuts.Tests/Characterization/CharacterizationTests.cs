@@ -30,6 +30,12 @@ namespace keycuts.Tests.Characterization
         }
 
         [Fact]
+        public void LaunchLineRoundTrip_MatchesSnapshot()
+        {
+            AssertMatchesSnapshot("LaunchLineRoundTrip", CharacterizationRenderer.RenderLaunchLineRoundTrip(RepoRoot));
+        }
+
+        [Fact]
         public void Corpus_IsFound()
         {
             // Guards against an empty snapshot passing because the corpus moved

@@ -40,6 +40,18 @@ namespace keycuts.Tests
         }
 
         [Theory]
+        [InlineData("")]
+        [InlineData("@ECHO OFF|\"C:\\tools\\app.exe\" --start|EXIT")]
+        public void NoLaunchLine_IsUnknown(string joinedLines)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\none.bat", joinedLines.Split('|'));
+
+            Assert.Equal(ShortcutType.Unknown, file.Type);
+            Assert.Null(file.Destination);
+            Assert.Null(file.Command);
+        }
+
+        [Theory]
         [InlineData("ipconfig /all")]
         [InlineData("\"C:\\a b\\tool.exe\" \"arg one\" /x")]
         [InlineData("\"C:\\Windows\\explorer.exe\" \"C:\\My Folder\"")]

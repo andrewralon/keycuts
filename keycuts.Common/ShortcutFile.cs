@@ -59,6 +59,9 @@ namespace keycuts.Common
             Path = file;
             Shortcut = System.IO.Path.GetFileNameWithoutExtension(file);
 
+            // Without this a file with no launch line would keep the enum's default, Command.
+            Type = ShortcutType.Unknown;
+
             foreach (var line in lines)
             {
                 Command = line;

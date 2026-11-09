@@ -2,13 +2,11 @@
 # parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 34 ok, 8 fail, 1 skipped
+# 34 ok, 5 fail, 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
-edge-cases/empty.bat: FAILS
-    Destination: <null> -> ||
-    emitted: |START "" /B cmd /C ""|
+edge-cases/empty.bat: skipped (parses as Unknown)
 edge-cases/header-content-drift.bat: ok
 edge-cases/hostsfile-type.bat: FAILS
     OpenWithApp: |""%windir%\system32\notepad.exe""| -> |""""%windir%\system32\notepad.exe""""|
@@ -31,9 +29,7 @@ new-format/programs.bat: ok
 new-format/rb.bat: ok
 new-format/recyclebin.bat: ok
 not-keycuts/chromep0.bat: ok
-not-keycuts/dequote.bat: FAILS
-    Destination: <null> -> ||
-    emitted: |START "" /B cmd /C ""|
+not-keycuts/dequote.bat: skipped (parses as Unknown)
 not-keycuts/jira.bat: FAILS
     Destination: |%JIRAURL%/browse/%1| -> |%%JIRAURL%%/browse/%%1|
     emitted: |START %%JIRAURL%%/browse/%%1|
@@ -59,7 +55,5 @@ old-format/ie.bat: ok
 old-format/iis.bat: ok
 old-format/npp.bat: ok
 old-format/pdn.bat: ok
-old-format/pm.bat: FAILS
-    Destination: <null> -> ||
-    emitted: |START "" /B cmd /C ""|
+old-format/pm.bat: skipped (parses as Unknown)
 old-format/shortcuts.bat: ok

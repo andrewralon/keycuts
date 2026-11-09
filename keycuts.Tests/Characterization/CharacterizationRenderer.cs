@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using keycuts.Common;
 
 namespace keycuts.Tests.Characterization
@@ -230,11 +231,12 @@ namespace keycuts.Tests.Characterization
             return builder.ToString();
         }
 
+        // The tag must come right after REM, so a description that mentions <type> is kept
+        private static readonly Regex TypeOrDestinationRem = new Regex(@"^\s*REM\s+<(type|destination)>", RegexOptions.IgnoreCase);
+
         private static bool IsTypeOrDestinationRem(string line)
         {
-            return ShortcutFile.IsRemLine(line) &&
-                   (line.IndexOf("<type>", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    line.IndexOf("<destination>", StringComparison.OrdinalIgnoreCase) >= 0);
+            return TypeOrDestinationRem.IsMatch(line);
         }
 
         private static IEnumerable<string> Compare(ShortcutFile first, ShortcutFile second)

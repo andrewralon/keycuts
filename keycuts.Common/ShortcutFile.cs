@@ -68,7 +68,7 @@ namespace keycuts.Common
                 }
                 else if (ShortcutFile.IsFolder(line, out string folder))
                 {
-                    Destination = folder;
+                    Destination = Unquote(folder);
                     Type = ShortcutType.Folder;
                     break;
                 }
@@ -81,7 +81,7 @@ namespace keycuts.Common
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
                 {
-                    Destination = newFile;
+                    Destination = Unquote(newFile);
                     Type = ShortcutType.File;
                     break;
                 }
@@ -161,6 +161,22 @@ namespace keycuts.Common
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Removes one leading and one trailing quote. The File and Folder patterns capture the launch line from its first
+        /// quote to its last, and the emitter wraps the destination in one pair of quotes, so this is its exact inverse.
+        /// That holds even when the value has quotes inside (a program followed by quoted arguments, in a hand-written
+        /// file): re-emitting it gives back the original line. A path itself can't contain quotes on Windows.
+        /// </summary>
+        public static string Unquote(string value)
+        {
+            if (value != null && value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"')
+            {
+                return value.Substring(1, value.Length - 2);
+            }
+
+            return value;
         }
 
         public static bool IsRemLine(string line)

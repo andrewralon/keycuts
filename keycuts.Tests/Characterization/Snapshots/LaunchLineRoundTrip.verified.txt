@@ -2,11 +2,9 @@
 # parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 33 ok, 9 fail, 1 skipped
+# 34 ok, 8 fail, 1 skipped
 
-edge-cases/command-type.bat: FAILS
-    Destination: |ipconfig /all| -> ||
-    emitted: |START "" /B cmd /C "ipconfig /all"|
+edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
 edge-cases/empty.bat: FAILS
     Destination: <null> -> ||

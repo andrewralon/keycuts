@@ -15,6 +15,9 @@ namespace keycuts.Common
         private static readonly string patternHostsFile = "START \"\" \\/[BD] (\".+\") \"(.+hosts)\"$";
         private static readonly string patternFile = "START \"\" \\/[BD] (\".+\")( \"(.+)\")?$";
         private static readonly string patternCommand = "START \"\" \\/[BD] (\".+)?";
+
+        // The emitter's Command line (Runner.BuildCommand): everything between the cmd /C quotes, inner quotes included.
+        private static readonly Regex regexCmdCommand = new Regex("^START \"\" /B cmd /C \"(.*)\"$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -60,7 +63,13 @@ namespace keycuts.Common
             {
                 Command = line;
 
-                if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
+                if (ShortcutFile.IsEmittedCommand(line, out string emittedCommand))
+                {
+                    Destination = emittedCommand;
+                    Type = ShortcutType.Command;
+                    break;
+                }
+                else if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
                 {
                     Destination = clsidKey;
                     Type = ShortcutType.CLSIDKey;
@@ -218,6 +227,18 @@ namespace keycuts.Common
         public static bool IsFile(string line, out string file)
         {
             return MatchesRegex(patternFile, line, ShortcutType.File, out file);
+        }
+
+        /// <summary>
+        /// Matches the emitter's Command line exactly. Try it before the Explorer patterns, which aren't anchored and
+        /// would match an explorer.exe call inside the command.
+        /// </summary>
+        public static bool IsEmittedCommand(string line, out string command)
+        {
+            // Not through MatchesRegex: its quote splicing would rewrite a command with quoted arguments.
+            var match = regexCmdCommand.Match(line);
+            command = match.Success ? match.Groups[1].Value : "";
+            return match.Success;
         }
 
         public static bool IsCommand(string line, out string command)

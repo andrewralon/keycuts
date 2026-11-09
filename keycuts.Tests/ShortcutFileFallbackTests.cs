@@ -38,5 +38,19 @@ namespace keycuts.Tests
             Assert.Equal(ShortcutType.Folder, file.Type);
             Assert.Equal(@"%USERPROFILE%\Documents", file.Destination);
         }
+
+        [Theory]
+        [InlineData("ipconfig /all")]
+        [InlineData("\"C:\\a b\\tool.exe\" \"arg one\" /x")]
+        public void Command_EmittedWithoutRemLines_ReadsBackTheSameCommand(string command)
+        {
+            var emitted = Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, command, @"C:\Shortcuts\cmd.bat"));
+            var launchOnly = emitted.FindAll(x => !ShortcutFile.IsRemLine(x)).ToArray();
+
+            var file = new ShortcutFile(@"C:\Shortcuts\cmd.bat", launchOnly);
+
+            Assert.Equal(ShortcutType.Command, file.Type);
+            Assert.Equal(command, file.Destination);
+        }
     }
 }

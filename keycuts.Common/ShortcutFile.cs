@@ -15,6 +15,9 @@ namespace keycuts.Common
         private static readonly string patternHostsFile = "START \"\" \\/[BD] (\".+\") \"(.+hosts)\"$";
         private static readonly string patternFile = "START \"\" \\/[BD] (\".+\")( \"(.+)\")?$";
         private static readonly string patternCommand = "START \"\" \\/[BD] (\".+)?";
+
+        // The emitter's Command line (Runner.BuildCommand): everything between the cmd /C quotes, inner quotes included.
+        private static readonly Regex regexCmdCommand = new Regex("^START \"\" /B cmd /C \"(.*)\"$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -222,6 +225,15 @@ namespace keycuts.Common
 
         public static bool IsCommand(string line, out string command)
         {
+            // Not through MatchesRegex: its quote splicing would rewrite a command with quoted arguments.
+            var match = regexCmdCommand.Match(line);
+
+            if (match.Success)
+            {
+                command = match.Groups[1].Value;
+                return true;
+            }
+
             return MatchesRegex(patternCommand, line, ShortcutType.Command, out command);
         }
 

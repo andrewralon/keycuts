@@ -10,7 +10,7 @@ namespace keycuts.Common
         private readonly string explorer = "\\explorer.exe\"";
         private readonly string start = "START ";
 
-        private static readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?::({.+})\"";
+        private static readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?(::{.+})\"";
         private static readonly string patternFolder = "\".+explorer.exe\" (\".+\")";
         private static readonly string patternHostsFile = "START \"\" \\/[BD] (\".+\") \"(.+hosts)\"$";
         private static readonly string patternFile = "START \"\" \\/[BD] (\".+\")( \"(.+)\")?$";

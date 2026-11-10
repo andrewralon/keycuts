@@ -3,6 +3,10 @@
 ###############################################################################
 * text=auto
 
+# cmd reads a script with LF-only endings unreliably; the keypaste.cmd shim ships to users (#97).
+# (Not *.bat: tests/corpus holds .bat files whose bytes the parser tests depend on.)
+*.cmd text eol=crlf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

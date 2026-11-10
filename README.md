@@ -89,6 +89,18 @@ $env:KEYCUTS_OUTPUT_FOLDER = "$env:TEMP\keycuts-fixtures-100"
 
 The script refuses to write into `C:\Shortcuts`, `%USERPROFILE%\Shortcuts`, or your configured output folder. The override is ignored in Release builds.
 
+## Copying a destination: `keypaste`
+
+`keypaste db` (or `keycuts paste db`), typed in Win+R or a terminal, copies the `db` keycut's destination to the
+clipboard and prints it. Given a text file's name instead, it copies the file's contents. It looks in the current
+folder, then your keycuts folder, then the keycuts install folder, and tries the name as typed, then with `.txt`, then
+with `.bat`. `keypaste` used to be a separate program; it's now a small `keypaste.cmd` beside `keycuts.exe` that runs
+`keycuts paste`.
+
+If you made a keycut to the old `keypaste.exe` (a `keypaste.bat` in your keycuts folder, say), delete it once
+`keypaste.exe` is gone. Windows finds a keycut named `keypaste` before the new command, so one that points at a missing
+`keypaste.exe` stops `keypaste` from working.
+
 ## Development
 
 Requires the .NET SDK 10. Run from the repository root:

@@ -53,7 +53,7 @@
         <!-- Uninstall leaves the folder alone unless it is empty, so keycuts survive -->
         <CreateFolder Directory="OUTPUTFOLDER" />
 
-        <!-- Win+R finds keycuts through the output folder; the install folder exposes keycuts.exe and keypaste.exe -->
+        <!-- Win+R finds keycuts through the output folder; the install folder exposes keycuts.exe and the keypaste.cmd shim -->
         <Environment Id="PathOutputFolder" Name="PATH" Value="[OUTPUTFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
         <Environment Id="PathInstallFolder" Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
 

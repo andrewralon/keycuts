@@ -3,7 +3,7 @@
     Builds the per-user keycuts MSI at artifacts\installer\keycuts-setup.msi.
 
 .DESCRIPTION
-    Publishes the GUI, CLI and keypaste self-contained into one folder, then packages that folder.
+    Publishes the GUI and CLI (with its keypaste.cmd shim) self-contained into one folder, then packages that folder.
     Self-contained because a non-admin install can't add the .NET runtime to the machine.
     Needs only the .NET SDK; the WiX toolset restores from NuGet.
 
@@ -27,7 +27,7 @@ foreach ($folder in $publish, $output) {
 
 $versionArgs = if ($Version) { @("-p:Version=$Version") } else { @() }
 
-foreach ($project in 'keycuts.GUI', 'keycuts.CLI', 'keypaste') {
+foreach ($project in 'keycuts.GUI', 'keycuts.CLI') {
     dotnet publish (Join-Path $root "$project\$project.csproj") -c Release -r win-x64 --self-contained true `
         -p:SatelliteResourceLanguages=en @versionArgs -o $publish
     if ($LASTEXITCODE -ne 0) { throw "Publishing $project failed." }

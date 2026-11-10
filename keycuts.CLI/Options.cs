@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 namespace keycuts.CLI
 {
+    /// <summary>Creating a keycut is the default verb, so <c>keycuts -d … -s …</c> works without naming it.</summary>
+    [Verb("create", isDefault: true, HelpText = "Create a keycut (the default: \"create\" can be left out).")]
     public class Options
     {
         [Option('d', "destination", Required = false, HelpText = "The destination path to be opened with a shortcut.")]

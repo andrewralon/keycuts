@@ -13,4 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- keypaste.exe became "keycuts paste" (#97); the shim keeps "keypaste <name>" working from the install folder on PATH -->
+    <None Include="keypaste.cmd" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

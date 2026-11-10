@@ -17,6 +17,7 @@ namespace keycuts.Common
         HandleIsInvalid = 6,
         FileAlreadyExists = 10,
         CannotCreateOutputFolder = 11,
-        CannotUpdatePath = 12
+        CannotUpdatePath = 12,
+        CannotSetClipboard = 13
     }
 }

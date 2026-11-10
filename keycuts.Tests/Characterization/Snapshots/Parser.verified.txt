@@ -41,10 +41,9 @@ Note:        Only the command line is read; the header's type and destination ar
 Shortcut:    |hostsfile-type|
 Type:        HostsFile
 Destination: |C:\Windows\System32\drivers\etc\hosts|
-OpenWithApp: |""%windir%\system32\notepad.exe""|
+OpenWithApp: |%windir%\system32\notepad.exe|
 Command:     |START "" /B "%windir%\system32\notepad.exe" "C:\Windows\System32\drivers\etc\hosts"|
 Description: ||
-Note:        OpenWithApp comes back inside two pairs of quotes.
 
 ## edge-cases/lf-line-endings.bat
 Shortcut:    |lf-line-endings|

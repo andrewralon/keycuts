@@ -39,6 +39,16 @@ namespace keycuts.Tests
             Assert.Equal(@"%USERPROFILE%\Documents", file.Destination);
         }
 
+        [Fact]
+        public void HostsFile_WithoutRemLines_OpenWithAppHasNoQuotes()
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\hosts.bat", new[] { "START \"\" /B \"%windir%\\system32\\notepad.exe\" \"C:\\Windows\\System32\\drivers\\etc\\hosts\"" });
+
+            Assert.Equal(ShortcutType.HostsFile, file.Type);
+            Assert.Equal(@"%windir%\system32\notepad.exe", file.OpenWithApp);
+            Assert.Equal(@"C:\Windows\System32\drivers\etc\hosts", file.Destination);
+        }
+
         [Theory]
         [InlineData("")]
         [InlineData("@ECHO OFF|\"C:\\tools\\app.exe\" --start|EXIT")]

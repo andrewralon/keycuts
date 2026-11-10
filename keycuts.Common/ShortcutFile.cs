@@ -88,7 +88,7 @@ namespace keycuts.Common
                 {
                     Destination = hostsFile;
                     Type = ShortcutType.HostsFile;
-                    OpenWithApp = openWithApp;
+                    OpenWithApp = Unquote(openWithApp);
                     break;
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
@@ -111,11 +111,6 @@ namespace keycuts.Common
                 }
 
                 Type = ShortcutType.Unknown;
-            }
-
-            if (!string.IsNullOrEmpty(OpenWithApp))
-            {
-                OpenWithApp = $"\"{OpenWithApp}\"";
             }
 
             // The comment lines hold the type and destination as the emitter was given them (only surrounding

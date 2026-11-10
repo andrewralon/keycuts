@@ -1,14 +1,12 @@
 # Round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 38 ok, 1 fail, 4 skipped
+# 39 ok, 0 fail, 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
 edge-cases/empty.bat: skipped (parses as Unknown)
 edge-cases/header-content-drift.bat: ok
-edge-cases/hostsfile-type.bat: FAILS
-    OpenWithApp: |""%windir%\system32\notepad.exe""| -> |""""%windir%\system32\notepad.exe""""|
-    emitted: |START "" /B """%windir%\system32\notepad.exe""" "C:\Windows\System32\drivers\etc\hosts"|
+edge-cases/hostsfile-type.bat: ok
 edge-cases/lf-line-endings.bat: ok
 edge-cases/openwithapp.bat: ok
 edge-cases/trailing-whitespace.bat: ok

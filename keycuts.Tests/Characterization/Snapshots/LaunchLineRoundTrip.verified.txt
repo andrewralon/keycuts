@@ -2,15 +2,13 @@
 # parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 34 ok, 5 fail, 4 skipped
+# 35 ok, 4 fail, 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
 edge-cases/empty.bat: skipped (parses as Unknown)
 edge-cases/header-content-drift.bat: ok
-edge-cases/hostsfile-type.bat: FAILS
-    OpenWithApp: |""%windir%\system32\notepad.exe""| -> |""""%windir%\system32\notepad.exe""""|
-    emitted: |START "" /B """%windir%\system32\notepad.exe""" "C:\Windows\System32\drivers\etc\hosts"|
+edge-cases/hostsfile-type.bat: ok
 edge-cases/lf-line-endings.bat: ok
 edge-cases/openwithapp.bat: ok
 edge-cases/trailing-whitespace.bat: ok

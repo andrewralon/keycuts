@@ -109,5 +109,24 @@ namespace keycuts.Tests
             // Only custom variables are checked on disk, and only once they've passed the cheap checks
             Assert.Equal(new[] { @"\\server\share\Archive", @"C:\Users\me\Dropbox", @"C:\Gone" }, asked.ToArray());
         }
+
+        [Fact]
+        public void GetDefault_AShareRootCanBeAVariable_ButADriveRootCant()
+        {
+            var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["NAS"] = @"\\server\share\",    // one named place, like a folder
+                ["DATA"] = @"D:\",               // a whole drive
+                ["DEVICE"] = @"\\?\E:\",         // a whole drive, written as a device path
+            };
+
+            var all = PathVariables.GetDefault(
+                name => environment.TryGetValue(name, out var value) ? value : null!,
+                environment.Keys,
+                folder => true);
+
+            Assert.Equal(new[] { @"NAS=\\server\share" }, all.Select(v => v.Name + "=" + v.Value).ToArray());
+            Assert.Equal(@"%NAS%\docs\a.txt", PathVariables.Substitute(@"\\server\share\docs\a.txt", all));
+        }
     }
 }

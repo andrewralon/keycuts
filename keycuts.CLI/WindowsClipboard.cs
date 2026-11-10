@@ -26,8 +26,13 @@ namespace keycuts.CLI
 
             // EmptyClipboard makes the window that opened the clipboard its owner, and SetClipboardData is documented to
             // fail without one, so open it with a hidden message-only window that lives until the clipboard is closed.
-            // If that window can't be made, a null owner still works in practice.
+            // Without that window, fail before touching the clipboard rather than empty it and copy nothing.
             var owner = CreateWindowEx(0, "STATIC", null, 0, 0, 0, 0, 0, HWND_MESSAGE, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+
+            if (owner == IntPtr.Zero)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
 
             try
             {
@@ -35,10 +40,7 @@ namespace keycuts.CLI
             }
             finally
             {
-                if (owner != IntPtr.Zero)
-                {
-                    DestroyWindow(owner);
-                }
+                DestroyWindow(owner);
             }
         }
 

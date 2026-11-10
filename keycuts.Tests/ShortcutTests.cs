@@ -9,8 +9,12 @@ namespace keycuts.Tests
     {
         [Theory]
         [InlineData("a%b", "a%%b")]
-        [InlineData("a%%b", "a%%b")]
+        [InlineData("a%%b", "a%%%%b")]
         [InlineData("a&b", "a^&b")]
+        [InlineData("a&&b", "a^&^&b")]
+        [InlineData("&a", "^&a")]
+        [InlineData("a^&b", "a^^^&b")]
+        [InlineData("a|b<c>d", "a^|b^<c^>d")]
         [InlineData("plain", "plain")]
         public void SanitizeBatEscapeCharacters_EscapesSpecialCharacters(string input, string expected)
         {

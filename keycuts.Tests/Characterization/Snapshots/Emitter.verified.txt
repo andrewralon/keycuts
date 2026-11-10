@@ -17,7 +17,7 @@
 |REM <type>url</type>|
 |REM <destination>https://example.com/search?q=a&b=50%&c=%%d</destination>|
 |REM <description></description>|
-|START https://example.com/search?q=a^&b=50%%^&c=%%d|
+|START https://example.com/search?q=a^&b=50%%^&c=%%%%d|
 |EXIT|
 
 ## url-with-double-ampersand
@@ -27,7 +27,7 @@
 |REM <type>url</type>|
 |REM <destination>https://example.com/?a=1&&b=2</destination>|
 |REM <description></description>|
-|START https://example.com/?a=1&^&b=2|
+|START https://example.com/?a=1^&^&b=2|
 |EXIT|
 
 ## url-with-open-with-app

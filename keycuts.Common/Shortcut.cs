@@ -264,15 +264,37 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// Escapes a URL for the unquoted <c>START &lt;url&gt;</c> line so cmd passes every character through literally:
+        /// each % is doubled (a .bat reads % as a variable), and ^ &amp; | &lt; &gt; each get a ^ (cmd's escape character,
+        /// so ^ itself must be escaped too). Every character is escaped the same way whatever surrounds it, so the result
+        /// is exactly reversible: an existing %% or ^&amp; in the URL is literal text and is escaped again.
+        /// </summary>
         public static string SanitizeBatEscapeCharacters(string command)
         {
-            // Bat files use % for variables, so replace a single % with %%
-            command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
+            var escaped = new StringBuilder(command.Length);
 
-            // Replace a single & with ^&
-            command = Regex.Replace(command, "(?<!^)&(?!&)", "^&");
+            foreach (var c in command)
+            {
+                switch (c)
+                {
+                    case '%':
+                        escaped.Append("%%");
+                        break;
+                    case '^':
+                    case '&':
+                    case '|':
+                    case '<':
+                    case '>':
+                        escaped.Append('^').Append(c);
+                        break;
+                    default:
+                        escaped.Append(c);
+                        break;
+                }
+            }
 
-            return command;
+            return escaped.ToString();
         }
 
         public static bool IsCLSIDKey(string guid)

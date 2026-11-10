@@ -93,8 +93,6 @@ namespace keycuts.Common
         public static void SetRegistryValue(string keyName, object keyValue,
             RegistryValueKind registryValueKind = RegistryValueKind.String)
         {
-            Console.WriteLine($"SetRegistryValue(\"{keyName}\", \"{keyValue}\", \"{registryValueKind}\")");
-
             using var appNameKey = CurrentUserContext.CreateSubKey(StartPath, true);
 
             appNameKey.SetValue(keyName, keyValue, registryValueKind);

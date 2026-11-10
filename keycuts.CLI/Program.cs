@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.CLI
 {
@@ -20,10 +19,6 @@ namespace keycuts.CLI
                 // stderr, so a failed `keycuts paste` leaves stdout empty for a script that reads it
                 Console.Error.WriteLine($"Error: {result}");
             }
-
-#if DEBUG
-            Console.ReadKey();
-#endif
 
             return (int)result;
         }

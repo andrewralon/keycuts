@@ -24,7 +24,6 @@ Gotchas:
 - If `keycuts.GUI.exe` is running, the build fails with MSB3021/MSB3027 (file locked). That is not a code error; stop the process (the user has approved force-closing it). Close any instance you launch.
 - Package versions live only in `Directory.Packages.props` (Central Package Management); `PackageReference` items carry no `Version`. `nuget.config` restores from nuget.org only. There are no lockfiles, because the installer's `-r win-x64` publish would rewrite them.
 - Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
-- A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
 - Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
 - CI (`.github/workflows/ci.yml`) runs on PRs into `develop`/`main` and pushes to `develop`. Job `build` (Windows) builds and tests, and job `format` checks formatting on Linux beside it; both are required checks on `develop` and `main`. Each run's summary shows the version, SDK and runner image, the test results (`GitHubActionsTestLogger`, which also annotates failed tests), the diff of any changed characterization snapshot, and, on failure, the formatting issues by line. A failed run uploads a `test-results` artifact (TRX plus any `.received.txt` snapshots). PRs into `main` also run job `installer` beside `build` (required on `main`): it builds the MSI, including WiX ICE validation, uploads it as `keycuts-setup`, and puts the release preview with its size and SHA256 in the summary. Actions are pinned to commit SHAs; Dependabot (`.github/dependabot.yml`) bumps them and the NuGet packages monthly.
 
@@ -70,7 +69,7 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 
 ## Conventions
 
-`#region` blocks, `var` everywhere, `out` parameters as the legacy return idiom, `Console.WriteLine` as logging inside the library. `.editorconfig` enforces Allman braces, 4-space C# / 2-space XAML and csproj. `keycuts.GUI` has `Nullable` enabled; `Common` does not. Match the surrounding style.
+`#region` blocks, `var` everywhere, `out` parameters as the legacy return idiom. The library doesn't log: don't add `Console.WriteLine` to `keycuts.Common` (the CLI's output is its own; `Runner`'s "Shortcut created" line is the one exception, and `keycuts paste` sends library output to stderr). `.editorconfig` enforces Allman braces, 4-space C# / 2-space XAML and csproj. `keycuts.GUI` has `Nullable` enabled; `Common` does not. Match the surrounding style.
 
 ## Where things are documented
 

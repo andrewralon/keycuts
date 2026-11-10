@@ -64,8 +64,11 @@ namespace keycuts.GUI.ViewModels
 
         private bool savingRename;
 
-        // A rename changed a file on disk and no reload has refreshed the rows yet (one may have been cancelled)
-        private bool rowsStale;
+        // A renamed keycut's row, still showing its old name and path because no reload has rebuilt the rows yet (one
+        // may have been cancelled), and that keycut as it is on disk now. The row's actions use the renamed keycut.
+        private KeycutRowViewModel? staleRow;
+
+        private Keycut? renamedKeycut;
 
         // A renamed keycut's new path, selected and focused by the next reload that rebuilds the rows
         private string? pendingSelectPath;
@@ -307,14 +310,14 @@ namespace keycuts.GUI.ViewModels
 
         public void OpenKeycut(KeycutRowViewModel row)
         {
-            Perform(row, "open", () => actions?.Launch(row.Keycut.FilePath));
+            Perform(row, "open", () => actions?.Launch(KeycutOf(row).FilePath));
         }
 
         public void EditKeycut(KeycutRowViewModel row)
         {
             try
             {
-                actions?.Edit(row.Keycut.FilePath);
+                actions?.Edit(KeycutOf(row).FilePath);
             }
             catch (System.IO.FileNotFoundException)
             {
@@ -332,7 +335,7 @@ namespace keycuts.GUI.ViewModels
         {
             try
             {
-                actions?.OpenFileLocation(row.Keycut.FilePath);
+                actions?.OpenFileLocation(KeycutOf(row).FilePath);
             }
             catch (System.IO.FileNotFoundException)
             {
@@ -366,7 +369,7 @@ namespace keycuts.GUI.ViewModels
 
             try
             {
-                await actions.DeleteAsync(row.Keycut);
+                await actions.DeleteAsync(KeycutOf(row));
                 RemoveRow(row);
                 ShowStatusMessage("Deleted \u201C" + row.Name + "\u201D", false);
             }
@@ -377,7 +380,7 @@ namespace keycuts.GUI.ViewModels
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Couldn't delete \u201C" + row.Name + "\u201D: " + ex.Message, true);
+                ShowStatusMessage("Couldn't delete \u201C" + row.Name + "\u201D: " + ReasonOf(ex), true);
             }
             finally
             {
@@ -391,7 +394,7 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public void BeginRename(KeycutRowViewModel row)
         {
-            if (actions == null || savingRename || rowsStale || deleting.Contains(row))
+            if (actions == null || savingRename || staleRow != null || deleting.Contains(row))
             {
                 return;
             }
@@ -451,7 +454,7 @@ namespace keycuts.GUI.ViewModels
             }
 
             // No other rename while the file is being renamed. The reloads afterwards aren't awaited, so slow destination
-            // checks can't hold this guard; stale rows after a success are blocked by rowsStale instead.
+            // checks can't hold this guard; stale rows after a success are blocked by staleRow instead.
             savingRename = true;
 
             try
@@ -483,7 +486,7 @@ namespace keycuts.GUI.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ex.Message, true);
+                    ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ReasonOf(ex), true);
                     FocusRowRequested?.Invoke(this, row);
                     _ = LoadAsync();
                     return;
@@ -492,15 +495,34 @@ namespace keycuts.GUI.ViewModels
                 ShowStatusMessage("Renamed “" + oldName + "” to “" + newName + "”", false);
 
                 // Selected by whichever reload rebuilds the rows: F5 or reactivating the window can cancel this one.
-                // Until then the rows show the old name and path, so no rename may start from them.
+                // Until then the row shows the old name and path, so no rename may start, and its actions use the new file.
                 pendingSelectPath = newPath;
-                rowsStale = true;
+                staleRow = row;
+                renamedKeycut = row.Keycut with { Name = newName, FilePath = newPath };
                 _ = LoadAsync();
             }
             finally
             {
                 savingRename = false;
             }
+        }
+
+        /// <summary>The keycut a row's actions work on: for a row a rename has made stale, the file under its new name.</summary>
+        private Keycut KeycutOf(KeycutRowViewModel row)
+        {
+            return ReferenceEquals(row, staleRow) && renamedKeycut != null ? renamedKeycut : row.Keycut;
+        }
+
+        private void ForgetStaleRow()
+        {
+            staleRow = null;
+            renamedKeycut = null;
+        }
+
+        /// <summary>The file system's own reason, which the repository wraps in a message that only names the file.</summary>
+        private static string ReasonOf(Exception ex)
+        {
+            return ex is KeycutRepositoryException && ex.InnerException != null ? ex.InnerException.Message : ex.Message;
         }
 
         private void EndRename(KeycutRowViewModel row)
@@ -636,7 +658,7 @@ namespace keycuts.GUI.ViewModels
             if (IsSameContent(keycuts))
             {
                 keycuts = allRows.Select(row => row.Keycut).ToList();
-                rowsStale = false;
+                ForgetStaleRow();
                 SelectPendingRename();
             }
             else
@@ -662,7 +684,7 @@ namespace keycuts.GUI.ViewModels
 
             // A reload builds new rows, so find the selected keycut again
             SelectedRow = Rows.FirstOrDefault(row => row.Keycut.FilePath == selectedPath);
-            rowsStale = false;
+            ForgetStaleRow();
             SelectPendingRename();
         }
 
@@ -702,7 +724,7 @@ namespace keycuts.GUI.ViewModels
             isLoading = false;
             hasLoaded = true;
             KeycutCount = 0;
-            rowsStale = false;
+            ForgetStaleRow();
             ApplyFilter();
         }
 

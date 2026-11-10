@@ -344,6 +344,55 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_Failure_ShowsTheFileSystemsReason_NotJustTheFileName()
+        {
+            var locked = new System.IO.IOException("The process cannot access the file because it is being used by another process.");
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(KeycutRepositoryError.InUse, "Can't rename \"a.bat\".", locked) };
+            var manager = await LoadedAsync(actions, "a");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "z";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal("Couldn't rename “a”: " + locked.Message, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Rename_BeforeTheReloadRebuildsTheRows_TheOldRowsActionsUseTheRenamedFile()
+        {
+            var noop = new RelayCommand(() => { });
+            var reload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var actions = new FakeActions();
+            var manager = new ManagerViewModel(noop, noop, ct => ++calls == 1 ?
+                Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }) :
+                reload.Task, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            var row = manager.Rows[0];
+            manager.BeginRename(row);
+            row.EditName = "zed";
+
+            await manager.CommitRenameAsync();   // its reload waits, so the row still shows "a"
+            var newPath = @"C:\fixture\zed.bat";
+
+            manager.OpenKeycut(row);
+            manager.EditKeycut(row);
+            manager.OpenFileLocation(row);
+            await manager.DeleteKeycutAsync(row);
+
+            Assert.Equal(new[] { newPath }, actions.Launched);
+            Assert.Equal(new[] { newPath }, actions.Edited);
+            Assert.Equal(new[] { newPath }, actions.Located);
+            Assert.Equal(new[] { newPath }, actions.Deleted);
+            Assert.Equal("Deleted “a”", manager.StatusMessage);
+
+            reload.SetResult(new List<Keycut>());
+        }
+
+        [Fact]
         public async Task Rename_FileGone_ShowsMessage_AndRefreshesTheList()
         {
             var noop = new RelayCommand(() => { });

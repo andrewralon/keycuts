@@ -10,7 +10,7 @@ Entry points for creating one: the WPF app (drag/paste/browse a destination, nam
 
 ## Commands
 
-.NET SDK 10, Windows only (Common, CLI and keypaste target `net10.0-windows`; GUI and Tests target `net10.0-windows10.0.19041.0`). `global.json` pins the SDK to the 10.0.2xx feature band, version 10.0.203 or a newer 2xx patch (`latestPatch`), and CI installs the newest 2xx patch. A machine without a 2xx SDK fails with an SDK-resolution error; install one, or move the band deliberately in `global.json`. Run from the repo root:
+.NET SDK 10, Windows only (Common and CLI target `net10.0-windows`; GUI and Tests target `net10.0-windows10.0.19041.0`). `global.json` pins the SDK to the 10.0.2xx feature band, version 10.0.203 or a newer 2xx patch (`latestPatch`), and CI installs the newest 2xx patch. A machine without a 2xx SDK fails with an SDK-resolution error; install one, or move the band deliberately in `global.json`. Run from the repo root:
 
 - Build: `dotnet build keycuts.sln`
 - Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
@@ -34,12 +34,11 @@ Gotchas:
 
 ## Architecture
 
-Five SDK-style projects in `keycuts.sln` (the old `keycuts.Batmanager` app was retired; its manager is now a view inside the GUI):
+Four SDK-style projects in `keycuts.sln` (the old `keycuts.Batmanager` app was retired, and its manager is now a view inside the GUI; the `keypaste` project became `keycuts paste`, #97):
 
 - `keycuts.Common`: all domain logic, no UI. Resolves `.lnk` files through late-bound `WScript.Shell` COM (`Type.GetTypeFromProgID`), so there is no COM reference in the csproj.
 - `keycuts.GUI`: WPF, single window with two views (Creator, Manager) driven by `ViewModels/` (`ShellViewModel` switches views). Side-effects go through `IKeycutActions` so view models are testable. `Themes/` holds tokens, light/dark/high-contrast dictionaries and `ThemeManager`; `Controls/` has `Icon`, `TypeBadge`, `MenuButton`, `SortHeaderButton`.
-- `keycuts.CLI`: assembly is named **`keycuts.exe`**, not `keycuts.CLI.exe`. Uses CommandLineParser 2.9.1. Calls `Runner` directly and has no description option.
-- `keypaste`: copies a keycut's destination to the clipboard (WinForms).
+- `keycuts.CLI`: assembly is named **`keycuts.exe`**, not `keycuts.CLI.exe`. Uses CommandLineParser 2.9.1 with two verbs: `create` (`Options`, the default verb, so the original `keycuts -d … -s …` needs no verb name) calls `Runner` directly and has no description option; `paste <name>` (`PasteOptions`, #97, formerly the `keypaste` project) runs `KeycutPaste.Run` in Common and sets the clipboard through Win32 (`WindowsClipboard`), so nothing in the solution uses WinForms. `keypaste.cmd` (`@"%~dp0keycuts.exe" paste %*`) is copied beside `keycuts.exe` in the install folder, which is on PATH, so `keypaste <name>` still works; `.gitattributes` keeps it CRLF.
 - `keycuts.Tests`: references Common and GUI; covers creation, repository, resolver, view models, accessibility, sample data.
 
 ### Two layers of creation code in `keycuts.Common`

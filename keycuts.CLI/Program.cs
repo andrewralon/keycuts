@@ -21,10 +21,6 @@ namespace keycuts.CLI
                 Console.Error.WriteLine($"Error: {result}");
             }
 
-#if DEBUG
-            Console.ReadKey();
-#endif
-
             return (int)result;
         }
 

@@ -64,6 +64,9 @@ namespace keycuts.GUI.ViewModels
 
         private bool savingRename;
 
+        // A rename changed a file on disk and no reload has refreshed the rows yet (one may have been cancelled)
+        private bool rowsStale;
+
         // A renamed keycut's new path, selected and focused by the next reload that rebuilds the rows
         private string? pendingSelectPath;
 
@@ -388,7 +391,7 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public void BeginRename(KeycutRowViewModel row)
         {
-            if (actions == null || savingRename || deleting.Contains(row))
+            if (actions == null || savingRename || rowsStale || deleting.Contains(row))
             {
                 return;
             }
@@ -487,8 +490,10 @@ namespace keycuts.GUI.ViewModels
 
                 ShowStatusMessage("Renamed “" + oldName + "” to “" + newName + "”", false);
 
-                // Selected by whichever reload rebuilds the rows: F5 or reactivating the window can cancel this one
+                // Selected by whichever reload rebuilds the rows: F5 or reactivating the window can cancel this one.
+                // Until then the rows show the old name and path, so no rename may start from them.
                 pendingSelectPath = newPath;
+                rowsStale = true;
                 await LoadAsync();
             }
             finally
@@ -630,6 +635,7 @@ namespace keycuts.GUI.ViewModels
             if (IsSameContent(keycuts))
             {
                 keycuts = allRows.Select(row => row.Keycut).ToList();
+                rowsStale = false;
                 SelectPendingRename();
             }
             else
@@ -655,6 +661,7 @@ namespace keycuts.GUI.ViewModels
 
             // A reload builds new rows, so find the selected keycut again
             SelectedRow = Rows.FirstOrDefault(row => row.Keycut.FilePath == selectedPath);
+            rowsStale = false;
             SelectPendingRename();
         }
 
@@ -694,6 +701,7 @@ namespace keycuts.GUI.ViewModels
             isLoading = false;
             hasLoaded = true;
             KeycutCount = 0;
+            rowsStale = false;
             ApplyFilter();
         }
 

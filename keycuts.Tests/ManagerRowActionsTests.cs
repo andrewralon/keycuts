@@ -492,12 +492,22 @@ namespace keycuts.Tests
             var f5 = manager.LoadAsync();               // F5 meanwhile cancels it, and waits too
             renameReload.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
             await saving;                               // the cancelled reload returns first, changing nothing
+
+            // The rows still show "a" with its old path, so no rename may start from them yet
+            Assert.Equal("a", manager.Rows[0].Name);
+            manager.BeginRename(manager.Rows[0]);
+            Assert.False(manager.IsRenaming);
+
             f5Reload.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
             await f5;
 
             Assert.Equal("zed", manager.SelectedRow?.Name);
             Assert.Same(manager.SelectedRow, focused);
             Assert.Equal(new[] { "b", "zed" }, manager.Rows.Select(r => r.Name).ToArray());
+
+            // Fresh rows: renaming works again
+            manager.BeginRename(manager.Rows[1]);
+            Assert.True(manager.IsRenaming);
         }
 
         [Fact]

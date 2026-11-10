@@ -24,7 +24,7 @@ namespace keycuts.Tests
     {
         static CreatorViewModel NewCreator()
         {
-            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false);
             creator.Destination = "https://example.com";
             creator.DestinationKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
@@ -220,7 +220,7 @@ namespace keycuts.Tests
                 EnsureApplication();
                 var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
                     (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
-                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { })) { Welcome = welcome };
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false) { Welcome = welcome };
                 creator.Destination = "https://example.com";
                 creator.DestinationKind = KeycutKind.Url;
                 creator.ShortcutName = "ex";
@@ -346,7 +346,7 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
+                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false);
                 var window = Host(new CreatorView(), empty);
                 try
                 {

@@ -17,7 +17,8 @@ namespace keycuts.CLI
             var result = Run(args);
             if (result != ExitCode.Success)
             {
-                Console.WriteLine($"Error: {result}");
+                // stderr, so a failed `keycuts paste` leaves stdout empty for a script that reads it
+                Console.Error.WriteLine($"Error: {result}");
             }
 
 #if DEBUG

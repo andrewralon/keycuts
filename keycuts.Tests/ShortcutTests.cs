@@ -15,6 +15,9 @@ namespace keycuts.Tests
         [InlineData("&a", "^&a")]
         [InlineData("a^&b", "a^^^&b")]
         [InlineData("a|b<c>d", "a^|b^<c^>d")]
+        [InlineData("q=\"a&b\"&c", "q=\"a&b\"^&c")]
+        [InlineData("q=\"50%\"", "q=\"50%%\"")]
+        [InlineData("a\"b&c", "a\"b&c")]
         [InlineData("plain", "plain")]
         public void SanitizeBatEscapeCharacters_EscapesSpecialCharacters(string input, string expected)
         {

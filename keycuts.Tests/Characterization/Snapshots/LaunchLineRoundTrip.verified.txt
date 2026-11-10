@@ -2,7 +2,7 @@
 # parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 36 ok, 3 fail, 4 skipped
+# 36 ok, 3 fail (3 expected), 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
@@ -28,17 +28,17 @@ new-format/rb.bat: ok
 new-format/recyclebin.bat: ok
 not-keycuts/chromep0.bat: ok
 not-keycuts/dequote.bat: skipped (parses as Unknown)
-not-keycuts/jira.bat: FAILS
+not-keycuts/jira.bat: FAILS (expected) Not a keycut: the emitter escapes its %VAR% variables to literal text (#91 step g).
     Destination: |%JIRAURL%/browse/%1| -> |%%JIRAURL%%/browse/%%1|
     emitted: |START %%JIRAURL%%/browse/%%1|
-not-keycuts/newjira.bat: FAILS
-    Destination: |%JIRAURL%/secure/CreateIssueDetails!init.jspa?pid=%PID%^&reporter=%JIRAUSER%^&assignee=%JIRAUSER%^&priority=6%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%| -> |%%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^&reporter=%%JIRAUSER%%^^&assignee=%%JIRAUSER%%^^&priority=6%%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%%|
-    emitted: |START %%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^&reporter=%%JIRAUSER%%^^&assignee=%%JIRAUSER%%^^&priority=6%%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%%|
+not-keycuts/newjira.bat: FAILS (expected) Not a keycut: the emitter escapes its %VAR% variables and ^& to literal text (#91 step g).
+    Destination: |%JIRAURL%/secure/CreateIssueDetails!init.jspa?pid=%PID%^&reporter=%JIRAUSER%^&assignee=%JIRAUSER%^&priority=6%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%| -> |%%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^^&reporter=%%JIRAUSER%%^^^&assignee=%%JIRAUSER%%^^^&priority=6%%ASSIGNEDDEV%%%%REQUESTOR%%%%INFRASTRUCTURE%%|
+    emitted: |START %%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^^&reporter=%%JIRAUSER%%^^^&assignee=%%JIRAUSER%%^^^&priority=6%%ASSIGNEDDEV%%%%REQUESTOR%%%%INFRASTRUCTURE%%|
 not-keycuts/regeditopen.bat: ok
 not-keycuts/ss.bat: skipped (parses as Unknown)
-not-keycuts/swaphosts.bat: FAILS
-    Destination: |nircmdc.exe elevate powershell.exe -Command "& '%FILENAME%.ps1' %* -fromCMD"| -> |nircmdc.exe elevate powershell.exe -Command "^& '%%FILENAME%%.ps1' %%* -fromCMD"|
-    emitted: |START nircmdc.exe elevate powershell.exe -Command "^& '%%FILENAME%%.ps1' %%* -fromCMD"|
+not-keycuts/swaphosts.bat: FAILS (expected) Not a keycut: the emitter escapes its %VAR% variables and %* to literal text (#91 step g).
+    Destination: |nircmdc.exe elevate powershell.exe -Command "& '%FILENAME%.ps1' %* -fromCMD"| -> |nircmdc.exe elevate powershell.exe -Command "& '%%FILENAME%%.ps1' %%* -fromCMD"|
+    emitted: |START nircmdc.exe elevate powershell.exe -Command "& '%%FILENAME%%.ps1' %%* -fromCMD"|
 old-format/db.bat: ok
 old-format/dl.bat: ok
 old-format/docs.bat: ok

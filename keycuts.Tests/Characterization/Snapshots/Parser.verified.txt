@@ -9,7 +9,7 @@ Destination: |ipconfig /all|
 OpenWithApp: <null>
 Command:     |START "" /B "ipconfig /all"|
 Description: ||
-Note:        Parsed as File, not Command: the file pattern is tried first and matches any quoted START (#93).
+Note:        The REM lines make it Command. Its launch line is the old emitter's START "" /B "<command>", which the fallback would read as File: the file pattern matches any quoted START (#93).
 
 ## edge-cases/embedded-quote.bat
 Shortcut:    |embedded-quote|
@@ -35,7 +35,7 @@ Destination: |https://example.com|
 OpenWithApp: <null>
 Command:     |START "" /D "" "chrome" "? %*"|
 Description: ||
-Note:        Only the command line is read; the header's type and destination are ignored (#91).
+Note:        The REM url wins over the Chrome launch line, by design: REM type and destination beat the launch command. Command keeps the real line (#91).
 
 ## edge-cases/hostsfile-type.bat
 Shortcut:    |hostsfile-type|
@@ -149,7 +149,7 @@ Destination: |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
 Description: ||
-Note:        Hand-edited %* after the closing quote fails the file pattern, so it falls through to Command.
+Note:        The REM destination wins, so the hand-added %* is only in Command, not Destination (#91). Re-emitting from these fields would drop it.
 
 ## new-format/kp.bat
 Shortcut:    |kp|
@@ -158,7 +158,7 @@ Destination: |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
 Description: ||
-Note:        Hand-edited %* after the closing quote fails the file pattern, so it falls through to Command.
+Note:        The REM destination wins, so the hand-added %* is only in Command, not Destination (#91). Re-emitting from these fields would drop it.
 
 ## new-format/programs.bat
 Shortcut:    |programs|

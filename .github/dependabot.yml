@@ -1,0 +1,25 @@
+# Monthly version updates, as PRs into develop (the default branch). Security updates (for example the design
+# prototype's npm packages) come from the repo's Dependabot security settings and don't depend on this file.
+#
+# The SDK in global.json is deliberately not listed: it pins the feature band that local Visual Studio builds use, and
+# latestPatch already picks up that band's patches. Move the band by hand when Visual Studio moves.
+version: 2
+updates:
+  # The workflows pin each action to a commit SHA; this keeps those pins current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # Versions live in Directory.Packages.props (Central Package Management). Minor and patch bumps come as one PR;
+  # each major bump comes on its own.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      nuget-minor-and-patch:
+        update-types: [minor, patch]

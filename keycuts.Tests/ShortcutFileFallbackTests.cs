@@ -42,6 +42,8 @@ namespace keycuts.Tests
         [Theory]
         [InlineData("START \"\" /D \"C:\\Program Files (x86)\\Notepad++\" \"notepad++.exe\"", @"C:\Program Files (x86)\Notepad++\notepad++.exe")]
         [InlineData("START \"\" /D \"\" \"chrome\" \"? %*\"", "chrome\" \"? %*")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\"", "C:\\Tools\\app.exe\" \"arg")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"a b\" \"c\"", "C:\\Tools\\app.exe\" \"a b\" \"c")]
         [InlineData("START \"\" /B \"C:\\a b\\app.exe\" \"C:\\c d\\file.txt\"", "C:\\a b\\app.exe\" \"C:\\c d\\file.txt")]
         public void File_QuotedParts_AreJoinedOnlyForTheStartInFolderForm(string line, string expected)
         {
@@ -49,6 +51,25 @@ namespace keycuts.Tests
 
             Assert.Equal(ShortcutType.File, file.Type);
             Assert.Equal(expected, file.Destination);
+        }
+
+        [Fact]
+        public void StartInFolder_WithQuotedArguments_ReEmitsALineThatRunsTheProgram()
+        {
+            var original = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { "START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\"" });
+            var emitted = Runner.BuildShortcutLines(Shortcut.FromParts(original.Type, original.Destination, @"C:\Shortcuts\app.bat"));
+
+            Assert.Contains("START \"\" /B \"C:\\Tools\\app.exe\" \"arg\"", emitted);
+        }
+
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag \"arg\"")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\" --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" app.exe")]
+        public void StartInFolder_WithAnUnquotedPart_IsLeftToTheOtherPatterns(string line)
+        {
+            Assert.False(ShortcutFile.IsStartInFolder(line, out _));
         }
 
         [Fact]

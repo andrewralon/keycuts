@@ -264,15 +264,48 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// Escapes a URL for the unquoted <c>START &lt;url&gt;</c> line so cmd passes every character through literally:
+        /// each % is doubled (a .bat reads % as a variable, even inside quotes), and outside double quotes ^ &amp; | &lt; &gt;
+        /// each get a ^ (cmd's escape character, so ^ itself must be escaped too). Inside quotes cmd takes those literally,
+        /// including ^, so they are left alone there; each " toggles that state, as it does for cmd. The result is exactly
+        /// reversible: an existing %% or ^&amp; in the URL is literal text and is escaped again.
+        /// </summary>
         public static string SanitizeBatEscapeCharacters(string command)
         {
-            // Bat files use % for variables, so replace a single % with %%
-            command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
+            var escaped = new StringBuilder(command.Length);
+            var inQuotes = false;
 
-            // Replace a single & with ^&
-            command = Regex.Replace(command, "(?<!^)&(?!&)", "^&");
+            foreach (var c in command)
+            {
+                switch (c)
+                {
+                    case '%':
+                        escaped.Append("%%");
+                        break;
+                    case '"':
+                        inQuotes = !inQuotes;
+                        escaped.Append(c);
+                        break;
+                    case '^':
+                    case '&':
+                    case '|':
+                    case '<':
+                    case '>':
+                        if (!inQuotes)
+                        {
+                            escaped.Append('^');
+                        }
 
-            return command;
+                        escaped.Append(c);
+                        break;
+                    default:
+                        escaped.Append(c);
+                        break;
+                }
+            }
+
+            return escaped.ToString();
         }
 
         public static bool IsCLSIDKey(string guid)

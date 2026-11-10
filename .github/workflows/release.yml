@@ -20,7 +20,7 @@ jobs:
     # A manual run from another branch would publish unmerged code and take the tag main needs.
     if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         shell: pwsh
@@ -53,17 +53,22 @@ jobs:
         if: steps.version.outputs.exists == 'false'
         run: dotnet test keycuts.sln -c Release --logger "GitHubActions;summary-include-passed=false"
 
-      - name: Build installer
+      - name: Build installers
         if: steps.version.outputs.exists == 'false'
-        run: ./tools/Build-Installer.ps1
+        run: |
+          ./tools/Build-Installer.ps1 -Runtime win-x64
+          ./tools/Build-Installer.ps1 -Runtime win-arm64
 
       - name: Package
         if: steps.version.outputs.exists == 'false'
         run: |
           $out = 'artifacts/release'
           New-Item $out -ItemType Directory -Force | Out-Null
-          Copy-Item artifacts/installer/keycuts-setup.msi $out
-          Compress-Archive -Path artifacts/publish/* -DestinationPath "$out/keycuts-portable-win-x64.zip"
+          foreach ($runtime in 'win-x64', 'win-arm64') {
+            $arch = $runtime -replace '^win-', ''
+            Copy-Item "artifacts/installer/$runtime/keycuts-setup-$arch.msi" $out
+            Compress-Archive -Path "artifacts/publish/$runtime/*" -DestinationPath "$out/keycuts-portable-$runtime.zip"
+          }
           Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
             Set-Content "$out/SHA256SUMS.txt"
           Get-Content "$out/SHA256SUMS.txt"

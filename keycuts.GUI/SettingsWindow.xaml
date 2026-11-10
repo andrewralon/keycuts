@@ -6,11 +6,12 @@
         xmlns:local="clr-namespace:keycuts.GUI"
         xmlns:common="clr-namespace:keycuts.Common;assembly=keycuts.Common"
         mc:Ignorable="d"
-        Title="Settings" Height="460" Width="425" FontSize="18" MinWidth="425" MinHeight="460" KeyDown="Settings_KeyDown" Closed="Settings_Closed">
+        Title="Settings" Height="520" Width="425" FontSize="18" MinWidth="425" MinHeight="520" KeyDown="Settings_KeyDown" Closed="Settings_Closed">
     <Grid>
         <Grid x:Name="GridSettingsMargin" Margin="20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="0.6*"/>
+                <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="1*"/>
@@ -31,10 +32,17 @@
             </Grid>
             <Grid Grid.Row="3">
                 <CheckBox Name="CheckboxRightClickContextMenus" IsChecked="{Binding Path=RightClickContextMenus}"
-                          Content="{Binding Path=LabelRightClickContextMenus, FallbackValue='Right Click Context Menus'}" 
+                          Content="{Binding Path=LabelRightClickContextMenus, FallbackValue='Right Click Context Menus'}"
                           HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
             </Grid>
-            <StackPanel Grid.Row="4" VerticalAlignment="Center">
+            <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating -->
+            <Grid Grid.Row="4">
+                <CheckBox Name="CheckboxUseEnvironmentVariables" IsChecked="{Binding Path=UseEnvironmentVariables}"
+                          Content="{Binding Path=LabelUseEnvironmentVariables, FallbackValue='Use Environment Variables in Paths'}"
+                          ToolTip="Saves C:\Users\you\Desktop as %USERPROFILE%\Desktop, so keycuts work on other machines and accounts. Hold Shift while creating to do the opposite for one keycut."
+                          HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10"/>
+            </Grid>
+            <StackPanel Grid.Row="5" VerticalAlignment="Center">
                 <Label Content="{Binding Path=LabelTheme, FallbackValue='Theme'}" HorizontalAlignment="Left"/>
                 <StackPanel x:Name="ThemeChoices" Orientation="Horizontal" Margin="10,4,10,0">
                     <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
@@ -45,7 +53,7 @@
                                  AutomationProperties.Name="Dark theme" Checked="Theme_Checked"/>
                 </StackPanel>
             </StackPanel>
-            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center">
+            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Content="Save Settings" Click="SaveSettings_Click" Margin="10" MinWidth="170"/>
                 <!-- Closes Settings and shows the first-run welcome panel in the creator again -->
                 <Button Content="Show Welcome" Click="ShowWelcome_Click" Margin="10" MinWidth="150"

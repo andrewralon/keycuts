@@ -49,6 +49,21 @@ namespace keycuts.GUI
 
         public string LabelRightClickContextMenus { get; } = "Right Click Context Menus";
 
+        public string LabelUseEnvironmentVariables { get; } = "Use Environment Variables in Paths";
+
+        private bool useEnvironmentVariables;
+
+        /// <summary>Save new file and folder keycuts as %USERPROFILE%\... and the like (#31). Shift flips it per keycut.</summary>
+        public bool UseEnvironmentVariables
+        {
+            get { return useEnvironmentVariables; }
+            set
+            {
+                useEnvironmentVariables = value;
+                NotifyPropertyChanged();
+            }
+        }
+
         public string LabelTheme { get; } = "Theme";
 
         /// <summary>Set by Show welcome, which closes the window; the main window then shows the first-run panel.</summary>
@@ -103,6 +118,7 @@ namespace keycuts.GUI
             OutputFolder = settings.OutputFolder;
             ForceOverwrite = settings.ForceOverwrite;
             RightClickContextMenus = settings.RightClickContextMenus;
+            UseEnvironmentVariables = settings.UseEnvironmentVariables;
 
             theme = settings.Theme;
             ThemeChoices.Children.OfType<RadioButton>().First(choice => (ThemePreference)choice.Tag == theme).IsChecked = true;
@@ -122,6 +138,7 @@ namespace keycuts.GUI
                 OutputFolder = OutputFolder,
                 ForceOverwrite = CheckboxForceOverwrite.IsChecked == true,
                 RightClickContextMenus = RightClickContextMenus,
+                UseEnvironmentVariables = UseEnvironmentVariables,
                 Theme = theme
             };
 

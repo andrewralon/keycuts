@@ -53,6 +53,10 @@ namespace keycuts.GUI
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome);
+            // Environment variables in paths (#31): the setting, and the variables this machine has
+            shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+            shell.Creator.PathVariables = Common.PathVariables.GetDefault();
+
             var mainWindow = new MainWindow(shell);
 
             if (args.Any())

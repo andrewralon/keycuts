@@ -23,6 +23,9 @@ namespace keycuts.GUI
 
         public bool ForceOverwrite { get; set; }
 
+        /// <summary>Save new file and folder keycuts with environment variables (#31).</summary>
+        public bool UseEnvironmentVariables { get; set; }
+
         public bool RightClickContextMenus { get; set; }
 
         public ThemePreference Theme { get; set; }
@@ -36,6 +39,7 @@ namespace keycuts.GUI
         {
             OutputFolder = runner.GetOutputFolder();
             ForceOverwrite = runner.GetForceOverwrite();
+            UseEnvironmentVariables = runner.GetUseEnvironmentVariables();
             RightClickContextMenus = runner.GetRightClickContextMenu();
             Theme = runner.GetThemePreference();
         }
@@ -65,6 +69,7 @@ namespace keycuts.GUI
                 }
 
                 runner.SetForceOverwrite(ForceOverwrite);
+                runner.SetUseEnvironmentVariables(UseEnvironmentVariables);
                 runner.SetThemePreference(Theme);
 
                 if (!runner.SetRightClickContextMenu(RightClickContextMenus))

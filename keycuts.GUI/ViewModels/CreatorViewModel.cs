@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -73,16 +74,22 @@ namespace keycuts.GUI.ViewModels
 
         private int successVersion;
 
-        private readonly Func<string, string, CancellationToken, Task<CreateResult>> createAsync;
+        private readonly Func<string, string, bool, CancellationToken, Task<CreateResult>> createAsync;
 
         private readonly Func<string, bool> nameExists;
 
-        /// <param name="createAsync">Creates the keycut; defaults to <see cref="KeycutCreator"/>. Tests pass a fake.</param>
+        private bool useEnvironmentVariablesSetting;
+
+        private bool isShiftHeld;
+
+        private IReadOnlyList<PathVariable> pathVariables = Array.Empty<PathVariable>();
+
+        /// <param name="createAsync">Creates the keycut (destination, name, use environment variables); defaults to <see cref="KeycutCreator"/>. Tests pass a fake.</param>
         /// <param name="nameExists">Checks for an existing keycut while typing; defaults to the configured output folder, and is off when force overwrite is on.</param>
         public CreatorViewModel(
             ICommand showManagerCommand,
             ICommand openSettingsCommand,
-            Func<string, string, CancellationToken, Task<CreateResult>>? createAsync = null,
+            Func<string, string, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
             Func<string, bool>? nameExists = null)
         {
             ShowManagerCommand = showManagerCommand;
@@ -118,6 +125,79 @@ namespace keycuts.GUI.ViewModels
         public ICommand ShowManagerCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
+
+        /// <summary>The Settings choice to save file and folder paths with environment variables (#31). The app sets it; off in tests.</summary>
+        public bool UseEnvironmentVariablesSetting
+        {
+            get { return useEnvironmentVariablesSetting; }
+            set
+            {
+                if (SetProperty(ref useEnvironmentVariablesSetting, value))
+                {
+                    RaiseSavedAsChanged();
+                }
+            }
+        }
+
+        /// <summary>True while Shift is down; it flips <see cref="UseEnvironmentVariablesSetting"/> for this keycut.</summary>
+        public bool IsShiftHeld
+        {
+            get { return isShiftHeld; }
+            set
+            {
+                if (SetProperty(ref isShiftHeld, value))
+                {
+                    RaiseSavedAsChanged();
+                }
+            }
+        }
+
+        /// <summary>The variables a path can be saved with. The app reads them from the machine; empty (no preview) in tests.</summary>
+        public IReadOnlyList<PathVariable> PathVariables
+        {
+            get { return pathVariables; }
+            set
+            {
+                pathVariables = value ?? Array.Empty<PathVariable>();
+                RaiseSavedAsChanged();
+            }
+        }
+
+        /// <summary>Whether this keycut will be saved with environment variables: the setting, flipped while Shift is held.</summary>
+        public bool UseEnvironmentVariables
+        {
+            get { return useEnvironmentVariablesSetting != isShiftHeld; }
+        }
+
+        /// <summary>
+        /// The path as it will be saved, shown under the destination: with variables or without, following
+        /// <see cref="UseEnvironmentVariables"/>. Empty when there is nothing to choose (not a file or folder, or no variable fits).
+        /// </summary>
+        public string SavedAsPath
+        {
+            get
+            {
+                if (!HasValidDestination || (destinationKind != KeycutKind.File && destinationKind != KeycutKind.Folder))
+                {
+                    return string.Empty;
+                }
+
+                var path = destination.Trim();
+                var withVariables = Common.PathVariables.Substitute(path, pathVariables);
+
+                if (string.Equals(withVariables, path, StringComparison.Ordinal))
+                {
+                    return string.Empty;
+                }
+
+                return UseEnvironmentVariables ? withVariables : path;
+            }
+        }
+
+        public bool ShowSavedAs
+        {
+            get { return SavedAsPath.Length > 0; }
+        }
 
         /// <summary>The first-run panel shown above the form, or null when the app was started without one (tests, design data).</summary>
         public WelcomeViewModel? Welcome { get; init; }
@@ -513,7 +593,8 @@ namespace keycuts.GUI.ViewModels
             CreateResult result;
             try
             {
-                result = await createAsync(target, name, CancellationToken.None);
+                // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
+                result = await createAsync(target, name, UseEnvironmentVariables, CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -581,7 +662,7 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        private static async Task<CreateResult> DefaultCreateAsync(string destination, string name, CancellationToken ct)
+        private static async Task<CreateResult> DefaultCreateAsync(string destination, string name, bool useEnvironmentVariables, CancellationToken ct)
         {
 #if DEBUG
             // Debug builds can slow creation down to see the Saving state
@@ -590,7 +671,7 @@ namespace keycuts.GUI.ViewModels
                 await Task.Delay(delayMs, ct);
             }
 #endif
-            return await KeycutCreator.CreateAsync(destination, name, null, ct);
+            return await KeycutCreator.CreateAsync(destination, name, new CreateOptions { UseEnvironmentVariables = useEnvironmentVariables }, ct);
         }
 
         private static bool DefaultNameExists(string name)
@@ -620,6 +701,14 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(DestinationHelpText));
             OnPropertyChanged(nameof(NameHelpText));
             OnPropertyChanged(nameof(CreateButtonName));
+            RaiseSavedAsChanged();
+        }
+
+        private void RaiseSavedAsChanged()
+        {
+            OnPropertyChanged(nameof(UseEnvironmentVariables));
+            OnPropertyChanged(nameof(SavedAsPath));
+            OnPropertyChanged(nameof(ShowSavedAs));
         }
     }
 }

@@ -162,8 +162,32 @@ namespace keycuts.GUI.Views
         }
 
         /// <summary>Ctrl+V anywhere except the two text fields pastes into the destination.</summary>
+        // Holding Shift flips the environment-variables setting for this keycut (#31); the "Saved as" line follows it
+        private void CreatorView_PreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+            }
+        }
+
+        // A Shift released in another window never reaches us
+        private void CreatorView_IsKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!IsKeyboardFocusWithin && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = false;
+            }
+        }
+
         private void CreatorView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = true;
+                return;
+            }
+
             if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control || ViewModel?.IsInputEnabled != true)
             {
                 return;

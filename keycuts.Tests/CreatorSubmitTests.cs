@@ -16,11 +16,14 @@ namespace keycuts.Tests
         {
             public readonly List<(string Destination, string Name)> Calls = new List<(string, string)>();
 
+            public readonly List<bool> UsedEnvironmentVariables = new List<bool>();
+
             public Func<Task<CreateResult>> Result = () => Task.FromResult(CreateResult.Success(null!));
 
-            public Task<CreateResult> Create(string destination, string name, CancellationToken ct)
+            public Task<CreateResult> Create(string destination, string name, bool useEnvironmentVariables, CancellationToken ct)
             {
                 Calls.Add((destination, name));
+                UsedEnvironmentVariables.Add(useEnvironmentVariables);
                 return Result();
             }
         }
@@ -30,6 +33,70 @@ namespace keycuts.Tests
             var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, nameExists ?? (_ => false));
             creator.SuccessDuration = TimeSpan.FromMilliseconds(20);
             return creator;
+        }
+
+        static readonly PathVariable[] TestVariables = { new PathVariable("USERPROFILE", @"C:\Users\me") };
+
+        static CreatorViewModel FileCreator(FakeCreator fake, string destination = @"C:\Users\me\Desktop\notes.txt")
+        {
+            var creator = Create(fake);
+            creator.PathVariables = TestVariables;
+            creator.Destination = destination;
+            creator.DestinationKind = KeycutKind.File;
+            creator.ShortcutName = "notes";
+            return creator;
+        }
+
+        [Theory]
+        [InlineData(false, false, false)]
+        [InlineData(true, false, true)]
+        [InlineData(false, true, true)]   // Shift turns it on for this keycut
+        [InlineData(true, true, false)]   // ...or off
+        public async Task EnvironmentVariables_TheSettingFlippedByShift_IsWhatCreateUses(bool setting, bool shift, bool expected)
+        {
+            var fake = new FakeCreator();
+            var creator = FileCreator(fake);
+            creator.UseEnvironmentVariablesSetting = setting;
+            creator.IsShiftHeld = shift;
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new[] { expected }, fake.UsedEnvironmentVariables);
+        }
+
+        [Fact]
+        public void SavedAs_ShowsThePathAsItWillBeSaved_AndFollowsShift()
+        {
+            var creator = FileCreator(new FakeCreator());
+            var changed = new List<string?>();
+            creator.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            Assert.True(creator.ShowSavedAs);
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.SavedAsPath);
+
+            creator.IsShiftHeld = true;
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
+            Assert.Contains(nameof(CreatorViewModel.SavedAsPath), changed);
+
+            creator.UseEnvironmentVariablesSetting = true;
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.SavedAsPath);
+
+            creator.IsShiftHeld = false;
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
+        }
+
+        [Theory]
+        [InlineData(@"D:\Data\notes.txt", KeycutKind.File)]           // no variable fits: nothing to choose
+        [InlineData("https://example.com", KeycutKind.Url)]           // not a path
+        public void SavedAs_IsHidden_WhenThereIsNothingToChoose(string destination, KeycutKind kind)
+        {
+            var creator = Create(new FakeCreator());
+            creator.PathVariables = TestVariables;
+            creator.Destination = destination;
+            creator.DestinationKind = kind;
+
+            Assert.False(creator.ShowSavedAs);
+            Assert.Equal(string.Empty, creator.SavedAsPath);
         }
 
         static CreatorViewModel Ready(FakeCreator fake, Func<string, bool>? nameExists = null)

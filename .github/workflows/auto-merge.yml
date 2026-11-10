@@ -1,0 +1,26 @@
+name: Auto-merge
+
+# Turns on auto-merge for pull requests the repo owner opens into develop or main. GitHub then merges each one itself
+# once every required check passes and any required review is given; this workflow decides nothing about that.
+# Needs "Allow auto-merge" in the repository settings.
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable:
+    # Drafts can't auto-merge; ready_for_review fires when one is marked ready. Dependabot and forks get no write token.
+    if: github.actor == github.repository_owner && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --merge "$PR_URL"

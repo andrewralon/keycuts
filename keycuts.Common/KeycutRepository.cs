@@ -14,7 +14,9 @@ namespace keycuts.Common
         AccessDenied,
         InvalidPath,
         InUse,
-        Unknown
+        Unknown,
+        AlreadyExists,
+        InvalidName
     }
 
     public class KeycutRepositoryException : Exception
@@ -91,6 +93,18 @@ namespace keycuts.Common
         public Task DeleteAsync(Keycut keycut, CancellationToken ct = default)
         {
             return Task.Run(() => Delete(keycut), ct);
+        }
+
+        /// <summary>
+        /// Renames the keycut's file to <paramref name="newName"/>.bat in the same folder and returns the new path. Only the
+        /// file name and its <c>REM &lt;shortcut&gt;</c> line change: the file is not re-emitted, so a hand-edited launch line
+        /// (an added <c>%*</c>, say) survives. A name that is taken is refused, never overwritten; a change of case only is
+        /// allowed. If the comment can't be rewritten (not UTF-8), the rename still stands, since nothing reads that line.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The name is invalid or taken, or the file is gone, locked, or can't be renamed.</exception>
+        public Task<string> RenameAsync(Keycut keycut, string newName, CancellationToken ct = default)
+        {
+            return Task.Run(() => Rename(keycut, newName), ct);
         }
 
         /// <summary>
@@ -222,6 +236,100 @@ namespace keycuts.Common
             catch (Exception ex)
             {
                 throw Translate(ex, $"Can't delete \"{path}\".");
+            }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex ShortcutRemLine = new System.Text.RegularExpressions.Regex(
+            @"^(\s*REM\s+<shortcut>).*?(</shortcut>)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        private static string Rename(Keycut keycut, string newName)
+        {
+            var path = keycut.FilePath;
+
+            if (!KeycutCreator.IsValidName(newName))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidName, $"\"{newName}\" isn't a valid keycut name.");
+            }
+
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{path}\" no longer exists.");
+                }
+
+                var newPath = Path.Combine(Path.GetDirectoryName(path), newName + ShortcutFile.Extension);
+
+                if (string.Equals(newPath, path, StringComparison.Ordinal))
+                {
+                    return path;
+                }
+
+                // Another keycut with that name, unless it's this file under a different case
+                if (File.Exists(newPath) && !string.Equals(newPath, path, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{newName}\" already exists.");
+                }
+
+                File.Move(path, newPath);
+                TryRewriteShortcutLine(newPath);
+
+                return newPath;
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't rename \"{path}\".");
+            }
+        }
+
+        /// <summary>Points the REM &lt;shortcut&gt; line at the new path, keeping the encoding, BOM and line endings.</summary>
+        private static void TryRewriteShortcutLine(string path)
+        {
+            try
+            {
+                var bytes = File.ReadAllBytes(path);
+                var preamble = System.Text.Encoding.UTF8.GetPreamble();
+                var hasBom = bytes.Length >= preamble.Length && bytes.AsSpan(0, preamble.Length).SequenceEqual(preamble);
+                var strict = new System.Text.UTF8Encoding(false, true);
+                var text = strict.GetString(bytes, hasBom ? preamble.Length : 0, bytes.Length - (hasBom ? preamble.Length : 0));
+                var updated = ShortcutRemLine.Replace(text, match => match.Groups[1].Value + path + match.Groups[2].Value);
+
+                if (updated == text)
+                {
+                    return;
+                }
+
+                var body = strict.GetBytes(updated);
+                // Write a temp file beside it and swap it in only once it's complete: writing in place truncates first,
+                // so a failed write (a full disk) would leave the keycut empty or half written
+                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+                try
+                {
+                    File.WriteAllBytes(temp, hasBom ? preamble.Concat(body).ToArray() : body);
+
+                    // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
+                    // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
+                    // it throws, and the original stays as it was.
+                    File.Replace(temp, path, null);
+                }
+                finally
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is System.Text.DecoderFallbackException || ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // The REM line is only a comment, so a file we can't decode or rewrite keeps its old one
+                Debug.WriteLine($"keycuts: kept the old <shortcut> line in \"{path}\": {ex.Message}");
             }
         }
 

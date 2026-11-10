@@ -278,6 +278,156 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_MovesTheFile_AndRewritesOnlyTheShortcutLine()
+        {
+            var oldPath = Path.Combine(_folder, "kp.bat");
+            var newPath = Path.Combine(_folder, "paste.bat");
+            File.WriteAllText(oldPath,
+                "@ECHO OFF\r\n" +
+                "REM keycuts 1.0.6\r\n" +
+                $"REM <shortcut>{oldPath}</shortcut>\r\n" +
+                "REM <type>file</type>\r\n" +
+                "REM <destination>C:\\tools\\keypaste.exe</destination>\r\n" +
+                "START \"\" /B \"C:\\tools\\keypaste.exe\" %*\r\n" +
+                "EXIT\r\n");
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var result = await Repo().RenameAsync(k, "paste");
+
+            Assert.Equal(newPath, result);
+            Assert.False(File.Exists(oldPath));
+            Assert.Equal(new[] { newPath }, Directory.GetFiles(_folder));
+            Assert.Equal(
+                "@ECHO OFF\r\n" +
+                "REM keycuts 1.0.6\r\n" +
+                $"REM <shortcut>{newPath}</shortcut>\r\n" +
+                "REM <type>file</type>\r\n" +
+                "REM <destination>C:\\tools\\keypaste.exe</destination>\r\n" +
+                "START \"\" /B \"C:\\tools\\keypaste.exe\" %*\r\n" +
+                "EXIT\r\n",
+                File.ReadAllText(newPath));
+        }
+
+        [Fact]
+        public async Task Rename_KeepsTheDownloadedFromTheInternetMark()
+        {
+            // A Zone.Identifier stream makes Windows warn before running a downloaded .bat; rewriting must not drop it
+            var oldPath = Path.Combine(_folder, "dl.bat");
+            File.WriteAllText(oldPath, $"REM <shortcut>{oldPath}</shortcut>\r\nSTART https://example.com\r\n");
+            File.WriteAllText(oldPath + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var newPath = await Repo().RenameAsync(k, "web");
+
+            Assert.Contains($"<shortcut>{newPath}</shortcut>", File.ReadAllText(newPath));
+            Assert.Equal("[ZoneTransfer]\r\nZoneId=3\r\n", File.ReadAllText(newPath + ":Zone.Identifier"));
+            Assert.Equal(new[] { newPath }, Directory.GetFiles(_folder));
+        }
+
+        [Fact]
+        public async Task Rename_KeepsAUtf8ByteOrderMark()
+        {
+            var oldPath = Path.Combine(_folder, "a.bat");
+            File.WriteAllText(oldPath, $"REM <shortcut>{oldPath}</shortcut>\r\nSTART https://example.com\r\n", new System.Text.UTF8Encoding(true));
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var newPath = await Repo().RenameAsync(k, "b");
+
+            var bytes = File.ReadAllBytes(newPath);
+            Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF }, bytes.Take(3).ToArray());
+            Assert.Contains($"<shortcut>{newPath}</shortcut>", File.ReadAllText(newPath));
+        }
+
+        [Fact]
+        public async Task Rename_LegacyFileWithoutAShortcutLine_IsJustMoved()
+        {
+            var oldPath = WriteBat("gm", "@ECHO OFF", @"REM keycuts 0.1.1.5", @"REM <url>C:\Shortcuts\gm.bat</url>", "START https://mail.google.com", "EXIT");
+            var before = File.ReadAllBytes(oldPath);
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var newPath = await Repo().RenameAsync(k, "mail");
+
+            Assert.Equal(before, File.ReadAllBytes(newPath));
+        }
+
+        [Fact]
+        public async Task Rename_NonUtf8File_IsMovedWithItsBytesUntouched()
+        {
+            var oldPath = Path.Combine(_folder, "old.bat");
+            var before = new byte[] { 0x52, 0x45, 0x4D, 0x20, 0x3C, 0x73, 0x68, 0x6F, 0x72, 0x74, 0x63, 0x75, 0x74, 0x3E, 0xE9, 0x3C, 0x2F, 0x73, 0x68, 0x6F, 0x72, 0x74, 0x63, 0x75, 0x74, 0x3E, 0x0D, 0x0A, 0x53, 0x54, 0x41, 0x52, 0x54, 0x20, 0x68, 0x74, 0x74, 0x70, 0x73, 0x3A, 0x2F, 0x2F, 0x61, 0x2E, 0x62, 0x0D, 0x0A };
+            File.WriteAllBytes(oldPath, before);
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var newPath = await Repo().RenameAsync(k, "new");
+
+            Assert.Equal(before, File.ReadAllBytes(newPath));
+        }
+
+        [Fact]
+        public async Task Rename_ToATakenName_IsRefused_AndChangesNothing()
+        {
+            var a = WriteUrl("a");
+            var b = WriteUrl("b", "https://b.example");
+            var k = (await Repo().LoadAllAsync()).Single(x => x.Name == "a");
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => Repo().RenameAsync(k, "B"));
+
+            Assert.Equal(KeycutRepositoryError.AlreadyExists, ex.Error);
+            Assert.True(File.Exists(a));
+            Assert.Contains("https://b.example", File.ReadAllText(b));
+        }
+
+        [Fact]
+        public async Task Rename_ChangingOnlyTheCase_IsAllowed()
+        {
+            WriteUrl("npp");
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var newPath = await Repo().RenameAsync(k, "NPP");
+
+            Assert.Equal("NPP.bat", Path.GetFileName(Directory.GetFiles(_folder).Single()));
+            Assert.Equal(Path.Combine(_folder, "NPP.bat"), newPath);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("a/b")]
+        [InlineData("con")]
+        [InlineData(" padded")]
+        public async Task Rename_InvalidName_IsRefused(string name)
+        {
+            var path = WriteUrl("a");
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => Repo().RenameAsync(k, name));
+
+            Assert.Equal(KeycutRepositoryError.InvalidName, ex.Error);
+            Assert.True(File.Exists(path));
+        }
+
+        [Fact]
+        public async Task Rename_FileAlreadyGone_ThrowsNotFound()
+        {
+            var path = WriteUrl("a");
+            var k = (await Repo().LoadAllAsync()).Single();
+            File.Delete(path);
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => Repo().RenameAsync(k, "b"));
+
+            Assert.Equal(KeycutRepositoryError.NotFound, ex.Error);
+        }
+
+        [Fact]
+        public async Task Rename_SameName_IsANoOp()
+        {
+            var path = WriteUrl("a");
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            Assert.Equal(path, await Repo().RenameAsync(k, "a"));
+            Assert.True(File.Exists(path));
+        }
+
+        [Fact]
         public void Exists_IsCaseInsensitive()
         {
             WriteUrl("MyKeycut");

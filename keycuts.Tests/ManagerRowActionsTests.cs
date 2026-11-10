@@ -23,9 +23,9 @@ namespace keycuts.Tests
 
             public List<string> Located { get; } = new List<string>();
 
-            public List<string> Deleted { get; } = new List<string>();
-
             public Exception? LocateError { get; set; }
+
+            public List<string> Deleted { get; } = new List<string>();
 
             public Exception? LaunchError { get; set; }
 
@@ -84,6 +84,29 @@ namespace keycuts.Tests
 
                 Deleted.Add(keycut.FilePath);
                 return Task.CompletedTask;
+            }
+
+            public List<(string Path, string NewName)> Renamed { get; } = new List<(string, string)>();
+
+            public Exception? RenameError { get; set; }
+
+            /// <summary>When set, a rename waits for this before it finishes.</summary>
+            public Task? RenameGate { get; set; }
+
+            public async Task<string> RenameAsync(Keycut keycut, string newName)
+            {
+                if (RenameGate != null)
+                {
+                    await RenameGate;
+                }
+
+                if (RenameError != null)
+                {
+                    throw RenameError;
+                }
+
+                Renamed.Add((keycut.FilePath, newName));
+                return @"C:\fixture\" + newName + ".bat";
             }
         }
 
@@ -225,6 +248,435 @@ namespace keycuts.Tests
             Assert.True(manager.StatusIsError);
             Assert.Contains("no explorer", manager.StatusMessage);
             Assert.Contains("file location", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Rename_StartsWithTheCurrentName_AndSelectsTheRow()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b");
+            var row = manager.Rows[1];
+
+            row.RenameCommand.Execute(null);
+
+            Assert.True(manager.IsRenaming);
+            Assert.True(row.IsRenaming);
+            Assert.Equal("b", row.EditName);
+            Assert.Same(row, manager.SelectedRow);
+            Assert.Equal("New name for b", row.RenameLabel);
+        }
+
+        [Fact]
+        public async Task Rename_Cancel_ChangesNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            var row = manager.Rows[0];
+            manager.BeginRename(row);
+            row.EditName = "z";
+
+            manager.CancelRename();
+
+            Assert.False(manager.IsRenaming);
+            Assert.False(row.IsRenaming);
+            Assert.Empty(actions.Renamed);
+            Assert.Equal("a", row.Name);
+        }
+
+        [Fact]
+        public async Task Rename_UnchangedName_JustEndsTheEdit()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = " a ";
+
+            await manager.CommitRenameAsync();
+
+            Assert.False(manager.IsRenaming);
+            Assert.Empty(actions.Renamed);
+        }
+
+        [Fact]
+        public async Task Rename_Success_RenamesTrimmed_ReloadsAndSelectsTheRenamedRow()
+        {
+            var noop = new RelayCommand(() => { });
+            var actions = new FakeActions();
+            var current = new List<Keycut> { NewKeycut("a"), NewKeycut("b") };
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(current.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            KeycutRowViewModel? focused = null;
+            manager.FocusRowRequested += (sender, row) => focused = row;
+
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "  zed ";
+            current = new List<Keycut> { NewKeycut("b"), NewKeycut("zed") };
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(new[] { (@"C:\fixture\a.bat", "zed") }, actions.Renamed);
+            Assert.Equal(new[] { "b", "zed" }, manager.Rows.Select(r => r.Name).ToArray());
+            Assert.Equal("zed", manager.SelectedRow?.Name);
+            Assert.Same(manager.SelectedRow, focused);
+            Assert.Equal("Renamed \u201Ca\u201D to \u201Czed\u201D", manager.StatusMessage);
+            Assert.False(manager.StatusIsError);
+            Assert.False(manager.IsRenaming);
+        }
+
+        [Theory]
+        [InlineData(KeycutRepositoryError.AlreadyExists, "\u201Cb\u201D already exists. Choose another name.")]
+        [InlineData(KeycutRepositoryError.InvalidName, CreatorViewModel.InvalidNameMessage)]
+        [InlineData(KeycutRepositoryError.InUse, "Couldn't rename \u201Ca\u201D: locked")]
+        public async Task Rename_Failure_EndsTheEdit_AndSaysWhy(KeycutRepositoryError error, string message)
+        {
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(error, "locked") };
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "b";
+
+            await manager.CommitRenameAsync();
+
+            Assert.False(manager.IsRenaming);
+            Assert.True(manager.StatusIsError);
+            Assert.Equal(message, manager.StatusMessage);
+            Assert.Equal(new[] { "a", "b" }, manager.Rows.Select(r => r.Name).ToArray());
+        }
+
+        [Fact]
+        public async Task Rename_Failure_ShowsTheFileSystemsReason_NotJustTheFileName()
+        {
+            var locked = new System.IO.IOException("The process cannot access the file because it is being used by another process.");
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(KeycutRepositoryError.InUse, "Can't rename \"a.bat\".", locked) };
+            var manager = await LoadedAsync(actions, "a");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "z";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal("Couldn't rename “a”: " + locked.Message, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Rename_BeforeTheReloadRebuildsTheRows_TheOldRowsActionsUseTheRenamedFile()
+        {
+            var noop = new RelayCommand(() => { });
+            var reload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var actions = new FakeActions();
+            var manager = new ManagerViewModel(noop, noop, ct => ++calls == 1 ?
+                Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }) :
+                reload.Task, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            var row = manager.Rows[0];
+            manager.BeginRename(row);
+            row.EditName = "zed";
+
+            await manager.CommitRenameAsync();   // its reload waits, so the row still shows "a"
+            var newPath = @"C:\fixture\zed.bat";
+
+            manager.OpenKeycut(row);
+            manager.EditKeycut(row);
+            manager.OpenFileLocation(row);
+            await manager.DeleteKeycutAsync(row);
+
+            Assert.Equal(new[] { newPath }, actions.Launched);
+            Assert.Equal(new[] { newPath }, actions.Edited);
+            Assert.Equal(new[] { newPath }, actions.Located);
+            Assert.Equal(new[] { newPath }, actions.Deleted);
+            Assert.Equal("Deleted “a”", manager.StatusMessage);
+
+            reload.SetResult(new List<Keycut>());
+        }
+
+        [Fact]
+        public async Task Rename_WhileItsSaving_TheRowsFileActionsWait()
+        {
+            var gate = new TaskCompletionSource();
+            var actions = new FakeActions { RenameGate = gate.Task };
+            var manager = await LoadedAsync(actions, "a", "b");
+            var row = manager.Rows[0];
+            manager.BeginRename(row);
+            row.EditName = "zed";
+
+            var saving = manager.CommitRenameAsync();   // the file is being moved
+            manager.OpenKeycut(row);
+            manager.EditKeycut(row);
+            manager.OpenFileLocation(row);
+            await manager.DeleteKeycutAsync(row);
+            manager.OpenKeycut(manager.Rows[1]);       // other rows aren't affected
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Launched);
+            Assert.Empty(actions.Edited);
+            Assert.Empty(actions.Located);
+            Assert.Empty(actions.Deleted);
+
+            gate.SetResult();
+            await saving;
+        }
+
+        [Fact]
+        public async Task Rename_WhenAReloadRebuiltTheRowsDuringTheSave_TheRebuiltRowUsesTheRenamedFile()
+        {
+            var noop = new RelayCommand(() => { });
+            var gate = new TaskCompletionSource();
+            var afterSave = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var actions = new FakeActions { RenameGate = gate.Task };
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                calls++;
+                return calls switch
+                {
+                    1 => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }),
+                    2 => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a"), NewKeycut("b") }),
+                    _ => afterSave.Task,
+                };
+            }, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "zed";
+
+            var saving = manager.CommitRenameAsync();
+            await manager.LoadAsync();                  // F5 during the save rebuilds the rows, still with "a"
+            gate.SetResult();
+            await saving;                               // the reload after it waits
+
+            var rebuilt = manager.Rows.Single(r => r.Name == "a");
+            manager.OpenKeycut(rebuilt);
+
+            Assert.Equal(new[] { @"C:\fixture\zed.bat" }, actions.Launched);
+
+            afterSave.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
+        }
+
+        [Fact]
+        public async Task Rename_FileGone_ShowsMessage_AndRefreshesTheList()
+        {
+            var noop = new RelayCommand(() => { });
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(KeycutRepositoryError.NotFound, "gone") };
+            var current = new List<Keycut> { NewKeycut("a"), NewKeycut("b") };
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(current.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "c";
+            current.RemoveAt(0);
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal("This keycut no longer exists", manager.StatusMessage);
+            Assert.Equal(new[] { "b" }, manager.Rows.Select(r => r.Name).ToArray());
+        }
+
+        [Fact]
+        public async Task Reload_WhileRenaming_IsSkipped_SoTheTypedNameSurvives()
+        {
+            var noop = new RelayCommand(() => { });
+            var loads = 0;
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                loads++;
+                return Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") });
+            }, null, new FakeActions());
+            await manager.LoadAsync();
+            var row = manager.Rows[0];
+            manager.BeginRename(row);
+            row.EditName = "typing";
+
+            await manager.LoadAsync();
+
+            Assert.Equal(1, loads);
+            Assert.Same(row, manager.Rows[0]);
+            Assert.Equal("typing", row.EditName);
+        }
+
+        [Fact]
+        public async Task Rename_CancelsALoadAlreadyUnderWay_SoItCantReplaceTheRow()
+        {
+            var noop = new RelayCommand(() => { });
+            var gate = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var first = true;
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                if (first)
+                {
+                    first = false;
+                    return Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") });
+                }
+
+                return gate.Task;
+            }, null, new FakeActions());
+            await manager.LoadAsync();
+            var row = manager.Rows[0];
+
+            var pending = manager.LoadAsync();
+            manager.BeginRename(row);
+            row.EditName = "typing";
+            gate.SetResult(new List<Keycut> { NewKeycut("a"), NewKeycut("b") });
+            await pending;
+
+            Assert.Same(row, manager.Rows.Single());
+            Assert.True(row.IsRenaming);
+            Assert.Equal("typing", row.EditName);
+        }
+
+        [Fact]
+        public async Task Rename_RetryWorksRightAway_EvenWhileDestinationChecksAreSlow()
+        {
+            var noop = new RelayCommand(() => { });
+            var checks = 0;
+            var neverDone = new TaskCompletionSource();
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(KeycutRepositoryError.InvalidName, "bad") };
+            var manager = new ManagerViewModel(noop, noop,
+                ct => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }),
+                (keycuts, ct) => ++checks == 1 ? Task.CompletedTask : neverDone.Task,
+                actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "bad/name";
+
+            await manager.CommitRenameAsync();   // the reload after it hangs in the destination check
+
+            manager.BeginRename(manager.Rows[0]);
+            Assert.True(manager.IsRenaming);
+        }
+
+        [Fact]
+        public async Task Rename_AnotherCantStart_UntilTheFirstIsSaved()
+        {
+            var gate = new TaskCompletionSource();
+            var actions = new FakeActions { RenameGate = gate.Task };
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "z";
+
+            var saving = manager.CommitRenameAsync();
+            manager.BeginRename(manager.Rows[1]);
+
+            Assert.False(manager.IsRenaming);
+            Assert.False(manager.Rows[1].IsRenaming);
+
+            gate.SetResult();
+            await saving;
+            manager.BeginRename(manager.Rows[1]);
+            Assert.True(manager.IsRenaming);
+        }
+
+        [Fact]
+        public async Task Rename_ASearchResult_ToANameTheSearchMisses_ClearsTheSearchAndSelectsIt()
+        {
+            var noop = new RelayCommand(() => { });
+            var current = new List<Keycut> { NewKeycut("alpha"), NewKeycut("bravo") };
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(current.ToList()), null, new FakeActions())
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.SearchText = "alp";
+            KeycutRowViewModel? focused = null;
+            manager.FocusRowRequested += (sender, row) => focused = row;
+
+            manager.BeginRename(manager.Rows.Single());
+            manager.Rows.Single().EditName = "zulu";
+            current = new List<Keycut> { NewKeycut("bravo"), NewKeycut("zulu") };
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(string.Empty, manager.SearchText);
+            Assert.Equal("zulu", manager.SelectedRow?.Name);
+            Assert.Contains(manager.SelectedRow!, manager.Rows);
+            Assert.Same(manager.SelectedRow, focused);
+        }
+
+        [Fact]
+        public async Task Rename_WhenItsReloadIsCancelled_TheNextReloadSelectsTheRenamedRow()
+        {
+            var noop = new RelayCommand(() => { });
+            var renameReload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var f5Reload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                calls++;
+                return calls switch
+                {
+                    1 => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a"), NewKeycut("b") }),
+                    2 => renameReload.Task,
+                    _ => f5Reload.Task,
+                };
+            }, null, new FakeActions())
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            KeycutRowViewModel? focused = null;
+            manager.FocusRowRequested += (sender, row) => focused = row;
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "zed";
+
+            var saving = manager.CommitRenameAsync();   // its reload waits
+            var f5 = manager.LoadAsync();               // F5 meanwhile cancels it, and waits too
+            renameReload.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
+            await saving;                               // the cancelled reload returns first, changing nothing
+
+            // The rows still show "a" with its old path, so no rename may start from them yet
+            Assert.Equal("a", manager.Rows[0].Name);
+            manager.BeginRename(manager.Rows[0]);
+            Assert.False(manager.IsRenaming);
+
+            f5Reload.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
+            await f5;
+
+            Assert.Equal("zed", manager.SelectedRow?.Name);
+            Assert.Same(manager.SelectedRow, focused);
+            Assert.Equal(new[] { "b", "zed" }, manager.Rows.Select(r => r.Name).ToArray());
+
+            // Fresh rows: renaming works again
+            manager.BeginRename(manager.Rows[1]);
+            Assert.True(manager.IsRenaming);
+        }
+
+        [Fact]
+        public void MissingIndicator_IsHiddenWhileRenaming()
+        {
+            var keycut = NewKeycut("a");
+            keycut.DestinationStatus = DestinationStatus.Missing;
+            var manager = new ManagerViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), null, null, new FakeActions());
+            var row = new KeycutRowViewModel(keycut, manager);
+            var changed = new List<string?>();
+            row.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            Assert.True(row.ShowMissingIndicator);
+
+            manager.BeginRename(row);
+            Assert.False(row.ShowMissingIndicator);
+            Assert.Contains(nameof(KeycutRowViewModel.ShowMissingIndicator), changed);
+
+            manager.CancelRename();
+            Assert.True(row.ShowMissingIndicator);
+        }
+
+        [Fact]
+        public async Task Rename_StartingAnother_EndsTheFirst()
+        {
+            var manager = await LoadedAsync(new FakeActions(), "a", "b");
+
+            manager.BeginRename(manager.Rows[0]);
+            manager.BeginRename(manager.Rows[1]);
+
+            Assert.False(manager.Rows[0].IsRenaming);
+            Assert.True(manager.Rows[1].IsRenaming);
         }
 
         [Fact]

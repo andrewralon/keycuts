@@ -388,6 +388,14 @@ namespace keycuts.Tests
             {
                 return Task.CompletedTask;
             }
+
+            public List<string> Renamed { get; } = new List<string>();
+
+            public Task<string> RenameAsync(Keycut keycut, string newName)
+            {
+                Renamed.Add(newName);
+                return Task.FromResult(keycut.FilePath);
+            }
         }
 
         static ManagerViewModel LoadedManager(IKeycutActions actions, params string[] names)
@@ -444,6 +452,49 @@ namespace keycuts.Tests
 
                     Assert.True(Press(search, Key.Enter));
                     Assert.Equal(new[] { @"C:\fixture\alpha.bat" }, actions.Launched);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_F2RenamesTheSelectedRowInPlace_EscapeCancels_AndEnterSaves()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    Assert.True(Press(search, Key.Down));
+                    Assert.True(Press(search, Key.Down));
+
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    var box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    Assert.Equal("bravo", box.Text);
+                    Assert.True(box.IsKeyboardFocusWithin);
+
+                    // The arrows stay in the box instead of moving the selection, and Escape cancels without leaving the manager
+                    Assert.True(Press(box, Key.Up));
+                    Assert.Equal("bravo", manager.SelectedRow?.Name);
+                    Assert.True(Press(box, Key.Escape));
+                    Assert.False(manager.IsRenaming);
+                    Assert.Empty(actions.Renamed);
+
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    box.Text = "zulu";
+                    Assert.True(Press(box, Key.Enter));
+                    Assert.Equal(new[] { "zulu" }, actions.Renamed);
+                    Assert.False(manager.IsRenaming);
                 }
                 finally
                 {

@@ -60,6 +60,8 @@ namespace keycuts.GUI.ViewModels
 
         private KeycutRowViewModel? selectedRow;
 
+        private KeycutRowViewModel? renamingRow;
+
         private int keycutCount;
 
         private bool isLoading = true;
@@ -112,6 +114,12 @@ namespace keycuts.GUI.ViewModels
         {
             get { return selectedRow; }
             set { SetProperty(ref selectedRow, value); }
+        }
+
+        /// <summary>True while a row's name is being edited (F2 or Rename…). Reloads wait until it ends.</summary>
+        public bool IsRenaming
+        {
+            get { return renamingRow != null; }
         }
 
         /// <summary>True when this view model can load keycuts itself.</summary>
@@ -351,6 +359,117 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
+        /// <summary>Starts editing the row's name in place (F2 or Rename…). Only one row is edited at a time.</summary>
+        public void BeginRename(KeycutRowViewModel row)
+        {
+            if (actions == null || deleting.Contains(row))
+            {
+                return;
+            }
+
+            if (renamingRow != null && !ReferenceEquals(renamingRow, row))
+            {
+                renamingRow.EndRename();
+            }
+
+            IsMenuOpen = false;
+            SelectedRow = row;
+            renamingRow = row;
+            row.StartRename();
+            OnPropertyChanged(nameof(IsRenaming));
+        }
+
+        /// <summary>Leaves the name unchanged and gives the focus back to the row.</summary>
+        public void CancelRename()
+        {
+            var row = renamingRow;
+
+            if (row == null)
+            {
+                return;
+            }
+
+            EndRename(row);
+            FocusRowRequested?.Invoke(this, row);
+        }
+
+        /// <summary>
+        /// Renames the keycut to the typed name (trimmed). An unchanged name just ends the edit. On success the list
+        /// reloads with the renamed row selected; a failure (invalid or taken name, a file that's gone, a locked file)
+        /// ends the edit and shows why in the status line. Never overwrites another keycut.
+        /// </summary>
+        public async Task CommitRenameAsync()
+        {
+            var row = renamingRow;
+
+            if (row == null || actions == null)
+            {
+                return;
+            }
+
+            var oldName = row.Name;
+            var newName = row.EditName.Trim();
+            EndRename(row);
+
+            if (string.Equals(newName, oldName, StringComparison.Ordinal))
+            {
+                FocusRowRequested?.Invoke(this, row);
+                return;
+            }
+
+            string newPath;
+            try
+            {
+                newPath = await actions.RenameAsync(row.Keycut, newName);
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.AlreadyExists)
+            {
+                ShowStatusMessage("“" + newName + "” already exists. Choose another name.", true);
+                FocusRowRequested?.Invoke(this, row);
+                return;
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.InvalidName)
+            {
+                ShowStatusMessage(CreatorViewModel.InvalidNameMessage, true);
+                FocusRowRequested?.Invoke(this, row);
+                return;
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
+            {
+                ShowStatusMessage("This keycut no longer exists", true);
+                await LoadAsync();
+                return;
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ex.Message, true);
+                FocusRowRequested?.Invoke(this, row);
+                return;
+            }
+
+            ShowStatusMessage("Renamed “" + oldName + "” to “" + newName + "”", false);
+            await LoadAsync();
+
+            var renamed = Rows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, newPath, StringComparison.OrdinalIgnoreCase));
+
+            if (renamed != null)
+            {
+                SelectedRow = renamed;
+                FocusRowRequested?.Invoke(this, renamed);
+            }
+        }
+
+        private void EndRename(KeycutRowViewModel row)
+        {
+            row.EndRename();
+
+            if (ReferenceEquals(renamingRow, row))
+            {
+                renamingRow = null;
+                OnPropertyChanged(nameof(IsRenaming));
+            }
+        }
+
         private bool Perform(KeycutRowViewModel row, string verb, Action action)
         {
             if (actions == null)
@@ -423,6 +542,12 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public async Task LoadAsync()
         {
+            // A reload builds new rows, which would throw away the name being typed (the window reloads when it's activated)
+            if (renamingRow != null)
+            {
+                return;
+            }
+
             if (keycutLoader == null)
             {
                 ShowKeycuts(Array.Empty<Keycut>());

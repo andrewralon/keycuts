@@ -49,6 +49,8 @@ The type icon updates as you go, and invalid destinations or duplicate names are
 Batmanager app, which has been removed).
 * Search by name, type, description, or destination. Escape clears the search.
 * Up and Down select a row, even while you're typing in the search box, and Enter opens the selected keycut. Clicking a row selects it too.
+* F2 (or **Rename** in the row menu) renames the selected keycut in place: Enter or clicking away saves, Escape cancels.
+  A name that's already taken is refused, and anything you added to the `.bat` by hand is kept.
 * Sort by Shortcut, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
   **Copy destination**, and **Delete**. Delete has no confirmation.

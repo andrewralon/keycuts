@@ -12,6 +12,10 @@ namespace keycuts.GUI.ViewModels
     {
         private bool isMenuOpen;
 
+        private bool isRenaming;
+
+        private string editName = string.Empty;
+
         public KeycutRowViewModel(Keycut keycut, ManagerViewModel? owner = null)
         {
             Keycut = keycut ?? throw new System.ArgumentNullException(nameof(keycut));
@@ -20,6 +24,40 @@ namespace keycuts.GUI.ViewModels
             EditCommand = new RelayCommand(() => owner?.EditKeycut(this));
             CopyDestinationCommand = new RelayCommand(() => owner?.CopyDestination(this));
             DeleteCommand = new RelayCommand(() => _ = owner?.DeleteKeycutAsync(this));
+            RenameCommand = new RelayCommand(() => owner?.BeginRename(this));
+        }
+
+        public ICommand RenameCommand { get; }
+
+        /// <summary>True while the name cell shows a text box (see <see cref="ManagerViewModel.BeginRename"/>).</summary>
+        public bool IsRenaming
+        {
+            get { return isRenaming; }
+            private set { SetProperty(ref isRenaming, value); }
+        }
+
+        /// <summary>The name being typed while renaming.</summary>
+        public string EditName
+        {
+            get { return editName; }
+            set { SetProperty(ref editName, value ?? string.Empty); }
+        }
+
+        /// <summary>Accessible name of the rename text box.</summary>
+        public string RenameLabel
+        {
+            get { return "New name for " + Name; }
+        }
+
+        internal void StartRename()
+        {
+            EditName = Name;
+            IsRenaming = true;
+        }
+
+        internal void EndRename()
+        {
+            IsRenaming = false;
         }
 
         public Keycut Keycut { get; }

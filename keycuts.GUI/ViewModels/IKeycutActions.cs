@@ -25,6 +25,9 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>Deletes the keycut file. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
         Task DeleteAsync(Keycut keycut);
+
+        /// <summary>Renames the keycut file and returns its new path. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
+        Task<string> RenameAsync(Keycut keycut, string newName);
     }
 
     /// <summary>The production implementation, which uses the shell, the clipboard and the configured output folder.</summary>
@@ -69,6 +72,11 @@ namespace keycuts.GUI.ViewModels
         public Task DeleteAsync(Keycut keycut)
         {
             return KeycutRepository.CreateDefault().DeleteAsync(keycut);
+        }
+
+        public Task<string> RenameAsync(Keycut keycut, string newName)
+        {
+            return KeycutRepository.CreateDefault().RenameAsync(keycut, newName);
         }
     }
 }

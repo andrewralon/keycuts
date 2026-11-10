@@ -47,12 +47,19 @@ namespace keycuts.GUI.Views
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.
         private void ManagerView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (ViewModel == null || ViewModel.IsMenuOpen || Keyboard.Modifiers != ModifierKeys.None)
+            // While renaming, the name box owns the keys (this handler runs before it)
+            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming || Keyboard.Modifiers != ModifierKeys.None)
             {
                 return;
             }
 
-            if (e.Key == Key.Up || e.Key == Key.Down)
+            if (e.Key == Key.F2 && ViewModel.SelectedRow != null)
+            {
+                e.Handled = true;
+                Table.ScrollIntoView(ViewModel.SelectedRow);
+                ViewModel.BeginRename(ViewModel.SelectedRow);
+            }
+            else if (e.Key == Key.Up || e.Key == Key.Down)
             {
                 MoveSelection(e, e.Key == Key.Down ? 1 : -1);
             }
@@ -87,6 +94,59 @@ namespace keycuts.GUI.Views
                 FocusRowMenuButton(row);
             }
         }
+
+        #region Rename
+
+        // The box appears when a rename starts; focus it once the row menu (if any) has finished closing
+        private void RenameBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (sender is TextBox box && box.IsVisible)
+            {
+                Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+                {
+                    if (box.IsVisible)
+                    {
+                        box.Focus();
+                        Keyboard.Focus(box);
+                        box.SelectAll();
+                    }
+                }));
+            }
+        }
+
+        private void RenameBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Enter:
+                    e.Handled = true;
+                    _ = ViewModel?.CommitRenameAsync();
+                    break;
+                case Key.Escape:
+                    // Handled here, so the window doesn't also treat it as "back to the creator"
+                    e.Handled = true;
+                    ViewModel?.CancelRename();
+                    break;
+                case Key.Up:
+                case Key.Down:
+                case Key.PageUp:
+                case Key.PageDown:
+                    // The table would move the selection off the row being renamed
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        // Clicking or tabbing away saves, as in Explorer. Switching windows (no new focus in this one) keeps editing.
+        private void RenameBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (e.NewFocus != null && sender is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } })
+            {
+                _ = ViewModel?.CommitRenameAsync();
+            }
+        }
+
+        #endregion Rename
 
         #region Row actions menu
 

@@ -1,191 +1,172 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Windows;
+using System.ComponentModel;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using System.Windows.Threading;
 using keycuts.Common;
 using keycuts.GUI.Themes;
+using keycuts.GUI.ViewModels;
 
 namespace keycuts.GUI
 {
     /// <summary>
-    /// Interaction logic for SettingsWindow.xaml
+    /// The modal Settings dialog. Save validates and closes with a true result; Cancel and Escape close without saving.
     /// </summary>
-    public partial class SettingsWindow : Window, INotifyPropertyChanged
+    public partial class SettingsWindow : Window
     {
-        #region Fields
+        private readonly SettingsViewModel viewModel;
 
-        private MainFormLogic mainFormLogic;
+        private bool initializing;
 
-        private Settings settings;
+        // Set by a theme click, so closing only restores the saved theme when something was previewed
+        private bool previewedTheme;
 
-        private string outputFolder = string.Empty;
-
-        private bool forceOverwrite;
-
-        private bool rightClickContextMenus;
-
-        private ThemePreference theme;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        #endregion Fields
-
-        #region Properties
-
-        public string LabelOutputFolder { get; } = "Output Folder";
-
-        public string LabelForceOverwrite { get; } = "Force Overwrite (if shortcut exists)";
-
-        public string LabelRightClickContextMenus { get; } = "Right Click Context Menus";
-
-        public string LabelUseEnvironmentVariables { get; } = "Use Environment Variables in Paths";
-
-        private bool useEnvironmentVariables;
-
-        /// <summary>Save new file and folder keycuts as %USERPROFILE%\... and the like (#31). Shift flips it per keycut.</summary>
-        public bool UseEnvironmentVariables
+        public SettingsWindow()
+            : this(null)
         {
-            get { return useEnvironmentVariables; }
-            set
-            {
-                useEnvironmentVariables = value;
-                NotifyPropertyChanged();
-            }
         }
 
-        public string LabelTheme { get; } = "Theme";
+        /// <param name="viewModel">Tests pass one over a fake store; the app uses the registry-backed one.</param>
+        public SettingsWindow(SettingsViewModel? viewModel)
+        {
+            InitializeComponent();
+
+            this.viewModel = viewModel ?? new SettingsViewModel(new RunnerSettingsStore(), PickFolder, OpenFolder);
+            DataContext = this.viewModel;
+
+            // Checking the saved choice raises Checked; that is not a preview, so the palette is left alone
+            initializing = true;
+            ThemeChoices.Children.OfType<RadioButton>().First(choice => (ThemePreference)choice.Tag == this.viewModel.Theme).IsChecked = true;
+            initializing = false;
+
+            this.viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        }
 
         /// <summary>Set by Show welcome, which closes the window; the main window then shows the first-run panel.</summary>
         public bool ShowWelcomeRequested { get; private set; }
 
-        public string OutputFolder
+        public SettingsViewModel ViewModel
         {
-            get { return outputFolder; }
-            set
+            get { return viewModel; }
+        }
+
+        private string? PickFolder(string current)
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Choose the output folder" };
+
+            if (!string.IsNullOrWhiteSpace(current) && System.IO.Directory.Exists(current))
             {
-                outputFolder = value;
-                NotifyPropertyChanged("OutputFolder");
+                dialog.InitialDirectory = current;
+            }
+
+            return dialog.ShowDialog(this) == true ? dialog.FolderName : null;
+        }
+
+        private static void OpenFolder(string folder)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+            }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception || e is InvalidOperationException)
+            {
+                // The folder was deleted or Explorer refused; Launch stays a no-op rather than crashing the dialog
             }
         }
 
-        public bool ForceOverwrite
+        // At high DPI or large text the content can be taller than the screen: cap the height so the body scrolls and the
+        // footer stays reachable, then keep the window on the screen. Uses the owner's monitor, where CenterOwner places it.
+        private void FitToWorkArea()
         {
-            get { return forceOverwrite; }
-            set
+            var workArea = WindowLayout.GetWorkAreaInDips(Owner ?? this);
+            MaxHeight = workArea.Height;
+
+            if (WindowStartupLocation == WindowStartupLocation.CenterOwner)
             {
-                forceOverwrite = value;
-                NotifyPropertyChanged("ForceOverwrite");
+                UpdateLayout();
+                var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, ActualWidth, ActualHeight), workArea);
+                Left = bounds.Left;
+                Top = bounds.Top;
             }
         }
 
-        public bool RightClickContextMenus
+        // The LiveSetting on a text block alone doesn't raise the event; the peer has to, after the bindings update
+        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            get { return rightClickContextMenus; }
-            set
+            if (e.PropertyName == nameof(SettingsViewModel.OutputFolderError) && viewModel.HasOutputFolderError)
             {
-                rightClickContextMenus = value;
-                NotifyPropertyChanged("RightClickContextMenus");
+                AnnounceLiveRegion(OutputFolderMessage);
+            }
+            else if (e.PropertyName == nameof(SettingsViewModel.SaveError) && viewModel.HasSaveError)
+            {
+                AnnounceLiveRegion(SaveErrorMessage);
             }
         }
 
-        #endregion Properties
-
-        public SettingsWindow()
+        private void AnnounceLiveRegion(UIElement element)
         {
-            InitializeComponent();
-            DataContext = this;
-
-            settings = new Settings();
-            mainFormLogic = new MainFormLogic();
-            LoadSettings();
-        }
-
-        private void LoadSettings()
-        {
-            settings.LoadSettings();
-
-            OutputFolder = settings.OutputFolder;
-            ForceOverwrite = settings.ForceOverwrite;
-            RightClickContextMenus = settings.RightClickContextMenus;
-            UseEnvironmentVariables = settings.UseEnvironmentVariables;
-
-            theme = settings.Theme;
-            ThemeChoices.Children.OfType<RadioButton>().First(choice => (ThemePreference)choice.Tag == theme).IsChecked = true;
-        }
-
-        private void CloseWindow()
-        {
-            Close();
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
+                {
+                    peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+                }
+            }));
         }
 
         #region UI Handlers
 
-        private void SaveSettings_Click(object sender, RoutedEventArgs e)
+        private void Settings_Loaded(object sender, RoutedEventArgs e)
         {
-            var settings = new Settings()
-            {
-                OutputFolder = OutputFolder,
-                ForceOverwrite = CheckboxForceOverwrite.IsChecked == true,
-                RightClickContextMenus = RightClickContextMenus,
-                UseEnvironmentVariables = UseEnvironmentVariables,
-                Theme = theme
-            };
+            FitToWorkArea();
+            TextboxOutputFolder.Focus();
+            TextboxOutputFolder.SelectAll();
+        }
 
-            var error = mainFormLogic.SaveSettings(settings);
-
-            if (error != null)
+        private void Save_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewModel.Save())
             {
-                MessageBox.Show(this, error, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogResult = true;
+            }
+            else if (viewModel.HasOutputFolderError)
+            {
+                TextboxOutputFolder.Focus();
             }
         }
 
-        // Unsaved changes are dropped, as with Escape
+        // Unsaved changes are dropped, as with Cancel
         private void ShowWelcome_Click(object sender, RoutedEventArgs e)
         {
             ShowWelcomeRequested = true;
-            CloseWindow();
+            DialogResult = false;
         }
 
         // A click previews the theme right away; only Save keeps it.
         private void Theme_Checked(object sender, RoutedEventArgs e)
         {
-            theme = (ThemePreference)((RadioButton)sender).Tag;
-            ThemeManager.SetPreference(theme);
+            var theme = (ThemePreference)((RadioButton)sender).Tag;
+            viewModel.Theme = theme;
+
+            if (!initializing)
+            {
+                previewedTheme = true;
+                ThemeManager.SetPreference(theme);
+            }
         }
 
         // Drops an unsaved preview. After a save this reads back the same choice, so nothing changes.
         private void Settings_Closed(object? sender, EventArgs e)
         {
-            ThemeManager.SetPreference(RegistryStuff.GetThemePreference());
-        }
-
-        private void Settings_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
+            if (previewedTheme)
             {
-                CloseWindow();
+                ThemeManager.SetPreference(RegistryStuff.GetThemePreference());
             }
         }
 
         #endregion UI Handlers
-
-        #region OnPropertyChanged Handler
-
-        protected void NotifyPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion OnPropertyChanged Handler
     }
 }

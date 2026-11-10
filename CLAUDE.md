@@ -69,7 +69,7 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 
 ## Conventions
 
-`#region` blocks, `var` everywhere, `out` parameters as the legacy return idiom, `Console.WriteLine` as logging inside the library. `.editorconfig` enforces Allman braces, 4-space C# / 2-space XAML and csproj. `keycuts.GUI` has `Nullable` enabled; `Common` does not. Match the surrounding style.
+`#region` blocks, `var` everywhere, `out` parameters as the legacy return idiom. The library doesn't log: don't add `Console.WriteLine` to `keycuts.Common` (the CLI's output is its own; `Runner`'s "Shortcut created" line is the one exception, and `keycuts paste` sends library output to stderr). `.editorconfig` enforces Allman braces, 4-space C# / 2-space XAML and csproj. `keycuts.GUI` has `Nullable` enabled; `Common` does not. Match the surrounding style.
 
 ## Where things are documented
 

@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <!-- The one place the version lives. It stamps the exes and the MSI, and a merge into master that raises it
+    <!-- The one place the version lives. It stamps the exes and the MSI, and a merge into main that raises it
          publishes a GitHub release tagged v<Version> (.github/workflows/release.yml). Three parts: MSI upgrades
          ignore a fourth. -->
     <Version>1.1.0</Version>

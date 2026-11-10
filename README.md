@@ -34,7 +34,7 @@ Uninstalling removes the app, the menu, and the `PATH` entries. Your keycuts and
 
 To build the installer, run `pwsh -File tools/Build-Installer.ps1`. It needs only the .NET SDK.
 
-Releases are automatic: raise `<Version>` in `Directory.Build.props`, then merge `develop` into `master`. The release workflow tags
+Releases are automatic: raise `<Version>` in `Directory.Build.props`, then merge `develop` into `main`. The release workflow tags
 `v<Version>` and publishes the MSI, a portable zip, and SHA-256 checksums. Merges that don't change the version don't release.
 
 ## The app

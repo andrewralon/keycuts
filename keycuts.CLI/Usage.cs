@@ -61,6 +61,9 @@ namespace keycuts.CLI
                     verbsIndex: topLevel,
                     maxDisplayWidth: 80).ToString().TrimEnd();
 
+                // The library only lists the long form; -h is accepted too (see Program.Run), so say so, keeping the column
+                text = text.Replace("  --help    ", "  -h, --help");
+
                 output.WriteLine(topLevel ? text + Environment.NewLine + Environment.NewLine + TopLevelText : text);
                 return ExitCode.Success;
             }
@@ -82,6 +85,7 @@ namespace keycuts.CLI
             help.Heading = $"keycuts {GetVersion()} - {Summary}{Environment.NewLine}";
             help.Copyright = "";
             help.AddDashesToOption = true;
+            help.AdditionalNewLineAfterOption = false;
 
             if (topLevel)
             {

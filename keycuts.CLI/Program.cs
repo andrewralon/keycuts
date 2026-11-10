@@ -39,6 +39,8 @@ namespace keycuts.CLI
         public static ExitCode Run(string[] args)
         {
             // "create" is the default verb, so the original "keycuts -d … -s …" still works
+            // -h is the usual short form of --help; the parser only knows the long one
+            args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
             var result = Usage.CreateParser().ParseArguments<Options, PasteOptions>(args);
             return result.MapResult(
                 (Options parsed) => RunCreate(parsed),

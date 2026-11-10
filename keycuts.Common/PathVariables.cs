@@ -171,8 +171,13 @@ namespace keycuts.Common
                 return;
             }
 
-            // The root of a drive ("C:\") would turn every path on it into a variable
-            if (string.Equals(Path.GetPathRoot(folder), folder, StringComparison.OrdinalIgnoreCase))
+            // The root of a drive ("C:\") would turn every path on it into a variable. A share's root (\\server\share) is
+            // one named place, like any other folder, so a NAS variable can stand for it. Device paths (\\?\C:\) are drives.
+            var isShareRoot = folder.StartsWith(@"\\", StringComparison.Ordinal) &&
+                              !folder.StartsWith(@"\\?\", StringComparison.Ordinal) &&
+                              !folder.StartsWith(@"\\.\", StringComparison.Ordinal);
+
+            if (!isShareRoot && string.Equals(Path.GetPathRoot(folder), folder, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }

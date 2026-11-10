@@ -24,6 +24,31 @@ namespace keycuts.Tests
             Assert.Equal(expected, Shortcut.SanitizeBatEscapeCharacters(input));
         }
 
+        [Theory]
+        [InlineData(@"D:\Windows\System32\drivers\etc\hosts", true)]   // Windows installed on D:
+        [InlineData(@"d:\windows\system32\DRIVERS\etc\HOSTS", true)]
+        [InlineData(@"C:\Windows\System32\drivers\etc\hosts", true)]   // the usual path still counts
+        [InlineData(@"D:\Windows\System32\drivers\etc\hosts.bak", false)]
+        [InlineData(@"D:\notes\hosts", false)]
+        public void IsHostsFile_UsesThisMachinesSystemFolder(string fullPath, bool expected)
+        {
+            Assert.Equal(expected, Shortcut.IsHostsFile(fullPath, @"D:\Windows\System32"));
+        }
+
+        [Fact]
+        public void GetShortcutTypeFromDestination_TheRealHostsFile_IsHostsFile()
+        {
+            // A valid install can lack the file, and the classifier only looks at existing files. xUnit 2 has no runtime
+            // skip, so there is nothing to check on such a machine; IsHostsFile_UsesThisMachinesSystemFolder still runs.
+            var hosts = Path.Combine(Environment.SystemDirectory, @"drivers\etc\hosts");
+            if (!File.Exists(hosts))
+            {
+                return;
+            }
+
+            Assert.Equal(ShortcutType.HostsFile, Shortcut.GetShortcutTypeFromDestination(hosts, out _));
+        }
+
         [Fact]
         public void GetShortcutTypeFromDestination_MissingPath_IsUnknownInsteadOfThrowing()
         {

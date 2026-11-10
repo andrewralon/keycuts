@@ -2,7 +2,10 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
+using System.ComponentModel;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using keycuts.Common;
 using keycuts.GUI.Themes;
 using keycuts.GUI.ViewModels;
@@ -38,6 +41,8 @@ namespace keycuts.GUI
             initializing = true;
             ThemeChoices.Children.OfType<RadioButton>().First(choice => (ThemePreference)choice.Tag == this.viewModel.Theme).IsChecked = true;
             initializing = false;
+
+            this.viewModel.PropertyChanged += ViewModel_PropertyChanged;
         }
 
         /// <summary>Set by Show welcome, which closes the window; the main window then shows the first-run panel.</summary>
@@ -72,10 +77,51 @@ namespace keycuts.GUI
             }
         }
 
+        // At high DPI or large text the content can be taller than the screen: cap the height so the body scrolls and the
+        // footer stays reachable, then keep the window on the screen. Uses the owner's monitor, where CenterOwner places it.
+        private void FitToWorkArea()
+        {
+            var workArea = WindowLayout.GetWorkAreaInDips(Owner ?? this);
+            MaxHeight = workArea.Height;
+
+            if (WindowStartupLocation == WindowStartupLocation.CenterOwner)
+            {
+                UpdateLayout();
+                var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, ActualWidth, ActualHeight), workArea);
+                Left = bounds.Left;
+                Top = bounds.Top;
+            }
+        }
+
+        // The LiveSetting on a text block alone doesn't raise the event; the peer has to, after the bindings update
+        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.OutputFolderError) && viewModel.HasOutputFolderError)
+            {
+                AnnounceLiveRegion(OutputFolderMessage);
+            }
+            else if (e.PropertyName == nameof(SettingsViewModel.SaveError) && viewModel.HasSaveError)
+            {
+                AnnounceLiveRegion(SaveErrorMessage);
+            }
+        }
+
+        private void AnnounceLiveRegion(UIElement element)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
+                {
+                    peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+                }
+            }));
+        }
+
         #region UI Handlers
 
         private void Settings_Loaded(object sender, RoutedEventArgs e)
         {
+            FitToWorkArea();
             TextboxOutputFolder.Focus();
             TextboxOutputFolder.SelectAll();
         }

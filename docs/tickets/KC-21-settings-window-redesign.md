@@ -62,7 +62,7 @@ A packaged Windows 11 top-level context-menu handler, per-setting autosave, and 
 - `keycuts.GUI/Themes/Controls.xaml`: `ToggleSwitch` style.
 - `keycuts.GUI/MainWindow.xaml.cs`: reloads (and refreshes the creator's environment-variables setting) only when the dialog returns true; Show welcome still reloads.
 - `keycuts.GUI/MainFormLogic.cs`: removed `SaveSettings`, which had no callers left. `Settings.cs` is kept: the store uses it.
-- `keycuts.Tests/SettingsViewModelTests.cs` (new): `SettingsViewModelTests` (19) and `SettingsWindowTests` (11, STA, offscreen).
+- `keycuts.Tests/SettingsViewModelTests.cs` (new): `SettingsViewModelTests` (22) and `SettingsWindowTests` (13, STA, offscreen).
 - `keycuts.Tests/WpfCollection.cs` (new) and `[Collection]` on `AccessibilityTests`: the window tests and the accessibility tests
   share the one `Application` per AppDomain, so they must not create it in parallel (it failed once without this).
 - `README.md`, `CLAUDE.md`, `docs/tickets/README.md`, `KC-18`: labels and status.
@@ -86,16 +86,26 @@ A packaged Windows 11 top-level context-menu handler, per-setting autosave, and 
 - The folder box gets a tooltip with the full path, because the box is narrow next to Choose and Launch.
 - No letter spacing on the eyebrows (WPF has none), the same as KC-09.
 
+**Review fixes (PR #151, Copilot)**
+- **Partial saves refresh the main window.** `SettingsViewModel.StoreChanged` is true once a save reaches the store, even when it then reports
+  a PATH or context-menu problem, and `MainWindow` refreshes when it is set, however the dialog closes.
+- **Height capped to the screen.** On load the window takes the owner monitor's work-area height as `MaxHeight`
+  (`WindowLayout.GetWorkAreaInDips`, moved out of `MainWindow`) and stays on screen. The body is in a `ScrollViewer`, and the footer stays visible.
+- **Errors are announced.** The window raises `LiveRegionChanged` on the folder message and the save error when they appear, as the creator does;
+  `LiveSetting` alone raises nothing. The folder message is now `Assertive`.
+- **No file-system calls on the UI thread for Launch.** `CanLaunch` is cached. Each edit marks it unknown (disabled), waits 250 ms for a pause in
+  typing, checks `Directory.Exists` on the thread pool, and drops answers for text that has since changed. `LaunchCheck` lets tests await it.
+
 **Verification**
 - `dotnet build keycuts.sln --no-incremental`: 0 errors, 0 warnings (unchanged).
-- `dotnet test keycuts.sln`: 680 passed (30 new), 10 consecutive clean runs after the collection fix.
+- `dotnet test keycuts.sln`: 685 passed (35 new), repeated clean runs after the collection fix and the review fixes.
 - `dotnet format keycuts.sln --verify-no-changes`: clean (also with `--severity error`).
 - Rendered the window offscreen in Light, Dark and HighContrast, with and without the error state (throwaway test, not committed).
 
 **Manual QA still needed** (added to KC-18)
 - Light, Dark and HighContrast with the real Windows setting: palette, toggle track and thumb, focus rings on the toggles and buttons, the error state, and the themed title bar.
 - Narrator: heading "Settings"; "Output folder" with the helper or error as help text and the error announced; each toggle's name, note and on/off state; Choose, Launch, Cancel, Save changes.
-- DPI 125%, 150% and 200%, and text size 150%: nothing clipped, window not taller than the screen.
+- DPI 125%, 150% and 200%, and text size 150%: the window fits the screen, the body scrolls, and the footer stays visible.
 - Choose opens the folder picker at the current folder; Launch opens Explorer; Launch is disabled for a missing folder.
 - Enter saves from the folder box and from a toggle; Escape and Cancel close without saving (registry unchanged).
 - Real right-click registration: turn "Right-click context menus" off and on, Save, and check Explorer ("Show more options" on Windows 11) for "keycut this!".

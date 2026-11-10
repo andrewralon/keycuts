@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Security;
+using System.Threading.Tasks;
 using keycuts.Common;
 using keycuts.GUI.Mvvm;
 
@@ -52,6 +53,14 @@ namespace keycuts.GUI.ViewModels
 
         private readonly Func<string, bool> directoryExists;
 
+        private readonly TimeSpan launchCheckDelay;
+
+        private int launchCheckVersion;
+
+        private bool canLaunch;
+
+        private bool storeChanged;
+
         private string outputFolder = string.Empty;
 
         private string? outputFolderError;
@@ -69,19 +78,22 @@ namespace keycuts.GUI.ViewModels
         /// <param name="pickFolder">Shows a folder picker seeded with the given folder; null when cancelled.</param>
         /// <param name="openFolder">Opens the folder in Explorer.</param>
         /// <param name="checkFolder">Creates the folder if needed and proves it is writable; returns an error message or null. Tests use temp folders.</param>
-        /// <param name="directoryExists">Decides whether Launch is enabled.</param>
+        /// <param name="directoryExists">Decides whether Launch is enabled. Runs off the UI thread, because a network path can be slow.</param>
+        /// <param name="launchCheckDelay">How long typing must pause before the folder is checked; null means <see cref="DefaultLaunchCheckDelay"/>.</param>
         public SettingsViewModel(
             ISettingsStore store,
             Func<string, string?>? pickFolder = null,
             Action<string>? openFolder = null,
             Func<string, string?>? checkFolder = null,
-            Func<string, bool>? directoryExists = null)
+            Func<string, bool>? directoryExists = null,
+            TimeSpan? launchCheckDelay = null)
         {
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.pickFolder = pickFolder ?? (_ => null);
             this.openFolder = openFolder ?? (_ => { });
             this.checkFolder = checkFolder ?? CheckFolder;
             this.directoryExists = directoryExists ?? Directory.Exists;
+            this.launchCheckDelay = launchCheckDelay ?? DefaultLaunchCheckDelay;
 
             ChooseCommand = new RelayCommand(Choose);
             LaunchCommand = new RelayCommand(Launch, () => CanLaunch);
@@ -92,7 +104,12 @@ namespace keycuts.GUI.ViewModels
             rightClickContextMenus = loaded.RightClickContextMenus;
             useEnvironmentVariables = loaded.UseEnvironmentVariables;
             theme = loaded.Theme;
+
+            // The loaded folder is checked right away; typing waits for a pause
+            ScheduleLaunchCheck(TimeSpan.Zero);
         }
+
+        public static readonly TimeSpan DefaultLaunchCheckDelay = TimeSpan.FromMilliseconds(250);
 
         /// <summary>Raised after a successful save; the window closes with a true result.</summary>
         public event EventHandler? Saved;
@@ -111,8 +128,7 @@ namespace keycuts.GUI.ViewModels
                     // The old messages were about the old text
                     OutputFolderError = null;
                     SaveError = null;
-                    OnPropertyChanged(nameof(CanLaunch));
-                    LaunchCommand.RaiseCanExecuteChanged();
+                    ScheduleLaunchCheck(launchCheckDelay);
                 }
             }
         }
@@ -184,14 +200,32 @@ namespace keycuts.GUI.ViewModels
             set { SetProperty(ref theme, value); }
         }
 
-        /// <summary>Launch needs a folder that exists right now.</summary>
+        /// <summary>
+        /// Launch needs a folder that exists. The answer is cached from a background check, so CanExecute never touches the
+        /// file system on the UI thread; it is false while a check for new text is pending.
+        /// </summary>
         public bool CanLaunch
         {
-            get
+            get { return canLaunch; }
+            private set
             {
-                var folder = outputFolder.Trim();
-                return folder.Length > 0 && SafeDirectoryExists(folder);
+                if (SetProperty(ref canLaunch, value))
+                {
+                    LaunchCommand.RaiseCanExecuteChanged();
+                }
             }
+        }
+
+        /// <summary>The latest folder check, for tests to await.</summary>
+        public Task LaunchCheck { get; private set; } = Task.CompletedTask;
+
+        /// <summary>
+        /// True once a save reached the store, even when it then reported a problem (for example PATH not updating):
+        /// the folder and other values may already be stored, so the main window must refresh however the dialog closes.
+        /// </summary>
+        public bool StoreChanged
+        {
+            get { return storeChanged; }
         }
 
         /// <summary>Validates, saves and raises <see cref="Saved"/>. Failures show inline and nothing closes.</summary>
@@ -217,6 +251,7 @@ namespace keycuts.GUI.ViewModels
                 Theme = theme
             };
 
+            storeChanged = true;
             var message = store.Save(settings);
             if (message != null)
             {
@@ -258,6 +293,40 @@ namespace keycuts.GUI.ViewModels
             if (CanLaunch)
             {
                 openFolder(outputFolder.Trim());
+            }
+        }
+
+        private void ScheduleLaunchCheck(TimeSpan delay)
+        {
+            var version = ++launchCheckVersion;
+            CanLaunch = false;
+            LaunchCheck = CheckLaunchAsync(outputFolder.Trim(), version, delay);
+        }
+
+        // Continues on the caller's context (the dispatcher in the app), so CanLaunch changes on the UI thread.
+        // A newer edit bumps the version, and a stale answer is dropped.
+        private async Task CheckLaunchAsync(string folder, int version, TimeSpan delay)
+        {
+            if (folder.Length == 0)
+            {
+                return;
+            }
+
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay);
+            }
+
+            if (version != launchCheckVersion)
+            {
+                return;
+            }
+
+            var exists = await Task.Run(() => SafeDirectoryExists(folder));
+
+            if (version == launchCheckVersion)
+            {
+                CanLaunch = exists;
             }
         }
 

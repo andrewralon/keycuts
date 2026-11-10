@@ -70,13 +70,16 @@
         </Style>
     </Window.Resources>
 
+    <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible -->
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="24">
+        <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False"
+                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="24">
             <!-- Header -->
             <StackPanel Margin="0,0,0,22">
                 <TextBlock Text="Settings" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
@@ -116,7 +119,7 @@
                     </Button>
                 </Grid>
                 <TextBlock x:Name="OutputFolderMessage" Style="{StaticResource FieldMessage}" Text="{Binding OutputFolderMessage}"
-                           AutomationProperties.LiveSetting="Polite" />
+                           AutomationProperties.LiveSetting="Assertive" />
             </StackPanel>
 
             <!-- Behavior -->
@@ -191,6 +194,7 @@
                        Foreground="{DynamicResource DangerBrush}" AutomationProperties.LiveSetting="Assertive"
                        Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
         </StackPanel>
+        </ScrollViewer>
 
         <!-- Footer -->
         <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"

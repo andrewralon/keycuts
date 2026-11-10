@@ -1,10 +1,7 @@
 using System;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
 using keycuts.GUI.ViewModels;
 
 namespace keycuts.GUI
@@ -56,7 +53,8 @@ namespace keycuts.GUI
         private void Shell_SettingsRequested(object? sender, EventArgs e)
         {
             var settingsWindow = new SettingsWindow { Owner = this };
-            var saved = settingsWindow.ShowDialog() == true;
+            // A save that reported a problem (for example PATH) may still have stored the folder, so a later Cancel refreshes too
+            var saved = settingsWindow.ShowDialog() == true || settingsWindow.ViewModel.StoreChanged;
 
             if (saved)
             {
@@ -119,7 +117,7 @@ namespace keycuts.GUI
             MinHeight = WindowLayout.ManagerMinHeight;
 
             var size = managerSize ?? new Size(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight);
-            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, size.Width, size.Height), GetWorkAreaInDips());
+            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, size.Width, size.Height), WindowLayout.GetWorkAreaInDips(this));
 
             Left = bounds.Left;
             Top = bounds.Top;
@@ -151,54 +149,5 @@ namespace keycuts.GUI
                 Top = creatorLocation.Value.Y;
             }
         }
-
-        private Rect GetWorkAreaInDips()
-        {
-            var handle = new WindowInteropHelper(this).Handle;
-            var monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
-            var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-
-            if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
-            {
-                return SystemParameters.WorkArea;
-            }
-
-            var dpi = VisualTreeHelper.GetDpi(this);
-            return new Rect(
-                info.Work.Left / dpi.DpiScaleX,
-                info.Work.Top / dpi.DpiScaleY,
-                (info.Work.Right - info.Work.Left) / dpi.DpiScaleX,
-                (info.Work.Bottom - info.Work.Top) / dpi.DpiScaleY);
-        }
-
-        #region External Methods
-
-        private const int MonitorDefaultToNearest = 2;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativeRect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MonitorInfo
-        {
-            public int Size;
-            public NativeRect Monitor;
-            public NativeRect Work;
-            public int Flags;
-        }
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int flags);
-
-        [DllImport("user32.dll")]
-        private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
-
-        #endregion External Methods
     }
 }

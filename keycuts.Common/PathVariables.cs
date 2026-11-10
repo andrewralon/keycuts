@@ -150,7 +150,14 @@ namespace keycuts.Common
                 return;
             }
 
-            var folder = Path.TrimEndingDirectorySeparator(value.Trim());
+            // The .bat expands the value exactly as stored, so a value with spaces around it isn't trimmed to match a
+            // path: "C:\Data " would expand to "C:\Data \file". It's skipped instead. A trailing separator is harmless.
+            if (value.Trim().Length != value.Length)
+            {
+                return;
+            }
+
+            var folder = Path.TrimEndingDirectorySeparator(value);
 
             if (folder.IndexOf(';') >= 0 || !Path.IsPathFullyQualified(folder))
             {

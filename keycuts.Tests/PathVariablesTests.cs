@@ -91,13 +91,14 @@ namespace keycuts.Tests
                 ["TEMP"] = @"C:\Users\me\AppData\Local\Temp",    // never used
                 ["DATA"] = @"D:\",                               // a drive root
                 ["LIST"] = @"C:\a;C:\b",                         // a list, not a folder
+                ["SPACED"] = @"C:\Users\me\Dropbox ",            // expands with the space, so it can't stand for the folder
             };
             var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"C:\Users\me\Dropbox", @"\\server\share\Archive", @"D:\" };
             var asked = new List<string>();
 
             var all = PathVariables.GetDefault(
                 name => environment.TryGetValue(name, out var value) ? value : null!,
-                new[] { "TEMP", "GONE", "DROPBOX", "DATA", "LIST", "Archive", "dropbox" },
+                new[] { "TEMP", "GONE", "DROPBOX", "DATA", "LIST", "Archive", "dropbox", "SPACED" },
                 folder => { asked.Add(folder); return existing.Contains(folder); });
 
             Assert.Equal(

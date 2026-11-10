@@ -42,6 +42,15 @@ namespace keycuts.GUI.ViewModels
 
         public const string InvalidNameMessage = "Use letters, numbers, dashes, or dots \u2014 no \\ / : * ? \" < > |";
 
+        /// <summary>A name taken by a keycuts command on PATH (keycuts, keypaste), which a keycut would clash with.</summary>
+        public const string CommandNameMessage = "\u201c{0}\u201d is a keycuts command. Choose another name.";
+
+        /// <summary>Why <paramref name="name"/> was refused as invalid: a command's name, or a name that isn't a plain file name.</summary>
+        public static string GetInvalidNameMessage(string name)
+        {
+            return CommandNames.IsCommandName(name) ? string.Format(CommandNameMessage, name.Trim()) : InvalidNameMessage;
+        }
+
         public const string OutputFolderErrorMessage = "Couldn\u2019t save to the output folder. Check Settings.";
 
         public const string PathUpdateErrorMessage = "Couldn\u2019t update your PATH. Check Settings.";
@@ -440,7 +449,7 @@ namespace keycuts.GUI.ViewModels
 
                 if (isInvalidName)
                 {
-                    return InvalidNameMessage;
+                    return GetInvalidNameMessage(shortcutName);
                 }
 
                 if (submitError != null)

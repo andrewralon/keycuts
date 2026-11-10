@@ -39,6 +39,9 @@ namespace keycuts.GUI
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
             var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
+            // Off the UI thread, since the folder can be a network share that's offline. The count and the loads below
+            // wait for it, so the manager and the welcome already see the new names.
+            var moveAside = Task.Run(MoveAsideCommandNames);
             var welcome = new ViewModels.WelcomeViewModel(
                 appPath,
                 Common.RegistryStuff.GetWelcomeDismissed,
@@ -48,8 +51,16 @@ namespace keycuts.GUI
                 usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
             var shell = new ViewModels.ShellViewModel(
-                () => Common.KeycutRepository.CreateDefault().CountAsync(),
-                ct => Common.KeycutRepository.CreateDefault().LoadAllAsync(ct),
+                async () =>
+                {
+                    await moveAside;
+                    return await Common.KeycutRepository.CreateDefault().CountAsync();
+                },
+                async ct =>
+                {
+                    await moveAside.WaitAsync(ct);
+                    return await Common.KeycutRepository.CreateDefault().LoadAllAsync(ct);
+                },
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome);
@@ -67,6 +78,36 @@ namespace keycuts.GUI
 
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell.Creator);
+            _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
+        }
+
+        /// <summary>Says what <see cref="MoveAsideCommandNames"/> renamed, once it's done, unless the window is already closed.</summary>
+        private static async Task ShowCommandNameNoticeAsync(Window owner, Task<IReadOnlyList<Common.RenamedKeycut>> moveAside)
+        {
+            // Resumes on the UI thread, which the message box needs
+            var renamed = await moveAside;
+
+            if (renamed.Count > 0 && owner.IsLoaded)
+            {
+                MessageBox.Show(owner, ViewModels.CommandNameNotice.Format(renamed), "keycuts", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// Renames keycuts named keycuts or keypaste, which clash with those commands on PATH (bin\keycuts.cmd and
+        /// bin\keypaste.cmd). Runs on a worker thread. Never fails: if the folder can't be read, nothing is renamed.
+        /// </summary>
+        private static IReadOnlyList<Common.RenamedKeycut> MoveAsideCommandNames()
+        {
+            try
+            {
+                return Common.KeycutRepository.CreateDefault().MoveAsideCommandNames();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't check for keycuts named after commands: " + ex.Message);
+                return Array.Empty<Common.RenamedKeycut>();
+            }
         }
 
         /// <summary>

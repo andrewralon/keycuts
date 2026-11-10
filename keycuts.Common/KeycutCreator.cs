@@ -77,9 +77,17 @@ namespace keycuts.Common
             "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
         };
 
-        /// <summary>True if <paramref name="name"/> is a plain file name usable for a keycut.</summary>
+        /// <summary>
+        /// True if <paramref name="name"/> is a plain file name usable for a keycut, and not one of the keycuts commands on
+        /// PATH (<see cref="CommandNames"/>), which a keycut would clash with.
+        /// </summary>
         public static bool IsValidName(string name)
         {
+            if (CommandNames.IsCommandName(name))
+            {
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(name) || name != name.Trim() || name.Length > MaxNameLength)
             {
                 return false;

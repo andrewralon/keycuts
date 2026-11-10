@@ -25,7 +25,9 @@ Create keycuts several ways:
 Download the installer for your PC from the [latest release](https://github.com/andrewralon/keycuts/releases/latest) and run it:
 `keycuts-setup-x64.msi` for most PCs, or `keycuts-setup-arm64.msi` for Windows on ARM (Snapdragon and other ARM laptops; the x64
 one works there too, more slowly). Settings → System → About shows which you have. Installing one replaces the other. It installs for your account only and **doesn't need admin rights**: files go to
-`%LOCALAPPDATA%\Programs\keycuts`, and the right-click menu and `PATH` entries go in your own registry hive. The .NET runtime
+`%LOCALAPPDATA%\Programs\keycuts`, and the right-click menu and `PATH` entries go in your own registry hive. Only the
+install folder's `bin` goes on your `PATH`: it holds just the `keycuts` and `keypaste` commands, small `.cmd` files that run
+`keycuts.exe` one folder up, so the runtime's files beside it stay off your `PATH`. The .NET runtime
 is included. Turn the right-click menu off and on in Settings; on Windows 11 it appears under **Show more options**.
 
 The installer asks where to keep your keycuts and adds that folder to your `PATH`. The default is `%USERPROFILE%\Shortcuts`, and any
@@ -55,7 +57,7 @@ or as typed if it's off. Holding **Shift** flips that for the keycut you're crea
 
 **First run:** the first time keycuts opens, and whenever your keycuts folder is empty, the creator shows a welcome
 panel that explains the Win+R workflow and offers a keycut to keycuts itself, named `kc` unless you change it, so
-Win+R → `kc` opens the app. (Not `keycuts`: that's the command-line tool, `keycuts.exe`, which is on your PATH too.)
+Win+R → `kc` opens the app. (Not `keycuts`: that's the command-line tool, which is on your PATH too.)
 **Got it** or creating that keycut records that you've seen it (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`),
 so it only comes back while the folder is empty, or when you choose **Show welcome** in Settings. If the keycuts folder
 isn't on your PATH (a portable copy; the installer adds it), the panel says Win+R can't find the new keycut yet and
@@ -105,12 +107,13 @@ clipboard and prints it. A file or folder saved with an environment variable (`%
 real path, so it works when pasted into Explorer or a terminal; a URL is copied as written. Given a text file's name
 instead, it copies the file's contents, as written. It looks in the current
 folder, then your keycuts folder, then the keycuts install folder, and tries the name as typed, then with `.txt`, then
-with `.bat`. `keypaste` used to be a separate program; it's now a small `keypaste.cmd` beside `keycuts.exe` that runs
+with `.bat`. `keypaste` used to be a separate program; it's now a small `keypaste.cmd` in the install folder's `bin` that runs
 `keycuts paste`.
 
-If you made a keycut to the old `keypaste.exe` (a `keypaste.bat` in your keycuts folder, say), delete it once
-`keypaste.exe` is gone. Windows finds a keycut named `keypaste` before the new command, so one that points at a missing
-`keypaste.exe` stops `keypaste` from working.
+A keycut can't be named `keycuts` or `keypaste`: Windows would find it instead of the command, or the other way round.
+If your keycuts folder already has one (a `keypaste.bat` made for the old `keypaste.exe`, say), keycuts renames it to
+`keypaste_previous` (or `keypaste_previous2`, and so on, if that's taken) when it starts, and tells you. It still works
+under the new name; rename or delete it in the manager.
 
 ## Development
 

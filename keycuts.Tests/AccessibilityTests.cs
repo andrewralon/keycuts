@@ -380,6 +380,10 @@ namespace keycuts.Tests
             {
             }
 
+            public void OpenFileLocation(string path)
+            {
+            }
+
             public void CopyText(string text)
             {
             }

@@ -20,6 +20,9 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Opens the keycut's .bat file in Notepad. Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
         void Edit(string path);
 
+        /// <summary>Opens Explorer with the keycut's .bat file selected. Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
+        void OpenFileLocation(string path);
+
         /// <summary>Puts the text on the clipboard. Throws if the clipboard can't be used.</summary>
         void CopyText(string text);
 
@@ -47,6 +50,17 @@ namespace keycuts.GUI.ViewModels
             }
 
             Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = true });
+        }
+
+        public void OpenFileLocation(string path)
+        {
+            if (!System.IO.File.Exists(path))
+            {
+                throw new System.IO.FileNotFoundException("The keycut file no longer exists.", path);
+            }
+
+            // /select, opens the containing folder with the file highlighted
+            Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true });
         }
 
         public void CopyText(string text)

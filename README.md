@@ -51,7 +51,7 @@ Batmanager app, which has been removed).
 * Up and Down select a row, even while you're typing in the search box, and Enter opens the selected keycut. Clicking a row selects it too.
 * Sort by Shortcut, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
-  **Copy destination**, and **Delete**. Delete has no confirmation.
+  **Open file location** (shows the `.bat` in Explorer), **Copy destination**, and **Delete**. Delete has no confirmation.
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
 Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.

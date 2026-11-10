@@ -16,7 +16,7 @@ namespace keycuts.GUI.ViewModels
     public class WelcomeViewModel : ObservableObject
     {
         /// <summary>
-        /// Not "keycuts": the installer puts the CLI, keycuts.exe, on PATH too, and depending on PATH order a keycuts.bat
+        /// Not "keycuts": the installer puts the CLI on PATH too (bin\keycuts.cmd), and depending on PATH order a keycuts.bat
         /// would either shadow the CLI (dropping its arguments) or be shadowed by it (Win+R opening a console).
         /// </summary>
         public const string DefaultName = "kc";

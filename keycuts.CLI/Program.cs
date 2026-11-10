@@ -32,7 +32,7 @@ namespace keycuts.CLI
                 errors => errors.IsHelp() || errors.IsVersion() ? ExitCode.Success : ExitCode.NotStarted);
         }
 
-        /// <summary><c>keycuts paste &lt;name&gt;</c>, which the keypaste.cmd shim beside keycuts.exe also runs (#97).</summary>
+        /// <summary><c>keycuts paste &lt;name&gt;</c>, which the bin\keypaste.cmd shim also runs (#97).</summary>
         private static ExitCode RunPaste(PasteOptions parsed)
         {
             // The library logs with Console.WriteLine (the parser does while reading a keycut). Send that to stderr, so

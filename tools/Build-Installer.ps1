@@ -3,8 +3,8 @@
     Builds the per-user keycuts MSI at artifacts\installer\<runtime>\keycuts-setup-<arch>.msi.
 
 .DESCRIPTION
-    Publishes the GUI and CLI (with its keypaste.cmd shim) self-contained into artifacts\publish\<runtime>, then
-    packages that folder. Self-contained because a non-admin install can't add the .NET runtime to the machine.
+    Publishes the GUI and CLI self-contained into artifacts\publish\<runtime>, then packages that folder. The CLI's
+    keycuts.cmd and keypaste.cmd shims go in its bin subfolder, the only folder of it the MSI puts on PATH. Self-contained because a non-admin install can't add the .NET runtime to the machine.
     Needs only the .NET SDK; the WiX toolset restores from NuGet. Each runtime builds into its own folders, so building
     one doesn't delete the other.
 

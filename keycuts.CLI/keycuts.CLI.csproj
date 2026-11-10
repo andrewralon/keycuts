@@ -14,7 +14,8 @@
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- keypaste.exe became "keycuts paste" (#97); the shim keeps "keypaste <name>" working from the install folder on PATH -->
-    <None Include="keypaste.cmd" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The commands on PATH: a bin folder beside keycuts.exe holding only these shims, so PATH reaches keycuts and
+         keypaste (#97, "keycuts paste") but not the self-contained runtime's DLLs next to the exe -->
+    <None Update="shims\*.cmd" Link="bin\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

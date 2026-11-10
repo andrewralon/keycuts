@@ -10,7 +10,7 @@ Entry points for creating one: the WPF app (drag/paste/browse a destination, nam
 
 ## Commands
 
-.NET SDK 10, Windows only (Common, CLI and keypaste target `net10.0-windows`; GUI and Tests target `net10.0-windows10.0.19041.0`). Run from the repo root:
+.NET SDK 10, Windows only (Common, CLI and keypaste target `net10.0-windows`; GUI and Tests target `net10.0-windows10.0.19041.0`). `global.json` pins the SDK to the 10.0.2xx feature band, version 10.0.203 or a newer 2xx patch (`latestPatch`), and CI installs the newest 2xx patch. A machine without a 2xx SDK fails with an SDK-resolution error; install one, or move the band deliberately in `global.json`. Run from the repo root:
 
 - Build: `dotnet build keycuts.sln`
 - Test: `dotnet test keycuts.sln` (xUnit, project `keycuts.Tests`)
@@ -26,7 +26,7 @@ Gotchas:
 - Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
 - A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
 - Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
-- CI (`.github/workflows/ci.yml`) runs on PRs into `develop`/`main` and pushes to `develop`: job `build` (Windows) builds and tests, and job `format` checks formatting on Linux beside it. A failed run uploads a `test-results` artifact (TRX plus any `.received.txt` snapshots). PRs into `main` also build the MSI and upload it as `keycuts-setup`. Actions are pinned to commit SHAs; Dependabot (`.github/dependabot.yml`) bumps them.
+- CI (`.github/workflows/ci.yml`) runs on PRs into `develop`/`main` and pushes to `develop`. Job `build` (Windows) builds and tests, and job `format` checks formatting on Linux beside it; both are required checks on `develop` and `main`. Each run's summary shows the version, SDK and runner image, the test results (`GitHubActionsTestLogger`, which also annotates failed tests), the diff of any changed characterization snapshot, and, on failure, the formatting issues by line. A failed run uploads a `test-results` artifact (TRX plus any `.received.txt` snapshots). PRs into `main` also build the MSI, upload it as `keycuts-setup`, and put its size and SHA256 in the summary. Actions are pinned to commit SHAs; Dependabot (`.github/dependabot.yml`) bumps them and the NuGet packages monthly.
 
 ## Versioning and releases
 

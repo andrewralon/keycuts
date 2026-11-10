@@ -13,6 +13,7 @@ namespace keycuts.CLI
     {
         private const uint CF_UNICODETEXT = 13;
         private const uint GMEM_MOVEABLE = 0x0002;
+        private static readonly IntPtr HWND_MESSAGE = new IntPtr(-3);
 
         // Another program can hold the clipboard open for a moment
         private const int OpenAttempts = 10;
@@ -23,7 +24,27 @@ namespace keycuts.CLI
         {
             text ??= string.Empty;
 
-            OpenWithRetry();
+            // EmptyClipboard makes the window that opened the clipboard its owner, and SetClipboardData is documented to
+            // fail without one, so open it with a hidden message-only window that lives until the clipboard is closed.
+            // If that window can't be made, a null owner still works in practice.
+            var owner = CreateWindowEx(0, "STATIC", null, 0, 0, 0, 0, 0, HWND_MESSAGE, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+
+            try
+            {
+                SetText(text, owner);
+            }
+            finally
+            {
+                if (owner != IntPtr.Zero)
+                {
+                    DestroyWindow(owner);
+                }
+            }
+        }
+
+        private static void SetText(string text, IntPtr owner)
+        {
+            OpenWithRetry(owner);
 
             try
             {
@@ -81,11 +102,11 @@ namespace keycuts.CLI
             }
         }
 
-        private static void OpenWithRetry()
+        private static void OpenWithRetry(IntPtr owner)
         {
             for (var attempt = 1; ; attempt++)
             {
-                if (OpenClipboard(IntPtr.Zero))
+                if (OpenClipboard(owner))
                 {
                     return;
                 }
@@ -100,6 +121,14 @@ namespace keycuts.CLI
                 Thread.Sleep(OpenRetryDelay);
             }
         }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr CreateWindowEx(
+            uint dwExStyle, string lpClassName, string lpWindowName, uint dwStyle, int x, int y, int nWidth, int nHeight,
+            IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DestroyWindow(IntPtr hWnd);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool OpenClipboard(IntPtr hWndNewOwner);

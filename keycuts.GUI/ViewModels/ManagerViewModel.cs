@@ -64,6 +64,9 @@ namespace keycuts.GUI.ViewModels
 
         private bool savingRename;
 
+        // A renamed keycut's new path, selected and focused by the next reload that rebuilds the rows
+        private string? pendingSelectPath;
+
         private int keycutCount;
 
         private bool isLoading = true;
@@ -483,21 +486,10 @@ namespace keycuts.GUI.ViewModels
                 }
 
                 ShowStatusMessage("Renamed “" + oldName + "” to “" + newName + "”", false);
+
+                // Selected by whichever reload rebuilds the rows: F5 or reactivating the window can cancel this one
+                pendingSelectPath = newPath;
                 await LoadAsync();
-
-                // The new name may not match the search; clear it rather than hide the row that was just renamed
-                var renamed = allRows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, newPath, StringComparison.OrdinalIgnoreCase));
-
-                if (renamed != null)
-                {
-                    if (!Rows.Contains(renamed))
-                    {
-                        SearchText = string.Empty;
-                    }
-
-                    SelectedRow = renamed;
-                    FocusRowRequested?.Invoke(this, renamed);
-                }
             }
             finally
             {
@@ -638,6 +630,7 @@ namespace keycuts.GUI.ViewModels
             if (IsSameContent(keycuts))
             {
                 keycuts = allRows.Select(row => row.Keycut).ToList();
+                SelectPendingRename();
             }
             else
             {
@@ -662,6 +655,36 @@ namespace keycuts.GUI.ViewModels
 
             // A reload builds new rows, so find the selected keycut again
             SelectedRow = Rows.FirstOrDefault(row => row.Keycut.FilePath == selectedPath);
+            SelectPendingRename();
+        }
+
+        /// <summary>
+        /// Selects and focuses a just-renamed keycut once a reload has built its row. Its new name may not match the
+        /// search, so the search is cleared rather than hiding it. Stays pending until a reload finds it.
+        /// </summary>
+        private void SelectPendingRename()
+        {
+            if (pendingSelectPath == null)
+            {
+                return;
+            }
+
+            var renamed = allRows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, pendingSelectPath, StringComparison.OrdinalIgnoreCase));
+
+            if (renamed == null)
+            {
+                return;
+            }
+
+            pendingSelectPath = null;
+
+            if (!Rows.Contains(renamed))
+            {
+                SearchText = string.Empty;
+            }
+
+            SelectedRow = renamed;
+            FocusRowRequested?.Invoke(this, renamed);
         }
 
         public void ShowError(string message)

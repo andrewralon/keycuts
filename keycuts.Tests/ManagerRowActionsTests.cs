@@ -463,6 +463,44 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_WhenItsReloadIsCancelled_TheNextReloadSelectsTheRenamedRow()
+        {
+            var noop = new RelayCommand(() => { });
+            var renameReload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var f5Reload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                calls++;
+                return calls switch
+                {
+                    1 => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a"), NewKeycut("b") }),
+                    2 => renameReload.Task,
+                    _ => f5Reload.Task,
+                };
+            }, null, new FakeActions())
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            KeycutRowViewModel? focused = null;
+            manager.FocusRowRequested += (sender, row) => focused = row;
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "zed";
+
+            var saving = manager.CommitRenameAsync();   // its reload waits
+            var f5 = manager.LoadAsync();               // F5 meanwhile cancels it, and waits too
+            renameReload.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
+            await saving;                               // the cancelled reload returns first, changing nothing
+            f5Reload.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
+            await f5;
+
+            Assert.Equal("zed", manager.SelectedRow?.Name);
+            Assert.Same(manager.SelectedRow, focused);
+            Assert.Equal(new[] { "b", "zed" }, manager.Rows.Select(r => r.Name).ToArray());
+        }
+
+        [Fact]
         public void MissingIndicator_IsHiddenWhileRenaming()
         {
             var keycut = NewKeycut("a");

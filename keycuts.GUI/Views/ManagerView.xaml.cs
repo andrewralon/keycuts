@@ -159,12 +159,29 @@ namespace keycuts.GUI.Views
         }
 
         // Clicking or tabbing away saves, as in Explorer. Switching windows (no new focus in this one) keeps editing.
+        // Focus moving into the box's own context menu (right-click, Shift+F10: Cut, Copy, Paste) is still part of the edit.
         private void RenameBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            if (e.NewFocus != null && sender is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } })
+            if (e.NewFocus != null && sender is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } } box &&
+                !IsInContextMenuOf(box, e.NewFocus as DependencyObject))
             {
                 _ = ViewModel?.CommitRenameAsync();
             }
+        }
+
+        /// <summary>True if <paramref name="element"/> is in a context menu opened for <paramref name="owner"/>.</summary>
+        internal static bool IsInContextMenuOf(UIElement owner, DependencyObject? element)
+        {
+            // Menu items' logical parent is their menu; the menu itself lives in a separate popup tree
+            for (var node = element; node != null; node = LogicalTreeHelper.GetParent(node) ?? (node is Visual ? VisualTreeHelper.GetParent(node) : null))
+            {
+                if (node is ContextMenu menu)
+                {
+                    return ReferenceEquals(menu.PlacementTarget, owner);
+                }
+            }
+
+            return false;
         }
 
         #endregion Rename

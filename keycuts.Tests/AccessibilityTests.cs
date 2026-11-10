@@ -550,6 +550,18 @@ namespace keycuts.Tests
                     box.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
                     Pump();
                     Assert.True(manager.IsRenaming);
+
+                    // Neither does focus moving into the box's own context menu (Cut, Copy, Paste); focus elsewhere saves
+                    var menu = new ContextMenu { PlacementTarget = box };
+                    var paste = new MenuItem { Header = "Paste" };
+                    menu.Items.Add(paste);
+                    box.RaiseEvent(new KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, 0, box, paste) { RoutedEvent = Keyboard.LostKeyboardFocusEvent });
+                    Pump();
+                    Assert.True(manager.IsRenaming);
+
+                    box.RaiseEvent(new KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, 0, box, search) { RoutedEvent = Keyboard.LostKeyboardFocusEvent });
+                    Pump();
+                    Assert.False(manager.IsRenaming);
                 }
                 finally
                 {

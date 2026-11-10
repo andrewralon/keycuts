@@ -299,8 +299,6 @@ namespace keycuts.Common
             if (match.Success)
             {
                 result = match.Groups[1].Value;
-
-                Console.WriteLine("result:  " + result);
             }
 
             return match.Success;

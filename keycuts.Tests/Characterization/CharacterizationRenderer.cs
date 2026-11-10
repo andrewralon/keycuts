@@ -21,16 +21,16 @@ namespace keycuts.Tests.Characterization
         private static readonly Dictionary<string, string> ParserNotes = new Dictionary<string, string>
         {
             ["edge-cases/command-type.bat"] = "Parsed as File, not Command: the file pattern is tried first and matches any quoted START (#93).",
-            ["edge-cases/empty.bat"] = "No command line, so the type is never set and stays default(ShortcutType), which is Command, not Unknown.",
+            ["edge-cases/empty.bat"] = "No command line, so Unknown.",
             ["edge-cases/header-content-drift.bat"] = "Only the command line is read; the header's type and destination are ignored (#91).",
             ["edge-cases/hostsfile-type.bat"] = "OpenWithApp comes back inside two pairs of quotes.",
             ["edge-cases/openwithapp.bat"] = "The app and the destination are joined into one path with a backslash by the quote handling in MatchesRegex, which exists for the old START /D form (#89).",
             ["new-format/keypaste.bat"] = "Hand-edited %* after the closing quote fails the file pattern, so it falls through to Command.",
             ["new-format/kp.bat"] = "Hand-edited %* after the closing quote fails the file pattern, so it falls through to Command.",
-            ["not-keycuts/dequote.bat"] = "Not a keycut. No START or explorer.exe line, so the type stays default(ShortcutType), which is Command.",
+            ["not-keycuts/dequote.bat"] = "Not a keycut. No START or explorer.exe line, so Unknown.",
             ["not-keycuts/ss.bat"] = "Not a keycut. The explorer.exe argument is unquoted, so no pattern matches.",
             ["old-format/gg.bat"] = "Header says url, but the command is a hand-edited Chrome launcher; only the command line is read (#91).",
-            ["old-format/pm.bat"] = "The command line starts with a quoted path rather than START, so it is never read: the type stays default(ShortcutType), which is Command, with no destination.",
+            ["old-format/pm.bat"] = "A real keycut, but the command line starts with a quoted path rather than START, so it is never read: Unknown, with no destination, and the manager doesn't list it.",
         };
 
         #region Parser

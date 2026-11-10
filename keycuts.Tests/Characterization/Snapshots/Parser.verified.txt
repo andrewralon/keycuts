@@ -21,12 +21,12 @@ Description: ||
 
 ## edge-cases/empty.bat
 Shortcut:    |empty|
-Type:        Command
+Type:        Unknown
 Destination: <null>
 OpenWithApp: <null>
 Command:     <null>
 Description: ||
-Note:        No command line, so the type is never set and stays default(ShortcutType), which is Command, not Unknown.
+Note:        No command line, so Unknown.
 
 ## edge-cases/header-content-drift.bat
 Shortcut:    |header-content-drift|
@@ -195,12 +195,12 @@ Description: ||
 
 ## not-keycuts/dequote.bat
 Shortcut:    |dequote|
-Type:        Command
+Type:        Unknown
 Destination: <null>
 OpenWithApp: <null>
 Command:     <null>
 Description: ||
-Note:        Not a keycut. No START or explorer.exe line, so the type stays default(ShortcutType), which is Command.
+Note:        Not a keycut. No START or explorer.exe line, so Unknown.
 
 ## not-keycuts/jira.bat
 Shortcut:    |jira|
@@ -342,12 +342,12 @@ Description: ||
 
 ## old-format/pm.bat
 Shortcut:    |pm|
-Type:        Command
+Type:        Unknown
 Destination: <null>
 OpenWithApp: <null>
 Command:     <null>
 Description: ||
-Note:        The command line starts with a quoted path rather than START, so it is never read: the type stays default(ShortcutType), which is Command, with no destination.
+Note:        A real keycut, but the command line starts with a quoted path rather than START, so it is never read: Unknown, with no destination, and the manager doesn't list it.
 
 ## old-format/shortcuts.bat
 Shortcut:    |shortcuts|

@@ -62,7 +62,7 @@ A packaged Windows 11 top-level context-menu handler, per-setting autosave, and 
 - `keycuts.GUI/Themes/Controls.xaml`: `ToggleSwitch` style.
 - `keycuts.GUI/MainWindow.xaml.cs`: reloads (and refreshes the creator's environment-variables setting) only when the dialog returns true; Show welcome still reloads.
 - `keycuts.GUI/MainFormLogic.cs`: removed `SaveSettings`, which had no callers left. `Settings.cs` is kept: the store uses it.
-- `keycuts.Tests/SettingsViewModelTests.cs` (new): `SettingsViewModelTests` (22) and `SettingsWindowTests` (13, STA, offscreen).
+- `keycuts.Tests/SettingsViewModelTests.cs` (new): `SettingsViewModelTests` (20) and `SettingsWindowTests` (13, STA, offscreen).
 - `keycuts.Tests/WpfCollection.cs` (new) and `[Collection]` on `AccessibilityTests`: the window tests and the accessibility tests
   share the one `Application` per AppDomain, so they must not create it in parallel (it failed once without this).
 - `README.md`, `CLAUDE.md`, `docs/tickets/README.md`, `KC-18`: labels and status.
@@ -93,12 +93,13 @@ A packaged Windows 11 top-level context-menu handler, per-setting autosave, and 
   (`WindowLayout.GetWorkAreaInDips`, moved out of `MainWindow`) and stays on screen. The body is in a `ScrollViewer`, and the footer stays visible.
 - **Errors are announced.** The window raises `LiveRegionChanged` on the folder message and the save error when they appear, as the creator does;
   `LiveSetting` alone raises nothing. The folder message is now `Assertive`.
-- **No file-system calls on the UI thread for Launch.** `CanLaunch` is cached. Each edit marks it unknown (disabled), waits 250 ms for a pause in
-  typing, checks `Directory.Exists` on the thread pool, and drops answers for text that has since changed. `LaunchCheck` lets tests await it.
+- **Launch's `Directory.Exists` check stays synchronous (declined).** Copilot noted that typing a network path could block the UI. A debounced
+  background check was tried, then reverted: the case is rare (someone typing a UNC path into a rarely edited setting, with at worst a brief pause),
+  and the async version made the tests timing-dependent (a CI failure and a race in the window tests). Revisit if network output folders become common.
 
 **Verification**
 - `dotnet build keycuts.sln --no-incremental`: 0 errors, 0 warnings (unchanged).
-- `dotnet test keycuts.sln`: 685 passed (35 new), repeated clean runs after the collection fix and the review fixes.
+- `dotnet test keycuts.sln`: 683 passed (33 new), repeated clean runs after the collection fix and the review fixes.
 - `dotnet format keycuts.sln --verify-no-changes`: clean (also with `--severity error`).
 - Rendered the window offscreen in Light, Dark and HighContrast, with and without the error state (throwaway test, not committed).
 

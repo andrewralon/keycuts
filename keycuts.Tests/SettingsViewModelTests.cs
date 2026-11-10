@@ -7,7 +7,6 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
@@ -68,8 +67,7 @@ namespace keycuts.Tests
 
         private SettingsViewModel NewViewModel(FakeStore store, Func<string, string?>? pick = null, Action<string>? open = null)
         {
-            // No typing pause in tests; Launch checks are awaited through LaunchCheck
-            return new SettingsViewModel(store, pick, open, launchCheckDelay: TimeSpan.Zero);
+            return new SettingsViewModel(store, pick, open);
         }
 
         #region Load and save mapping
@@ -289,10 +287,9 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task TheOtherToggles_NotifyUnderTheirOwnNames()
+        public void TheOtherToggles_NotifyUnderTheirOwnNames()
         {
             var vm = NewViewModel(new FakeStore());
-            await vm.LaunchCheck;
             var changed = new List<string?>();
             vm.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
 
@@ -307,122 +304,50 @@ namespace keycuts.Tests
         #region Choose and Launch
 
         [Fact]
-        public async Task Launch_IsEnabledOnlyForAFolderThatExists()
+        public void Launch_IsEnabledOnlyForAFolderThatExists()
         {
             var vm = NewViewModel(new FakeStore());
 
             vm.OutputFolder = string.Empty;
-            await vm.LaunchCheck;
             Assert.False(vm.CanLaunch);
             Assert.False(vm.LaunchCommand.CanExecute(null));
 
             vm.OutputFolder = Path.Combine(root, "missing");
-            await vm.LaunchCheck;
             Assert.False(vm.CanLaunch);
 
             vm.OutputFolder = root;
-            await vm.LaunchCheck;
             Assert.True(vm.CanLaunch);
             Assert.True(vm.LaunchCommand.CanExecute(null));
 
             vm.OutputFolder = "   ";
-            await vm.LaunchCheck;
             Assert.False(vm.CanLaunch);
         }
 
         [Fact]
-        public async Task Launch_OpensTheFolder_AndDoesNothingWhenItIsMissing()
+        public void Launch_OpensTheFolder_AndDoesNothingWhenItIsMissing()
         {
             var opened = new List<string>();
             var vm = NewViewModel(new FakeStore(), open: opened.Add);
 
             vm.OutputFolder = Path.Combine(root, "missing");
-            await vm.LaunchCheck;
             vm.LaunchCommand.Execute(null);
             Assert.Empty(opened);
 
             vm.OutputFolder = root;
-            await vm.LaunchCheck;
             vm.LaunchCommand.Execute(null);
             Assert.Equal(new[] { root }, opened);
         }
 
         [Fact]
-        public async Task LaunchCommand_RaisesCanExecuteChanged_WhenTheAnswerChanges()
+        public void LaunchCommand_RaisesCanExecuteChanged_WhenTheFolderTextChanges()
         {
             var vm = NewViewModel(new FakeStore());
-            vm.OutputFolder = Path.Combine(root, "missing");
-            await vm.LaunchCheck;
             var raised = 0;
             vm.LaunchCommand.CanExecuteChanged += (sender, e) => raised++;
 
             vm.OutputFolder = root;
-            await vm.LaunchCheck;
 
             Assert.Equal(1, raised);
-            Assert.True(vm.LaunchCommand.CanExecute(null));
-        }
-
-        [Fact]
-        public async Task Launch_ChecksTheFolderOffTheCallingThread_AndNotWhileTyping()
-        {
-            // A network path can take seconds to answer, so the setter must never wait for the file system
-            var callerThread = Environment.CurrentManagedThreadId;
-            var checks = new List<(string Folder, int Thread)>();
-            var vm = new SettingsViewModel(new FakeStore { Stored = new Settings { OutputFolder = string.Empty } },
-                directoryExists: folder =>
-                {
-                    lock (checks)
-                    {
-                        checks.Add((folder, Environment.CurrentManagedThreadId));
-                    }
-
-                    return true;
-                },
-                launchCheckDelay: TimeSpan.FromMilliseconds(100));
-
-            vm.OutputFolder = @"\\server\share";
-            vm.OutputFolder = @"\\server\share\k";
-            vm.OutputFolder = @"\\server\share\keys";
-
-            Assert.False(vm.CanLaunch);
-            Assert.Empty(checks);
-
-            await vm.LaunchCheck;
-
-            // Only the last text is checked, once the typing pauses
-            var check = Assert.Single(checks);
-            Assert.Equal(@"\\server\share\keys", check.Folder);
-            Assert.NotEqual(callerThread, check.Thread);
-            Assert.True(vm.CanLaunch);
-        }
-
-        [Fact]
-        public async Task Launch_DropsAnAnswerForTextThatHasSinceChanged()
-        {
-            var release = new TaskCompletionSource();
-            var vm = new SettingsViewModel(new FakeStore { Stored = new Settings { OutputFolder = string.Empty } },
-                directoryExists: folder =>
-                {
-                    if (folder == @"C:\slow")
-                    {
-                        release.Task.Wait();
-                    }
-
-                    return folder == @"C:\slow";
-                },
-                launchCheckDelay: TimeSpan.Zero);
-
-            vm.OutputFolder = @"C:\slow";
-            var slow = vm.LaunchCheck;
-            vm.OutputFolder = @"C:ast";
-            await vm.LaunchCheck;
-            Assert.False(vm.CanLaunch);
-
-            // The slow check answers "exists" after the text moved on; that answer must not enable Launch
-            release.SetResult();
-            await slow;
-            Assert.False(vm.CanLaunch);
         }
 
         [Fact]
@@ -543,7 +468,7 @@ namespace keycuts.Tests
         static SettingsViewModel NewViewModel(string folder)
         {
             var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = folder } };
-            return new SettingsViewModel(store, launchCheckDelay: TimeSpan.Zero);
+            return new SettingsViewModel(store);
         }
 
         private class FakeSettingsStore : ISettingsStore
@@ -727,18 +652,15 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                // As in the app, the folder check continues on the dispatcher
-                SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
                 var missing = Path.Combine(Path.GetTempPath(), "keycuts-missing-" + Guid.NewGuid().ToString("N"));
                 var window = ShowOffscreen(NewViewModel(missing));
                 try
                 {
                     var launch = (Button)window.FindName("BtnLaunch");
-                    WaitForLaunchCheck(window.ViewModel);
                     Assert.False(launch.IsEnabled);
 
                     window.ViewModel.OutputFolder = Path.GetTempPath();
-                    WaitForLaunchCheck(window.ViewModel);
+                    Pump();
                     Assert.True(launch.IsEnabled);
                 }
                 finally
@@ -794,18 +716,6 @@ namespace keycuts.Tests
                 window.Close();
                 Assert.Equal(before, keycuts.GUI.Themes.ThemeManager.Preference);
             });
-        }
-
-        static void WaitForLaunchCheck(SettingsViewModel viewModel)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(5);
-            while (!viewModel.LaunchCheck.IsCompleted && DateTime.UtcNow < deadline)
-            {
-                Pump();
-            }
-
-            Assert.True(viewModel.LaunchCheck.IsCompleted);
-            Pump();
         }
 
         [Fact]

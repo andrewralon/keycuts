@@ -53,6 +53,10 @@ namespace keycuts.Tests
         [InlineData("*DATA")]      // %* is all the arguments
         [InlineData("~DATA")]      // %~ is an argument modifier
         [InlineData("DA:TA")]      // %VAR:x=y% is cmd's replace syntax
+        [InlineData("DATA\r\nnotepad")]  // a line break would add a command to the .bat
+        [InlineData("DA\"TA")]     // a quote would end the launch line's quoted path
+        [InlineData("DA&TA")]
+        [InlineData("DATA ")]
         public void Substitute_SkipsNamesABatchFileWouldMisread_AndUsesTheNextBestOrTheLiteralPath(string name)
         {
             var variables = new[] { new PathVariable("USERPROFILE", @"C:\Users\me"), new PathVariable(name, @"C:\Users\me\Data") };

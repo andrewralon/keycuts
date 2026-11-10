@@ -119,14 +119,27 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// Whether <c>%NAME%</c> expands as that variable in a .bat. A name starting with a digit, <c>*</c> or <c>~</c> reads as
-        /// a batch argument (<c>%1</c>, <c>%*</c>, <c>%~1</c>), and a <c>:</c> starts cmd's substring/replace syntax.
+        /// Whether <c>%NAME%</c> can be written into a .bat and expands as that variable. Only ASCII letters, digits, <c>_</c>,
+        /// <c>.</c>, <c>-</c> and parentheses (<c>ProgramFiles(x86)</c>) are allowed, and not a digit first. Anything else could
+        /// break the file: a line break or <c>"</c> ends the line or its quotes, a leading digit, <c>*</c> or <c>~</c> reads as a
+        /// batch argument (<c>%1</c>, <c>%*</c>, <c>%~1</c>), and <c>:</c> starts cmd's substring/replace syntax.
         /// </summary>
         internal static bool IsSafeInBatch(string name)
         {
-            return !string.IsNullOrEmpty(name) &&
-                   !char.IsDigit(name[0]) && name[0] != '*' && name[0] != '~' &&
-                   name.IndexOfAny(new[] { ':', '%' }) < 0;
+            if (string.IsNullOrEmpty(name) || char.IsAsciiDigit(name[0]))
+            {
+                return false;
+            }
+
+            foreach (var c in name)
+            {
+                if (!char.IsAsciiLetterOrDigit(c) && c != '_' && c != '.' && c != '-' && c != '(' && c != ')')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <param name="folderExists">Null for a known variable, which is used whether or not its folder exists yet.</param>

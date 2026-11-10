@@ -62,11 +62,13 @@ namespace keycuts.GUI.ViewModels
 
         private KeycutRowViewModel? renamingRow;
 
-        private bool savingRename;
+        // The file a rename is moving, while it's being saved. Actions on a row with that path wait for the save.
+        private string? savingPath;
 
-        // A renamed keycut's row, still showing its old name and path because no reload has rebuilt the rows yet (one
-        // may have been cancelled), and that keycut as it is on disk now. The row's actions use the renamed keycut.
-        private KeycutRowViewModel? staleRow;
+        // A renamed keycut's old path, and that keycut as it is on disk now. Until a reload rebuilds the rows (one may have
+        // been cancelled), a row with the old path still shows the old name, and its actions use the renamed keycut. It's
+        // matched by path, not by row, because a reload during the save may have rebuilt the rows.
+        private string? staleOldPath;
 
         private Keycut? renamedKeycut;
 
@@ -310,14 +312,26 @@ namespace keycuts.GUI.ViewModels
 
         public void OpenKeycut(KeycutRowViewModel row)
         {
-            Perform(row, "open", () => actions?.Launch(KeycutOf(row).FilePath));
+            var keycut = KeycutOf(row);
+
+            if (keycut != null)
+            {
+                Perform(row, "open", () => actions?.Launch(keycut.FilePath));
+            }
         }
 
         public void EditKeycut(KeycutRowViewModel row)
         {
+            var keycut = KeycutOf(row);
+
+            if (keycut == null)
+            {
+                return;
+            }
+
             try
             {
-                actions?.Edit(KeycutOf(row).FilePath);
+                actions?.Edit(keycut.FilePath);
             }
             catch (System.IO.FileNotFoundException)
             {
@@ -333,9 +347,16 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit does.</summary>
         public void OpenFileLocation(KeycutRowViewModel row)
         {
+            var keycut = KeycutOf(row);
+
+            if (keycut == null)
+            {
+                return;
+            }
+
             try
             {
-                actions?.OpenFileLocation(KeycutOf(row).FilePath);
+                actions?.OpenFileLocation(keycut.FilePath);
             }
             catch (System.IO.FileNotFoundException)
             {
@@ -362,14 +383,23 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public async Task DeleteKeycutAsync(KeycutRowViewModel row)
         {
-            if (actions == null || !deleting.Add(row))
+            if (actions == null || deleting.Contains(row))
             {
                 return;
             }
 
+            var keycut = KeycutOf(row);
+
+            if (keycut == null)
+            {
+                return;
+            }
+
+            deleting.Add(row);
+
             try
             {
-                await actions.DeleteAsync(KeycutOf(row));
+                await actions.DeleteAsync(keycut);
                 RemoveRow(row);
                 ShowStatusMessage("Deleted \u201C" + row.Name + "\u201D", false);
             }
@@ -394,7 +424,7 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public void BeginRename(KeycutRowViewModel row)
         {
-            if (actions == null || savingRename || staleRow != null || deleting.Contains(row))
+            if (actions == null || savingPath != null || renamedKeycut != null || deleting.Contains(row))
             {
                 return;
             }
@@ -454,8 +484,8 @@ namespace keycuts.GUI.ViewModels
             }
 
             // No other rename while the file is being renamed. The reloads afterwards aren't awaited, so slow destination
-            // checks can't hold this guard; stale rows after a success are blocked by staleRow instead.
-            savingRename = true;
+            // checks can't hold this guard; stale rows after a success are blocked by renamedKeycut instead.
+            savingPath = row.Keycut.FilePath;
 
             try
             {
@@ -497,25 +527,41 @@ namespace keycuts.GUI.ViewModels
                 // Selected by whichever reload rebuilds the rows: F5 or reactivating the window can cancel this one.
                 // Until then the row shows the old name and path, so no rename may start, and its actions use the new file.
                 pendingSelectPath = newPath;
-                staleRow = row;
+                staleOldPath = row.Keycut.FilePath;
                 renamedKeycut = row.Keycut with { Name = newName, FilePath = newPath };
                 _ = LoadAsync();
             }
             finally
             {
-                savingRename = false;
+                savingPath = null;
             }
         }
 
-        /// <summary>The keycut a row's actions work on: for a row a rename has made stale, the file under its new name.</summary>
-        private Keycut KeycutOf(KeycutRowViewModel row)
+        /// <summary>
+        /// The keycut a row's actions work on: for a row a rename has made stale, the file under its new name. Null while
+        /// that row's file is being renamed, since its path is about to change; the caller does nothing, and says so.
+        /// </summary>
+        private Keycut? KeycutOf(KeycutRowViewModel row)
         {
-            return ReferenceEquals(row, staleRow) && renamedKeycut != null ? renamedKeycut : row.Keycut;
+            var path = row.Keycut.FilePath;
+
+            if (savingPath != null && string.Equals(path, savingPath, StringComparison.OrdinalIgnoreCase))
+            {
+                ShowStatusMessage("Still renaming “" + row.Name + "”", false);
+                return null;
+            }
+
+            if (renamedKeycut != null && string.Equals(path, staleOldPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return renamedKeycut;
+            }
+
+            return row.Keycut;
         }
 
         private void ForgetStaleRow()
         {
-            staleRow = null;
+            staleOldPath = null;
             renamedKeycut = null;
         }
 

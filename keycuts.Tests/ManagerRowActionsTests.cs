@@ -393,6 +393,70 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_WhileItsSaving_TheRowsFileActionsWait()
+        {
+            var gate = new TaskCompletionSource();
+            var actions = new FakeActions { RenameGate = gate.Task };
+            var manager = await LoadedAsync(actions, "a", "b");
+            var row = manager.Rows[0];
+            manager.BeginRename(row);
+            row.EditName = "zed";
+
+            var saving = manager.CommitRenameAsync();   // the file is being moved
+            manager.OpenKeycut(row);
+            manager.EditKeycut(row);
+            manager.OpenFileLocation(row);
+            await manager.DeleteKeycutAsync(row);
+            manager.OpenKeycut(manager.Rows[1]);       // other rows aren't affected
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Launched);
+            Assert.Empty(actions.Edited);
+            Assert.Empty(actions.Located);
+            Assert.Empty(actions.Deleted);
+
+            gate.SetResult();
+            await saving;
+        }
+
+        [Fact]
+        public async Task Rename_WhenAReloadRebuiltTheRowsDuringTheSave_TheRebuiltRowUsesTheRenamedFile()
+        {
+            var noop = new RelayCommand(() => { });
+            var gate = new TaskCompletionSource();
+            var afterSave = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var actions = new FakeActions { RenameGate = gate.Task };
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                calls++;
+                return calls switch
+                {
+                    1 => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }),
+                    2 => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a"), NewKeycut("b") }),
+                    _ => afterSave.Task,
+                };
+            }, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "zed";
+
+            var saving = manager.CommitRenameAsync();
+            await manager.LoadAsync();                  // F5 during the save rebuilds the rows, still with "a"
+            gate.SetResult();
+            await saving;                               // the reload after it waits
+
+            var rebuilt = manager.Rows.Single(r => r.Name == "a");
+            manager.OpenKeycut(rebuilt);
+
+            Assert.Equal(new[] { @"C:\fixture\zed.bat" }, actions.Launched);
+
+            afterSave.SetResult(new List<Keycut> { NewKeycut("b"), NewKeycut("zed") });
+        }
+
+        [Fact]
         public async Task Rename_FileGone_ShowsMessage_AndRefreshesTheList()
         {
             var noop = new RelayCommand(() => { });

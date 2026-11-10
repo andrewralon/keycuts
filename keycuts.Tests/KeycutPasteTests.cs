@@ -53,6 +53,19 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void GetDefaultFolders_TheDebugOverrideReplacesTheConfiguredFolder()
+        {
+            var asked = 0;
+            string Configured() { asked++; return @"C:\Users\me\Shortcuts"; }
+
+            Assert.Equal(@"C:\Fixtures", KeycutPaste.GetDefaultFolders(@"C:\Fixtures", Configured)[1]);
+            Assert.Equal(0, asked);
+
+            Assert.Equal(@"C:\Users\me\Shortcuts", KeycutPaste.GetDefaultFolders(null, Configured)[1]);
+            Assert.Equal(1, asked);
+        }
+
+        [Fact]
         public void Candidates_TryEachFolderInOrder_TheNameThenTxtThenBat()
         {
             Assert.Equal(new[]

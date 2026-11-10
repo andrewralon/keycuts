@@ -20,10 +20,20 @@ namespace keycuts.Common
         /// </summary>
         public static IReadOnlyList<string> GetDefaultFolders()
         {
+            return GetDefaultFolders(DebugOverrides.GetOutputFolder(), () => RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder));
+        }
+
+        /// <summary>
+        /// <see cref="GetDefaultFolders()"/> with its inputs passed in. The keycuts folder is the Debug
+        /// <c>KEYCUTS_OUTPUT_FOLDER</c> override when there is one, as for creating and the manager, and only otherwise
+        /// the configured folder (<paramref name="getConfiguredFolder"/>, which isn't called then).
+        /// </summary>
+        public static IReadOnlyList<string> GetDefaultFolders(string overrideFolder, Func<string> getConfiguredFolder)
+        {
             return new[]
             {
                 Environment.CurrentDirectory,
-                RegistryStuff.GetOutputFolder(Runner.DefaultOutputFolder),
+                overrideFolder ?? getConfiguredFolder(),
                 AppContext.BaseDirectory
             };
         }

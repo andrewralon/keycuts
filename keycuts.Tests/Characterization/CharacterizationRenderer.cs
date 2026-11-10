@@ -23,7 +23,7 @@ namespace keycuts.Tests.Characterization
             ["edge-cases/command-type.bat"] = "Parsed as File, not Command: the file pattern is tried first and matches any quoted START (#93).",
             ["edge-cases/empty.bat"] = "No command line, so Unknown.",
             ["edge-cases/header-content-drift.bat"] = "Only the command line is read; the header's type and destination are ignored (#91).",
-            ["edge-cases/openwithapp.bat"] = "The app and the destination are joined into one path with a backslash by the quote handling in MatchesRegex, which exists for the old START /D form (#89).",
+            ["edge-cases/openwithapp.bat"] = "Read from the REM lines, so OpenWithApp is lost: the fallback has no File-with-app form, and without REM lines it would read the app and the file as one File destination (the line between its first and last quote), which re-emits the same line (#89).",
             ["new-format/keypaste.bat"] = "Hand-edited %* after the closing quote fails the file pattern, so it falls through to Command.",
             ["new-format/kp.bat"] = "Hand-edited %* after the closing quote fails the file pattern, so it falls through to Command.",
             ["not-keycuts/dequote.bat"] = "Not a keycut. No START or explorer.exe line, so Unknown.",

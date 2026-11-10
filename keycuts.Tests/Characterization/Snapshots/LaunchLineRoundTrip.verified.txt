@@ -2,7 +2,7 @@
 # parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 35 ok, 4 fail, 4 skipped
+# 36 ok, 3 fail, 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
@@ -44,9 +44,7 @@ old-format/dl.bat: ok
 old-format/docs.bat: ok
 old-format/ff.bat: ok
 old-format/gcal.bat: ok
-old-format/gg.bat: FAILS
-    Destination: |\chrome" "? %*| -> |\chrome\? %*|
-    emitted: |START "" /B "\chrome" "? %*"|
+old-format/gg.bat: ok
 old-format/ghd.bat: ok
 old-format/gm.bat: ok
 old-format/ie.bat: ok

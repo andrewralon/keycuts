@@ -10,10 +10,12 @@ on:
 permissions:
   contents: read
 
-# A new push to a PR cancels that PR's older run. Runs on develop always finish, so every merge keeps its own result.
+# A new push to a PR cancels that PR's older run. Every other run (pushes to develop, manual runs) gets a group of its
+# own, because a shared group keeps only one pending run and would cancel a queued develop run when a third push lands.
+# So every merge keeps its own result.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
   DOTNET_NOLOGO: true

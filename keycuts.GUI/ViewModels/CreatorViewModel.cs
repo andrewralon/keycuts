@@ -82,7 +82,11 @@ namespace keycuts.GUI.ViewModels
 
         private bool isShiftHeld;
 
-        private IReadOnlyList<PathVariable> pathVariables = Array.Empty<PathVariable>();
+        // Null until the app has read them (in the background, since a custom folder on a network share can be slow)
+        private IReadOnlyList<PathVariable>? pathVariables;
+
+        // What the typed destination resolved to (a shortcut's target, a normalized path), while the text keeps what was typed
+        private string? resolvedDestination;
 
         /// <param name="createAsync">Creates the keycut (destination, name, use environment variables); defaults to <see cref="KeycutCreator"/>. Tests pass a fake.</param>
         /// <param name="nameExists">Checks for an existing keycut while typing; defaults to the configured output folder, and is off when force overwrite is on.</param>
@@ -152,13 +156,30 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>The variables a path can be saved with. The app reads them from the machine; empty (no preview) in tests.</summary>
+        /// <summary>
+        /// The variables a path can be saved with, which a create also uses so the keycut matches the preview. The app reads
+        /// them from the machine after the window shows; until then (and in tests) there is no preview, and a create reads them itself.
+        /// </summary>
         public IReadOnlyList<PathVariable> PathVariables
         {
-            get { return pathVariables; }
+            get { return pathVariables ?? Array.Empty<PathVariable>(); }
             set
             {
-                pathVariables = value ?? Array.Empty<PathVariable>();
+                pathVariables = value;
+                RaiseSavedAsChanged();
+            }
+        }
+
+        /// <summary>
+        /// What the destination resolved to while being typed (a shortcut's target, a normalized path), which is what is
+        /// saved; the text itself isn't rewritten until it's pasted, dropped or left. Set it after <see cref="Destination"/>, which clears it.
+        /// </summary>
+        public string? ResolvedDestination
+        {
+            get { return resolvedDestination; }
+            set
+            {
+                resolvedDestination = value;
                 RaiseSavedAsChanged();
             }
         }
@@ -182,8 +203,8 @@ namespace keycuts.GUI.ViewModels
                     return string.Empty;
                 }
 
-                var path = destination.Trim();
-                var withVariables = Common.PathVariables.Substitute(path, pathVariables);
+                var path = string.IsNullOrEmpty(resolvedDestination) ? destination.Trim() : resolvedDestination;
+                var withVariables = Common.PathVariables.Substitute(path, PathVariables);
 
                 if (string.Equals(withVariables, path, StringComparison.Ordinal))
                 {
@@ -211,6 +232,7 @@ namespace keycuts.GUI.ViewModels
                 if (SetProperty(ref destination, value ?? string.Empty))
                 {
                     destinationKind = null;
+                    resolvedDestination = null;
                     destinationError = DestinationError.None;
                     successName = null;
                     submitError = null;
@@ -545,6 +567,7 @@ namespace keycuts.GUI.ViewModels
             destination = string.Empty;
             shortcutName = string.Empty;
             destinationKind = null;
+            resolvedDestination = null;
             destinationError = DestinationError.None;
             duplicateName = null;
             isInvalidName = false;
@@ -662,7 +685,7 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        private static async Task<CreateResult> DefaultCreateAsync(string destination, string name, bool useEnvironmentVariables, CancellationToken ct)
+        private async Task<CreateResult> DefaultCreateAsync(string destination, string name, bool useEnvironmentVariables, CancellationToken ct)
         {
 #if DEBUG
             // Debug builds can slow creation down to see the Saving state
@@ -671,7 +694,9 @@ namespace keycuts.GUI.ViewModels
                 await Task.Delay(delayMs, ct);
             }
 #endif
-            return await KeycutCreator.CreateAsync(destination, name, new CreateOptions { UseEnvironmentVariables = useEnvironmentVariables }, ct);
+            // The variables the preview used, so the keycut is saved as shown; null (not read yet) makes the create read them
+            var options = new CreateOptions { UseEnvironmentVariables = useEnvironmentVariables, PathVariables = pathVariables };
+            return await KeycutCreator.CreateAsync(destination, name, options, ct);
         }
 
         private static bool DefaultNameExists(string name)

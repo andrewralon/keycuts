@@ -85,6 +85,27 @@ namespace keycuts.Tests
             Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
         }
 
+        [Fact]
+        public void SavedAs_PreviewsTheResolvedDestination_NotTheTypedText()
+        {
+            var creator = Create(new FakeCreator());
+            creator.PathVariables = TestVariables;
+            creator.UseEnvironmentVariablesSetting = true;
+            creator.Destination = @"C:\Users\me\Desktop\app.lnk";   // typed; it resolves to the shortcut's target
+            creator.DestinationKind = KeycutKind.File;
+
+            creator.ResolvedDestination = @"C:\Users\me\Tools\app.exe";
+            Assert.Equal(@"%USERPROFILE%\Tools\app.exe", creator.SavedAsPath);
+
+            creator.ResolvedDestination = @"D:\Tools\app.exe";      // no variable fits the target: nothing to choose
+            Assert.False(creator.ShowSavedAs);
+
+            creator.Destination = @"C:\Users\me\Desktop\notes.txt";  // new text forgets the old resolution
+            creator.DestinationKind = KeycutKind.File;
+            Assert.Null(creator.ResolvedDestination);
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
+        }
+
         [Theory]
         [InlineData(@"D:\Data\notes.txt", KeycutKind.File)]           // no variable fits: nothing to choose
         [InlineData("https://example.com", KeycutKind.Url)]           // not a path

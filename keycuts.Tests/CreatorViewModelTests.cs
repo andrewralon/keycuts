@@ -104,28 +104,70 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void DuplicateName_StylesOnlyTheNameField_AndShowsTheMessage()
+        public void ExistingName_IsAWarningOnTheNameField_WithTheCurrentDestination()
         {
             var creator = WithDestinationAndName();
 
-            creator.SetDuplicateName("l-vicki");
+            creator.SetNameWarning(TestNameChecks.Existing("l-vicki", "https://old.example.com"));
 
-            Assert.Equal(CreatorState.DuplicateName, creator.State);
-            Assert.True(creator.IsDuplicateName);
+            Assert.Equal(CreatorState.NameWarning, creator.State);
+            Assert.True(creator.IsNameWarning);
+            Assert.False(creator.IsNameError);
             Assert.False(creator.ShowDestinationError);
-            Assert.True(creator.HelperIsError);
-            Assert.Equal("\u201Cl-vicki\u201D already exists. Choose another name.", creator.HelperText);
+            Assert.False(creator.HelperIsError);
+            Assert.True(creator.HelperIsWarning);
+            Assert.True(creator.CanCreate);
+            Assert.Equal("\u201Cl-vicki\u201D already exists and opens https://old.example.com.", creator.HelperText);
+        }
+
+        [Theory]
+        [InlineData(NameConflictEffect.Shadows, "\u201cex\u201d already opens C:\\Program Files\\Tool\\ex.exe. This keycut would replace it in Win+R.")]
+        [InlineData(NameConflictEffect.Hidden, "\u201cex\u201d already opens C:\\Program Files\\Tool\\ex.exe, so Win+R would never run this keycut.")]
+        public void NameConflict_IsAWarning_ThatNamesTheOtherProgram(NameConflictEffect effect, string message)
+        {
+            var creator = WithDestinationAndName();
+
+            creator.SetNameWarning(TestNameChecks.Conflict("ex", effect));
+
+            Assert.Equal(CreatorState.NameWarning, creator.State);
+            Assert.True(creator.HelperIsWarning);
+            Assert.Equal(message, creator.HelperText);
         }
 
         [Fact]
-        public void EditingTheName_ClearsTheDuplicateError()
+        public void NameWarning_ListsTheReplaceFirst_ThenTheConflictThatMattersMost()
+        {
+            var check = new NameCheck("ex", new Keycut { Name = "ex", Destination = @"D:\old" },
+                new[] { new NameConflict(@"C:\a\ex.exe", NameConflictEffect.Shadows, NameConflictSource.PathAfter),
+                        new NameConflict(@"C:\Windows\ex.exe", NameConflictEffect.Hidden, NameConflictSource.WindowsFolder) });
+
+            var lines = CreatorViewModel.GetNameWarningMessage(check).Split(System.Environment.NewLine);
+
+            Assert.Equal(2, lines.Length);
+            Assert.StartsWith("\u201cex\u201d already exists", lines[0]);
+            Assert.Contains(@"C:\Windows\ex.exe", lines[1]);
+        }
+
+        [Fact]
+        public void AnInvalidName_WinsOverTheWarning()
         {
             var creator = WithDestinationAndName();
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
+            creator.ShortcutName = "a/b";
+
+            Assert.False(creator.IsNameWarning);
+            Assert.False(creator.HelperIsWarning);
+        }
+
+        [Fact]
+        public void EditingTheName_ClearsTheNameWarning()
+        {
+            var creator = WithDestinationAndName();
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
 
             creator.ShortcutName = "ex2";
 
-            Assert.False(creator.IsDuplicateName);
+            Assert.False(creator.IsNameWarning);
             Assert.Equal(CreatorState.DestinationSelected, creator.State);
             Assert.Equal(CreatorViewModel.DefaultHelperText, creator.HelperText);
         }
@@ -151,10 +193,10 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void DestinationError_WinsOverDuplicateName_ForTheHelperLine()
+        public void DestinationError_WinsOverANameWarning_ForTheHelperLine()
         {
             var creator = WithDestinationAndName();
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
 
             creator.DestinationError = DestinationError.NotFound;
 
@@ -205,7 +247,7 @@ namespace keycuts.Tests
         public void Clear_ReturnsToEmpty()
         {
             var creator = WithDestinationAndName();
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
 
             creator.Clear();
 

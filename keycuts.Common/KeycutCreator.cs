@@ -20,7 +20,10 @@ namespace keycuts.Common
 
     public class CreateOptions
     {
-        /// <summary>Overwrite an existing keycut with the same name. Null uses the Settings "force overwrite" toggle.</summary>
+        /// <summary>
+        /// Overwrite an existing keycut with the same name. Null follows the Settings toggle "Ask before replacing a keycut":
+        /// replace when it's off, refuse (<see cref="CreateOutcome.DuplicateName"/>) when it's on, so the caller can ask.
+        /// </summary>
         public bool? Overwrite { get; set; }
 
         /// <summary>Null uses the configured output folder.</summary>
@@ -135,7 +138,7 @@ namespace keycuts.Common
 
                 var runner = new Runner();
                 var outputFolder = string.IsNullOrWhiteSpace(options.OutputFolder) ? runner.GetOutputFolder() : options.OutputFolder;
-                var overwrite = options.Overwrite ?? runner.GetForceOverwrite();
+                var overwrite = options.Overwrite ?? !runner.GetAskBeforeReplacing();
 
                 if (string.IsNullOrWhiteSpace(outputFolder) || outputFolder.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
                 {

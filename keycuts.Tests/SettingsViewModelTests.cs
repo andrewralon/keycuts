@@ -44,7 +44,7 @@ namespace keycuts.Tests
             public Settings Stored { get; set; } = new Settings
             {
                 OutputFolder = @"C:\Shortcuts",
-                ForceOverwrite = true,
+                AskBeforeReplacing = false,
                 RightClickContextMenus = false,
                 UseEnvironmentVariables = true,
                 Theme = ThemePreference.Dark
@@ -79,7 +79,7 @@ namespace keycuts.Tests
             var vm = NewViewModel(new FakeStore());
 
             Assert.Equal(@"C:\Shortcuts", vm.OutputFolder);
-            Assert.True(vm.ForceOverwrite);
+            Assert.False(vm.AskBeforeReplacing);
             Assert.False(vm.RightClickContextMenus);
             Assert.True(vm.UseEnvironmentVariables);
             Assert.Equal(ThemePreference.Dark, vm.Theme);
@@ -97,7 +97,7 @@ namespace keycuts.Tests
             vm.Saved += (sender, e) => saved++;
 
             vm.OutputFolder = "  " + folder + "  ";
-            vm.ForceOverwrite = false;
+            vm.AskBeforeReplacing = true;
             vm.RightClickContextMenus = true;
             vm.UseEnvironmentVariables = false;
             vm.Theme = ThemePreference.Light;
@@ -106,7 +106,7 @@ namespace keycuts.Tests
 
             var result = Assert.Single(store.Saves);
             Assert.Equal(folder, result.OutputFolder);
-            Assert.False(result.ForceOverwrite);
+            Assert.True(result.AskBeforeReplacing);
             Assert.True(result.RightClickContextMenus);
             Assert.False(result.UseEnvironmentVariables);
             Assert.Equal(ThemePreference.Light, result.Theme);
@@ -122,7 +122,7 @@ namespace keycuts.Tests
             var vm = NewViewModel(store);
 
             vm.OutputFolder = Path.Combine(root, "elsewhere");
-            vm.ForceOverwrite = false;
+            vm.AskBeforeReplacing = true;
             vm.RightClickContextMenus = true;
             vm.Theme = ThemePreference.Light;
 
@@ -294,10 +294,10 @@ namespace keycuts.Tests
             var changed = new List<string?>();
             vm.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
 
-            vm.ForceOverwrite = !vm.ForceOverwrite;
+            vm.AskBeforeReplacing = !vm.AskBeforeReplacing;
             vm.RightClickContextMenus = !vm.RightClickContextMenus;
 
-            Assert.Equal(new[] { nameof(SettingsViewModel.ForceOverwrite), nameof(SettingsViewModel.RightClickContextMenus) }, changed);
+            Assert.Equal(new[] { nameof(SettingsViewModel.AskBeforeReplacing), nameof(SettingsViewModel.RightClickContextMenus) }, changed);
         }
 
         #endregion
@@ -570,12 +570,12 @@ namespace keycuts.Tests
             {
                 EnsureApplication();
                 var toggle = new ToggleButton { Style = (Style)Application.Current.FindResource("ToggleSwitch") };
-                AutomationProperties.SetName(toggle, "Force overwrite");
+                AutomationProperties.SetName(toggle, "Ask before replacing a keycut");
 
                 var peer = UIElementAutomationPeer.CreatePeerForElement(toggle);
                 var pattern = (IToggleProvider)peer.GetPattern(PatternInterface.Toggle);
 
-                Assert.Equal("Force overwrite", peer.GetName());
+                Assert.Equal("Ask before replacing a keycut", peer.GetName());
                 Assert.Equal(ToggleState.Off, pattern.ToggleState);
                 pattern.Toggle();
                 Assert.Equal(ToggleState.On, pattern.ToggleState);
@@ -668,7 +668,7 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "Output folder", "Choose", "Launch", "Force overwrite", "Right-click context menus",
+                            "Output folder", "Choose", "Launch", "Ask before replacing a keycut", "Right-click context menus",
                             "Use environment variables in paths", "System theme", "Light theme", "Dark theme",
                             "Show the welcome panel", "Cancel", "Save changes"
                         },
@@ -860,7 +860,7 @@ namespace keycuts.Tests
                     var toggles = Descendants<ToggleButton>(window).Where(t => t is not RadioButton).ToList();
 
                     Assert.Equal(
-                        new[] { "Force overwrite", "Right-click context menus", "Use environment variables in paths" },
+                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths" },
                         toggles.Select(AutomationProperties.GetName));
                     Assert.All(toggles, toggle => Assert.NotNull(UIElementAutomationPeer.CreatePeerForElement(toggle).GetPattern(PatternInterface.Toggle)));
                 }

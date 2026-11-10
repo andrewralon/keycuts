@@ -65,12 +65,13 @@ namespace keycuts.GUI.DesignData
             }
         }
 
-        public static CreatorViewModel CreatorDuplicateName
+        public static CreatorViewModel CreatorNameWarning
         {
             get
             {
                 var creator = NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url);
-                creator.SetDuplicateName(SampleKeycuts.VickiName);
+                var existing = new Keycut { Name = SampleKeycuts.VickiName, Destination = SampleKeycuts.VickiDestination };
+                creator.SetNameWarning(new NameCheck(SampleKeycuts.VickiName, existing, null));
                 return creator;
             }
         }

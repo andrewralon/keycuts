@@ -59,6 +59,7 @@ namespace keycuts.GUI.Views
                 oldViewModel.FocusRequested -= ViewModel_FocusRequested;
                 oldViewModel.KeycutCreated -= ViewModel_KeycutCreated;
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                oldViewModel.ConfirmName = null;
 
                 if (oldViewModel.Welcome != null)
                 {
@@ -73,6 +74,7 @@ namespace keycuts.GUI.Views
                 newViewModel.FocusRequested += ViewModel_FocusRequested;
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
                 newViewModel.PropertyChanged += ViewModel_PropertyChanged;
+                newViewModel.ConfirmName = ConfirmName;
 
                 if (newViewModel.Welcome != null)
                 {
@@ -109,6 +111,12 @@ namespace keycuts.GUI.Views
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
                 }
             }));
+        }
+
+        // A name that would replace a keycut or clash with another command asks first, in the app's own dialog (#153)
+        private bool ConfirmName(NameCheck check, string destination)
+        {
+            return ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForCreate(check, destination));
         }
 
         private void ViewModel_KeycutCreated(object? sender, EventArgs e)
@@ -149,7 +157,7 @@ namespace keycuts.GUI.Views
             nameTimer.Stop();
             if (ViewModel != null)
             {
-                _ = ViewModel.CheckDuplicateNameAsync();
+                _ = ViewModel.CheckNameAsync();
             }
         }
 

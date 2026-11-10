@@ -133,12 +133,12 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Force overwrite" Style="{StaticResource SettingLabel}" />
-                            <TextBlock Text="Replace shortcuts with matching names without asking." Style="{StaticResource SettingNote}" />
+                            <TextBlock Text="Ask before replacing a keycut" Style="{StaticResource SettingLabel}" />
+                            <TextBlock Text="Confirm before a new keycut replaces one with the same name." Style="{StaticResource SettingNote}" />
                         </StackPanel>
-                        <ToggleButton x:Name="ToggleForceOverwrite" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="20,0,0,0"
-                                      IsChecked="{Binding ForceOverwrite}" AutomationProperties.Name="Force overwrite"
-                                      AutomationProperties.HelpText="Replace shortcuts with matching names without asking." />
+                        <ToggleButton x:Name="ToggleAskBeforeReplacing" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="20,0,0,0"
+                                      IsChecked="{Binding AskBeforeReplacing}" AutomationProperties.Name="Ask before replacing a keycut"
+                                      AutomationProperties.HelpText="Confirm before a new keycut replaces one with the same name." />
                     </Grid>
 
                     <Grid Style="{StaticResource SettingRow}">

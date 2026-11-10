@@ -45,7 +45,7 @@ The production code touches real user state. Agents must not change the develope
 | Code | Side effect | Rule |
 | --- | --- | --- |
 | `Runner.Run` → `PathSetup.AddToOrReplaceInSystemPath` | Edits the user's **PATH** environment variable | Tests must never reach it. KC-04 adds a seam; use a fake. |
-| `RegistryStuff.Set*` | Writes `HKCU\Software\TeamRalon\keycuts` (OutputFolder, ForceOverwrite, RightClickContextMenu) | Tests must not write the registry. Inject the output folder instead. |
+| `RegistryStuff.Set*` | Writes `HKCU\Software\TeamRalon\keycuts` (OutputFolder, AskBeforeReplacing, RightClickContextMenu; ForceOverwrite before #153) | Tests must not write the registry. Inject the output folder instead. |
 | `RegistryStuff.CreateRightClickContextMenus` | Writes **HKCR** shell keys (may need admin) | Never call it from tests or verification scripts. |
 | Output folder (default `C:\Shortcuts`) | Real user keycuts live here | Tests and fixtures use temp folders only (`Path.GetTempPath()`). Never delete or overwrite files in the real output folder. |
 | `KeycutRepository.DeleteAsync` / Delete menu | Deletes files | Exercise it only against temp or fixture folders. |

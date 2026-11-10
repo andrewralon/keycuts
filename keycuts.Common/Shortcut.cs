@@ -46,13 +46,9 @@ namespace keycuts.Common
             Type = GetShortcutTypeFromDestination(destination, out string newDestination);
             Destination = newDestination;
             Extension = ".bat";
-            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
-                shortcut :
-                Path.GetFileNameWithoutExtension(shortcut);
+            Filename = GetFilename(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
-            Folder = IsNotFullPath(shortcut) ?
-                defaultFolder :
-                Path.GetDirectoryName(shortcut);
+            Folder = GetFolder(shortcut, defaultFolder);
             FullPath = Path.Combine(Folder, FilenameWithExtension);
             OpenWithAppPath = openWithAppPath;
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
@@ -60,6 +56,22 @@ namespace keycuts.Common
 
         private Shortcut()
         {
+        }
+
+        /// <summary>The keycut's name (no .bat) for a shortcut argument, as the constructor reads it. Touches no files.</summary>
+        public static string GetFilename(string shortcut)
+        {
+            return shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
+                shortcut :
+                Path.GetFileNameWithoutExtension(shortcut);
+        }
+
+        /// <summary>The folder a shortcut argument is written to: its own if it's a full path, else <paramref name="defaultFolder"/>.</summary>
+        public static string GetFolder(string shortcut, string defaultFolder)
+        {
+            return IsNotFullPath(shortcut) ?
+                defaultFolder :
+                Path.GetDirectoryName(shortcut);
         }
 
         /// <summary>

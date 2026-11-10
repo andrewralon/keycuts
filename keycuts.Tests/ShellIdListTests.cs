@@ -8,7 +8,7 @@ namespace keycuts.Tests
     public class ShellIdListTests
     {
         // A CIDA: the count, then count + 1 offsets (parent, then items), then the ID lists
-        static byte[] Cida(byte[] parent, params byte[][] items)
+        internal static byte[] Cida(byte[] parent, params byte[][] items)
         {
             var header = 4 + (items.Length + 1) * 4;
             var lists = new[] { parent }.Concat(items).ToArray();
@@ -27,8 +27,8 @@ namespace keycuts.Tests
                 .ToArray();
         }
 
-        static readonly byte[] Desktop = { 0, 0 };
-        static readonly byte[] RecycleBin = { 6, 0, 0x1F, 0x50, 0xAA, 0xBB, 0, 0 };
+        internal static readonly byte[] Desktop = { 0, 0 };
+        internal static readonly byte[] RecycleBin = { 6, 0, 0x1F, 0x50, 0xAA, 0xBB, 0, 0 };
 
         [Fact]
         public void GetFirstItem_UnderTheDesktop_IsTheItemItself()

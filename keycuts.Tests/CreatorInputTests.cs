@@ -1,3 +1,4 @@
+#nullable enable
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -89,6 +90,95 @@ namespace keycuts.Tests
             Assert.True(DragDrop.TryGetFirstFile(files, out var path));
             Assert.Equal(@"C:\one.txt", path);
             Assert.False(DragDrop.TryGetFirstFile(text, out _));
+        }
+
+        // #9: a dragged virtual item. The parsing-name lookup is faked, so these don't read this machine's shell namespace.
+        const string RecycleBinKey = "::{645FF040-5081-101B-9F08-00AA002F954E}";
+
+        static readonly byte[] RecycleBinCida = ShellIdListTests.Cida(ShellIdListTests.Desktop, ShellIdListTests.RecycleBin);
+
+        static string? NameAs(string? name, byte[] _)
+        {
+            return name;
+        }
+
+        [Fact]
+        public void ShellItem_IsReadFromAStreamOrBytes_AsItsClsidKey()
+        {
+            var stream = new DataObject();
+            stream.SetData(ShellIdList.Format, new MemoryStream(RecycleBinCida));
+            var bytes = new DataObject();
+            bytes.SetData(ShellIdList.Format, RecycleBinCida);
+
+            Assert.True(DragDrop.TryGetDestination(stream, out var fromStream, id => NameAs(RecycleBinKey, id)));
+            Assert.Equal(RecycleBinKey, fromStream);
+            Assert.True(DragDrop.TryGetDestination(bytes, out var fromBytes, id => NameAs(RecycleBinKey, id)));
+            Assert.Equal(RecycleBinKey, fromBytes);
+        }
+
+        [Fact]
+        public void ShellItem_LosesToFiles_AndWinsOverLinksAndText()
+        {
+            var files = new DataObject();
+            files.SetData(DataFormats.FileDrop, new[] { @"C:\a.txt" });
+            files.SetData(ShellIdList.Format, RecycleBinCida);
+            var links = new DataObject();
+            links.SetData(ShellIdList.Format, RecycleBinCida);
+            links.SetData(DragDrop.UrlFormatUnicode, UrlStream("https://x.test/", Encoding.Unicode));
+            links.SetText("Recycle Bin");
+
+            Assert.True(DragDrop.TryGetDestination(files, out var file, id => NameAs(RecycleBinKey, id)));
+            Assert.Equal(@"C:\a.txt", file);
+            Assert.True(DragDrop.TryGetDestination(links, out var item, id => NameAs(RecycleBinKey, id)));
+            Assert.Equal(RecycleBinKey, item);
+        }
+
+        [Theory]
+        [InlineData(null)]                                     // the shell can't name it
+        [InlineData(@"C:\Users\me\Documents")]                 // a real path
+        [InlineData("::{031E4825-7B94-4DC3-B131-E946B44C8DD5}\\Documents.library-ms")] // a library, not a bare key
+        [InlineData("::{not-a-guid}")]
+        [InlineData("::{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\::{645FF040-5081-101B-9F08-00AA002F954E}")] // nested
+        public void ShellItem_ThatIsNotABareClsidKey_FallsBackToTheLinkOrText(string? name)
+        {
+            var link = new DataObject();
+            link.SetData(ShellIdList.Format, RecycleBinCida);
+            link.SetData(DragDrop.UrlFormatUnicode, UrlStream("https://x.test/", Encoding.Unicode));
+            var text = new DataObject();
+            text.SetData(ShellIdList.Format, RecycleBinCida);
+            text.SetText("amazon.com");
+            var alone = new DataObject();
+            alone.SetData(ShellIdList.Format, RecycleBinCida);
+
+            Assert.True(DragDrop.TryGetDestination(link, out var fromLink, id => NameAs(name, id)));
+            Assert.Equal("https://x.test/", fromLink);
+            Assert.True(DragDrop.TryGetDestination(text, out var fromText, id => NameAs(name, id)));
+            Assert.Equal("amazon.com", fromText);
+            Assert.False(DragDrop.TryGetDestination(alone, out _, id => NameAs(name, id)));
+        }
+
+        [Fact]
+        public void ShellItem_WithBadOrUnsupportedData_FallsBackToText_WithoutAskingTheShell()
+        {
+            var asked = false;
+            string? Lookup(byte[] id)
+            {
+                asked = true;
+                return RecycleBinKey;
+            }
+
+            var malformed = new DataObject();
+            malformed.SetData(ShellIdList.Format, new byte[] { 1, 0, 0, 0 });
+            malformed.SetText("amazon.com");
+            var unsupported = new DataObject();
+            unsupported.SetData(ShellIdList.Format, "not bytes");
+            unsupported.SetText("amazon.com");
+
+            Assert.True(DragDrop.TryGetDestination(malformed, out var fromMalformed, Lookup));
+            Assert.Equal("amazon.com", fromMalformed);
+            Assert.True(DragDrop.TryGetDestination(unsupported, out var fromUnsupported, Lookup));
+            Assert.Equal("amazon.com", fromUnsupported);
+            Assert.False(asked);
         }
 
         [Fact]

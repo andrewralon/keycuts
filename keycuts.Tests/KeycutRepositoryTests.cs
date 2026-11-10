@@ -309,6 +309,22 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_KeepsTheDownloadedFromTheInternetMark()
+        {
+            // A Zone.Identifier stream makes Windows warn before running a downloaded .bat; rewriting must not drop it
+            var oldPath = Path.Combine(_folder, "dl.bat");
+            File.WriteAllText(oldPath, $"REM <shortcut>{oldPath}</shortcut>\r\nSTART https://example.com\r\n");
+            File.WriteAllText(oldPath + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n");
+            var k = (await Repo().LoadAllAsync()).Single();
+
+            var newPath = await Repo().RenameAsync(k, "web");
+
+            Assert.Contains($"<shortcut>{newPath}</shortcut>", File.ReadAllText(newPath));
+            Assert.Equal("[ZoneTransfer]\r\nZoneId=3\r\n", File.ReadAllText(newPath + ":Zone.Identifier"));
+            Assert.Equal(new[] { newPath }, Directory.GetFiles(_folder));
+        }
+
+        [Fact]
         public async Task Rename_KeepsAUtf8ByteOrderMark()
         {
             var oldPath = Path.Combine(_folder, "a.bat");

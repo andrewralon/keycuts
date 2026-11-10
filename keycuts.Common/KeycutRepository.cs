@@ -312,7 +312,11 @@ namespace keycuts.Common
                 try
                 {
                     File.WriteAllBytes(temp, hasBom ? preamble.Concat(body).ToArray() : body);
-                    File.Move(temp, path, true);
+
+                    // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
+                    // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
+                    // it throws, and the original stays as it was.
+                    File.Replace(temp, path, null);
                 }
                 finally
                 {

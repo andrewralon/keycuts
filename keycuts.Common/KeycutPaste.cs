@@ -92,14 +92,27 @@ namespace keycuts.Common
         /// The text to copy from <paramref name="path"/>: a keycut's destination (from its REM line or launch command), or
         /// a text file's contents. Null for a .bat that isn't a keycut, so there's nothing to copy.
         /// </summary>
+        /// <param name="expandVariables">
+        /// Expands <c>%NAME%</c> variables (<see cref="Environment.ExpandEnvironmentVariables"/>; tests pass their own). Used
+        /// only for a file, folder or hosts keycut, the types #31 saves with variables (#108), so the copied path works when
+        /// pasted into Explorer or a terminal. A URL or command, and a text file's contents, are copied as written: a
+        /// <c>%20</c> in a URL or a <c>%VAR%</c> in a snippet isn't a variable to expand.
+        /// </param>
         /// <exception cref="IOException">The file can't be read.</exception>
         /// <exception cref="UnauthorizedAccessException">The file can't be read.</exception>
-        public static string GetText(string path, Func<string, string[]> readLines, Func<string, string> readText)
+        public static string GetText(string path, Func<string, string[]> readLines, Func<string, string> readText, Func<string, string> expandVariables)
         {
             if (string.Equals(Path.GetExtension(path), ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase))
             {
-                var destination = new ShortcutFile(path, readLines(path)).Destination;
-                return string.IsNullOrEmpty(destination) ? null : destination;
+                var file = new ShortcutFile(path, readLines(path));
+                var destination = file.Destination;
+
+                if (string.IsNullOrEmpty(destination))
+                {
+                    return null;
+                }
+
+                return PathVariables.AppliesTo(file.Type) ? expandVariables(destination) : destination;
             }
 
             return readText(path);
@@ -115,6 +128,7 @@ namespace keycuts.Common
             Func<string, bool> fileExists,
             Func<string, string[]> readLines,
             Func<string, string> readText,
+            Func<string, string> expandVariables,
             Action<string> setClipboard,
             TextWriter output,
             TextWriter error)
@@ -144,7 +158,7 @@ namespace keycuts.Common
 
             try
             {
-                text = GetText(path, readLines, readText);
+                text = GetText(path, readLines, readText, expandVariables);
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {

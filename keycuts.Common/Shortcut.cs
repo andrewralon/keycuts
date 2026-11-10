@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace keycuts.Common
 {
@@ -206,9 +205,9 @@ namespace keycuts.Common
                     }
                 }
             }
-            catch (UriFormatException e)
+            catch (UriFormatException)
             {
-                Console.WriteLine($"UriFormatException: {destination} -- {e.Message}");
+                // Not a URL; the caller tries the other types
             }
 
             return result;

@@ -96,7 +96,9 @@ The script refuses to write into `C:\Shortcuts`, `%USERPROFILE%\Shortcuts`, or y
 ## Copying a destination: `keypaste`
 
 `keypaste db` (or `keycuts paste db`), typed in Win+R or a terminal, copies the `db` keycut's destination to the
-clipboard and prints it. Given a text file's name instead, it copies the file's contents. It looks in the current
+clipboard and prints it. A file or folder saved with an environment variable (`%USERPROFILE%\Desktop`) is copied as the
+real path, so it works when pasted into Explorer or a terminal; a URL is copied as written. Given a text file's name
+instead, it copies the file's contents, as written. It looks in the current
 folder, then your keycuts folder, then the keycuts install folder, and tries the name as typed, then with `.txt`, then
 with `.bat`. `keypaste` used to be a separate program; it's now a small `keypaste.cmd` beside `keycuts.exe` that runs
 `keycuts paste`.

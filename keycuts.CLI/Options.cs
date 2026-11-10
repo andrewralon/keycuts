@@ -3,7 +3,6 @@ using CommandLine.Text;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.CLI
 {
@@ -25,12 +24,5 @@ namespace keycuts.CLI
 
         [Option('f', "force", Default = false, HelpText = "Force overwrite the shortcut file if it already exists.")]
         public bool Force { get; set; }
-
-        //[HelpOption(HelpText = "Displays this help screen.")]
-        //public string GetUsage()
-        //{
-        //	return HelpText.AutoBuild(this,
-        //	  (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current), true);
-        //}
     }
 }

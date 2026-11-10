@@ -45,7 +45,8 @@ and SHA-256 checksums. Merges that don't change the version don't release.
 
 The app is one compact window with two views.
 
-**Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), or browser link onto the window, paste a path or URL
+**Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), browser link, or a shell item like the Recycle Bin or This PC
+(saved as its `::{CLSID}` key) onto the window, paste a path or URL
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
 The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
 For a file or folder under a known folder, a "Saved as" line shows the path exactly as it will be saved: with

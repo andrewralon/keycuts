@@ -39,15 +39,27 @@ namespace keycuts.CLI
         /// <summary><c>keycuts paste &lt;name&gt;</c>, which the keypaste.cmd shim beside keycuts.exe also runs (#97).</summary>
         private static ExitCode RunPaste(PasteOptions parsed)
         {
-            return KeycutPaste.Run(
-                parsed.Name,
-                KeycutPaste.GetDefaultFolders(),
-                System.IO.File.Exists,
-                System.IO.File.ReadAllLines,
-                System.IO.File.ReadAllText,
-                WindowsClipboard.SetText,
-                Console.Out,
-                Console.Error);
+            // The library logs with Console.WriteLine (the parser does while reading a keycut). Send that to stderr, so
+            // stdout holds only the copied text and `keycuts paste db > file` or `for /f` gets just the destination.
+            var output = Console.Out;
+            Console.SetOut(Console.Error);
+
+            try
+            {
+                return KeycutPaste.Run(
+                    parsed.Name,
+                    KeycutPaste.GetDefaultFolders(),
+                    System.IO.File.Exists,
+                    System.IO.File.ReadAllLines,
+                    System.IO.File.ReadAllText,
+                    WindowsClipboard.SetText,
+                    output,
+                    Console.Error);
+            }
+            finally
+            {
+                Console.SetOut(output);
+            }
         }
 
         private static ExitCode RunCreate(Options parsed)

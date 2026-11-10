@@ -32,6 +32,7 @@ namespace keycuts.GUI
             var candidates = new Func<string?>[]
             {
                 () => GetFirstFile(data),
+                () => GetShellItem(data),
                 () => GetUrl(data, UrlFormatUnicode, Encoding.Unicode),
                 () => GetUrl(data, UrlFormatAnsi, Encoding.UTF8),
                 () => GetText(data, DataFormats.UnicodeText),
@@ -104,6 +105,30 @@ namespace keycuts.GUI
             }
 
             return (data.GetData(DataFormats.FileDrop, false) as string[])?.FirstOrDefault(f => !string.IsNullOrWhiteSpace(f));
+        }
+
+        /// <summary>
+        /// A virtual shell item with no file path, like the Recycle Bin (#9), as its <c>::{CLSID}</c> key. Real files and
+        /// folders come through <see cref="GetFirstFile"/> first; any other parsing name (a library, a path) is ignored.
+        /// </summary>
+        private static string? GetShellItem(IDataObject data)
+        {
+            if (!data.GetDataPresent(ShellIdList.Format, false))
+            {
+                return null;
+            }
+
+            var bytes = data.GetData(ShellIdList.Format, false) switch
+            {
+                MemoryStream memory => memory.ToArray(),
+                byte[] array => array,
+                _ => null
+            };
+
+            var item = ShellIdList.GetFirstItem(bytes);
+            var name = item == null ? null : ShellIdList.GetParsingName(item);
+
+            return name != null && name.StartsWith("::{", StringComparison.Ordinal) && keycuts.Common.Shortcut.IsCLSIDKey(name) ? name : null;
         }
 
         private static string? GetUrl(IDataObject data, string format, Encoding encoding)

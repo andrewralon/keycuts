@@ -21,7 +21,8 @@ namespace keycuts.Common
 
         // The 0.1.x program line: START "" /D "<folder>" <rest>, where <rest> is a quoted program, then any arguments.
         private static readonly Regex regexStartInFolder = new Regex("^START \"\" /D \"([^\"]*)\" (.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex regexProgramAndArguments = new Regex("^\"([^\"]*)\"(.*)$", RegexOptions.Compiled);
+        // A quoted program followed only by quoted arguments, each after one space.
+        private static readonly Regex regexProgramAndArguments = new Regex("^\"([^\"]*)\"((?: \"[^\"]*\")*)$", RegexOptions.Compiled);
         private static readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -252,7 +253,8 @@ namespace keycuts.Common
         /// Reads the 0.1.x launch line for a program, <c>START "" /D "&lt;folder&gt;" "&lt;program&gt;" ["&lt;argument&gt;" ...]</c>.
         /// The folder and program are joined into one path (just the program when the folder is empty), and any quoted
         /// arguments are kept after it, unquoted like a File destination: <c>C:\Tools\app.exe" "arg</c>. The /B line the
-        /// emitter writes for that reads back the same. An unquoted program or argument is left to the other patterns.
+        /// emitter writes for that reads back the same. A line with an unquoted program, or any unquoted argument (even
+        /// one between quoted arguments), is left to the other patterns.
         /// </summary>
         public static bool IsStartInFolder(string line, out string file)
         {
@@ -273,12 +275,6 @@ namespace keycuts.Common
             }
 
             var arguments = program.Groups[2].Value;
-
-            if (arguments.Length > 0 && !arguments.EndsWith("\""))
-            {
-                return false;
-            }
-
             var path = folder.Length == 0 ? program.Groups[1].Value : folder + "\\" + program.Groups[1].Value;
             file = Unquote("\"" + path + "\"" + arguments);
             return true;

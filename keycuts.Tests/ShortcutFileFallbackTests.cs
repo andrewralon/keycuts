@@ -62,6 +62,16 @@ namespace keycuts.Tests
             Assert.Contains("START \"\" /B \"C:\\Tools\\app.exe\" \"arg\"", emitted);
         }
 
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag \"arg\"")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\" --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" app.exe")]
+        public void StartInFolder_WithAnUnquotedPart_IsLeftToTheOtherPatterns(string line)
+        {
+            Assert.False(ShortcutFile.IsStartInFolder(line, out _));
+        }
+
         [Fact]
         public void HostsFile_WithoutRemLines_OpenWithAppHasNoQuotes()
         {

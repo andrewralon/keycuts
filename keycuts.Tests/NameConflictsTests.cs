@@ -224,6 +224,81 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void APathVariableHoldingSeveralFolders_IsExpandedBeforeSplitting()
+        {
+            var env = Environment(new[] { @"C:\Tools\B\tool.exe" }, userPath: Output + ";%TOOLS%");
+            env.ExpandVariables = value => value.Replace("%TOOLS%", @"C:\Tools\A;C:\Tools\B");
+
+            var conflict = Assert.Single(NameConflicts.Find("tool", Output, env));
+            Assert.Equal(@"C:\Tools\B\tool.exe", conflict.Path);
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+        }
+
+        [Theory]
+        [InlineData(@"C:\Users\me\Shortcuts\.")]
+        [InlineData(@"C:\Users\me\Other\..\Shortcuts")]
+        [InlineData(@"c:\users\me\shortcuts\")]
+        public void TheOutputFolder_IsMatchedOnPath_HoweverItIsSpelled(string outputFolder)
+        {
+            var env = Environment(new[] { Path.Combine(Output, "db.bat"), @"C:\Tools\After\db.exe" });
+
+            var conflict = Assert.Single(NameConflicts.Find("db", outputFolder, env));
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);   // not hidden: the output folder is found on PATH
+        }
+
+        [Fact]
+        public void APathFolderListedTwiceInDifferentSpellings_IsSearchedOnce()
+        {
+            var env = Environment(new[] { @"C:\Tools\After\tool.exe" }, userPath: Output + @";C:\Tools\After;C:\Tools\After\.\");
+
+            Assert.Single(NameConflicts.Find("tool", Output, env));
+        }
+
+        [Fact]
+        public void WithoutBatInPathExt_TheKeycutNeverRuns_SoEveryMatchHidesIt()
+        {
+            const string word = @"C:\Office\WINWORD.EXE";
+            var env = Environment(new[] { word, @"C:\Tools\After\winword.cmd", Path.Combine(Output, "winword.cmd") },
+                pathExt: ".EXE;.CMD", appPaths: new Dictionary<string, string> { ["winword.exe"] = word });
+
+            var conflicts = NameConflicts.Find("winword", Output, env);
+
+            Assert.Equal(3, conflicts.Count);
+            Assert.All(conflicts, c => Assert.Equal(NameConflictEffect.Hidden, c.Effect));
+        }
+
+        [Fact]
+        public void MovingTheOutputFolder_TakesTheOldOneOffTheUserPath_AndAddsTheNewOne()
+        {
+            var env = Environment(new[] { @"C:\Users\me\Shortcuts\foo.bat" }, userPath: Output + ";" + After);
+
+            var moved = env.WithOutputFolderMoved(Output, @"D:\Keycuts");
+
+            Assert.Equal(After + @";D:\Keycuts", moved.UserPath);
+            Assert.Equal(env.MachinePath, moved.MachinePath);
+            Assert.Equal(Output + ";" + After, env.UserPath);   // the original is left alone
+            Assert.Empty(NameConflicts.Find("foo", @"D:\Keycuts", moved));   // the old folder's foo.bat is off PATH
+        }
+
+        [Fact]
+        public void MovingTheOutputFolder_DoesNotAddOneTheMachinePathHas()
+        {
+            var env = Environment(Array.Empty<string>(), userPath: Output, machinePath: @"D:\Keycuts");
+
+            Assert.Equal(string.Empty, env.WithOutputFolderMoved(Output, @"D:\Keycuts").UserPath);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(@"C:\Users\me\Shortcuts\")]
+        public void NotMovingTheOutputFolder_ChangesNothing(string newFolder)
+        {
+            var env = Environment(Array.Empty<string>());
+
+            Assert.Equal(env.UserPath, env.WithOutputFolderMoved(Output, newFolder).UserPath);
+        }
+
+        [Fact]
         public void ANameThatAlreadyEndsWithAPathExtExtension_IsAlsoTriedAsTyped()
         {
             var conflict = Assert.Single(Find("tool.exe", @"C:\Tools\After\tool.exe"));

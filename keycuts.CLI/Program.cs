@@ -118,12 +118,19 @@ namespace keycuts.CLI
             return result;
         }
 
-        /// <summary>What the shortcut's name runs into, in the folder it will be written to (as <see cref="Shortcut"/> reads it).</summary>
+        /// <summary>
+        /// What the shortcut's name runs into, in the folder it will be written to (as <see cref="Shortcut"/> reads it),
+        /// against PATH as it will be after the create: <c>-o</c> moves the output folder, and its PATH entry with it.
+        /// </summary>
         private static NameCheck CheckName(Runner app, Options options, bool askBeforeReplacing)
         {
-            var folder = Shortcut.GetFolder(options.Shortcut, options.OutputFolder ?? app.GetOutputFolder());
+            // The Debug KEYCUTS_OUTPUT_FOLDER override pins the folder, so Runner ignores -o and leaves PATH alone
+            var currentFolder = app.GetOutputFolder();
+            var outputFolder = DebugOverrides.GetOutputFolder() != null ? currentFolder : options.OutputFolder ?? currentFolder;
+            var environment = NameConflictEnvironment.GetDefault().WithOutputFolderMoved(currentFolder, outputFolder);
+            var folder = Shortcut.GetFolder(options.Shortcut, outputFolder);
 
-            return NameCheck.Run(Shortcut.GetName(options.Shortcut), folder, askBeforeReplacing, NameConflictEnvironment.GetDefault());
+            return NameCheck.Run(Shortcut.GetName(options.Shortcut), folder, askBeforeReplacing, environment);
         }
     }
 }

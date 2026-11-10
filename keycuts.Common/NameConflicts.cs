@@ -81,6 +81,25 @@ namespace keycuts.Common
 
         private const string EnvironmentKey = "Environment";
 
+        /// <summary>
+        /// A copy with the user PATH as it will be once the output folder moves from <paramref name="oldFolder"/> to
+        /// <paramref name="newFolder"/>: the same edit <see cref="UserPathUpdater.AddToOrReplace"/> makes (the old entry
+        /// removed, the new one appended unless the machine PATH has it). The machine PATH can't be changed without
+        /// elevation, so it stays as it is. The same folder, or a null one, changes nothing.
+        /// </summary>
+        public NameConflictEnvironment WithOutputFolderMoved(string oldFolder, string newFolder)
+        {
+            var copy = (NameConflictEnvironment)MemberwiseClone();
+
+            if (!string.IsNullOrWhiteSpace(newFolder) && !PathList.IsSameEntry(oldFolder, newFolder))
+            {
+                var entryToAdd = PathList.Contains(MachinePath, newFolder) ? null : newFolder;
+                copy.UserPath = PathList.AddOrReplace(UserPath, oldFolder, entryToAdd);
+            }
+
+            return copy;
+        }
+
         private const string AppPathsKey = @"Software\Microsoft\Windows\CurrentVersion\App Paths\";
 
         /// <summary>
@@ -258,11 +277,17 @@ namespace keycuts.Common
                 .ToList();
         }
 
+        /// <summary>
+        /// The PATH entries, expanded the way Windows does it: the whole value first, then split, since one variable can
+        /// hold several folders (<c>%TOOLS%</c> = <c>C:\Tools\A;C:\Tools\B</c>). Quotes, blanks and relative entries go.
+        /// </summary>
         private static IEnumerable<string> SplitPath(string pathValue, NameConflictEnvironment environment)
         {
-            foreach (var raw in (pathValue ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            var expanded = environment.ExpandVariables(pathValue ?? string.Empty) ?? string.Empty;
+
+            foreach (var raw in expanded.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
-                var entry = environment.ExpandVariables(raw.Trim('"')) ?? string.Empty;
+                var entry = raw.Trim('"').Trim();
 
                 if (IsUsableFolder(entry))
                 {
@@ -281,8 +306,27 @@ namespace keycuts.Common
         internal static bool IsSameFolder(string left, string right)
         {
             return !string.IsNullOrWhiteSpace(left) && !string.IsNullOrWhiteSpace(right) &&
-                string.Equals(Path.TrimEndingDirectorySeparator(left.Trim()), Path.TrimEndingDirectorySeparator(right.Trim()),
-                    StringComparison.OrdinalIgnoreCase);
+                string.Equals(NormalizeFolder(left), NormalizeFolder(right), StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// One spelling per folder, so <c>C:\Shortcuts\.</c>, <c>C:\Shortcuts\</c> and <c>C:\Shortcuts</c> compare equal:
+        /// <c>.</c> and <c>..</c> resolved and the trailing separator dropped. Works on the text only; the disk isn't read.
+        /// </summary>
+        internal static string NormalizeFolder(string folder)
+        {
+            var trimmed = folder.Trim();
+
+            try
+            {
+                trimmed = Path.GetFullPath(trimmed);
+            }
+            catch (Exception e) when (e is ArgumentException || e is NotSupportedException || e is PathTooLongException)
+            {
+                // Compare it as written
+            }
+
+            return Path.TrimEndingDirectorySeparator(trimmed);
         }
 
         /// <summary>Collects the matches, each file once.</summary>
@@ -298,11 +342,15 @@ namespace keycuts.Common
 
             private readonly HashSet<string> _seenFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            // Without .BAT in PATHEXT, Win+R never runs a keycut, so nothing it finds is shadowed: it all wins
+            private readonly bool _keycutRuns;
+
             public Finder(string name, NameConflictEnvironment environment)
             {
                 _name = name;
                 _environment = environment;
                 _extensions = ParsePathExt(environment.PathExt);
+                _keycutRuns = IndexOf(ShortcutFile.Extension) >= 0;
             }
 
             public List<NameConflict> Results { get; } = new List<NameConflict>();
@@ -367,7 +415,7 @@ namespace keycuts.Common
             /// <summary>False for a folder that is missing, unusable, or already searched (it can be on PATH twice).</summary>
             private bool StartFolder(string folder)
             {
-                return IsUsableFolder(folder) && _seenFolders.Add(Path.TrimEndingDirectorySeparator(folder.Trim()));
+                return IsUsableFolder(folder) && _seenFolders.Add(NormalizeFolder(folder));
             }
 
             /// <summary>
@@ -419,6 +467,11 @@ namespace keycuts.Common
 
             private void Add(string path, NameConflictEffect effect, NameConflictSource source)
             {
+                if (!_keycutRuns)
+                {
+                    effect = NameConflictEffect.Hidden;
+                }
+
                 if (_seen.Add(path))
                 {
                     Results.Add(new NameConflict(path, effect, source));

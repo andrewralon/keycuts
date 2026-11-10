@@ -450,7 +450,8 @@ namespace keycuts.GUI.ViewModels
                 return;
             }
 
-            // No other rename until this one is saved and the list reloaded, or that reload would be skipped
+            // No other rename while the file is being renamed. The reloads afterwards aren't awaited, so slow destination
+            // checks can't hold this guard; stale rows after a success are blocked by rowsStale instead.
             savingRename = true;
 
             try
@@ -464,27 +465,27 @@ namespace keycuts.GUI.ViewModels
                 {
                     ShowStatusMessage("“" + newName + "” already exists. Choose another name.", true);
                     FocusRowRequested?.Invoke(this, row);
-                    await LoadAsync();
+                    _ = LoadAsync();
                     return;
                 }
                 catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.InvalidName)
                 {
                     ShowStatusMessage(CreatorViewModel.InvalidNameMessage, true);
                     FocusRowRequested?.Invoke(this, row);
-                    await LoadAsync();
+                    _ = LoadAsync();
                     return;
                 }
                 catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
                 {
                     ShowStatusMessage("This keycut no longer exists", true);
-                    await LoadAsync();
+                    _ = LoadAsync();
                     return;
                 }
                 catch (Exception ex)
                 {
                     ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ex.Message, true);
                     FocusRowRequested?.Invoke(this, row);
-                    await LoadAsync();
+                    _ = LoadAsync();
                     return;
                 }
 
@@ -494,7 +495,7 @@ namespace keycuts.GUI.ViewModels
                 // Until then the rows show the old name and path, so no rename may start from them.
                 pendingSelectPath = newPath;
                 rowsStale = true;
-                await LoadAsync();
+                _ = LoadAsync();
             }
             finally
             {

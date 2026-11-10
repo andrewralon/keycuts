@@ -417,6 +417,30 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_RetryWorksRightAway_EvenWhileDestinationChecksAreSlow()
+        {
+            var noop = new RelayCommand(() => { });
+            var checks = 0;
+            var neverDone = new TaskCompletionSource();
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(KeycutRepositoryError.InvalidName, "bad") };
+            var manager = new ManagerViewModel(noop, noop,
+                ct => Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }),
+                (keycuts, ct) => ++checks == 1 ? Task.CompletedTask : neverDone.Task,
+                actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "bad/name";
+
+            await manager.CommitRenameAsync();   // the reload after it hangs in the destination check
+
+            manager.BeginRename(manager.Rows[0]);
+            Assert.True(manager.IsRenaming);
+        }
+
+        [Fact]
         public async Task Rename_AnotherCantStart_UntilTheFirstIsSaved()
         {
             var gate = new TaskCompletionSource();

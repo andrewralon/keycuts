@@ -39,6 +39,18 @@ namespace keycuts.Tests
             Assert.Equal(@"%USERPROFILE%\Documents", file.Destination);
         }
 
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Program Files (x86)\\Notepad++\" \"notepad++.exe\"", @"C:\Program Files (x86)\Notepad++\notepad++.exe")]
+        [InlineData("START \"\" /D \"\" \"chrome\" \"? %*\"", "chrome\" \"? %*")]
+        [InlineData("START \"\" /B \"C:\\a b\\app.exe\" \"C:\\c d\\file.txt\"", "C:\\a b\\app.exe\" \"C:\\c d\\file.txt")]
+        public void File_QuotedParts_AreJoinedOnlyForTheStartInFolderForm(string line, string expected)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(ShortcutType.File, file.Type);
+            Assert.Equal(expected, file.Destination);
+        }
+
         [Fact]
         public void HostsFile_WithoutRemLines_OpenWithAppHasNoQuotes()
         {

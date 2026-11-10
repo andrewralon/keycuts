@@ -18,6 +18,10 @@ namespace keycuts.Common
 
         // The emitter's Command line (Runner.BuildCommand): everything between the cmd /C quotes, inner quotes included.
         private static readonly Regex regexCmdCommand = new Regex("^START \"\" /B cmd /C \"(.*)\"$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The 0.1.x program line: START "" /D "<folder>" <rest>, where <rest> is usually one quoted file name.
+        private static readonly Regex regexStartInFolder = new Regex("^START \"\" /D \"([^\"]*)\" (.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex regexQuotedToken = new Regex("^\"([^\"]*)\"$", RegexOptions.Compiled);
         private static readonly string patternUrl = "START [\"\" ]?[ \\/{BD}]?[ \"]?(.+)[\"]?$";
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -89,6 +93,12 @@ namespace keycuts.Common
                     Destination = hostsFile;
                     Type = ShortcutType.HostsFile;
                     OpenWithApp = Unquote(openWithApp);
+                    break;
+                }
+                else if (ShortcutFile.IsStartInFolder(line, out string fileInFolder))
+                {
+                    Destination = fileInFolder;
+                    Type = ShortcutType.File;
                     break;
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
@@ -233,10 +243,45 @@ namespace keycuts.Common
         /// </summary>
         public static bool IsEmittedCommand(string line, out string command)
         {
-            // Not through MatchesRegex: its quote splicing would rewrite a command with quoted arguments.
             var match = regexCmdCommand.Match(line);
             command = match.Success ? match.Groups[1].Value : "";
             return match.Success;
+        }
+
+        /// <summary>
+        /// Reads the 0.1.x launch line for a program, <c>START "" /D "&lt;folder&gt;" "&lt;file&gt;"</c>, as the joined path.
+        /// With an empty folder the rest of the line is the program and its arguments, unquoted like a File destination,
+        /// so the /B line the emitter writes for it reads back the same. Anything else (a folder followed by arguments or
+        /// an unquoted program) is left to the File pattern.
+        /// </summary>
+        public static bool IsStartInFolder(string line, out string file)
+        {
+            file = "";
+            var match = regexStartInFolder.Match(line);
+
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            var folder = match.Groups[1].Value;
+            var rest = match.Groups[2].Value;
+
+            if (folder.Length == 0)
+            {
+                file = Unquote(rest);
+                return true;
+            }
+
+            var program = regexQuotedToken.Match(rest);
+
+            if (!program.Success)
+            {
+                return false;
+            }
+
+            file = folder + "\\" + program.Groups[1].Value;
+            return true;
         }
 
         public static bool IsCommand(string line, out string command)
@@ -258,23 +303,6 @@ namespace keycuts.Common
             if (match.Success)
             {
                 result = match.Groups[1].Value;
-
-                if (result.Contains("\" \""))
-                {
-                    Console.WriteLine("(raw):   " + result);
-
-                    var quote1 = result.IndexOf('"', 1);
-                    var quote2 = result.IndexOf('"', quote1 + 1);
-                    var part1 = result.Substring(0, quote1);
-                    var part2 = result.Substring(quote2 + 1);
-
-                    //Console.WriteLine("quote1:  " + quote1);
-                    //Console.WriteLine("quote2:  " + quote2);
-                    //Console.WriteLine("part1:   " + part1);
-                    //Console.WriteLine("part2:   " + part2);
-
-                    result = part1 + "\\" + part2;
-                }
 
                 Console.WriteLine("result:  " + result);
             }

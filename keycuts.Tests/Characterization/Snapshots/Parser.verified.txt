@@ -60,7 +60,7 @@ Destination: |C:\Shortcuts\README.txt|
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files\Notepad++\notepad++.exe" "C:\Shortcuts\README.txt"|
 Description: ||
-Note:        The app and the destination are joined into one path with a backslash by the quote handling in MatchesRegex, which exists for the old START /D form (#89).
+Note:        Read from the REM lines, so OpenWithApp is lost: the fallback has no File-with-app form, and without REM lines it would read the app and the file as one File destination (the line between its first and last quote), which re-emits the same line (#89).
 
 ## edge-cases/trailing-whitespace.bat
 Shortcut:    |trailing-whitespace|
@@ -285,7 +285,7 @@ Description: ||
 ## old-format/gg.bat
 Shortcut:    |gg|
 Type:        File
-Destination: |\chrome" "? %*|
+Destination: |chrome" "? %*|
 OpenWithApp: <null>
 Command:     |START "" /D "" "chrome" "? %*"|
 Description: ||

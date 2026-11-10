@@ -32,6 +32,7 @@ namespace keycuts.Tests
                     path => Files.ContainsKey(path),
                     path => Files[path].Replace("\r\n", "\n").Split('\n'),
                     path => Files[path],
+                    text => text.Replace("%USERPROFILE%", @"C:\Users\me", StringComparison.OrdinalIgnoreCase),
                     text =>
                     {
                         if (ClipboardError != null)
@@ -46,10 +47,35 @@ namespace keycuts.Tests
             }
         }
 
-        static string Keycut(string destination)
+        static string Keycut(string destination, ShortcutType type = ShortcutType.Folder)
         {
-            var lines = Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Folder, destination, @"C:\Shortcuts\db.bat"));
+            var lines = Runner.BuildShortcutLines(Shortcut.FromParts(type, destination, @"C:\Shortcuts\db.bat"));
             return string.Join("\r\n", lines);
+        }
+
+        [Theory]
+        [InlineData(ShortcutType.Folder, @"%USERPROFILE%\Desktop", @"C:\Users\me\Desktop")]
+        [InlineData(ShortcutType.File, @"%userprofile%\notes.txt", @"C:\Users\me\notes.txt")]
+        [InlineData(ShortcutType.Folder, @"D:\Data", @"D:\Data")]                                   // no variables: unchanged
+        [InlineData(ShortcutType.Url, "https://example.com/%USERPROFILE%", "https://example.com/%USERPROFILE%")]  // a URL is copied as written
+        public void Run_AFileOrFolderKeycut_IsCopiedWithItsVariablesExpanded(ShortcutType type, string destination, string expected)
+        {
+            var fake = new FakeFiles();
+            fake.Files[@"C:\Shortcuts\db.bat"] = Keycut(destination, type);
+
+            Assert.Equal(ExitCode.Success, fake.Run("db"));
+            Assert.Equal(new[] { expected }, fake.Copied);
+            Assert.Equal(expected + Environment.NewLine, fake.Output.ToString());
+        }
+
+        [Fact]
+        public void Run_ATextFile_IsCopiedAsWritten_WithoutExpandingVariables()
+        {
+            var fake = new FakeFiles();
+            fake.Files[@"C:\Shortcuts\snippet.txt"] = @"cd %USERPROFILE%\src";
+
+            Assert.Equal(ExitCode.Success, fake.Run("snippet"));
+            Assert.Equal(new[] { @"cd %USERPROFILE%\src" }, fake.Copied);
         }
 
         [Fact]

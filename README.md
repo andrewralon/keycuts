@@ -50,14 +50,14 @@ The app is one compact window with two views.
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
 The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
 For a file or folder under a known folder, a "Saved as" line shows the path exactly as it will be saved: with
-environment variables (`%USERPROFILE%\Desktop\notes.txt`) if **Use Environment Variables in Paths** is on in Settings,
+environment variables (`%USERPROFILE%\Desktop\notes.txt`) if **Use environment variables in paths** is on in Settings,
 or as typed if it's off. Holding **Shift** flips that for the keycut you're creating, and the line follows.
 
 **First run:** the first time keycuts opens, and whenever your keycuts folder is empty, the creator shows a welcome
 panel that explains the Win+R workflow and offers a keycut to keycuts itself, named `kc` unless you change it, so
 Win+R → `kc` opens the app. (Not `keycuts`: that's the command-line tool, `keycuts.exe`, which is on your PATH too.)
 **Got it** or creating that keycut records that you've seen it (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`),
-so it only comes back while the folder is empty, or when you choose **Show Welcome** in Settings. If the keycuts folder
+so it only comes back while the folder is empty, or when you choose **Show welcome** in Settings. If the keycuts folder
 isn't on your PATH (a portable copy; the installer adds it), the panel says Win+R can't find the new keycut yet and
 offers **Add to PATH**.
 
@@ -72,9 +72,13 @@ Batmanager app, which has been removed).
   **Open file location** (shows the `.bat` in Explorer), **Copy destination**, and **Delete**. Delete has no confirmation.
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
+Settings (the gear button) holds the output folder (**Choose** picks one, **Launch** opens it in Explorer), **Force overwrite**,
+**Right-click context menus**, **Use environment variables in paths**, and the theme. **Save changes** (or Enter) checks that the
+folder can be written to, creating it if needed, and shows any problem under the field; **Cancel** (or Escape) closes without saving.
+
 Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.
 
-**Use Environment Variables in Paths** (off by default) saves new file and folder keycuts with environment variables,
+**Use environment variables in paths** (off by default) saves new file and folder keycuts with environment variables,
 so a keycuts folder copied to another machine or account still works. It uses `%LOCALAPPDATA%`, `%APPDATA%`,
 `%OneDrive%`, `%USERPROFILE%`, `%ProgramFiles(x86)%`, `%ProgramFiles%`, `%ProgramData%` and `%SystemRoot%`, plus any
 variable you've defined yourself whose value is a folder (a `DROPBOX` variable, say); the longest match wins. Existing

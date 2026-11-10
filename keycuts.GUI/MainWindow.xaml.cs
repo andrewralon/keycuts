@@ -56,10 +56,13 @@ namespace keycuts.GUI
         private void Shell_SettingsRequested(object? sender, EventArgs e)
         {
             var settingsWindow = new SettingsWindow { Owner = this };
-            settingsWindow.ShowDialog();
+            var saved = settingsWindow.ShowDialog() == true;
 
-            // The environment-variables setting may have changed; the preview follows it
-            shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+            if (saved)
+            {
+                // The environment-variables setting may have changed; the preview follows it
+                shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+            }
 
             if (settingsWindow.ShowWelcomeRequested)
             {
@@ -67,7 +70,10 @@ namespace keycuts.GUI
             }
 
             // The output folder may have changed
-            _ = shell.ReloadAsync();
+            if (saved || settingsWindow.ShowWelcomeRequested)
+            {
+                _ = shell.ReloadAsync();
+            }
         }
 
         private void Main_KeyDown(object sender, KeyEventArgs e)

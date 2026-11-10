@@ -20,6 +20,7 @@ using Xunit;
 
 namespace keycuts.Tests
 {
+    [Collection(WpfCollection.Name)]
     public class AccessibilityTests
     {
         static CreatorViewModel NewCreator()

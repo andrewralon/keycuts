@@ -97,6 +97,10 @@ folder, then your keycuts folder, then the keycuts install folder, and tries the
 with `.bat`. `keypaste` used to be a separate program; it's now a small `keypaste.cmd` beside `keycuts.exe` that runs
 `keycuts paste`.
 
+If you made a keycut to the old `keypaste.exe` (a `keypaste.bat` in your keycuts folder, say), delete it once
+`keypaste.exe` is gone. Windows finds a keycut named `keypaste` before the new command, so one that points at a missing
+`keypaste.exe` stops `keypaste` from working.
+
 ## Development
 
 Requires the .NET SDK 10. Run from the repository root:

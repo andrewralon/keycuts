@@ -48,7 +48,8 @@ The type icon updates as you go, and invalid destinations or duplicate names are
 **First run:** while your keycuts folder is empty, the creator shows a welcome panel that explains the Win+R workflow
 and offers a keycut to keycuts itself (named `keycuts` unless you change it), so Win+R → `keycuts` opens the app.
 **Got it** or creating that keycut hides the panel for good (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`).
-People who already have keycuts never see it.
+People who already have keycuts never see it. If the keycuts folder isn't on your PATH (a portable copy; the installer
+adds it), the panel says Win+R can't find the new keycut yet and offers **Add to PATH**.
 
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).

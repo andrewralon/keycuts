@@ -23,6 +23,10 @@ namespace keycuts.Tests
             public Exception? MarkFailure;
             public readonly List<(string Destination, string Name)> Creates = new List<(string, string)>();
             public Func<Task<CreateResult>> Result = () => Task.FromResult(CreateResult.Success(null!));
+            public bool OnPath = true;
+            public bool AddSucceeds = true;
+            public bool AddPutsItOnPath = true;
+            public int AddCount;
 
             public WelcomeViewModel Create()
             {
@@ -42,6 +46,17 @@ namespace keycuts.Tests
                     {
                         Creates.Add((destination, name));
                         return Result();
+                    },
+                    () => OnPath,
+                    () =>
+                    {
+                        AddCount++;
+                        if (AddSucceeds && AddPutsItOnPath)
+                        {
+                            OnPath = true;
+                        }
+
+                        return AddSucceeds;
                     });
             }
         }
@@ -150,6 +165,61 @@ namespace keycuts.Tests
             Assert.Equal(1, fakes.MarkCount);
             Assert.Equal(1, created);
             Assert.True(welcome.IsVisible);
+        }
+
+        [Fact]
+        public async Task Create_WhenTheFolderIsntOnPath_SaysSo_AndOffersToAddIt()
+        {
+            var fakes = new Fakes { OnPath = false };
+            var welcome = fakes.Create();
+            Assert.False(welcome.AddToPathCommand.CanExecute(null));
+
+            await welcome.CreateCommand.ExecuteAsync();
+
+            Assert.True(welcome.NeedsPath);
+            Assert.False(welcome.IsSuccess);
+            Assert.True(welcome.HelperIsError);
+            Assert.Contains("isn’t on your PATH", welcome.HelperText);
+            Assert.True(welcome.AddToPathCommand.CanExecute(null));
+            Assert.Equal(1, fakes.MarkCount);
+
+            welcome.AddToPathCommand.Execute(null);
+
+            Assert.Equal(1, fakes.AddCount);
+            Assert.False(welcome.NeedsPath);
+            Assert.True(welcome.IsSuccess);
+            Assert.False(welcome.HelperIsError);
+            Assert.Contains("Win+R, type keycuts", welcome.HelperText);
+            Assert.False(welcome.AddToPathCommand.CanExecute(null));
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        public async Task AddToPath_ThatFailsOrDoesntStick_KeepsTheButton(bool addSucceeds, bool addPutsItOnPath)
+        {
+            var fakes = new Fakes { OnPath = false, AddSucceeds = addSucceeds, AddPutsItOnPath = addPutsItOnPath };
+            var welcome = fakes.Create();
+            await welcome.CreateCommand.ExecuteAsync();
+
+            welcome.AddToPathCommand.Execute(null);
+
+            Assert.True(welcome.NeedsPath);
+            Assert.Equal(CreatorViewModel.PathUpdateErrorMessage, welcome.HelperText);
+            Assert.True(welcome.AddToPathCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task WithoutPathFunctions_TheFolderCountsAsOnPath()
+        {
+            // The Debug folder override passes none, so it never offers to write PATH
+            var welcome = new WelcomeViewModel(AppPath, () => false, () => { },
+                (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+
+            await welcome.CreateCommand.ExecuteAsync();
+
+            Assert.False(welcome.NeedsPath);
+            Assert.True(welcome.IsSuccess);
         }
 
         [Fact]

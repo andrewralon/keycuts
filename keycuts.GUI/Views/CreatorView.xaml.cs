@@ -59,6 +59,11 @@ namespace keycuts.GUI.Views
                 oldViewModel.FocusRequested -= ViewModel_FocusRequested;
                 oldViewModel.KeycutCreated -= ViewModel_KeycutCreated;
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+
+                if (oldViewModel.Welcome != null)
+                {
+                    oldViewModel.Welcome.PropertyChanged -= Welcome_PropertyChanged;
+                }
             }
 
             if (e.NewValue is CreatorViewModel newViewModel)
@@ -68,20 +73,38 @@ namespace keycuts.GUI.Views
                 newViewModel.FocusRequested += ViewModel_FocusRequested;
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
                 newViewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+                if (newViewModel.Welcome != null)
+                {
+                    newViewModel.Welcome.PropertyChanged += Welcome_PropertyChanged;
+                }
             }
         }
 
         // Tell screen readers when the helper line (errors, Saving, Created) changes
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(CreatorViewModel.HelperText))
+            if (e.PropertyName == nameof(CreatorViewModel.HelperText))
             {
-                return;
+                AnnounceLiveRegion(HelperTextBlock);
             }
+        }
 
+        // The welcome panel's helper line (name errors, Saving, how to use the new keycut, the PATH warning)
+        private void Welcome_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(WelcomeViewModel.HelperText))
+            {
+                AnnounceLiveRegion(WelcomeHelperTextBlock);
+            }
+        }
+
+        // The LiveSetting on the text block alone doesn't raise the event; the peer has to
+        private void AnnounceLiveRegion(UIElement element)
+        {
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                if (UIElementAutomationPeer.FromElement(HelperTextBlock) is AutomationPeer peer)
+                if (UIElementAutomationPeer.FromElement(element) is AutomationPeer peer)
                 {
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
                 }

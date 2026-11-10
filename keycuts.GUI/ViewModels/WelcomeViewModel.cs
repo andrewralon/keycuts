@@ -25,7 +25,13 @@ namespace keycuts.GUI.ViewModels
 
         private readonly Func<string, string, CancellationToken, Task<CreateResult>> createAsync;
 
+        private readonly Func<bool> isOnPath;
+
+        private readonly Func<bool> addToPath;
+
         private bool decided;
+
+        private bool needsPath;
 
         private bool isVisible;
 
@@ -41,19 +47,27 @@ namespace keycuts.GUI.ViewModels
         /// <param name="isDismissed">Reads whether the panel was dismissed before (HKCU in production).</param>
         /// <param name="markDismissed">Records that it was dismissed. A failure is ignored: the panel just shows again next time.</param>
         /// <param name="createAsync">Creates a keycut (destination, name), the same call the creator uses.</param>
+        /// <param name="isOnPath">Whether Win+R can find keycuts in the output folder (it's on the user or machine PATH).
+        /// Null treats it as on PATH: tests, and the Debug folder override, which must never write PATH.</param>
+        /// <param name="addToPath">Adds the output folder to the user PATH, as the installer and Settings do. False on failure.</param>
         public WelcomeViewModel(
             string appPath,
             Func<bool> isDismissed,
             Action markDismissed,
-            Func<string, string, CancellationToken, Task<CreateResult>> createAsync)
+            Func<string, string, CancellationToken, Task<CreateResult>> createAsync,
+            Func<bool>? isOnPath = null,
+            Func<bool>? addToPath = null)
         {
             this.appPath = appPath ?? throw new ArgumentNullException(nameof(appPath));
             this.isDismissed = isDismissed ?? throw new ArgumentNullException(nameof(isDismissed));
             this.markDismissed = markDismissed ?? throw new ArgumentNullException(nameof(markDismissed));
             this.createAsync = createAsync ?? throw new ArgumentNullException(nameof(createAsync));
+            this.isOnPath = isOnPath ?? (() => true);
+            this.addToPath = addToPath ?? (() => true);
 
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
             DismissCommand = new RelayCommand(Dismiss);
+            AddToPathCommand = new RelayCommand(AddToPath, () => needsPath);
         }
 
         /// <summary>Raised after the self-keycut was created so the shell can refresh the count.</summary>
@@ -62,6 +76,14 @@ namespace keycuts.GUI.ViewModels
         public AsyncRelayCommand CreateCommand { get; }
 
         public RelayCommand DismissCommand { get; }
+
+        public RelayCommand AddToPathCommand { get; }
+
+        /// <summary>The self-keycut exists, but its folder isn't on PATH yet, so Win+R can't find it (a portable copy).</summary>
+        public bool NeedsPath
+        {
+            get { return needsPath; }
+        }
 
         public bool IsVisible
         {
@@ -95,15 +117,16 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>The self-keycut exists; the panel then only shows how to use it.</summary>
+        /// <summary>The self-keycut exists and Win+R can find it; the panel then only shows how to use it.</summary>
         public bool IsSuccess
         {
-            get { return createdName != null; }
+            get { return createdName != null && !needsPath && error == null; }
         }
 
+        /// <summary>A name or create error, a PATH update failure, or the PATH warning (which needs action, so it reads as one).</summary>
         public bool HelperIsError
         {
-            get { return error != null; }
+            get { return error != null || needsPath; }
         }
 
         /// <summary>The name box and Create are off while saving and after the keycut exists.</summary>
@@ -129,6 +152,11 @@ namespace keycuts.GUI.ViewModels
                 if (error != null)
                 {
                     return error;
+                }
+
+                if (needsPath)
+                {
+                    return string.Format("Created {0}, but Win+R can’t find it yet: the keycuts folder isn’t on your PATH.", createdName);
                 }
 
                 if (createdName != null)
@@ -181,6 +209,7 @@ namespace keycuts.GUI.ViewModels
             {
                 case CreateOutcome.Success:
                     createdName = target;
+                    needsPath = !isOnPath();
                     TryMarkDismissed();
                     break;
                 case CreateOutcome.DuplicateName:
@@ -207,6 +236,22 @@ namespace keycuts.GUI.ViewModels
             {
                 KeycutCreated?.Invoke(this, EventArgs.Empty);
             }
+        }
+
+        /// <summary>Puts the output folder on the user PATH, then checks again; a failure keeps the button and says so.</summary>
+        private void AddToPath()
+        {
+            if (addToPath() && isOnPath())
+            {
+                needsPath = false;
+                error = null;
+            }
+            else
+            {
+                error = CreatorViewModel.PathUpdateErrorMessage;
+            }
+
+            RaiseStateChanged();
         }
 
         private bool ReadDismissed()
@@ -241,6 +286,8 @@ namespace keycuts.GUI.ViewModels
         private void RaiseStateChanged()
         {
             CreateCommand.RaiseCanExecuteChanged();
+            AddToPathCommand.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(NeedsPath));
             OnPropertyChanged(nameof(IsSuccess));
             OnPropertyChanged(nameof(HelperIsError));
             OnPropertyChanged(nameof(IsInputEnabled));

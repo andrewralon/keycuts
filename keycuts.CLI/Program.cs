@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 using keycuts.Common;
 using System;
 using System.Collections.Generic;
@@ -18,12 +18,11 @@ namespace keycuts.CLI
             if (launched == ExitCode.CannotFindFile)
             {
                 // A CLI-only copy has no GUI beside it, so show the help it used to
-                Run(new[] { "--help" });
-                return (int)ExitCode.Success;
+                return (int)Run(new[] { "--help" });
             }
 
             var result = launched ?? Run(args);
-            if (result != ExitCode.Success)
+            if (result != ExitCode.Success && !Usage.WroteError)
             {
                 // stderr, so a failed `keycuts paste` leaves stdout empty for a script that reads it
                 Console.Error.WriteLine($"Error: {result}");
@@ -40,10 +39,11 @@ namespace keycuts.CLI
         public static ExitCode Run(string[] args)
         {
             // "create" is the default verb, so the original "keycuts -d … -s …" still works
-            return Parser.Default.ParseArguments<Options, PasteOptions>(args).MapResult(
+            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions>(args);
+            return result.MapResult(
                 (Options parsed) => RunCreate(parsed),
                 (PasteOptions parsed) => RunPaste(parsed),
-                errors => errors.IsHelp() || errors.IsVersion() ? ExitCode.Success : ExitCode.NotStarted);
+                errors => Usage.Show(result, errors, Console.Out, Console.Error));
         }
 
         /// <summary><c>keycuts paste &lt;name&gt;</c>, which the bin\keypaste.cmd shim also runs (#97).</summary>
@@ -123,9 +123,9 @@ namespace keycuts.CLI
             }
             else
             {
-                // Show help text, listing both verbs
-                Parser.Default.ParseArguments<Options, PasteOptions>(new string[] { "--help" });
-                result = ExitCode.Success;
+                // Say what is missing on stderr, and fail, so a script notices
+                Usage.WriteMissingArguments(Console.Error);
+                result = ExitCode.BadArguments;
             }
 
             return result;

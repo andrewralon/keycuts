@@ -32,13 +32,13 @@ not-keycuts/jira.bat: FAILS (expected) Not a keycut: the emitter escapes its %VA
     Destination: |%JIRAURL%/browse/%1| -> |%%JIRAURL%%/browse/%%1|
     emitted: |START %%JIRAURL%%/browse/%%1|
 not-keycuts/newjira.bat: FAILS (expected) Not a keycut: the emitter escapes its %VAR% variables and ^& to literal text (#91 step g).
-    Destination: |%JIRAURL%/secure/CreateIssueDetails!init.jspa?pid=%PID%^&reporter=%JIRAUSER%^&assignee=%JIRAUSER%^&priority=6%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%| -> |%%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^&reporter=%%JIRAUSER%%^^&assignee=%%JIRAUSER%%^^&priority=6%%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%%|
-    emitted: |START %%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^&reporter=%%JIRAUSER%%^^&assignee=%%JIRAUSER%%^^&priority=6%%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%%|
+    Destination: |%JIRAURL%/secure/CreateIssueDetails!init.jspa?pid=%PID%^&reporter=%JIRAUSER%^&assignee=%JIRAUSER%^&priority=6%ASSIGNEDDEV%%REQUESTOR%%INFRASTRUCTURE%| -> |%%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^^&reporter=%%JIRAUSER%%^^^&assignee=%%JIRAUSER%%^^^&priority=6%%ASSIGNEDDEV%%%%REQUESTOR%%%%INFRASTRUCTURE%%|
+    emitted: |START %%JIRAURL%%/secure/CreateIssueDetails!init.jspa?pid=%%PID%%^^^&reporter=%%JIRAUSER%%^^^&assignee=%%JIRAUSER%%^^^&priority=6%%ASSIGNEDDEV%%%%REQUESTOR%%%%INFRASTRUCTURE%%|
 not-keycuts/regeditopen.bat: ok
 not-keycuts/ss.bat: skipped (parses as Unknown)
-not-keycuts/swaphosts.bat: FAILS (expected) Not a keycut: the emitter escapes its %VAR% variables, %* and & to literal text (#91 step g).
-    Destination: |nircmdc.exe elevate powershell.exe -Command "& '%FILENAME%.ps1' %* -fromCMD"| -> |nircmdc.exe elevate powershell.exe -Command "^& '%%FILENAME%%.ps1' %%* -fromCMD"|
-    emitted: |START nircmdc.exe elevate powershell.exe -Command "^& '%%FILENAME%%.ps1' %%* -fromCMD"|
+not-keycuts/swaphosts.bat: FAILS (expected) Not a keycut: the emitter escapes its %VAR% variables and %* to literal text (#91 step g).
+    Destination: |nircmdc.exe elevate powershell.exe -Command "& '%FILENAME%.ps1' %* -fromCMD"| -> |nircmdc.exe elevate powershell.exe -Command "& '%%FILENAME%%.ps1' %%* -fromCMD"|
+    emitted: |START nircmdc.exe elevate powershell.exe -Command "& '%%FILENAME%%.ps1' %%* -fromCMD"|
 old-format/db.bat: ok
 old-format/dl.bat: ok
 old-format/docs.bat: ok

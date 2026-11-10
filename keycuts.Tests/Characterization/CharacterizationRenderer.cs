@@ -41,7 +41,7 @@ namespace keycuts.Tests.Characterization
         {
             ["not-keycuts/jira.bat"] = "Not a keycut: the emitter escapes its %VAR% variables to literal text (#91 step g).",
             ["not-keycuts/newjira.bat"] = "Not a keycut: the emitter escapes its %VAR% variables and ^& to literal text (#91 step g).",
-            ["not-keycuts/swaphosts.bat"] = "Not a keycut: the emitter escapes its %VAR% variables, %* and & to literal text (#91 step g).",
+            ["not-keycuts/swaphosts.bat"] = "Not a keycut: the emitter escapes its %VAR% variables and %* to literal text (#91 step g).",
         };
 
         #region Parser

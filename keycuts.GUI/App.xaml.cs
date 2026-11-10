@@ -44,8 +44,8 @@ namespace keycuts.GUI
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
                 (destination, name, ct) => Common.KeycutCreator.CreateAsync(destination, name, null, ct),
-                usesDebugFolder ? null : () => Common.UserPathUpdater.IsOnPath(new Common.Runner().GetOutputFolder()),
-                usesDebugFolder ? null : () => new Common.UserPathUpdater().AddToOrReplace(null, new Common.Runner().GetOutputFolder()));
+                usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
+                usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
             var shell = new ViewModels.ShellViewModel(
                 () => Common.KeycutRepository.CreateDefault().CountAsync(),

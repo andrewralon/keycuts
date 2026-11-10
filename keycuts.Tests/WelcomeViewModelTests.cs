@@ -27,6 +27,8 @@ namespace keycuts.Tests
             public bool AddSucceeds = true;
             public bool AddPutsItOnPath = true;
             public int AddCount;
+            public readonly List<string?> CheckedFolders = new List<string?>();
+            public readonly List<string?> AddedFolders = new List<string?>();
 
             public WelcomeViewModel Create()
             {
@@ -47,10 +49,15 @@ namespace keycuts.Tests
                         Creates.Add((destination, name));
                         return Result();
                     },
-                    () => OnPath,
-                    () =>
+                    folder =>
+                    {
+                        CheckedFolders.Add(folder);
+                        return OnPath;
+                    },
+                    folder =>
                     {
                         AddCount++;
+                        AddedFolders.Add(folder);
                         if (AddSucceeds && AddPutsItOnPath)
                         {
                             OnPath = true;
@@ -191,6 +198,32 @@ namespace keycuts.Tests
             Assert.False(welcome.HelperIsError);
             Assert.Contains("Win+R, type keycuts", welcome.HelperText);
             Assert.False(welcome.AddToPathCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task PathCheckAndAdd_UseTheFolderTheKeycutWasCreatedIn()
+        {
+            // Settings can change the output folder after the create; the .bat stays where it was written
+            var created = new Keycut { Name = "keycuts", FilePath = @"D:\Portable\Shortcuts\keycuts.bat" };
+            var fakes = new Fakes { OnPath = false, Result = () => Task.FromResult(CreateResult.Success(created)) };
+            var welcome = fakes.Create();
+
+            await welcome.CreateCommand.ExecuteAsync();
+            welcome.AddToPathCommand.Execute(null);
+
+            Assert.All(fakes.CheckedFolders, folder => Assert.Equal(@"D:\Portable\Shortcuts", folder));
+            Assert.Equal(new string?[] { @"D:\Portable\Shortcuts" }, fakes.AddedFolders);
+        }
+
+        [Fact]
+        public async Task PathCheck_WithoutAKeycutInTheResult_PassesNoFolder()
+        {
+            var fakes = new Fakes { OnPath = false };
+            var welcome = fakes.Create();
+
+            await welcome.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new string?[] { null }, fakes.CheckedFolders);
         }
 
         [Theory]

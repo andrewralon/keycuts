@@ -25,9 +25,12 @@ namespace keycuts.GUI.ViewModels
 
         private readonly Func<string, string, CancellationToken, Task<CreateResult>> createAsync;
 
-        private readonly Func<bool> isOnPath;
+        private readonly Func<string?, bool> isOnPath;
 
-        private readonly Func<bool> addToPath;
+        private readonly Func<string?, bool> addToPath;
+
+        // Where the self-keycut was written, so the PATH check and Add to PATH use that folder even if Settings changes it
+        private string? createdFolder;
 
         private bool decided;
 
@@ -47,23 +50,24 @@ namespace keycuts.GUI.ViewModels
         /// <param name="isDismissed">Reads whether the panel was dismissed before (HKCU in production).</param>
         /// <param name="markDismissed">Records that it was dismissed. A failure is ignored: the panel just shows again next time.</param>
         /// <param name="createAsync">Creates a keycut (destination, name), the same call the creator uses.</param>
-        /// <param name="isOnPath">Whether Win+R can find keycuts in the output folder (it's on the user or machine PATH).
+        /// <param name="isOnPath">Whether Win+R can find keycuts in the given folder (it's on the user or machine PATH). The
+        /// folder is where the self-keycut was written, or null if the create result didn't say (then use the output folder).
         /// Null treats it as on PATH: tests, and the Debug folder override, which must never write PATH.</param>
-        /// <param name="addToPath">Adds the output folder to the user PATH, as the installer and Settings do. False on failure.</param>
+        /// <param name="addToPath">Adds the given folder (as for <paramref name="isOnPath"/>) to the user PATH, as the installer and Settings do. False on failure.</param>
         public WelcomeViewModel(
             string appPath,
             Func<bool> isDismissed,
             Action markDismissed,
             Func<string, string, CancellationToken, Task<CreateResult>> createAsync,
-            Func<bool>? isOnPath = null,
-            Func<bool>? addToPath = null)
+            Func<string?, bool>? isOnPath = null,
+            Func<string?, bool>? addToPath = null)
         {
             this.appPath = appPath ?? throw new ArgumentNullException(nameof(appPath));
             this.isDismissed = isDismissed ?? throw new ArgumentNullException(nameof(isDismissed));
             this.markDismissed = markDismissed ?? throw new ArgumentNullException(nameof(markDismissed));
             this.createAsync = createAsync ?? throw new ArgumentNullException(nameof(createAsync));
-            this.isOnPath = isOnPath ?? (() => true);
-            this.addToPath = addToPath ?? (() => true);
+            this.isOnPath = isOnPath ?? (folder => true);
+            this.addToPath = addToPath ?? (folder => true);
 
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
             DismissCommand = new RelayCommand(Dismiss);
@@ -209,7 +213,8 @@ namespace keycuts.GUI.ViewModels
             {
                 case CreateOutcome.Success:
                     createdName = target;
-                    needsPath = !isOnPath();
+                    createdFolder = string.IsNullOrEmpty(result.Keycut?.FilePath) ? null : Path.GetDirectoryName(result.Keycut.FilePath);
+                    needsPath = !isOnPath(createdFolder);
                     TryMarkDismissed();
                     break;
                 case CreateOutcome.DuplicateName:
@@ -241,7 +246,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Puts the output folder on the user PATH, then checks again; a failure keeps the button and says so.</summary>
         private void AddToPath()
         {
-            if (addToPath() && isOnPath())
+            if (addToPath(createdFolder) && isOnPath(createdFolder))
             {
                 needsPath = false;
                 error = null;

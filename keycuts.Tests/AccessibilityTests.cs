@@ -24,7 +24,7 @@ namespace keycuts.Tests
     {
         static CreatorViewModel NewCreator()
         {
-            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false);
             creator.Destination = "https://example.com";
             creator.DestinationKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
@@ -212,6 +212,38 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void Creator_WelcomePanel_ComesFirstInTabOrder_WithNamedControls_AndHidesOnDismiss()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
+                    (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false) { Welcome = welcome };
+                creator.Destination = "https://example.com";
+                creator.DestinationKind = KeycutKind.Url;
+                creator.ShortcutName = "ex";
+                welcome.OnKeycutCountLoaded(0);
+
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    Assert.Equal(
+                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" },
+                        TabStops(window));
+
+                    welcome.Dismiss();
+                    Pump();
+                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         // WPF's default Label and CheckBox styles set the system control-text color, so they don't inherit the window's Foreground.
         [Fact]
         public void LabelAndCheckBox_UseThePaletteTextColor()
@@ -314,7 +346,7 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
+                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false);
                 var window = Host(new CreatorView(), empty);
                 try
                 {
@@ -377,6 +409,10 @@ namespace keycuts.Tests
             }
 
             public void Edit(string path)
+            {
+            }
+
+            public void OpenFileLocation(string path)
             {
             }
 

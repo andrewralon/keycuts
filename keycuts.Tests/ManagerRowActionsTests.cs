@@ -21,6 +21,10 @@ namespace keycuts.Tests
 
             public List<string> Copied { get; } = new List<string>();
 
+            public List<string> Located { get; } = new List<string>();
+
+            public Exception? LocateError { get; set; }
+
             public List<string> Deleted { get; } = new List<string>();
 
             public Exception? LaunchError { get; set; }
@@ -49,6 +53,16 @@ namespace keycuts.Tests
                 }
 
                 Edited.Add(path);
+            }
+
+            public void OpenFileLocation(string path)
+            {
+                if (LocateError != null)
+                {
+                    throw LocateError;
+                }
+
+                Located.Add(path);
             }
 
             public void CopyText(string text)
@@ -188,6 +202,52 @@ namespace keycuts.Tests
 
             Assert.True(manager.StatusIsError);
             Assert.Contains("no notepad", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task OpenFileLocation_ShowsTheKeycutFile()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+
+            manager.Rows[1].OpenFileLocationCommand.Execute(null);
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Located);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task OpenFileLocation_FileGone_ShowsMessage_AndRefreshesTheList()
+        {
+            var noop = new RelayCommand(() => { });
+            var actions = new FakeActions { LocateError = new System.IO.FileNotFoundException("gone") };
+            var current = new List<Keycut> { NewKeycut("a"), NewKeycut("b") };
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(current.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            current.RemoveAt(0);
+
+            manager.Rows[0].OpenFileLocationCommand.Execute(null);
+
+            Assert.Equal("This keycut no longer exists", manager.StatusMessage);
+            Assert.True(manager.StatusIsError);
+            await Task.Delay(200);
+            Assert.Equal(new[] { "b" }, manager.Rows.Select(r => r.Name).ToArray());
+        }
+
+        [Fact]
+        public async Task OpenFileLocation_OtherFailure_ShowsErrorInStatus()
+        {
+            var actions = new FakeActions { LocateError = new InvalidOperationException("no explorer") };
+            var manager = await LoadedAsync(actions, "a");
+
+            manager.Rows[0].OpenFileLocationCommand.Execute(null);
+
+            Assert.True(manager.StatusIsError);
+            Assert.Contains("no explorer", manager.StatusMessage);
+            Assert.Contains("file location", manager.StatusMessage);
         }
 
         [Fact]

@@ -45,6 +45,14 @@ The app is one compact window with two views.
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
 The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
 
+**First run:** the first time keycuts opens, and whenever your keycuts folder is empty, the creator shows a welcome
+panel that explains the Win+R workflow and offers a keycut to keycuts itself, named `kc` unless you change it, so
+Win+R → `kc` opens the app. (Not `keycuts`: that's the command-line tool, `keycuts.exe`, which is on your PATH too.)
+**Got it** or creating that keycut records that you've seen it (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`),
+so it only comes back while the folder is empty, or when you choose **Show Welcome** in Settings. If the keycuts folder
+isn't on your PATH (a portable copy; the installer adds it), the panel says Win+R can't find the new keycut yet and
+offers **Add to PATH**.
+
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).
 * Search by name, type, description, or destination. Escape clears the search.
@@ -53,7 +61,7 @@ Batmanager app, which has been removed).
   A name that's already taken is refused, and anything you added to the `.bat` by hand is kept.
 * Sort by Shortcut, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
-  **Copy destination**, and **Delete**. Delete has no confirmation.
+  **Open file location** (shows the `.bat` in Explorer), **Copy destination**, and **Delete**. Delete has no confirmation.
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
 Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.

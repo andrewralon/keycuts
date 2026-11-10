@@ -45,9 +45,12 @@
                                  AutomationProperties.Name="Dark theme" Checked="Theme_Checked"/>
                 </StackPanel>
             </StackPanel>
-            <Grid Grid.Row="5">
-                <Button Content="Save Settings" Click="SaveSettings_Click" HorizontalAlignment="Center" Margin="10" MinWidth="170"/>
-            </Grid>
+            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="Save Settings" Click="SaveSettings_Click" Margin="10" MinWidth="170"/>
+                <!-- Closes Settings and shows the first-run welcome panel in the creator again -->
+                <Button Content="Show Welcome" Click="ShowWelcome_Click" Margin="10" MinWidth="150"
+                        AutomationProperties.Name="Show the welcome panel"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>

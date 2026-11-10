@@ -122,8 +122,7 @@ namespace keycuts.Common
                 }
                 else if (File.Exists(destination))
                 {
-                    if (destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
-                        destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
+                    if (IsHostsFile(destination))
                     {
                         type = ShortcutType.HostsFile;
                     }
@@ -140,6 +139,27 @@ namespace keycuts.Common
             }
 
             return type;
+        }
+
+        /// <summary>
+        /// The hosts file has no default handler, so it is opened with Notepad. Compares the full path against this
+        /// machine's System32 (Windows isn't always on C:) as well as the usual C: path.
+        /// </summary>
+        public static bool IsHostsFile(string fullPath)
+        {
+            return IsHostsFile(fullPath, Environment.SystemDirectory);
+        }
+
+        /// <summary>The testable part of <see cref="IsHostsFile(string)"/>.</summary>
+        public static bool IsHostsFile(string fullPath, string systemDirectory)
+        {
+            var hosts = new[]
+            {
+                @"C:\Windows\System32\drivers\etc\hosts",
+                Path.Combine(systemDirectory, @"drivers\etc\hosts")
+            };
+
+            return hosts.Any(h => string.Equals(h, fullPath, StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool TryGetAttributes(string path, out FileAttributes attributes)

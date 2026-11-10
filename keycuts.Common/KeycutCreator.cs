@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -30,6 +31,12 @@ namespace keycuts.Common
 
         /// <summary>Null updates the real system PATH.</summary>
         public IPathUpdater PathUpdater { get; set; }
+
+        /// <summary>Save a file or folder destination with environment variables (#31). The caller decides (the setting, flipped by Shift).</summary>
+        public bool UseEnvironmentVariables { get; set; }
+
+        /// <summary>The variables for <see cref="UseEnvironmentVariables"/>; null reads them from this machine. Tests pass their own.</summary>
+        public IReadOnlyList<PathVariable> PathVariables { get; set; }
     }
 
     public class CreateResult
@@ -139,7 +146,9 @@ namespace keycuts.Common
                 var fixedRunner = new Runner(outputFolder, options.PathUpdater);
                 var args = new KeycutArgs(resolved.Destination, fileName, force: overwrite)
                 {
-                    Description = options.Description ?? ""
+                    Description = options.Description ?? "",
+                    UseEnvironmentVariables = options.UseEnvironmentVariables,
+                    PathVariables = options.PathVariables
                 };
 
                 switch (fixedRunner.Run(args))

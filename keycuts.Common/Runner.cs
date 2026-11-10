@@ -52,10 +52,15 @@ namespace keycuts.Common
 
         public ExitCode Run(KeycutArgs args)
         {
-            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description);
+            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description,
+                args.UseEnvironmentVariables, args.PathVariables);
         }
 
-        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "")
+        /// <param name="useEnvironmentVariables">Save a file or folder destination with environment variables (#31). This
+        /// happens after the destination is classified, which needs the real path.</param>
+        /// <param name="pathVariables">The variables to use; null reads them from this machine.</param>
+        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "",
+            bool useEnvironmentVariables = false, IReadOnlyList<PathVariable> pathVariables = null)
         {
             var result = ExitCode.NotStarted;
 
@@ -81,6 +86,11 @@ namespace keycuts.Common
             else
             {
                 var shortcut = new Shortcut(destination, shortcutPath, outputFolder, openWithAppPath);
+
+                if (useEnvironmentVariables && PathVariables.AppliesTo(shortcut.Type))
+                {
+                    shortcut.SetDestination(PathVariables.Substitute(shortcut.Destination, pathVariables ?? PathVariables.GetDefault()));
+                }
 
                 if (shortcut.Type != ShortcutType.Unknown)
                 {
@@ -137,6 +147,11 @@ namespace keycuts.Common
             return RegistryStuff.GetThemePreference();
         }
 
+        public bool GetUseEnvironmentVariables()
+        {
+            return RegistryStuff.GetUseEnvironmentVariables();
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -186,6 +201,14 @@ namespace keycuts.Common
             if (RegistryStuff.GetThemePreference() != preference)
             {
                 RegistryStuff.SetThemePreference(preference);
+            }
+        }
+
+        public void SetUseEnvironmentVariables(bool useEnvironmentVariables)
+        {
+            if (RegistryStuff.GetUseEnvironmentVariables() != useEnvironmentVariables)
+            {
+                RegistryStuff.SetUseEnvironmentVariables(useEnvironmentVariables);
             }
         }
 

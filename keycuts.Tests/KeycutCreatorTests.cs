@@ -49,6 +49,46 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task EnvironmentVariables_On_SavesTheFileWithTheVariable()
+        {
+            var options = Options();
+            options.UseEnvironmentVariables = true;
+            options.PathVariables = new[] { new PathVariable("KC_TEST_ROOT", _root) };
+
+            var result = await KeycutCreator.CreateAsync(_target, "mine", options);
+
+            Assert.Equal(CreateOutcome.Success, result.Outcome);
+            var lines = File.ReadAllLines(Path.Combine(_out, "mine.bat"));
+            Assert.Contains(@"REM <destination>%KC_TEST_ROOT%\target.txt</destination>", lines);
+            Assert.Contains(@"START """" /B ""%KC_TEST_ROOT%\target.txt""", lines);
+            Assert.Equal(@"%KC_TEST_ROOT%\target.txt", result.Keycut.Destination);
+            Assert.Equal(KeycutKind.File, result.Keycut.Kind);
+        }
+
+        [Fact]
+        public async Task EnvironmentVariables_Off_SavesTheLiteralPath()
+        {
+            var options = Options();
+            options.PathVariables = new[] { new PathVariable("KC_TEST_ROOT", _root) };
+
+            var result = await KeycutCreator.CreateAsync(_target, "mine", options);
+
+            Assert.Equal(_target, result.Keycut.Destination);
+        }
+
+        [Fact]
+        public async Task EnvironmentVariables_On_LeaveAUrlAlone()
+        {
+            var options = Options();
+            options.UseEnvironmentVariables = true;
+            options.PathVariables = new[] { new PathVariable("KC_TEST_ROOT", _root) };
+
+            var result = await KeycutCreator.CreateAsync("https://example.com", "site", options);
+
+            Assert.Equal("https://example.com", result.Keycut.Destination);
+        }
+
+        [Fact]
         public async Task Success_WritesFileAndReturnsKeycut()
         {
             var result = await KeycutCreator.CreateAsync(_target, "mine", Options(description: "hello"));

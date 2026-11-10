@@ -52,8 +52,9 @@ namespace keycuts.CLI
                         options.OutputFolder,
                         options.Force);
 
-                    // Run app and pass arguments as parameters
+                    // Run app and pass arguments as parameters. Environment variables in paths (#31) follow the setting.
                     var app = new Runner();
+                    keycutArgs.UseEnvironmentVariables = app.GetUseEnvironmentVariables();
                     result = app.Run(keycutArgs);
 
                     if (result == ExitCode.FileAlreadyExists)

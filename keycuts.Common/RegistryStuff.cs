@@ -19,6 +19,9 @@ namespace keycuts.Common
 
         public static readonly string ThemeKeyName = "Theme";
 
+        /// <summary>Save new file and folder keycuts with environment variables (#31). Off unless set.</summary>
+        public static readonly string UseEnvironmentVariablesKeyName = "UseEnvironmentVariables";
+
         /// <summary>Set once the first-run welcome panel was dismissed or used, so it never shows again.</summary>
         public static readonly string WelcomeDismissedKeyName = "WelcomeDismissed";
 
@@ -61,6 +64,16 @@ namespace keycuts.Common
         public static bool GetRightClickContextMenu()
         {
             return new ContextMenuRegistrar().IsRegistered();
+        }
+
+        public static bool GetUseEnvironmentVariables()
+        {
+            return ReadValue(UseEnvironmentVariablesKeyName) is int raw && raw != 0;
+        }
+
+        public static void SetUseEnvironmentVariables(bool useEnvironmentVariables)
+        {
+            SetRegistryValue(UseEnvironmentVariablesKeyName, useEnvironmentVariables, RegistryValueKind.DWord);
         }
 
         public static ThemePreference GetThemePreference()

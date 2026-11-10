@@ -14,6 +14,12 @@ namespace keycuts.Common
 
         public string Destination { get; private set; }
 
+        /// <summary>Replaces the classified destination with an equivalent spelling (environment variables, #31).</summary>
+        internal void SetDestination(string destination)
+        {
+            Destination = destination;
+        }
+
         public string Extension { get; private set; } = ".bat";
 
         public string Filename { get; private set; }

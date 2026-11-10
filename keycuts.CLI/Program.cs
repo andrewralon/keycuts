@@ -13,7 +13,16 @@ namespace keycuts.CLI
 
         public static int Main(string[] args)
         {
-            var result = Run(args);
+            // A bare "keycuts" (Win+R, Start) opens the app; any argument, even --help, stays the command line
+            var launched = GuiLauncher.TryLaunch(args, AppContext.BaseDirectory, System.IO.File.Exists, StartGui);
+            if (launched == ExitCode.CannotFindFile)
+            {
+                // A CLI-only copy has no GUI beside it, so show the help it used to
+                Run(new[] { "--help" });
+                return (int)ExitCode.Success;
+            }
+
+            var result = launched ?? Run(args);
             if (result != ExitCode.Success)
             {
                 // stderr, so a failed `keycuts paste` leaves stdout empty for a script that reads it
@@ -21,6 +30,11 @@ namespace keycuts.CLI
             }
 
             return (int)result;
+        }
+
+        private static void StartGui(string path)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
         }
 
         public static ExitCode Run(string[] args)

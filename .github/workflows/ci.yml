@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, master]
+    branches: [develop, main]
   push:
     branches: [develop]
   workflow_dispatch:
@@ -36,13 +36,13 @@ jobs:
       - name: Test
         run: dotnet test keycuts.sln -c Release --no-build
 
-      # A PR into master is a release candidate: prove the MSI builds and say whether merging will release.
+      # A PR into main is a release candidate: prove the MSI builds and say whether merging will release.
       - name: Build installer
-        if: github.base_ref == 'master'
+        if: github.base_ref == 'main'
         run: ./tools/Build-Installer.ps1
 
       - name: Release preview
-        if: github.base_ref == 'master'
+        if: github.base_ref == 'main'
         run: |
           $tag = "v$((dotnet msbuild keycuts.Common/keycuts.Common.csproj -getProperty:Version).Trim())"
           if (git ls-remote --tags origin "refs/tags/$tag") {

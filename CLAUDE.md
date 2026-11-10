@@ -26,11 +26,11 @@ Gotchas:
 - Tests must use temp folders and must never touch the real output folder or the registry. Use `KeycutCreator`/`KeycutRepository` with an explicit `OutputFolder`, an explicit `Overwrite`, and a fake `IPathUpdater`; a null `Overwrite` falls through to `Runner.GetForceOverwrite()`, which reads `HKCU`. Use `ContextMenuRegistrar` with a fake `IClassesStore`.
 - A Debug `keycuts.exe` ends with `Console.ReadKey()`, so it waits for a keypress and won't exit on its own in a script.
 - Debug builds honor the `KEYCUTS_OUTPUT_FOLDER` env var (`DebugOverrides`) to redirect the output folder without touching registry/PATH; it is inert in Release. `tools/New-SampleKeycuts.ps1` generates fixture folders (refuses the real output folder).
-- CI (`.github/workflows/ci.yml`) builds, checks format and tests on PRs into `develop`/`master`; PRs into `master` also build the MSI.
+- CI (`.github/workflows/ci.yml`) builds, checks format and tests on PRs into `develop`/`main`; PRs into `main` also build the MSI.
 
 ## Versioning and releases
 
-`<Version>` in `Directory.Build.props` is the only version. It stamps every exe (`Runner.Version`, which goes into each `.bat` header) and the MSI. Every push to `master` runs `.github/workflows/release.yml`: if tag `v<Version>` doesn't exist yet it tests, builds the MSI, and publishes a GitHub release with `keycuts-setup.msi`, `keycuts-portable-win-x64.zip` and `SHA256SUMS.txt`; otherwise it does nothing. To release, raise the version on `develop` (three parts; MSI upgrades ignore a fourth), then merge `develop` into `master`. Don't create release tags by hand.
+`<Version>` in `Directory.Build.props` is the only version. It stamps every exe (`Runner.Version`, which goes into each `.bat` header) and the MSI. Every push to `main` runs `.github/workflows/release.yml`: if tag `v<Version>` doesn't exist yet it tests, builds the MSI, and publishes a GitHub release with `keycuts-setup.msi`, `keycuts-portable-win-x64.zip` and `SHA256SUMS.txt`; otherwise it does nothing. To release, raise the version on `develop` (three parts; MSI upgrades ignore a fourth), then merge `develop` into `main`. Don't create release tags by hand.
 
 ## Architecture
 

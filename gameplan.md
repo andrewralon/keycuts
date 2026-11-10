@@ -10,7 +10,7 @@ The overall order hasn't changed: **Windows first, then the parser safety net be
 |---|---|---|
 | .NET 10 foundation | Done. SDK-style projects, CI, warnings as errors, versions pinned in `Directory.Packages.props`. | #82, #83, #86, #80 (rescoped into #117), #81 |
 | UI redesign | Done. One window with Creator and Manager views; Batmanager retired. | #112; closed #40, #54, #63, #75, #110 |
-| Installer and context menu | Done apart from signing and arm64. Per-user MSI, no elevation, verbs in `HKCU\Software\Classes`, PATH owned by the installer, releases from `master`. | #99, #105, #94, #64; open: #118, #119 |
+| Installer and context menu | Done apart from signing and arm64. Per-user MSI, no elevation, verbs in `HKCU\Software\Classes`, PATH owned by the installer, releases from `main`. | #99, #105, #94, #64; open: #118, #119 |
 | Parser safety net | Done. Characterization snapshots of the parser and emitter over `tests/corpus/legacy/`, plus a round-trip snapshot. | #87, #88, #89 |
 | Quick bugs | Done: #65 (CLI overwrite "no"), #93 (`Command` emitted nothing), #25 (old `START /D` emitter). Also #68 (crash on an access-denied destination), checked by hand on 2026-11-09. | |
 

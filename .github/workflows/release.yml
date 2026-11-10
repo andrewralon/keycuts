@@ -1,11 +1,11 @@
-# Publishes a GitHub release when master carries a version that has no tag yet.
-# To release: raise <Version> in Directory.Build.props on develop, then merge develop into master.
+# Publishes a GitHub release when main carries a version that has no tag yet.
+# To release: raise <Version> in Directory.Build.props on develop, then merge develop into main.
 # Merges that keep the same version do nothing, so re-running this is always safe.
 name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -17,8 +17,8 @@ concurrency:
 
 jobs:
   release:
-    # A manual run from another branch would publish unmerged code and take the tag master needs.
-    if: github.ref == 'refs/heads/master'
+    # A manual run from another branch would publish unmerged code and take the tag main needs.
+    if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
     defaults:
       run:

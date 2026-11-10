@@ -206,9 +206,9 @@ namespace keycuts.Common
                     }
                 }
             }
-            catch (UriFormatException e)
+            catch (UriFormatException)
             {
-                Console.WriteLine($"UriFormatException: {destination} -- {e.Message}");
+                // Not a URL; the caller tries the other types
             }
 
             return result;

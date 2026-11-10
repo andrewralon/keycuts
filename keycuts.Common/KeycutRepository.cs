@@ -305,7 +305,22 @@ namespace keycuts.Common
                 }
 
                 var body = strict.GetBytes(updated);
-                File.WriteAllBytes(path, hasBom ? preamble.Concat(body).ToArray() : body);
+                // Write a temp file beside it and swap it in only once it's complete: writing in place truncates first,
+                // so a failed write (a full disk) would leave the keycut empty or half written
+                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+                try
+                {
+                    File.WriteAllBytes(temp, hasBom ? preamble.Concat(body).ToArray() : body);
+                    File.Move(temp, path, true);
+                }
+                finally
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
             }
             catch (Exception ex) when (ex is System.Text.DecoderFallbackException || ex is IOException || ex is UnauthorizedAccessException)
             {

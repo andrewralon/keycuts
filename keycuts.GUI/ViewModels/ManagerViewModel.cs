@@ -62,6 +62,8 @@ namespace keycuts.GUI.ViewModels
 
         private KeycutRowViewModel? renamingRow;
 
+        private bool savingRename;
+
         private int keycutCount;
 
         private bool isLoading = true;
@@ -359,10 +361,13 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Starts editing the row's name in place (F2 or Rename…). Only one row is edited at a time.</summary>
+        /// <summary>
+        /// Starts editing the row's name in place (F2 or Rename…). Only one row is edited at a time, and not while a
+        /// previous rename is still saving. A load already under way is cancelled, so its result can't replace the row.
+        /// </summary>
         public void BeginRename(KeycutRowViewModel row)
         {
-            if (actions == null || deleting.Contains(row))
+            if (actions == null || savingRename || deleting.Contains(row))
             {
                 return;
             }
@@ -372,6 +377,8 @@ namespace keycuts.GUI.ViewModels
                 renamingRow.EndRename();
             }
 
+            Interlocked.Exchange(ref loadSource, null)?.Cancel();
+
             IsMenuOpen = false;
             SelectedRow = row;
             renamingRow = row;
@@ -379,7 +386,7 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(IsRenaming));
         }
 
-        /// <summary>Leaves the name unchanged and gives the focus back to the row.</summary>
+        /// <summary>Leaves the name unchanged, gives the focus back to the row, and catches up on any reload it held off.</summary>
         public void CancelRename()
         {
             var row = renamingRow;
@@ -391,6 +398,7 @@ namespace keycuts.GUI.ViewModels
 
             EndRename(row);
             FocusRowRequested?.Invoke(this, row);
+            _ = LoadAsync();
         }
 
         /// <summary>
@@ -414,48 +422,68 @@ namespace keycuts.GUI.ViewModels
             if (string.Equals(newName, oldName, StringComparison.Ordinal))
             {
                 FocusRowRequested?.Invoke(this, row);
+                _ = LoadAsync();
                 return;
             }
 
-            string newPath;
+            // No other rename until this one is saved and the list reloaded, or that reload would be skipped
+            savingRename = true;
+
             try
             {
-                newPath = await actions.RenameAsync(row.Keycut, newName);
-            }
-            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.AlreadyExists)
-            {
-                ShowStatusMessage("“" + newName + "” already exists. Choose another name.", true);
-                FocusRowRequested?.Invoke(this, row);
-                return;
-            }
-            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.InvalidName)
-            {
-                ShowStatusMessage(CreatorViewModel.InvalidNameMessage, true);
-                FocusRowRequested?.Invoke(this, row);
-                return;
-            }
-            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
-            {
-                ShowStatusMessage("This keycut no longer exists", true);
+                string newPath;
+                try
+                {
+                    newPath = await actions.RenameAsync(row.Keycut, newName);
+                }
+                catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.AlreadyExists)
+                {
+                    ShowStatusMessage("“" + newName + "” already exists. Choose another name.", true);
+                    FocusRowRequested?.Invoke(this, row);
+                    await LoadAsync();
+                    return;
+                }
+                catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.InvalidName)
+                {
+                    ShowStatusMessage(CreatorViewModel.InvalidNameMessage, true);
+                    FocusRowRequested?.Invoke(this, row);
+                    await LoadAsync();
+                    return;
+                }
+                catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
+                {
+                    ShowStatusMessage("This keycut no longer exists", true);
+                    await LoadAsync();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ex.Message, true);
+                    FocusRowRequested?.Invoke(this, row);
+                    await LoadAsync();
+                    return;
+                }
+
+                ShowStatusMessage("Renamed “" + oldName + "” to “" + newName + "”", false);
                 await LoadAsync();
-                return;
+
+                // The new name may not match the search; clear it rather than hide the row that was just renamed
+                var renamed = allRows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, newPath, StringComparison.OrdinalIgnoreCase));
+
+                if (renamed != null)
+                {
+                    if (!Rows.Contains(renamed))
+                    {
+                        SearchText = string.Empty;
+                    }
+
+                    SelectedRow = renamed;
+                    FocusRowRequested?.Invoke(this, renamed);
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ex.Message, true);
-                FocusRowRequested?.Invoke(this, row);
-                return;
-            }
-
-            ShowStatusMessage("Renamed “" + oldName + "” to “" + newName + "”", false);
-            await LoadAsync();
-
-            var renamed = Rows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, newPath, StringComparison.OrdinalIgnoreCase));
-
-            if (renamed != null)
-            {
-                SelectedRow = renamed;
-                FocusRowRequested?.Invoke(this, renamed);
+                savingRename = false;
             }
         }
 

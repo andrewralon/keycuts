@@ -296,6 +296,7 @@ namespace keycuts.Tests
 
             Assert.Equal(newPath, result);
             Assert.False(File.Exists(oldPath));
+            Assert.Equal(new[] { newPath }, Directory.GetFiles(_folder));
             Assert.Equal(
                 "@ECHO OFF\r\n" +
                 "REM keycuts 1.0.6\r\n" +

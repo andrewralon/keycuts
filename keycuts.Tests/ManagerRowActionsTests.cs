@@ -76,15 +76,23 @@ namespace keycuts.Tests
 
             public Exception? RenameError { get; set; }
 
-            public Task<string> RenameAsync(Keycut keycut, string newName)
+            /// <summary>When set, a rename waits for this before it finishes.</summary>
+            public Task? RenameGate { get; set; }
+
+            public async Task<string> RenameAsync(Keycut keycut, string newName)
             {
+                if (RenameGate != null)
+                {
+                    await RenameGate;
+                }
+
                 if (RenameError != null)
                 {
-                    return Task.FromException<string>(RenameError);
+                    throw RenameError;
                 }
 
                 Renamed.Add((keycut.FilePath, newName));
-                return Task.FromResult(@"C:\fixture\" + newName + ".bat");
+                return @"C:\fixture\" + newName + ".bat";
             }
         }
 
@@ -316,6 +324,82 @@ namespace keycuts.Tests
             Assert.Equal(1, loads);
             Assert.Same(row, manager.Rows[0]);
             Assert.Equal("typing", row.EditName);
+        }
+
+        [Fact]
+        public async Task Rename_CancelsALoadAlreadyUnderWay_SoItCantReplaceTheRow()
+        {
+            var noop = new RelayCommand(() => { });
+            var gate = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var first = true;
+            var manager = new ManagerViewModel(noop, noop, ct =>
+            {
+                if (first)
+                {
+                    first = false;
+                    return Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") });
+                }
+
+                return gate.Task;
+            }, null, new FakeActions());
+            await manager.LoadAsync();
+            var row = manager.Rows[0];
+
+            var pending = manager.LoadAsync();
+            manager.BeginRename(row);
+            row.EditName = "typing";
+            gate.SetResult(new List<Keycut> { NewKeycut("a"), NewKeycut("b") });
+            await pending;
+
+            Assert.Same(row, manager.Rows.Single());
+            Assert.True(row.IsRenaming);
+            Assert.Equal("typing", row.EditName);
+        }
+
+        [Fact]
+        public async Task Rename_AnotherCantStart_UntilTheFirstIsSaved()
+        {
+            var gate = new TaskCompletionSource();
+            var actions = new FakeActions { RenameGate = gate.Task };
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "z";
+
+            var saving = manager.CommitRenameAsync();
+            manager.BeginRename(manager.Rows[1]);
+
+            Assert.False(manager.IsRenaming);
+            Assert.False(manager.Rows[1].IsRenaming);
+
+            gate.SetResult();
+            await saving;
+            manager.BeginRename(manager.Rows[1]);
+            Assert.True(manager.IsRenaming);
+        }
+
+        [Fact]
+        public async Task Rename_ASearchResult_ToANameTheSearchMisses_ClearsTheSearchAndSelectsIt()
+        {
+            var noop = new RelayCommand(() => { });
+            var current = new List<Keycut> { NewKeycut("alpha"), NewKeycut("bravo") };
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(current.ToList()), null, new FakeActions())
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.SearchText = "alp";
+            KeycutRowViewModel? focused = null;
+            manager.FocusRowRequested += (sender, row) => focused = row;
+
+            manager.BeginRename(manager.Rows.Single());
+            manager.Rows.Single().EditName = "zulu";
+            current = new List<Keycut> { NewKeycut("bravo"), NewKeycut("zulu") };
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(string.Empty, manager.SearchText);
+            Assert.Equal("zulu", manager.SelectedRow?.Name);
+            Assert.Contains(manager.SelectedRow!, manager.Rows);
+            Assert.Same(manager.SelectedRow, focused);
         }
 
         [Fact]

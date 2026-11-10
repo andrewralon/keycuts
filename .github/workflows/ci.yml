@@ -162,7 +162,7 @@ jobs:
   installer:
     if: github.base_ref == 'main'
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
@@ -175,16 +175,18 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Build installer
-        run: ./tools/Build-Installer.ps1
+      - name: Build installers
+        run: |
+          ./tools/Build-Installer.ps1 -Runtime win-x64
+          ./tools/Build-Installer.ps1 -Runtime win-arm64
 
-      # The release candidate's MSI, so it can be installed and tried before the merge publishes it.
-      - name: Upload installer
+      # The release candidate's MSIs, so they can be installed and tried before the merge publishes them.
+      - name: Upload installers
         id: msi
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: keycuts-setup
-          path: artifacts/installer/keycuts-setup.msi
+          path: artifacts/installer/*/keycuts-setup-*.msi
           if-no-files-found: error
           retention-days: 14
 
@@ -200,14 +202,18 @@ jobs:
             $status = "Merging this publishes release $tag."
             "::notice::$status"
           }
-          $msi = Get-Item artifacts/installer/keycuts-setup.msi
-          @(
+          $lines = @(
             '## Release candidate'
             ''
             $status
             ''
+            "Both installers are in the [keycuts-setup artifact]($env:MSI_URL)."
+            ''
             '| Installer | Size | SHA256 |'
             '|---|---|---|'
-            "| [keycuts-setup.msi]($env:MSI_URL) | $([math]::Round($msi.Length / 1MB, 1)) MB | ``$((Get-FileHash $msi -Algorithm SHA256).Hash.ToLower())`` |"
-            ''
-          ) | Add-Content $env:GITHUB_STEP_SUMMARY
+          )
+          $lines += foreach ($msi in Get-ChildItem artifacts/installer/*/keycuts-setup-*.msi) {
+            "| $($msi.Name) | $([math]::Round($msi.Length / 1MB, 1)) MB | ``$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower())`` |"
+          }
+          $lines += ''
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY

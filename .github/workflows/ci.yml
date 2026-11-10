@@ -10,36 +10,67 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels that PR's older run. Runs on develop always finish, so every merge keeps its own result.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
+  # The job id is the required status check on develop and main; keep it named build.
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     defaults:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: 10.0.x
 
       - name: Build
         run: dotnet build keycuts.sln -c Release
 
-      - name: Format
-        run: dotnet format keycuts.sln --verify-no-changes --severity error --no-restore
-
       - name: Test
-        run: dotnet test keycuts.sln -c Release --no-build
+        run: dotnet test keycuts.sln -c Release --no-build --logger trx --results-directory artifacts/test-results
+
+      # A failed characterization test writes a .received.txt next to its .verified.txt; upload them so the diff can be
+      # read (or copied over the verified file) without rerunning the tests locally.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results
+          path: |
+            artifacts/test-results/
+            keycuts.Tests/Characterization/Snapshots/*.received.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
       # A PR into main is a release candidate: prove the MSI builds and say whether merging will release.
       - name: Build installer
+        id: installer
         if: github.base_ref == 'main'
         run: ./tools/Build-Installer.ps1
+
+      # The release candidate's MSI, so it can be installed and tried before the merge publishes it.
+      - name: Upload installer
+        if: steps.installer.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keycuts-setup
+          path: artifacts/installer/keycuts-setup.msi
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Release preview
         if: github.base_ref == 'main'
@@ -50,3 +81,22 @@ jobs:
           } else {
             "::notice::Merging this publishes release $tag."
           }
+
+  # Formatting doesn't depend on the OS, and a Linux runner starts faster than a Windows one, so the check runs beside
+  # the Windows build instead of after it. EnableWindowsTargeting lets the net10.0-windows projects restore on Linux.
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EnableWindowsTargeting: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Format
+        run: dotnet format keycuts.sln --verify-no-changes --severity error

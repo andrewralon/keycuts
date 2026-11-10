@@ -1,0 +1,11 @@
+# The workflows pin each action to a commit SHA; this keeps those pins current. One grouped PR a month, into develop
+# (the default branch).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]

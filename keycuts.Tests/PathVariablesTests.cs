@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using keycuts.Common;
 using Xunit;
@@ -73,14 +74,34 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void GetDefault_HasUserProfile_AndNoTempOrDriveRoots()
+        public void GetDefault_KnownThenExistingCustomFolders_WithoutTempDriveRootsOrDuplicates()
         {
-            var all = PathVariables.GetDefault();
+            var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["USERPROFILE"] = @"C:\Users\me\",              // trailing separator trimmed
+                ["APPDATA"] = @"C:\Users\me\AppData\Roaming",
+                ["ProgramFiles"] = "relative",                   // not fully qualified
+                ["DROPBOX"] = @"C:\Users\me\Dropbox",
+                ["Archive"] = @"\\server\share\Archive",         // a share, but its folder exists
+                ["GONE"] = @"C:\Gone",                           // folder doesn't exist
+                ["TEMP"] = @"C:\Users\me\AppData\Local\Temp",    // never used
+                ["DATA"] = @"D:\",                               // a drive root
+                ["LIST"] = @"C:\a;C:\b",                         // a list, not a folder
+            };
+            var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"C:\Users\me\Dropbox", @"\\server\share\Archive", @"D:\" };
+            var asked = new List<string>();
 
-            Assert.Contains(all, v => v.Name == "USERPROFILE" && v.Value == Environment.GetEnvironmentVariable("USERPROFILE")!.TrimEnd('\\'));
-            Assert.DoesNotContain(all, v => v.Name.Equals("TEMP", StringComparison.OrdinalIgnoreCase) || v.Name.Equals("TMP", StringComparison.OrdinalIgnoreCase));
-            Assert.DoesNotContain(all, v => System.IO.Path.GetPathRoot(v.Value) == v.Value);
-            Assert.Equal(all.Count, all.Select(v => v.Name.ToUpperInvariant()).Distinct().Count());
+            var all = PathVariables.GetDefault(
+                name => environment.TryGetValue(name, out var value) ? value : null!,
+                new[] { "TEMP", "GONE", "DROPBOX", "DATA", "LIST", "Archive", "dropbox" },
+                folder => { asked.Add(folder); return existing.Contains(folder); });
+
+            Assert.Equal(
+                new[] { @"APPDATA=C:\Users\me\AppData\Roaming", @"USERPROFILE=C:\Users\me", @"Archive=\\server\share\Archive", @"DROPBOX=C:\Users\me\Dropbox" },
+                all.Select(v => v.Name + "=" + v.Value).ToArray());
+
+            // Only custom variables are checked on disk, and only once they've passed the cheap checks
+            Assert.Equal(new[] { @"\\server\share\Archive", @"C:\Users\me\Dropbox", @"C:\Gone" }, asked.ToArray());
         }
     }
 }

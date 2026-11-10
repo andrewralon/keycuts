@@ -60,17 +60,26 @@ namespace keycuts.Common
         /// </summary>
         public static IReadOnlyList<PathVariable> GetDefault()
         {
+            return GetDefault(Environment.GetEnvironmentVariable, CustomNames(), Directory.Exists);
+        }
+
+        /// <summary>
+        /// <see cref="GetDefault()"/> with its inputs passed in: a variable's value, the user and machine variable names, and
+        /// whether a folder exists (only asked for custom variables). Tests use it so they never read the registry or disk.
+        /// </summary>
+        public static IReadOnlyList<PathVariable> GetDefault(Func<string, string> getVariable, IEnumerable<string> customNames, Func<string, bool> folderExists)
+        {
             var result = new List<PathVariable>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var name in KnownNames)
             {
-                Add(result, seen, name, Environment.GetEnvironmentVariable(name), requireFolder: false);
+                Add(result, seen, name, getVariable(name), null);
             }
 
-            foreach (var name in CustomNames().OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+            foreach (var name in customNames.OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
             {
-                Add(result, seen, name, Environment.GetEnvironmentVariable(name), requireFolder: true);
+                Add(result, seen, name, getVariable(name), folderExists);
             }
 
             return result;
@@ -120,7 +129,8 @@ namespace keycuts.Common
                    name.IndexOfAny(new[] { ':', '%' }) < 0;
         }
 
-        private static void Add(List<PathVariable> result, HashSet<string> seen, string name, string value, bool requireFolder)
+        /// <param name="folderExists">Null for a known variable, which is used whether or not its folder exists yet.</param>
+        private static void Add(List<PathVariable> result, HashSet<string> seen, string name, string value, Func<string, bool> folderExists)
         {
             if (string.IsNullOrWhiteSpace(value) || Excluded.Contains(name) || !seen.Add(name))
             {
@@ -129,13 +139,19 @@ namespace keycuts.Common
 
             var folder = Path.TrimEndingDirectorySeparator(value.Trim());
 
-            if (folder.IndexOf(';') >= 0 || !Path.IsPathFullyQualified(folder) || (requireFolder && !Directory.Exists(folder)))
+            if (folder.IndexOf(';') >= 0 || !Path.IsPathFullyQualified(folder))
             {
                 return;
             }
 
             // The root of a drive ("C:\") would turn every path on it into a variable
             if (string.Equals(Path.GetPathRoot(folder), folder, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // Last, since it can be slow (a network share that's offline)
+            if (folderExists != null && !folderExists(folder))
             {
                 return;
             }

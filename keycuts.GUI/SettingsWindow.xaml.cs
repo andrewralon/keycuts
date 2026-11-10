@@ -51,6 +51,9 @@ namespace keycuts.GUI
 
         public string LabelTheme { get; } = "Theme";
 
+        /// <summary>Set by Show welcome, which closes the window; the main window then shows the first-run panel.</summary>
+        public bool ShowWelcomeRequested { get; private set; }
+
         public string OutputFolder
         {
             get { return outputFolder; }
@@ -128,6 +131,13 @@ namespace keycuts.GUI
             {
                 MessageBox.Show(this, error, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        // Unsaved changes are dropped, as with Escape
+        private void ShowWelcome_Click(object sender, RoutedEventArgs e)
+        {
+            ShowWelcomeRequested = true;
+            CloseWindow();
         }
 
         // A click previews the theme right away; only Save keeps it.

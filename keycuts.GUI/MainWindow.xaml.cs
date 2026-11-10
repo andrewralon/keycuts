@@ -58,6 +58,11 @@ namespace keycuts.GUI
             var settingsWindow = new SettingsWindow { Owner = this };
             settingsWindow.ShowDialog();
 
+            if (settingsWindow.ShowWelcomeRequested)
+            {
+                shell.ShowWelcome();
+            }
+
             // The output folder may have changed
             _ = shell.ReloadAsync();
         }

@@ -45,6 +45,19 @@ namespace keycuts.Tests
         {
             Assert.Equal(@"C:\Shortcuts", PathList.AddOrReplace(null!, null!, @"C:\Shortcuts"));
         }
+
+        [Fact]
+        public void IsOnPath_ChecksTheUserAndMachinePath_AsWrittenAndExpanded()
+        {
+            var profile = Environment.GetEnvironmentVariable("USERPROFILE")!;
+            var folder = Path.Combine(profile, "Shortcuts");
+
+            Assert.True(UserPathUpdater.IsOnPath(folder, @"C:\Other;" + folder + @"\", null!));
+            Assert.True(UserPathUpdater.IsOnPath(folder, @"%USERPROFILE%\Shortcuts", null!));
+            Assert.True(UserPathUpdater.IsOnPath(folder, null!, @"C:\Windows;" + folder));
+            Assert.False(UserPathUpdater.IsOnPath(folder, @"%USERPROFILE%\Shortcuts2", @"C:\Windows"));
+            Assert.False(UserPathUpdater.IsOnPath(folder, null!, null!));
+        }
     }
 
     public class SettingsValidationTests

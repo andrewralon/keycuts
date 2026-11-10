@@ -45,11 +45,13 @@ The app is one compact window with two views.
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
 The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
 
-**First run:** while your keycuts folder is empty, the creator shows a welcome panel that explains the Win+R workflow
-and offers a keycut to keycuts itself (named `keycuts` unless you change it), so Win+R → `keycuts` opens the app.
-**Got it** or creating that keycut hides the panel for good (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`).
-People who already have keycuts never see it. If the keycuts folder isn't on your PATH (a portable copy; the installer
-adds it), the panel says Win+R can't find the new keycut yet and offers **Add to PATH**.
+**First run:** the first time keycuts opens, and whenever your keycuts folder is empty, the creator shows a welcome
+panel that explains the Win+R workflow and offers a keycut to keycuts itself, named `kc` unless you change it, so
+Win+R → `kc` opens the app. (Not `keycuts`: that's the command-line tool, `keycuts.exe`, which is on your PATH too.)
+**Got it** or creating that keycut records that you've seen it (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`),
+so it only comes back while the folder is empty, or when you choose **Show Welcome** in Settings. If the keycuts folder
+isn't on your PATH (a portable copy; the installer adds it), the panel says Win+R can't find the new keycut yet and
+offers **Add to PATH**.
 
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).

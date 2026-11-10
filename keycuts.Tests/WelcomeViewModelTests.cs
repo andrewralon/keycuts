@@ -68,29 +68,24 @@ namespace keycuts.Tests
             }
         }
 
-        [Fact]
-        public void Shows_OnlyForAnEmptyFolderThatWasNeverDismissed()
+        [Theory]
+        [InlineData(false, 0, true)]  // first run, empty folder
+        [InlineData(false, 3, true)]  // first run after an upgrade, keycuts already there
+        [InlineData(true, 0, true)]   // dismissed, but there are no keycuts
+        [InlineData(true, 3, false)]  // dismissed, and keycuts exist
+        public void Shows_OnTheFirstRun_OrForAnEmptyFolder(bool dismissed, int count, bool visible)
         {
-            var fakes = new Fakes();
+            var welcome = new Fakes { Dismissed = dismissed }.Create();
 
-            var empty = fakes.Create();
-            empty.OnKeycutCountLoaded(0);
-            Assert.True(empty.IsVisible);
+            welcome.OnKeycutCountLoaded(count);
 
-            var upgraded = fakes.Create();
-            upgraded.OnKeycutCountLoaded(3);
-            Assert.False(upgraded.IsVisible);
-
-            fakes.Dismissed = true;
-            var dismissed = fakes.Create();
-            dismissed.OnKeycutCountLoaded(0);
-            Assert.False(dismissed.IsVisible);
+            Assert.Equal(visible, welcome.IsVisible);
         }
 
         [Fact]
         public void Decides_OnlyFromTheFirstCount()
         {
-            var fakes = new Fakes();
+            var fakes = new Fakes { Dismissed = true };
 
             var shown = fakes.Create();
             shown.OnKeycutCountLoaded(0);
@@ -101,6 +96,43 @@ namespace keycuts.Tests
             hidden.OnKeycutCountLoaded(2);
             hidden.OnKeycutCountLoaded(0);
             Assert.False(hidden.IsVisible);
+        }
+
+        [Fact]
+        public async Task Show_BringsThePanelBackFromTheStart()
+        {
+            var fakes = new Fakes { Dismissed = true };
+            var welcome = fakes.Create();
+            welcome.OnKeycutCountLoaded(5);
+            welcome.Name = "x";
+            await welcome.CreateCommand.ExecuteAsync();
+            Assert.True(welcome.IsSuccess);
+
+            welcome.Show();
+
+            Assert.True(welcome.IsVisible);
+            Assert.False(welcome.IsSuccess);
+            Assert.True(welcome.IsInputEnabled);
+            Assert.Equal("kc", welcome.Name);
+            Assert.False(welcome.HelperIsError);
+
+            // A later count doesn't hide it again
+            welcome.OnKeycutCountLoaded(6);
+            Assert.True(welcome.IsVisible);
+        }
+
+        [Fact]
+        public void Shell_ShowWelcome_ReturnsToTheCreatorWithThePanel()
+        {
+            var welcome = new Fakes { Dismissed = true }.Create();
+            var shell = new ShellViewModel(() => Task.FromResult(4), welcome: welcome);
+            welcome.OnKeycutCountLoaded(4);
+            shell.ShowManager();
+
+            shell.ShowWelcome();
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.True(welcome.IsVisible);
         }
 
         [Fact]
@@ -140,11 +172,11 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Name_DefaultsToKeycuts_AndCreateNeedsOne()
+        public void Name_DefaultsToKc_AndCreateNeedsOne()
         {
             var welcome = new Fakes().Create();
 
-            Assert.Equal("keycuts", welcome.Name);
+            Assert.Equal("kc", welcome.Name);
             Assert.True(welcome.CreateCommand.CanExecute(null));
 
             welcome.Name = "   ";
@@ -196,7 +228,7 @@ namespace keycuts.Tests
             Assert.False(welcome.NeedsPath);
             Assert.True(welcome.IsSuccess);
             Assert.False(welcome.HelperIsError);
-            Assert.Contains("Win+R, type keycuts", welcome.HelperText);
+            Assert.Contains("Win+R, type kc", welcome.HelperText);
             Assert.False(welcome.AddToPathCommand.CanExecute(null));
         }
 
@@ -264,12 +296,12 @@ namespace keycuts.Tests
             await welcome.CreateCommand.ExecuteAsync();
 
             Assert.True(welcome.HelperIsError);
-            Assert.Equal("\u201Ckeycuts\u201D already exists. Choose another name.", welcome.HelperText);
+            Assert.Equal("\u201Ckc\u201D already exists. Choose another name.", welcome.HelperText);
             Assert.False(welcome.IsSuccess);
             Assert.True(welcome.IsInputEnabled);
             Assert.Equal(0, fakes.MarkCount);
 
-            welcome.Name = "kc";
+            welcome.Name = "kc2";
             Assert.False(welcome.HelperIsError);
         }
 

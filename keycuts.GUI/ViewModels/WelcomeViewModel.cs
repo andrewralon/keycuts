@@ -10,12 +10,16 @@ namespace keycuts.GUI.ViewModels
 {
     /// <summary>
     /// The first-run panel at the top of the creator (#61, #11): explains the Win+R workflow and offers a keycut to
-    /// keycuts itself. It shows only when the keycuts folder is empty and the panel was never dismissed, so people who
-    /// upgrade with keycuts already in place don't see it.
+    /// keycuts itself. It shows on the first run (until it's dismissed or used, upgrades included), whenever the keycuts
+    /// folder is empty, and on demand from Settings (<see cref="Show"/>).
     /// </summary>
     public class WelcomeViewModel : ObservableObject
     {
-        public const string DefaultName = "keycuts";
+        /// <summary>
+        /// Not "keycuts": the installer puts the CLI, keycuts.exe, on PATH too, and depending on PATH order a keycuts.bat
+        /// would either shadow the CLI (dropping its arguments) or be shadowed by it (Win+R opening a console).
+        /// </summary>
+        public const string DefaultName = "kc";
 
         private readonly string appPath;
 
@@ -173,8 +177,8 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Decides once, from the first keycut count, whether the panel shows: only for an empty folder and a panel that
-        /// was never dismissed. Later counts (after a create, or from the manager) don't change it.
+        /// Decides once, from the first keycut count, whether the panel shows: on the first run (never dismissed or used)
+        /// or for an empty folder. Later counts (after a create, or from the manager) don't change it.
         /// </summary>
         public void OnKeycutCountLoaded(int count)
         {
@@ -184,7 +188,20 @@ namespace keycuts.GUI.ViewModels
             }
 
             decided = true;
-            IsVisible = count == 0 && !ReadDismissed();
+            IsVisible = count == 0 || !ReadDismissed();
+        }
+
+        /// <summary>Shows the panel again from the start (Settings → Show welcome), whatever was decided or created before.</summary>
+        public void Show()
+        {
+            decided = true;
+            createdName = null;
+            createdFolder = null;
+            needsPath = false;
+            error = null;
+            Name = DefaultName;
+            IsVisible = true;
+            RaiseStateChanged();
         }
 
         public void Dismiss()

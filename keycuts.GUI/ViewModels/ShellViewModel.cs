@@ -105,6 +105,13 @@ namespace keycuts.GUI.ViewModels
             _ = ReloadAsync();
         }
 
+        /// <summary>Settings → Show welcome: back to the creator with the first-run panel showing.</summary>
+        public void ShowWelcome()
+        {
+            ShowCreator();
+            Creator.Welcome?.Show();
+        }
+
         public void ShowCreator()
         {
             if (mode == ShellMode.Creator)

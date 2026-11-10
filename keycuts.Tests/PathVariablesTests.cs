@@ -48,6 +48,19 @@ namespace keycuts.Tests
         }
 
         [Theory]
+        [InlineData("1DATA")]      // %1 is the first argument
+        [InlineData("*DATA")]      // %* is all the arguments
+        [InlineData("~DATA")]      // %~ is an argument modifier
+        [InlineData("DA:TA")]      // %VAR:x=y% is cmd's replace syntax
+        public void Substitute_SkipsNamesABatchFileWouldMisread_AndUsesTheNextBestOrTheLiteralPath(string name)
+        {
+            var variables = new[] { new PathVariable("USERPROFILE", @"C:\Users\me"), new PathVariable(name, @"C:\Users\me\Data") };
+
+            Assert.Equal(@"%USERPROFILE%\Data\a.txt", PathVariables.Substitute(@"C:\Users\me\Data\a.txt", variables));
+            Assert.Equal(@"D:\Data\a.txt", PathVariables.Substitute(@"D:\Data\a.txt", new[] { new PathVariable(name, @"D:\Data") }));
+        }
+
+        [Theory]
         [InlineData(ShortcutType.File, true)]
         [InlineData(ShortcutType.Folder, true)]
         [InlineData(ShortcutType.HostsFile, true)]

@@ -91,6 +91,11 @@ namespace keycuts.Common
 
             foreach (var variable in variables)
             {
+                if (!IsSafeInBatch(variable.Name) || string.IsNullOrEmpty(variable.Value))
+                {
+                    continue;
+                }
+
                 var value = variable.Value;
                 var matches = path.StartsWith(value, StringComparison.OrdinalIgnoreCase) &&
                               (path.Length == value.Length || path[value.Length] == Path.DirectorySeparatorChar);
@@ -102,6 +107,17 @@ namespace keycuts.Common
             }
 
             return best == null ? path : "%" + best.Name + "%" + path.Substring(best.Value.Length);
+        }
+
+        /// <summary>
+        /// Whether <c>%NAME%</c> expands as that variable in a .bat. A name starting with a digit, <c>*</c> or <c>~</c> reads as
+        /// a batch argument (<c>%1</c>, <c>%*</c>, <c>%~1</c>), and a <c>:</c> starts cmd's substring/replace syntax.
+        /// </summary>
+        internal static bool IsSafeInBatch(string name)
+        {
+            return !string.IsNullOrEmpty(name) &&
+                   !char.IsDigit(name[0]) && name[0] != '*' && name[0] != '~' &&
+                   name.IndexOfAny(new[] { ':', '%' }) < 0;
         }
 
         private static void Add(List<PathVariable> result, HashSet<string> seen, string name, string value, bool requireFolder)

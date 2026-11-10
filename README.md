@@ -45,6 +45,11 @@ The app is one compact window with two views.
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
 The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
 
+**First run:** while your keycuts folder is empty, the creator shows a welcome panel that explains the Win+R workflow
+and offers a keycut to keycuts itself (named `keycuts` unless you change it), so Win+R → `keycuts` opens the app.
+**Got it** or creating that keycut hides the panel for good (`WelcomeDismissed` in `HKCU\Software\TeamRalon\keycuts`).
+People who already have keycuts never see it.
+
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).
 * Search by name, type, description, or destination. Escape clears the search.

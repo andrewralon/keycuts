@@ -122,6 +122,13 @@ namespace keycuts.Tests
                     Assert.Equal("Replace", AutomationProperties.GetName(confirm));
                     Assert.Contains("Opens now", AutomationProperties.GetHelpText(confirm));
 
+                    // A capped dialog's body must be reachable from the keyboard, since it holds nothing focusable
+                    var body = (ScrollViewer)window.FindName("BodyScroller");
+                    Assert.True(body.Focusable);
+                    Assert.True(body.IsTabStop);
+                    Assert.Same(Application.Current.FindResource("AppFocusVisual"), body.FocusVisualStyle);
+                    Assert.Equal("Replace “gmail”?", AutomationProperties.GetName(body));
+
                     var heading = (TextBlock)window.FindName("HeadingText");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
                     Assert.True(((TextBlock)window.FindName("CurrentDestinationText")).IsVisible);

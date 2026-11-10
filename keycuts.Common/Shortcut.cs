@@ -66,6 +66,16 @@ namespace keycuts.Common
                 Path.GetFileNameWithoutExtension(shortcut);
         }
 
+        /// <summary>
+        /// The keycut's bare name for a shortcut argument, without any folder. <see cref="GetFilename"/> keeps a name
+        /// ending in .exe as given, folder included, so a full path like <c>C:\Shortcuts\tool.exe</c> needs this to be
+        /// looked up as <c>tool.exe</c> (#153).
+        /// </summary>
+        public static string GetName(string shortcut)
+        {
+            return Path.GetFileName(GetFilename(shortcut));
+        }
+
         /// <summary>The folder a shortcut argument is written to: its own if it's a full path, else <paramref name="defaultFolder"/>.</summary>
         public static string GetFolder(string shortcut, string defaultFolder)
         {

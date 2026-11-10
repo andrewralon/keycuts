@@ -5,7 +5,7 @@ namespace keycuts.Common
 {
     public enum CreateDecision
     {
-        /// <summary>Go ahead; <see cref="CreateConfirmation.Overwrite"/> says whether an existing keycut may be replaced.</summary>
+        /// <summary>Go ahead; the <c>overwrite</c> result says whether an existing keycut may be replaced.</summary>
         Create,
 
         /// <summary>The user answered no. That's a choice, not a failure (#65).</summary>
@@ -24,15 +24,19 @@ namespace keycuts.Common
     {
         public const string RetryWithForceMessage = "Nothing was created. Run it again with -f to create it anyway.";
 
-        /// <summary>Decides whether to create, and whether replacing an existing keycut is allowed.</summary>
+        /// <summary>
+        /// Decides whether to create, and whether replacing an existing keycut is allowed: only with -f, with
+        /// <paramref name="askBeforeReplacing"/> off, or after a yes to replacing the keycut the check found. A keycut that
+        /// appears after the check is never replaced unasked; the create then fails with FileAlreadyExists.
+        /// </summary>
         /// <param name="check">The name check, with <see cref="NameCheck.Existing"/> set only when replacing should ask.</param>
         /// <param name="newDestination">The destination as given, shown next to the existing keycut's.</param>
+        /// <param name="askBeforeReplacing">The "Ask before replacing a keycut" setting.</param>
         /// <param name="readKey">Reads one key; called only when input isn't redirected.</param>
-        public static CreateDecision Decide(NameCheck check, string newDestination, bool force, bool isInputRedirected,
-            Func<char> readKey, TextWriter output, out bool overwrite)
+        public static CreateDecision Decide(NameCheck check, string newDestination, bool force, bool askBeforeReplacing,
+            bool isInputRedirected, Func<char> readKey, TextWriter output, out bool overwrite)
         {
-            // Without -f, a keycut is replaced only after a yes, or when the setting says not to ask (no Existing then)
-            overwrite = force || check == null || check.Existing == null;
+            overwrite = force || !askBeforeReplacing;
 
             if (force || check == null || !check.HasWarnings)
             {
@@ -53,7 +57,8 @@ namespace keycuts.Common
 
             if (char.ToLowerInvariant(answer) == 'y')
             {
-                overwrite = true;
+                // A yes to a name conflict alone doesn't allow replacing a keycut; a yes to the replace does
+                overwrite = overwrite || check.Existing != null;
                 return CreateDecision.Create;
             }
 

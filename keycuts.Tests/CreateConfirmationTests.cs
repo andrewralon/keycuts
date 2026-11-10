@@ -25,12 +25,13 @@ namespace keycuts.Tests
             return TestNameChecks.Existing("gmail", "https://old.example.com");
         }
 
-        static CreateDecision Decide(NameCheck check, bool force, bool redirected, char key, out bool overwrite, out string output, out int reads)
+        static CreateDecision Decide(NameCheck check, bool force, bool redirected, char key, out bool overwrite, out string output, out int reads,
+            bool askBeforeReplacing = true)
         {
             var writer = new StringWriter();
             var count = 0;
-            var decision = CreateConfirmation.Decide(check, "https://new.example.com", force, redirected, () => { count++; return key; },
-                writer, out overwrite);
+            var decision = CreateConfirmation.Decide(check, "https://new.example.com", force, askBeforeReplacing, redirected,
+                () => { count++; return key; }, writer, out overwrite);
             output = writer.ToString();
             reads = count;
             return decision;
@@ -39,14 +40,57 @@ namespace keycuts.Tests
         #region CLI confirmation
 
         [Fact]
-        public void NothingToWarnAbout_CreatesWithoutAsking()
+        public void NothingToWarnAbout_CreatesWithoutAsking_ButNeverReplacesUnasked()
         {
+            // A keycut that appears after the check (or a lookup that failed) must not be replaced silently
             var decision = Decide(NameCheck.None("gmail"), false, false, 'n', out var overwrite, out var output, out var reads);
 
             Assert.Equal(CreateDecision.Create, decision);
-            Assert.True(overwrite);   // nothing to replace, or "Ask before replacing" is off
+            Assert.False(overwrite);
             Assert.Equal(0, reads);
             Assert.Equal(string.Empty, output);
+        }
+
+        [Fact]
+        public void WithAskBeforeReplacingOff_ReplacingNeedsNoQuestion()
+        {
+            var decision = Decide(NameCheck.None("gmail"), false, false, 'n', out var overwrite, out _, out var reads, askBeforeReplacing: false);
+
+            Assert.Equal(CreateDecision.Create, decision);
+            Assert.True(overwrite);
+            Assert.Equal(0, reads);
+        }
+
+        [Fact]
+        public void AYesToANameConflict_DoesNotAllowReplacing()
+        {
+            var decision = Decide(TestNameChecks.Conflict("ex"), false, false, 'y', out var overwrite, out _, out _);
+
+            Assert.Equal(CreateDecision.Create, decision);
+            Assert.False(overwrite);
+        }
+
+        [Theory]
+        [InlineData(@"C:\Shortcuts\tool.exe", "tool.exe")]
+        [InlineData(@"C:\Shortcuts\tool", "tool")]
+        [InlineData("tool.exe", "tool.exe")]
+        [InlineData("gmail", "gmail")]
+        [InlineData("my.site", "my")]
+        public void ShortcutGetName_IsTheBareNameTheKeycutGets(string shortcut, string name)
+        {
+            Assert.Equal(name, Shortcut.GetName(shortcut));
+        }
+
+        [Fact]
+        public void AFullPathEndingInExe_FindsTheExistingKeycut()
+        {
+            var shortcut = Path.Combine(root, "tool.exe");
+            File.WriteAllLines(shortcut + ".bat", Runner.BuildShortcutLines(
+                Shortcut.FromParts(ShortcutType.Url, "https://old.example.com", shortcut + ".bat")));
+
+            var check = NameCheck.Run(Shortcut.GetName(shortcut), Shortcut.GetFolder(shortcut, @"C:\elsewhere"), true, NoCommands);
+
+            Assert.Equal("https://old.example.com", check.Existing!.Destination);
         }
 
         [Fact]

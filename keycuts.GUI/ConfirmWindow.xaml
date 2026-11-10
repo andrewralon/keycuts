@@ -28,14 +28,18 @@
         </Style>
     </Window.Resources>
 
-    <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible -->
+    <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible.
+         It holds nothing focusable, so it takes the focus itself (Tab, or Shift+Tab from Cancel): the arrow keys and
+         Page Up/Down then scroll it, so a clipped confirmation can be read without a mouse. -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" Focusable="False" IsTabStop="False"
+        <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="True" IsTabStop="True"
+                      FocusVisualStyle="{StaticResource AppFocusVisual}" AutomationProperties.Name="{Binding Heading}"
+                      AutomationProperties.HelpText="{Binding Summary}"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="24">
                 <!-- Header -->

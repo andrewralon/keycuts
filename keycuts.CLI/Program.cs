@@ -86,9 +86,10 @@ namespace keycuts.CLI
                 keycutArgs.UseEnvironmentVariables = app.GetUseEnvironmentVariables();
 
                 // Replacing a keycut and a name that other commands use both ask first, unless -f (#153)
-                var check = options.Force ? null : CheckName(app, options);
-                var decision = CreateConfirmation.Decide(check, options.Destination, options.Force, Console.IsInputRedirected,
-                    () => Console.ReadKey().KeyChar, Console.Out, out var overwrite);
+                var askBeforeReplacing = app.GetAskBeforeReplacing();
+                var check = options.Force ? null : CheckName(app, options, askBeforeReplacing);
+                var decision = CreateConfirmation.Decide(check, options.Destination, options.Force, askBeforeReplacing,
+                    Console.IsInputRedirected, () => Console.ReadKey().KeyChar, Console.Out, out var overwrite);
 
                 switch (decision)
                 {
@@ -118,12 +119,11 @@ namespace keycuts.CLI
         }
 
         /// <summary>What the shortcut's name runs into, in the folder it will be written to (as <see cref="Shortcut"/> reads it).</summary>
-        private static NameCheck CheckName(Runner app, Options options)
+        private static NameCheck CheckName(Runner app, Options options, bool askBeforeReplacing)
         {
             var folder = Shortcut.GetFolder(options.Shortcut, options.OutputFolder ?? app.GetOutputFolder());
-            var name = Shortcut.GetFilename(options.Shortcut);
 
-            return NameCheck.Run(name, folder, app.GetAskBeforeReplacing(), NameConflictEnvironment.GetDefault());
+            return NameCheck.Run(Shortcut.GetName(options.Shortcut), folder, askBeforeReplacing, NameConflictEnvironment.GetDefault());
         }
     }
 }

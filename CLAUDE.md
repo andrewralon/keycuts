@@ -66,7 +66,7 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 - Windows 11 shows these classic verbs under "Show more options". The top-level menu needs a packaged `IExplorerCommand` handler.
 - `OUTPUTFOLDER` in `installer/Package.wxs` is a directory so the stock `InstallDirDlg` can edit it, which means Windows Installer stores it with a trailing backslash; `RegistryStuff.GetOutputFolder` trims that. The dialog only shows on a first install. Windows Installer has no standard directory for the profile, so the default comes from `[%USERPROFILE]`; a test compares it to `Runner.DefaultOutputFolder`.
 - Manager rows take no keyboard focus. `ManagerView_PreviewKeyDown` handles Up, Down and Enter for the whole view, so typing in the search box keeps working, and `ManagerViewModel.SelectedRow` holds the selection.
-- The `HostsFile` check has two comparisons. The literal `C:\Windows\...\hosts` one works; the unexpanded `%windir%` one can never match, because the path has already been through `Path.GetFullPath`.
+- The hosts file is classified by one check, `Shortcut.IsHostsFile`, used by both the legacy classifier and `DestinationResolver`. It compares the full path with this machine's System32 (`Environment.SystemDirectory`, so Windows on another drive works) and the usual `C:` path. The legacy classifier used to compare with an unexpanded `%windir%` path, which could never match.
 
 ## Conventions
 

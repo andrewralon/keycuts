@@ -53,6 +53,7 @@ namespace keycuts.CLI
                     System.IO.File.Exists,
                     System.IO.File.ReadAllLines,
                     System.IO.File.ReadAllText,
+                    Environment.ExpandEnvironmentVariables,
                     WindowsClipboard.SetText,
                     output,
                     Console.Error);

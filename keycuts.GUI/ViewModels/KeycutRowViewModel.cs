@@ -34,7 +34,19 @@ namespace keycuts.GUI.ViewModels
         public bool IsRenaming
         {
             get { return isRenaming; }
-            private set { SetProperty(ref isRenaming, value); }
+            private set
+            {
+                if (SetProperty(ref isRenaming, value))
+                {
+                    OnPropertyChanged(nameof(ShowMissingIndicator));
+                }
+            }
+        }
+
+        /// <summary>The Missing marker under the name; hidden while renaming, since the name box alone fills the row.</summary>
+        public bool ShowMissingIndicator
+        {
+            get { return IsDestinationMissing && !isRenaming; }
         }
 
         /// <summary>The name being typed while renaming.</summary>
@@ -146,6 +158,7 @@ namespace keycuts.GUI.ViewModels
         public void RefreshDestinationStatus()
         {
             OnPropertyChanged(nameof(IsDestinationMissing));
+            OnPropertyChanged(nameof(ShowMissingIndicator));
             OnPropertyChanged(nameof(MissingTooltip));
         }
     }

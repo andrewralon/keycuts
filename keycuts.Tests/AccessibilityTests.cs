@@ -531,6 +531,25 @@ namespace keycuts.Tests
                     Assert.True(Press(box, Key.Enter));
                     Assert.Equal(new[] { "zulu" }, actions.Renamed);
                     Assert.False(manager.IsRenaming);
+
+                    // A click on something that can't take focus (another row's name) saves too
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    box.Text = "yankee";
+                    var otherName = Descendants<TextBlock>(window).First(t => t.Text == "alpha" && t.IsVisible);
+                    otherName.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                    Pump();
+                    Assert.Equal(new[] { "zulu", "yankee" }, actions.Renamed);
+                    Assert.False(manager.IsRenaming);
+
+                    // A click inside the box doesn't
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    box.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                    Pump();
+                    Assert.True(manager.IsRenaming);
                 }
                 finally
                 {

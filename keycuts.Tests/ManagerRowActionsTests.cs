@@ -463,6 +463,26 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void MissingIndicator_IsHiddenWhileRenaming()
+        {
+            var keycut = NewKeycut("a");
+            keycut.DestinationStatus = DestinationStatus.Missing;
+            var manager = new ManagerViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), null, null, new FakeActions());
+            var row = new KeycutRowViewModel(keycut, manager);
+            var changed = new List<string?>();
+            row.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            Assert.True(row.ShowMissingIndicator);
+
+            manager.BeginRename(row);
+            Assert.False(row.ShowMissingIndicator);
+            Assert.Contains(nameof(KeycutRowViewModel.ShowMissingIndicator), changed);
+
+            manager.CancelRename();
+            Assert.True(row.ShowMissingIndicator);
+        }
+
+        [Fact]
         public async Task Rename_StartingAnother_EndsTheFirst()
         {
             var manager = await LoadedAsync(new FakeActions(), "a", "b");

@@ -8,7 +8,8 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.ManagerTwoItems}"
              Background="{DynamicResource SurfaceBrush}"
-             Loaded="ManagerView_Loaded" PreviewKeyDown="ManagerView_PreviewKeyDown">
+             Loaded="ManagerView_Loaded" PreviewKeyDown="ManagerView_PreviewKeyDown"
+             PreviewMouseDown="ManagerView_PreviewMouseDown">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
@@ -316,7 +317,7 @@
                              IsVisibleChanged="RenameBox_IsVisibleChanged" PreviewKeyDown="RenameBox_PreviewKeyDown"
                              LostKeyboardFocus="RenameBox_LostKeyboardFocus" />
                     <StackPanel Orientation="Horizontal" Margin="0,1,0,0" ToolTip="{Binding MissingTooltip}"
-                                Visibility="{Binding IsDestinationMissing, Converter={StaticResource BoolToVisibility}}">
+                                Visibility="{Binding ShowMissingIndicator, Converter={StaticResource BoolToVisibility}}">
                       <controls:Icon Kind="Close" Size="11" VerticalAlignment="Center"
                                      Foreground="{DynamicResource DangerBrush}" />
                       <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"

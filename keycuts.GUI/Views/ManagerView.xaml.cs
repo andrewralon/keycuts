@@ -137,6 +137,27 @@ namespace keycuts.GUI.Views
             }
         }
 
+        // Rows, cells and the background can't take focus, so a click there leaves the focus in the name box and
+        // LostKeyboardFocus never fires. Save on any click in the view outside the box; the click itself goes on as usual.
+        private void ManagerView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (ViewModel?.IsRenaming != true || e.OriginalSource is not DependencyObject source)
+            {
+                return;
+            }
+
+            // A click on text can report a Run, which isn't a Visual, so walk its logical parent until a Visual is reached
+            for (var node = source; node != null; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+            {
+                if (node is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } })
+                {
+                    return;
+                }
+            }
+
+            _ = ViewModel.CommitRenameAsync();
+        }
+
         // Clicking or tabbing away saves, as in Explorer. Switching windows (no new focus in this one) keeps editing.
         private void RenameBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {

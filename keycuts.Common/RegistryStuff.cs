@@ -19,6 +19,9 @@ namespace keycuts.Common
 
         public static readonly string ThemeKeyName = "Theme";
 
+        /// <summary>Set once the first-run welcome panel was dismissed or used, so it never shows again.</summary>
+        public static readonly string WelcomeDismissedKeyName = "WelcomeDismissed";
+
         #region Get Methods
 
         /// <summary>Reads never write: a missing or unreadable value just yields the default.</summary>
@@ -65,6 +68,11 @@ namespace keycuts.Common
             return ThemePreferences.Parse(ReadValue(ThemeKeyName) as string);
         }
 
+        public static bool GetWelcomeDismissed()
+        {
+            return ReadValue(WelcomeDismissedKeyName) is int raw && raw != 0;
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -92,6 +100,11 @@ namespace keycuts.Common
         public static void SetThemePreference(ThemePreference preference)
         {
             SetRegistryValue(ThemeKeyName, preference.ToString(), RegistryValueKind.String);
+        }
+
+        public static void SetWelcomeDismissed()
+        {
+            SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
         }
 
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>

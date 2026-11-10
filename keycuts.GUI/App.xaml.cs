@@ -34,11 +34,20 @@ namespace keycuts.GUI
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
 
+            // The self-keycut opens this exe; ProcessPath is null only in unusual hosts
+            var appPath = Environment.ProcessPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "keycuts.GUI.exe");
+            var welcome = new ViewModels.WelcomeViewModel(
+                appPath,
+                Common.RegistryStuff.GetWelcomeDismissed,
+                Common.RegistryStuff.SetWelcomeDismissed,
+                (destination, name, ct) => Common.KeycutCreator.CreateAsync(destination, name, null, ct));
+
             var shell = new ViewModels.ShellViewModel(
                 () => Common.KeycutRepository.CreateDefault().CountAsync(),
                 ct => Common.KeycutRepository.CreateDefault().LoadAllAsync(ct),
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
-                new ViewModels.SystemKeycutActions());
+                new ViewModels.SystemKeycutActions(),
+                welcome);
             var mainWindow = new MainWindow(shell);
 
             if (args.Any())

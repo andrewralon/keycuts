@@ -13,6 +13,8 @@
              PreviewDrop="Creator_Drop"
              AllowDrop="{Binding IsInputEnabled}">
   <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
     <!-- Borderless single-line field that sits inside the drop area; focus is shown on the drop area instead. -->
     <Style x:Key="InlineTextBox" TargetType="TextBox">
       <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
@@ -211,6 +213,7 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
       <Grid Grid.Row="0" Margin="0,0,0,20">
@@ -226,8 +229,45 @@
         </StackPanel>
       </Grid>
 
+      <!-- First-run welcome (#61, #11): shown once, while the keycuts folder is empty. Collapsed without a Welcome. -->
+      <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
+              CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
+              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+        <StackPanel>
+          <TextBlock Text="Welcome to keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                     AutomationProperties.HeadingLevel="Level2" />
+          <TextBlock TextWrapping="Wrap" Margin="0,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
+                     Text="Give anything a short name here. Then press Win+R, type the name, and press Enter to open it." />
+          <TextBlock Text="Start with a keycut to keycuts itself:" FontWeight="SemiBold" Margin="0,0,0,6"
+                     Foreground="{DynamicResource TextBrush}" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TextboxWelcomeName" Height="34" MinHeight="34"
+                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                     themes:TextBoxChrome.HasError="{Binding HelperIsError}"
+                     IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Name for the keycuts keycut"
+                     AutomationProperties.HelpText="{Binding HelperText}">
+              <TextBox.InputBindings>
+                <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+              </TextBox.InputBindings>
+            </TextBox>
+            <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
+                    Command="{Binding CreateCommand}" Content="Create keycut"
+                    AutomationProperties.Name="Create keycut to keycuts" />
+            <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
+                    Command="{Binding DismissCommand}" Content="Got it" AutomationProperties.Name="Dismiss welcome" />
+          </Grid>
+          <TextBlock Margin="0,8,0,0" Text="{Binding HelperText}" Style="{StaticResource HelperText}"
+                     TextWrapping="Wrap" TextTrimming="None" />
+        </StackPanel>
+      </Border>
+
       <!-- Destination drop area -->
-      <Grid x:Name="DropArea" Grid.Row="1" MinHeight="96">
+      <Grid x:Name="DropArea" Grid.Row="2" MinHeight="96">
         <Border Style="{StaticResource DropGlow}" />
         <Border Style="{StaticResource DropFill}" />
         <Rectangle Style="{StaticResource DropStroke}" />
@@ -298,7 +338,7 @@
       </Grid>
 
       <!-- Name form -->
-      <StackPanel Grid.Row="2" Margin="0,18,0,0">
+      <StackPanel Grid.Row="3" Margin="0,18,0,0">
         <TextBlock Text="Name your keycut" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6" />
         <Grid>
           <Grid.ColumnDefinitions>

@@ -119,6 +119,9 @@ namespace keycuts.GUI.ViewModels
 
         public ICommand OpenSettingsCommand { get; }
 
+        /// <summary>The first-run panel shown above the form, or null when the app was started without one (tests, design data).</summary>
+        public WelcomeViewModel? Welcome { get; init; }
+
         /// <summary>Changing the text invalidates the resolved kind, any destination error, and the success message.</summary>
         public string Destination
         {

@@ -104,7 +104,70 @@ namespace keycuts.Common
         /// <exception cref="KeycutRepositoryException">The name is invalid or taken, or the file is gone, locked, or can't be renamed.</exception>
         public Task<string> RenameAsync(Keycut keycut, string newName, CancellationToken ct = default)
         {
-            return Task.Run(() => Rename(keycut, newName), ct);
+            return Task.Run(() => Rename(keycut.FilePath, newName), ct);
+        }
+
+        /// <summary>
+        /// Renames each keycut named after a keycuts command (<see cref="CommandNames"/>) to that name plus
+        /// <see cref="CommandNames.PreviousSuffix"/> (keypaste_previous, then keypaste_previous2 and so on if that's taken),
+        /// so the command on PATH works again. It's renamed like <see cref="RenameAsync"/>, so it still works under the
+        /// new name. A file that can't be renamed (locked, read-only) is left as it is. Returns what was renamed.
+        /// </summary>
+        public IReadOnlyList<RenamedKeycut> MoveAsideCommandNames()
+        {
+            var renamed = new List<RenamedKeycut>();
+
+            if (string.IsNullOrWhiteSpace(_outputFolder) || !Directory.Exists(_outputFolder))
+            {
+                return renamed;
+            }
+
+            foreach (var command in CommandNames.All)
+            {
+                try
+                {
+                    // The file's own spelling, so a "KeyPaste.bat" is reported as it's named
+                    var path = Directory.EnumerateFiles(_outputFolder, command + ShortcutFile.Extension)
+                        .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), command, StringComparison.OrdinalIgnoreCase));
+
+                    if (path == null)
+                    {
+                        continue;
+                    }
+
+                    var newName = FreeName(command + CommandNames.PreviousSuffix);
+
+                    if (newName == null)
+                    {
+                        continue;
+                    }
+
+                    Rename(path, newName);
+                    renamed.Add(new RenamedKeycut(Path.GetFileNameWithoutExtension(path), newName));
+                }
+                catch (Exception ex) when (ex is KeycutRepositoryException || ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // Left in place; the next start tries again
+                }
+            }
+
+            return renamed;
+        }
+
+        /// <summary><paramref name="baseName"/>, or it with 2, 3 and so on appended, whichever isn't taken; null if all are.</summary>
+        private string FreeName(string baseName)
+        {
+            for (var i = 1; i <= 100; i++)
+            {
+                var candidate = i == 1 ? baseName : baseName + i;
+
+                if (!File.Exists(Path.Combine(_outputFolder, candidate + ShortcutFile.Extension)))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -243,10 +306,8 @@ namespace keycuts.Common
             @"^(\s*REM\s+<shortcut>).*?(</shortcut>)",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
 
-        private static string Rename(Keycut keycut, string newName)
+        private static string Rename(string path, string newName)
         {
-            var path = keycut.FilePath;
-
             if (!KeycutCreator.IsValidName(newName))
             {
                 throw new KeycutRepositoryException(KeycutRepositoryError.InvalidName, $"\"{newName}\" isn't a valid keycut name.");

@@ -39,6 +39,8 @@ namespace keycuts.GUI
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
             var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
+            // Before the first load, so the manager and the welcome's count already see the new names
+            var renamed = MoveAsideCommandNames();
             var welcome = new ViewModels.WelcomeViewModel(
                 appPath,
                 Common.RegistryStuff.GetWelcomeDismissed,
@@ -67,6 +69,28 @@ namespace keycuts.GUI
 
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell.Creator);
+
+            if (renamed.Count > 0)
+            {
+                MessageBox.Show(mainWindow, ViewModels.CommandNameNotice.Format(renamed), "keycuts", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// Renames keycuts named keycuts or keypaste, which clash with those commands on PATH (bin\keycuts.cmd and
+        /// bin\keypaste.cmd). Never stops the app from starting: if the folder can't be read, nothing is renamed.
+        /// </summary>
+        private static IReadOnlyList<Common.RenamedKeycut> MoveAsideCommandNames()
+        {
+            try
+            {
+                return Common.KeycutRepository.CreateDefault().MoveAsideCommandNames();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't check for keycuts named after commands: " + ex.Message);
+                return Array.Empty<Common.RenamedKeycut>();
+            }
         }
 
         /// <summary>

@@ -503,7 +503,7 @@ namespace keycuts.GUI.ViewModels
                 }
                 catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.InvalidName)
                 {
-                    ShowStatusMessage(CreatorViewModel.InvalidNameMessage, true);
+                    ShowStatusMessage(CreatorViewModel.GetInvalidNameMessage(newName), true);
                     FocusRowRequested?.Invoke(this, row);
                     _ = LoadAsync();
                     return;

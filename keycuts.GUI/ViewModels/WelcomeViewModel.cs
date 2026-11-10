@@ -238,7 +238,7 @@ namespace keycuts.GUI.ViewModels
                     error = string.Format("“{0}” already exists. Choose another name.", target);
                     break;
                 case CreateOutcome.InvalidName:
-                    error = CreatorViewModel.InvalidNameMessage;
+                    error = CreatorViewModel.GetInvalidNameMessage(target);
                     break;
                 case CreateOutcome.OutputFolderError:
                     error = CreatorViewModel.OutputFolderErrorMessage;

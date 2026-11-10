@@ -106,9 +106,10 @@ folder, then your keycuts folder, then the keycuts install folder, and tries the
 with `.bat`. `keypaste` used to be a separate program; it's now a small `keypaste.cmd` in the install folder's `bin` that runs
 `keycuts paste`.
 
-If you made a keycut to the old `keypaste.exe` (a `keypaste.bat` in your keycuts folder, say), delete it once
-`keypaste.exe` is gone. Windows finds a keycut named `keypaste` before the new command, so one that points at a missing
-`keypaste.exe` stops `keypaste` from working.
+A keycut can't be named `keycuts` or `keypaste`: Windows would find it instead of the command, or the other way round.
+If your keycuts folder already has one (a `keypaste.bat` made for the old `keypaste.exe`, say), keycuts renames it to
+`keypaste_previous` (or `keypaste_previous2`, and so on, if that's taken) when it starts, and tells you. It still works
+under the new name; rename or delete it in the manager.
 
 ## Development
 

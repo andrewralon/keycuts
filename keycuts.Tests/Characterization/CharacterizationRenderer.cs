@@ -32,6 +32,18 @@ namespace keycuts.Tests.Characterization
             ["old-format/pm.bat"] = "A real keycut, but the command line starts with a quoted path rather than START, so it is never read: Unknown, with no destination, and the manager doesn't list it.",
         };
 
+        /// <summary>
+        /// Launch-line round-trip failures that are accepted, keyed by corpus path. These are hand-written scripts, not keycuts: their
+        /// %VAR% text is meant as variables, and the emitter escapes a URL's % and &amp; so they open literally, so
+        /// re-emitting one changes what it does whatever the parser reads.
+        /// </summary>
+        private static readonly Dictionary<string, string> ExpectedRoundTripFailures = new Dictionary<string, string>
+        {
+            ["not-keycuts/jira.bat"] = "Not a keycut: the emitter escapes its %VAR% variables to literal text (#91 step g).",
+            ["not-keycuts/newjira.bat"] = "Not a keycut: the emitter escapes its %VAR% variables and ^& to literal text (#91 step g).",
+            ["not-keycuts/swaphosts.bat"] = "Not a keycut: the emitter escapes its %VAR% variables, %* and & to literal text (#91 step g).",
+        };
+
         #region Parser
 
         /// <summary>One block per corpus file, sorted by path: what <see cref="ShortcutFile"/> reads back.</summary>
@@ -182,6 +194,7 @@ namespace keycuts.Tests.Characterization
             var passed = 0;
             var failed = 0;
             var skipped = 0;
+            var expected = 0;
             var body = new StringBuilder();
 
             foreach (var (relativePath, lines) in ReadCorpus(repoRoot))
@@ -204,15 +217,28 @@ namespace keycuts.Tests.Characterization
 
                 var differences = Compare(first, second).ToList();
 
+                // Only the launch line shows these: in the full round trip the REM lines carry the destination unescaped.
+                string expectedReason = null;
+                var isExpectedFailure = launchLineOnly && ExpectedRoundTripFailures.TryGetValue(relativePath, out expectedReason);
+
                 if (differences.Count == 0)
                 {
                     passed++;
-                    body.Append(relativePath).Append(": ok\n");
+                    body.Append(relativePath).Append(isExpectedFailure ? ": ok, but listed as an expected failure; remove it from the list\n" : ": ok\n");
                 }
                 else
                 {
                     failed++;
-                    body.Append(relativePath).Append(": FAILS\n");
+
+                    if (isExpectedFailure)
+                    {
+                        expected++;
+                        body.Append(relativePath).Append(": FAILS (expected) ").Append(expectedReason).Append('\n');
+                    }
+                    else
+                    {
+                        body.Append(relativePath).Append(": FAILS\n");
+                    }
 
                     foreach (var difference in differences)
                     {
@@ -223,7 +249,8 @@ namespace keycuts.Tests.Characterization
                 }
             }
 
-            builder.Append($"# {passed} ok, {failed} fail, {skipped} skipped\n\n");
+            var expectedText = expected > 0 ? $" ({expected} expected)" : "";
+            builder.Append($"# {passed} ok, {failed} fail{expectedText}, {skipped} skipped\n\n");
             builder.Append(body);
 
             return builder.ToString();

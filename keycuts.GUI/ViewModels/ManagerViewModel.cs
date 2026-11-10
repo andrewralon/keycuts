@@ -311,6 +311,24 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
+        /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit does.</summary>
+        public void OpenFileLocation(KeycutRowViewModel row)
+        {
+            try
+            {
+                actions?.OpenFileLocation(row.Keycut.FilePath);
+            }
+            catch (System.IO.FileNotFoundException)
+            {
+                ShowStatusMessage("This keycut no longer exists", true);
+                _ = LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn't open the file location of “" + row.Name + "”: " + ex.Message, true);
+            }
+        }
+
         public void CopyDestination(KeycutRowViewModel row)
         {
             if (Perform(row, "copy the destination of", () => actions?.CopyText(row.Destination)) && actions != null)

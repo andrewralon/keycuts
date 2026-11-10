@@ -18,6 +18,7 @@ namespace keycuts.GUI.ViewModels
 
             OpenCommand = new RelayCommand(() => owner?.OpenKeycut(this));
             EditCommand = new RelayCommand(() => owner?.EditKeycut(this));
+            OpenFileLocationCommand = new RelayCommand(() => owner?.OpenFileLocation(this));
             CopyDestinationCommand = new RelayCommand(() => owner?.CopyDestination(this));
             DeleteCommand = new RelayCommand(() => _ = owner?.DeleteKeycutAsync(this));
         }
@@ -27,6 +28,8 @@ namespace keycuts.GUI.ViewModels
         public ICommand OpenCommand { get; }
 
         public ICommand EditCommand { get; }
+
+        public ICommand OpenFileLocationCommand { get; }
 
         public ICommand CopyDestinationCommand { get; }
 

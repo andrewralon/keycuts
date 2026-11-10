@@ -106,10 +106,13 @@ namespace keycuts.GUI
             }
         }
 
-        private void AnnounceLiveRegion(UIElement element)
+        // Also scrolls the message into view: when the window is height-capped, the save error sits below the visible part of the body
+        private void AnnounceLiveRegion(FrameworkElement element)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
+                element.BringIntoView();
+
                 if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
                 {
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);

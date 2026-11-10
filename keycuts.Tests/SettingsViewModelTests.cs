@@ -13,6 +13,7 @@ using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Xml.Linq;
@@ -475,6 +476,8 @@ namespace keycuts.Tests
         {
             public Settings Stored { get; set; } = new Settings();
 
+            public string? SaveMessage { get; set; }
+
             public Settings Load()
             {
                 return Stored;
@@ -482,7 +485,7 @@ namespace keycuts.Tests
 
             public string? Save(Settings settings)
             {
-                return null;
+                return SaveMessage;
             }
         }
 
@@ -520,6 +523,38 @@ namespace keycuts.Tests
                     Assert.Equal(HorizontalAlignment.Right, thumb.HorizontalAlignment);
 
                     Assert.Same(Application.Current.FindResource("AppFocusVisual"), toggle.FocusVisualStyle);
+                }
+                finally
+                {
+                    host.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ToggleSwitch_LetsEnterThroughToTheDefaultButton()
+        {
+            // A bare ToggleButton handles Enter and flips itself, so Enter on a focused switch would change the setting instead of saving
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var toggle = new ToggleButton { Style = (Style)Application.Current.FindResource("ToggleSwitch") };
+                var host = new Window { Content = toggle, Width = 200, Height = 100, WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000, ShowInTaskbar = false, ShowActivated = false };
+                host.Show();
+                Pump();
+                try
+                {
+                    toggle.Focus();
+                    var enter = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(toggle), 0, Key.Enter)
+                    {
+                        RoutedEvent = Keyboard.KeyDownEvent
+                    };
+                    toggle.RaiseEvent(enter);
+                    Pump();
+
+                    Assert.False(KeyboardNavigation.GetAcceptsReturn(toggle));
+                    Assert.False(enter.Handled);
+                    Assert.False(toggle.IsChecked);
                 }
                 finally
                 {
@@ -715,6 +750,47 @@ namespace keycuts.Tests
 
                 window.Close();
                 Assert.Equal(before, keycuts.GUI.Themes.ThemeManager.Preference);
+            });
+        }
+
+        [Fact]
+        public void Window_ScrollsASaveErrorIntoView_WhenTheBodyIsCapped()
+        {
+            // The save error is the last thing in the scrolling body, so a capped window scrolled to the top would hide it
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var store = new FakeSettingsStore
+                {
+                    Stored = new Settings { OutputFolder = Path.GetTempPath() },
+                    SaveMessage = Settings.PathUpdateFailedMessage
+                };
+                var window = ShowOffscreen(new SettingsViewModel(store));
+                try
+                {
+                    window.MaxHeight = 300;
+                    Pump();
+                    window.UpdateLayout();
+
+                    var scroller = (ScrollViewer)window.FindName("BodyScroller");
+                    var message = (TextBlock)window.FindName("SaveErrorMessage");
+                    scroller.ScrollToTop();
+                    Pump();
+
+                    Assert.False(window.ViewModel.Save());
+                    Pump();
+                    window.UpdateLayout();
+                    Pump();
+
+                    var top = message.TranslatePoint(new Point(0, 0), scroller).Y;
+                    var bottom = message.TranslatePoint(new Point(0, message.ActualHeight), scroller).Y;
+                    Assert.True(scroller.VerticalOffset > 0);
+                    Assert.True(top >= 0 && bottom <= scroller.ViewportHeight, $"Message spans {top}-{bottom}, viewport is {scroller.ViewportHeight}");
+                }
+                finally
+                {
+                    window.Close();
+                }
             });
         }
 

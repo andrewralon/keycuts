@@ -533,6 +533,8 @@
         ToggleButton's automation peer already exposes the Toggle pattern; set AutomationProperties.Name where it is used.
     -->
     <Style x:Key="ToggleSwitch" TargetType="ToggleButton">
+        <!-- Space toggles; Enter passes through to the dialog's default button, as with CheckBox (a bare ToggleButton takes Enter) -->
+        <Setter Property="KeyboardNavigation.AcceptsReturn" Value="False" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Width" Value="36" />

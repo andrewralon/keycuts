@@ -97,6 +97,12 @@ A packaged Windows 11 top-level context-menu handler, per-setting autosave, and 
   background check was tried, then reverted: the case is rare (someone typing a UNC path into a rarely edited setting, with at worst a brief pause),
   and the async version made the tests timing-dependent (a CI failure and a race in the window tests). Revisit if network output folders become common.
 
+**Follow-up (after #151 merged; Copilot's third review)**
+- **Enter on a focused toggle saved nothing; it flipped the toggle.** A bare `ToggleButton` handles Enter, unlike the old checkboxes. The
+  `ToggleSwitch` style now sets `KeyboardNavigation.AcceptsReturn = False`, so Enter reaches Save changes and Space still toggles.
+- **A save error could be hidden below the scrolled body** when the window is height-capped. The window now scrolls the message into view
+  when it announces it.
+
 **Verification**
 - `dotnet build keycuts.sln --no-incremental`: 0 errors, 0 warnings (unchanged).
 - `dotnet test keycuts.sln`: 683 passed (33 new), repeated clean runs after the collection fix and the review fixes.

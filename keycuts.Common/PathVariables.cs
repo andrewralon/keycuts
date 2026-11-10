@@ -157,6 +157,13 @@ namespace keycuts.Common
                 return;
             }
 
+            // Destinations use backslashes, so "C:/Users/me/Dropbox" would never match one, and matching it anyway would
+            // save a mixed "C:/Users/me/Dropbox\file", which Explorer doesn't reliably open. Skipped; the path is saved as is.
+            if (value.IndexOf(Path.AltDirectorySeparatorChar) >= 0)
+            {
+                return;
+            }
+
             var folder = Path.TrimEndingDirectorySeparator(value);
 
             if (folder.IndexOf(';') >= 0 || !Path.IsPathFullyQualified(folder))

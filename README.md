@@ -44,6 +44,9 @@ The app is one compact window with two views.
 **Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), or browser link onto the window, paste a path or URL
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
 The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
+For a file or folder under a known folder, a "Saved as" line shows the path exactly as it will be saved: with
+environment variables (`%USERPROFILE%\Desktop\notes.txt`) if **Use Environment Variables in Paths** is on in Settings,
+or as typed if it's off. Holding **Shift** flips that for the keycut you're creating, and the line follows.
 
 **First run:** the first time keycuts opens, and whenever your keycuts folder is empty, the creator shows a welcome
 panel that explains the Win+R workflow and offers a keycut to keycuts itself, named `kc` unless you change it, so
@@ -65,6 +68,12 @@ Batmanager app, which has been removed).
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
 Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.
+
+**Use Environment Variables in Paths** (off by default) saves new file and folder keycuts with environment variables,
+so a keycuts folder copied to another machine or account still works. It uses `%LOCALAPPDATA%`, `%APPDATA%`,
+`%OneDrive%`, `%USERPROFILE%`, `%ProgramFiles(x86)%`, `%ProgramFiles%`, `%ProgramData%` and `%SystemRoot%`, plus any
+variable you've defined yourself whose value is a folder (a `DROPBOX` variable, say); the longest match wins. Existing
+keycuts aren't changed, and the command-line `keycuts.exe` follows the setting too.
 
 Screenshots aren't included: they couldn't be captured headlessly and should be added by hand.
 

@@ -8,7 +8,8 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.CreatorUrl}"
              Background="{DynamicResource SurfaceBrush}" Loaded="CreatorView_Loaded"
-             PreviewKeyDown="CreatorView_PreviewKeyDown"
+             PreviewKeyDown="CreatorView_PreviewKeyDown" PreviewKeyUp="CreatorView_PreviewKeyUp"
+             IsKeyboardFocusWithinChanged="CreatorView_IsKeyboardFocusWithinChanged"
              PreviewDragEnter="Creator_DragEnter" PreviewDragOver="Creator_DragOver" PreviewDragLeave="Creator_DragLeave"
              PreviewDrop="Creator_Drop"
              AllowDrop="{Binding IsInputEnabled}">
@@ -298,6 +299,11 @@
                      AutomationProperties.HelpText="{Binding DestinationHelpText}"
                      PreviewKeyDown="TextboxDestination_PreviewKeyDown" TextChanged="TextboxDestination_TextChanged"
                      LostFocus="TextboxDestination_LostFocus" />
+            <!-- #31: the path as it will be saved, with or without environment variables (the setting, flipped by Shift) -->
+            <TextBlock x:Name="SavedAsText" Margin="0,4,0,0" FontSize="{StaticResource FontSizeCaption}"
+                       Foreground="{DynamicResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis"
+                       Text="{Binding SavedAsPath, StringFormat='Saved as {0}'}" ToolTip="{Binding SavedAsPath}"
+                       Visibility="{Binding ShowSavedAs, Converter={StaticResource BoolToVisibility}}" />
           </StackPanel>
 
           <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
@@ -358,8 +364,9 @@
                    AutomationProperties.HelpText="{Binding NameHelpText}"
                    TextChanged="TextboxShortcut_TextChanged">
             <TextBox.InputBindings>
-              <!-- Enter creates only from the name field -->
+              <!-- Enter creates only from the name field; Shift+Enter too, with the environment-variables setting flipped -->
               <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+              <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
             </TextBox.InputBindings>
           </TextBox>
           <Button x:Name="BtnCreateShortcut" Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"

@@ -161,9 +161,39 @@ namespace keycuts.GUI.Views
             Keyboard.Focus(target);
         }
 
+        // Holding Shift flips the environment-variables setting for this keycut (#31); the "Saved as" line follows it
+        private void CreatorView_PreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = IsShiftDown();
+            }
+        }
+
+        // Shift pressed or released in another window never reaches us, so read it again whenever focus comes or goes:
+        // holding Shift elsewhere and then clicking Create must still flip the setting
+        private void CreatorView_IsKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = IsKeyboardFocusWithin && IsShiftDown();
+            }
+        }
+
+        private static bool IsShiftDown()
+        {
+            return Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+        }
+
         /// <summary>Ctrl+V anywhere except the two text fields pastes into the destination.</summary>
         private void CreatorView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = true;
+                return;
+            }
+
             if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control || ViewModel?.IsInputEnabled != true)
             {
                 return;
@@ -416,7 +446,9 @@ namespace keycuts.GUI.Views
             {
                 if (result.IsValid && !normalize)
                 {
+                    // Keep what was typed, but preview what will be saved (a shortcut's target, a normalized path)
                     viewModel.DestinationKind = result.Kind;
+                    viewModel.ResolvedDestination = result.Destination;
                 }
                 else
                 {

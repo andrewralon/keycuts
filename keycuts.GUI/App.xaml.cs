@@ -53,6 +53,9 @@ namespace keycuts.GUI
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome);
+            // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
+            shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+
             var mainWindow = new MainWindow(shell);
 
             if (args.Any())
@@ -63,6 +66,24 @@ namespace keycuts.GUI
             }
 
             mainWindow.Show();
+            _ = LoadPathVariablesAsync(shell.Creator);
+        }
+
+        /// <summary>
+        /// Reads this machine's variables off the UI thread: a custom one is checked with <c>Directory.Exists</c>, which can
+        /// take a long time for a network share that's offline. The "Saved as" line appears when they arrive.
+        /// </summary>
+        private static async Task LoadPathVariablesAsync(ViewModels.CreatorViewModel creator)
+        {
+            try
+            {
+                creator.PathVariables = await Task.Run(Common.PathVariables.GetDefault);
+            }
+            catch (Exception ex)
+            {
+                // No preview; a create reads them itself
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't read environment variables: " + ex.Message);
+            }
         }
     }
 }

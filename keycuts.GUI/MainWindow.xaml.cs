@@ -58,6 +58,9 @@ namespace keycuts.GUI
             var settingsWindow = new SettingsWindow { Owner = this };
             settingsWindow.ShowDialog();
 
+            // The environment-variables setting may have changed; the preview follows it
+            shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+
             if (settingsWindow.ShowWelcomeRequested)
             {
                 shell.ShowWelcome();

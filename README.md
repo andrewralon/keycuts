@@ -50,7 +50,8 @@ The app is one compact window with two views.
 **Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), browser link, or a shell item like the Recycle Bin or This PC
 (saved as its `::{CLSID}` key) onto the window, paste a path or URL
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
-The type icon updates as you go, and invalid destinations or duplicate names are shown inline.
+The type icon updates as you go, and invalid destinations and names are shown inline. A name that's already taken, by a
+keycut or by another program, shows an amber warning and asks before creating (see [Name warnings](#name-warnings)).
 For a file or folder under a known folder, a "Saved as" line shows the path exactly as it will be saved: with
 environment variables (`%USERPROFILE%\Desktop\notes.txt`) if **Use environment variables in paths** is on in Settings,
 or as typed if it's off. Holding **Shift** flips that for the keycut you're creating, and the line follows.
@@ -68,13 +69,14 @@ Batmanager app, which has been removed).
 * Search by name, type, description, or destination. Escape clears the search.
 * Up and Down select a row, even while you're typing in the search box, and Enter opens the selected keycut. Clicking a row selects it too.
 * F2 (or **Rename** in the row menu) renames the selected keycut in place: Enter or clicking away saves, Escape cancels.
-  A name that's already taken is refused, and anything you added to the `.bat` by hand is kept.
+  A name that's already taken by another keycut is refused, a name another program uses asks first, and anything you
+  added to the `.bat` by hand is kept.
 * Sort by Shortcut, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
   **Open file location** (shows the `.bat` in Explorer), **Copy destination**, and **Delete**. Delete has no confirmation.
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
-Settings (the gear button) holds the output folder (**Choose** picks one, **Launch** opens it in Explorer), **Force overwrite**,
+Settings (the gear button) holds the output folder (**Choose** picks one, **Launch** opens it in Explorer), **Ask before replacing a keycut**,
 **Right-click context menus**, **Use environment variables in paths**, and the theme. **Save changes** (or Enter) checks that the
 folder can be written to, creating it if needed, and shows any problem under the field; **Cancel** (or Escape) closes without saving.
 
@@ -85,6 +87,32 @@ so a keycuts folder copied to another machine or account still works. It uses `%
 `%OneDrive%`, `%USERPROFILE%`, `%ProgramFiles(x86)%`, `%ProgramFiles%`, `%ProgramData%` and `%SystemRoot%`, plus any
 variable you've defined yourself whose value is a folder (a `DROPBOX` variable, say); the longest match wins. Existing
 keycuts aren't changed, and the command-line `keycuts.exe` follows the setting too.
+
+### Name warnings
+
+A keycut is a `.bat` in a folder on your PATH, so its name competes with every other command Windows finds by name.
+keycuts checks the name as Win+R would look it up: the Windows folder, System32, each PATH folder (machine, then user;
+each with every PATHEXT extension in order), and last the programs registered under App Paths. It warns about two cases:
+
+* **The keycut would never run.** Something earlier wins, such as `notepad` (in the Windows folder), a program in a PATH
+  folder listed before your keycuts folder, or a `.com` or `.exe` with the same name in the keycuts folder itself.
+* **The keycut would hide a program.** Win+R would open the keycut instead of a program found later, such as `winword`
+  (registered under App Paths), `code`, or an app alias like `winget`.
+
+The warning names the program's full path. Replacing an existing keycut asks too, and shows what it opens now next to
+what it will open. In the creator the warning shows as you type; **Create** (or Enter) then opens a confirmation, where
+Enter goes ahead and Escape cancels. Renaming in the manager asks the same way, and a name taken by another keycut is
+still refused.
+
+**Ask before replacing a keycut** (on by default) controls only the replace question: turn it off to replace keycuts
+without asking. It replaced the old **Force overwrite** toggle, and that setting carries over (Force overwrite on means
+"don't ask"). Name warnings always show, whatever this setting says, because they affect other programs.
+
+The command line asks the same questions: `keycuts -d <destination> -s <name>` prints the warnings and asks `y / n`.
+`-f` skips both questions. With redirected input (a script), nothing is created and it exits with code 14
+(`ConfirmationNeeded`) instead of waiting for an answer.
+
+cmd built-ins (`dir`, `start`, `copy`) aren't checked: they only matter when a name is typed in a cmd prompt, not in Win+R.
 
 Screenshots aren't included: they couldn't be captured headlessly and should be added by hand.
 

@@ -19,6 +19,7 @@
     <SolidColorBrush x:Key="DangerBrush" Color="#ff8175" />
     <SolidColorBrush x:Key="DangerSoftBrush" Color="#482522" />
     <SolidColorBrush x:Key="SuccessBrush" Color="#64d5a0" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#f0c365" />
     <SolidColorBrush x:Key="OnAccentBrush" Color="#06090f" />
     <SolidColorBrush x:Key="BadgeUrlForegroundBrush" Color="#c4a1ff" />
     <SolidColorBrush x:Key="BadgeUrlBackgroundBrush" Color="#33254c" />

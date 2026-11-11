@@ -17,7 +17,10 @@ namespace keycuts.GUI.ViewModels
         Empty,
         DestinationSelected,
         Saving,
-        DuplicateName,
+        /// <summary>The name is invalid (characters Windows doesn't allow, or a keycuts command's name).</summary>
+        NameError,
+        /// <summary>The name would replace a keycut or clash with another command (#153); Create asks first.</summary>
+        NameWarning,
         InvalidDestination,
         Success
     }
@@ -57,6 +60,50 @@ namespace keycuts.GUI.ViewModels
 
         public const string UnexpectedErrorMessage = "Something went wrong creating the keycut. Check Settings and try again.";
 
+        /// <summary>An existing keycut the new one would replace, and what it opens now (#153).</summary>
+        public const string ReplaceMessage = "\u201c{0}\u201d already exists and opens {1}.";
+
+        /// <summary>An existing keycut whose destination couldn't be read.</summary>
+        public const string ReplaceUnknownMessage = "\u201c{0}\u201d already exists.";
+
+        /// <summary>Something found before the keycut, so it would never run from Win+R.</summary>
+        public const string HiddenMessage = "\u201c{0}\u201d already opens {1}, so Win+R would never run this keycut.";
+
+        /// <summary>A program found after the keycut, which Win+R would no longer open by this name.</summary>
+        public const string ShadowsMessage = "\u201c{0}\u201d already opens {1}. This keycut would replace it in Win+R.";
+
+        /// <summary>One line about a name conflict, as the creator, the manager and the confirmation show it.</summary>
+        public static string GetConflictMessage(string name, NameConflict conflict)
+        {
+            var format = conflict.Effect == NameConflictEffect.Hidden ? HiddenMessage : ShadowsMessage;
+            return string.Format(format, name, conflict.Path);
+        }
+
+        /// <summary>The inline warning for a name (#153): the keycut it would replace, then the conflict that matters most.</summary>
+        public static string GetNameWarningMessage(NameCheck? check)
+        {
+            if (check == null || !check.HasWarnings)
+            {
+                return string.Empty;
+            }
+
+            var lines = new List<string>();
+
+            if (check.Existing != null)
+            {
+                lines.Add(string.IsNullOrEmpty(check.Existing.Destination)
+                    ? string.Format(ReplaceUnknownMessage, check.Name)
+                    : string.Format(ReplaceMessage, check.Name, check.Existing.Destination));
+            }
+
+            if (check.MainConflict is NameConflict conflict)
+            {
+                lines.Add(GetConflictMessage(check.Name, conflict));
+            }
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
         private string destination = string.Empty;
 
         private string shortcutName = string.Empty;
@@ -73,7 +120,8 @@ namespace keycuts.GUI.ViewModels
 
         private bool isBrowseMenuOpen;
 
-        private string? duplicateName;
+        // What the typed name runs into (#153), while the warning is showing; null when there's nothing to warn about
+        private NameCheck? nameWarning;
 
         private string? successName;
 
@@ -83,9 +131,9 @@ namespace keycuts.GUI.ViewModels
 
         private int successVersion;
 
-        private readonly Func<string, string, bool, CancellationToken, Task<CreateResult>> createAsync;
+        private readonly Func<string, string, bool, bool, CancellationToken, Task<CreateResult>> createAsync;
 
-        private readonly Func<string, bool> nameExists;
+        private readonly Func<string, NameCheck> checkName;
 
         private bool useEnvironmentVariablesSetting;
 
@@ -97,18 +145,20 @@ namespace keycuts.GUI.ViewModels
         // What the typed destination resolved to (a shortcut's target, a normalized path), while the text keeps what was typed
         private string? resolvedDestination;
 
-        /// <param name="createAsync">Creates the keycut (destination, name, use environment variables); defaults to <see cref="KeycutCreator"/>. Tests pass a fake.</param>
-        /// <param name="nameExists">Checks for an existing keycut while typing; defaults to the configured output folder, and is off when force overwrite is on.</param>
+        /// <param name="createAsync">Creates the keycut (destination, name, use environment variables, replace an existing
+        /// one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
+        /// <param name="checkName">What a name runs into (#153), checked while typing and before each create; defaults to
+        /// <see cref="NameCheck.Run"/> on this machine. Tests pass a fake.</param>
         public CreatorViewModel(
             ICommand showManagerCommand,
             ICommand openSettingsCommand,
-            Func<string, string, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
-            Func<string, bool>? nameExists = null)
+            Func<string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
+            Func<string, NameCheck>? checkName = null)
         {
             ShowManagerCommand = showManagerCommand;
             OpenSettingsCommand = openSettingsCommand;
             this.createAsync = createAsync ?? DefaultCreateAsync;
-            this.nameExists = nameExists ?? DefaultNameExists;
+            this.checkName = checkName ?? DefaultCheckName;
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
             BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
             BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
@@ -125,6 +175,12 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>Raised after a create attempt so the view can move focus (it can't know the outcome).</summary>
         public event EventHandler<CreatorFocusTarget>? FocusRequested;
+
+        /// <summary>
+        /// Asks the user to go ahead despite a name warning (#153): the check and the new destination in, true to create.
+        /// The view shows the confirmation dialog; tests pass a fake. Without one nothing with a warning is created.
+        /// </summary>
+        public Func<NameCheck, string, bool>? ConfirmName { get; set; }
 
         /// <summary>How long the success confirmation shows before the creator resets to Empty.</summary>
         public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(2);
@@ -252,7 +308,7 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Changing the name clears the duplicate-name error and the success message.</summary>
+        /// <summary>Changing the name clears its warning, its error, and the success message.</summary>
         public string ShortcutName
         {
             get { return shortcutName; }
@@ -260,7 +316,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref shortcutName, value ?? string.Empty))
                 {
-                    duplicateName = null;
+                    nameWarning = null;
                     isInvalidName = false;
                     successName = null;
                     submitError = null;
@@ -332,10 +388,10 @@ namespace keycuts.GUI.ViewModels
             set { SetProperty(ref isBrowseMenuOpen, value); }
         }
 
-        /// <summary>The name that already exists, while the duplicate-name error is showing.</summary>
-        public string? DuplicateName
+        /// <summary>What the name runs into, while its warning is showing (#153).</summary>
+        public NameCheck? NameWarning
         {
-            get { return duplicateName; }
+            get { return nameWarning; }
         }
 
         /// <summary>The name that was just created, while the success confirmation is showing.</summary>
@@ -363,9 +419,14 @@ namespace keycuts.GUI.ViewModels
                     return CreatorState.InvalidDestination;
                 }
 
-                if (IsDuplicateName)
+                if (isInvalidName)
                 {
-                    return CreatorState.DuplicateName;
+                    return CreatorState.NameError;
+                }
+
+                if (nameWarning != null)
+                {
+                    return CreatorState.NameWarning;
                 }
 
                 return HasDestination ? CreatorState.DestinationSelected : CreatorState.Empty;
@@ -388,10 +449,16 @@ namespace keycuts.GUI.ViewModels
             get { return HasDestination && !HasDestinationError; }
         }
 
-        /// <summary>The name field shows its error look: a duplicate name, or one with characters Windows doesn't allow.</summary>
-        public bool IsDuplicateName
+        /// <summary>The name field shows its error look: characters Windows doesn't allow, or a keycuts command's name.</summary>
+        public bool IsNameError
         {
-            get { return duplicateName != null || isInvalidName; }
+            get { return isInvalidName; }
+        }
+
+        /// <summary>The name field shows its warning look (amber): the name would replace a keycut or clash with a command.</summary>
+        public bool IsNameWarning
+        {
+            get { return nameWarning != null && !isInvalidName; }
         }
 
         public bool IsSuccess
@@ -442,11 +509,6 @@ namespace keycuts.GUI.ViewModels
                     return GetDestinationErrorMessage(destinationError);
                 }
 
-                if (duplicateName != null)
-                {
-                    return string.Format("\u201C{0}\u201D already exists. Choose another name.", duplicateName);
-                }
-
                 if (isInvalidName)
                 {
                     return GetInvalidNameMessage(shortcutName);
@@ -462,6 +524,11 @@ namespace keycuts.GUI.ViewModels
                     return "Created " + successName;
                 }
 
+                if (nameWarning != null)
+                {
+                    return GetNameWarningMessage(nameWarning);
+                }
+
                 return DefaultHelperText;
             }
         }
@@ -472,10 +539,10 @@ namespace keycuts.GUI.ViewModels
             get { return HasDestinationError ? GetDestinationErrorMessage(destinationError) : string.Empty; }
         }
 
-        /// <summary>The name field's current error for screen readers (a name or submit error), or empty when there is none.</summary>
+        /// <summary>The name field's current error or warning for screen readers, or empty when there is none.</summary>
         public string NameHelpText
         {
-            get { return !isSaving && !HasDestinationError && HelperIsError ? HelperText : string.Empty; }
+            get { return !isSaving && !HasDestinationError && (HelperIsError || HelperIsWarning) ? HelperText : string.Empty; }
         }
 
         /// <summary>Accessible name of the Create button; it reads "Saving" while the keycut is being written.</summary>
@@ -486,7 +553,13 @@ namespace keycuts.GUI.ViewModels
 
         public bool HelperIsError
         {
-            get { return HasDestinationError || IsDuplicateName || submitError != null; }
+            get { return HasDestinationError || isInvalidName || submitError != null; }
+        }
+
+        /// <summary>The helper line shows a name warning (amber), and no error outranks it.</summary>
+        public bool HelperIsWarning
+        {
+            get { return !isSaving && !HelperIsError && !IsSuccess && nameWarning != null; }
         }
 
         /// <summary>The destination field is focused unless one is already set, in which case the name field is.</summary>
@@ -552,10 +625,10 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Shows the duplicate-name error on the name field.</summary>
-        public void SetDuplicateName(string name)
+        /// <summary>Shows the name's warning (#153), or clears it for null or a check with nothing to warn about.</summary>
+        public void SetNameWarning(NameCheck? check)
         {
-            duplicateName = name ?? throw new ArgumentNullException(nameof(name));
+            nameWarning = check != null && check.HasWarnings ? check : null;
             isInvalidName = false;
             successName = null;
             RaiseStateChanged();
@@ -565,7 +638,7 @@ namespace keycuts.GUI.ViewModels
         public void SetSuccess(string name)
         {
             successName = name ?? throw new ArgumentNullException(nameof(name));
-            duplicateName = null;
+            nameWarning = null;
             isInvalidName = false;
             submitError = null;
             RaiseStateChanged();
@@ -578,7 +651,7 @@ namespace keycuts.GUI.ViewModels
             destinationKind = null;
             resolvedDestination = null;
             destinationError = DestinationError.None;
-            duplicateName = null;
+            nameWarning = null;
             isInvalidName = false;
             submitError = null;
             successName = null;
@@ -594,30 +667,40 @@ namespace keycuts.GUI.ViewModels
             KeycutCreated?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Shows the duplicate-name error early (while typing) when a keycut with the typed name already exists.</summary>
-        public async Task CheckDuplicateNameAsync()
+        /// <summary>
+        /// Shows the name's warning early, while typing (#153): a keycut it would replace, or another command with the
+        /// name. A result for a name that has since changed is dropped.
+        /// </summary>
+        public async Task CheckNameAsync()
         {
             var name = shortcutName.Trim();
-            if (name.Length == 0 || isSaving || successName != null)
+            if (name.Length == 0 || isSaving || successName != null || !KeycutCreator.IsValidName(name))
             {
                 return;
             }
 
-            var exists = await Task.Run(() => nameExists(name));
+            var check = await RunCheckAsync(name);
 
-            if (exists && shortcutName.Trim() == name && !isSaving && successName == null)
+            if (shortcutName.Trim() == name && !isSaving && successName == null && !isInvalidName)
             {
-                SetDuplicateName(name);
+                SetNameWarning(check);
             }
         }
 
+        /// <summary>
+        /// Checks the name first (#153). With a warning, <see cref="ConfirmName"/> asks, and only a yes creates, replacing
+        /// the existing keycut if that was the warning. A name that isn't valid goes straight to <see cref="KeycutCreator"/>,
+        /// which refuses it with the right message.
+        /// </summary>
         private async Task CreateAsync()
         {
             // The command's CanExecute is rechecked here; the destination text may be unresolved, so KeycutCreator validates it again
             var name = shortcutName.Trim();
             var target = destination.Trim();
 
-            duplicateName = null;
+            // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
+            var useEnvironmentVariables = UseEnvironmentVariables;
+
             isInvalidName = false;
             submitError = null;
             IsSaving = true;
@@ -625,8 +708,42 @@ namespace keycuts.GUI.ViewModels
             CreateResult result;
             try
             {
-                // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
-                result = await createAsync(target, name, UseEnvironmentVariables, CancellationToken.None);
+                var replace = false;
+
+                if (KeycutCreator.IsValidName(name))
+                {
+                    var check = await RunCheckAsync(name);
+
+                    if (check.HasWarnings)
+                    {
+                        if (!Confirm(check, target))
+                        {
+                            return;
+                        }
+
+                        replace = check.Existing != null;
+                    }
+                    else
+                    {
+                        nameWarning = null;
+                    }
+                }
+
+                result = await createAsync(target, name, useEnvironmentVariables, replace, CancellationToken.None);
+
+                if (result.Outcome == CreateOutcome.DuplicateName && !replace)
+                {
+                    // The keycut appeared after the check (or the check failed): ask before replacing it
+                    var again = await RunCheckAsync(name);
+                    var existing = again.Existing ?? new Keycut { Name = name, Destination = string.Empty };
+
+                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), target))
+                    {
+                        return;
+                    }
+
+                    result = await createAsync(target, name, useEnvironmentVariables, true, CancellationToken.None);
+                }
             }
             catch (Exception ex)
             {
@@ -635,6 +752,38 @@ namespace keycuts.GUI.ViewModels
 
             IsSaving = false;
             ApplyResult(result, name);
+        }
+
+        /// <summary>
+        /// Shows the warning and asks. A no (or no way to ask) ends the attempt with the warning showing and the focus in
+        /// the name, so the name can be changed; nothing is created.
+        /// </summary>
+        private bool Confirm(NameCheck check, string target)
+        {
+            nameWarning = check;
+            IsSaving = false;
+
+            if (ConfirmName?.Invoke(check, target) == true)
+            {
+                IsSaving = true;
+                return true;
+            }
+
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
+            return false;
+        }
+
+        private async Task<NameCheck> RunCheckAsync(string name)
+        {
+            try
+            {
+                return await Task.Run(() => checkName(name)) ?? NameCheck.None(name);
+            }
+            catch (Exception)
+            {
+                // A check that fails warns about nothing; creating still refuses to replace a keycut without asking
+                return NameCheck.None(name);
+            }
         }
 
         private void ApplyResult(CreateResult result, string name)
@@ -647,8 +796,8 @@ namespace keycuts.GUI.ViewModels
                     _ = ResetAfterSuccessAsync();
                     return;
                 case CreateOutcome.DuplicateName:
-                    SetDuplicateName(name);
-                    FocusRequested?.Invoke(this, CreatorFocusTarget.NameSelectAll);
+                    // Only after a confirmed replace that still failed, which shouldn't happen: say so and keep the name
+                    ShowSubmitError(UnexpectedErrorMessage);
                     return;
                 case CreateOutcome.InvalidName:
                     isInvalidName = true;
@@ -694,7 +843,7 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        private async Task<CreateResult> DefaultCreateAsync(string destination, string name, bool useEnvironmentVariables, CancellationToken ct)
+        private async Task<CreateResult> DefaultCreateAsync(string destination, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
         {
 #if DEBUG
             // Debug builds can slow creation down to see the Saving state
@@ -704,14 +853,22 @@ namespace keycuts.GUI.ViewModels
             }
 #endif
             // The variables the preview used, so the keycut is saved as shown; null (not read yet) makes the create read them
-            var options = new CreateOptions { UseEnvironmentVariables = useEnvironmentVariables, PathVariables = pathVariables };
+            // Overwrite only after a confirmed replace; otherwise the setting decides (null): with "Ask before replacing a
+            // keycut" off a keycut is replaced without asking, and with it on one that appeared since the check is refused
+            var options = new CreateOptions
+            {
+                UseEnvironmentVariables = useEnvironmentVariables,
+                PathVariables = pathVariables,
+                Overwrite = replace ? true : null
+            };
             return await KeycutCreator.CreateAsync(destination, name, options, ct);
         }
 
-        private static bool DefaultNameExists(string name)
+        private static NameCheck DefaultCheckName(string name)
         {
-            // With force overwrite on, a duplicate is overwritten silently, so there is no error to preview
-            return !new Runner().GetForceOverwrite() && KeycutRepository.CreateDefault().Exists(name);
+            // With "Ask before replacing a keycut" off, an existing keycut is replaced without asking, so it isn't a warning
+            var runner = new Runner();
+            return NameCheck.Run(name, runner.GetOutputFolder(), runner.GetAskBeforeReplacing(), NameConflictEnvironment.GetDefault());
         }
 
         private void RaiseStateChanged()
@@ -721,8 +878,9 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(HasDestination));
             OnPropertyChanged(nameof(HasDestinationError));
             OnPropertyChanged(nameof(HasValidDestination));
-            OnPropertyChanged(nameof(IsDuplicateName));
-            OnPropertyChanged(nameof(DuplicateName));
+            OnPropertyChanged(nameof(IsNameError));
+            OnPropertyChanged(nameof(IsNameWarning));
+            OnPropertyChanged(nameof(NameWarning));
             OnPropertyChanged(nameof(IsSuccess));
             OnPropertyChanged(nameof(SuccessName));
             OnPropertyChanged(nameof(CanCreate));
@@ -732,6 +890,7 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(DestinationIcon));
             OnPropertyChanged(nameof(HelperText));
             OnPropertyChanged(nameof(HelperIsError));
+            OnPropertyChanged(nameof(HelperIsWarning));
             OnPropertyChanged(nameof(DestinationHelpText));
             OnPropertyChanged(nameof(NameHelpText));
             OnPropertyChanged(nameof(CreateButtonName));

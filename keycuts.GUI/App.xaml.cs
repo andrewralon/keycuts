@@ -64,6 +64,10 @@ namespace keycuts.GUI
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome);
+            // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
+            shell.Manager.CheckRename = name => new Common.NameCheck(name, null,
+                Common.NameConflicts.Find(name, new Common.Runner().GetOutputFolder(), Common.NameConflictEnvironment.GetDefault()));
+
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
 

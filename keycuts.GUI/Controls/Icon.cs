@@ -20,7 +20,8 @@ namespace keycuts.GUI.Controls
         Play,
         Search,
         Settings,
-        Spark
+        Spark,
+        Warning
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ namespace keycuts.CLI
         [Option('o', "outputfolder", Required = false, HelpText = "Output folder for shortcuts created without a full path.")]
         public string OutputFolder { get; set; }
 
-        [Option('f', "force", Default = false, HelpText = "Force overwrite the shortcut file if it already exists.")]
+        [Option('f', "force", Default = false, HelpText = "Don't ask: replace a shortcut with the same name, and create it even if another command has the name.")]
         public bool Force { get; set; }
     }
 }

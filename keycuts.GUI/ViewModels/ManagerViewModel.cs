@@ -129,6 +129,18 @@ namespace keycuts.GUI.ViewModels
             set { SetProperty(ref selectedRow, value); }
         }
 
+        /// <summary>
+        /// What a new name runs into besides another keycut (#153): programs and scripts with the same name. The app sets
+        /// it; without one (tests) a rename checks nothing. A taken keycut name is still refused by the rename itself.
+        /// </summary>
+        public Func<string, NameCheck>? CheckRename { get; set; }
+
+        /// <summary>
+        /// Asks to go ahead with a rename despite a name conflict; true renames. The view shows the confirmation dialog.
+        /// Without one a rename with a conflict goes back to editing, so nothing is renamed unasked.
+        /// </summary>
+        public Func<NameCheck, bool>? ConfirmRename { get; set; }
+
         /// <summary>True while a row's name is being edited (F2 or Rename…). Reloads wait until it ends.</summary>
         public bool IsRenaming
         {
@@ -459,9 +471,10 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Renames the keycut to the typed name (trimmed). An unchanged name just ends the edit. On success the list
-        /// reloads with the renamed row selected; a failure (invalid or taken name, a file that's gone, a locked file)
-        /// ends the edit and shows why in the status line. Never overwrites another keycut.
+        /// Renames the keycut to the typed name (trimmed). An unchanged name just ends the edit. A name another command
+        /// uses asks first (#153); a no goes back to editing the typed name. On success the list reloads with the renamed
+        /// row selected; a failure (invalid or taken name, a file that's gone, a locked file) ends the edit and shows why
+        /// in the status line. Never overwrites another keycut.
         /// </summary>
         public async Task CommitRenameAsync()
         {
@@ -480,6 +493,11 @@ namespace keycuts.GUI.ViewModels
             {
                 FocusRowRequested?.Invoke(this, row);
                 _ = LoadAsync();
+                return;
+            }
+
+            if (!await ConfirmConflictsAsync(row, newName))
+            {
                 return;
             }
 
@@ -535,6 +553,52 @@ namespace keycuts.GUI.ViewModels
             {
                 savingPath = null;
             }
+        }
+
+        /// <summary>
+        /// Checks the new name for other commands with it (#153) and asks if there are any. False when the user said no
+        /// (or nobody could be asked): the row is back in rename mode with the typed name, so it can be changed.
+        /// </summary>
+        private async Task<bool> ConfirmConflictsAsync(KeycutRowViewModel row, string newName)
+        {
+            var checkRename = CheckRename;
+
+            if (checkRename == null || !KeycutCreator.IsValidName(newName))
+            {
+                return true;
+            }
+
+            // Actions on this row wait while its name is checked, as they do while it's being renamed
+            savingPath = row.Keycut.FilePath;
+            NameCheck check;
+            try
+            {
+                check = await Task.Run(() => checkRename(newName)) ?? NameCheck.None(newName);
+            }
+            catch (Exception)
+            {
+                check = NameCheck.None(newName);
+            }
+            finally
+            {
+                savingPath = null;
+            }
+
+            if (check.Conflicts.Count == 0 || ConfirmRename?.Invoke(check) == true)
+            {
+                return true;
+            }
+
+            // A reload during the check may have rebuilt the rows: carry on with the one for the same file
+            var target = allRows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, row.Keycut.FilePath, StringComparison.OrdinalIgnoreCase)) ?? row;
+            BeginRename(target);
+
+            if (ReferenceEquals(renamingRow, target))
+            {
+                target.EditName = newName;
+            }
+
+            return false;
         }
 
         /// <summary>

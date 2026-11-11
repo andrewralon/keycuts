@@ -82,6 +82,49 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// The keycut named <paramref name="name"/> (any case), or null if there is none. A file that exists but can't be
+        /// parsed still counts: it comes back with just its name and path, and an empty destination.
+        /// </summary>
+        public Keycut Find(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            try
+            {
+                var fileName = name + ShortcutFile.Extension;
+
+                if (!Directory.Exists(_outputFolder))
+                {
+                    return null;
+                }
+
+                var file = Directory.EnumerateFiles(_outputFolder, "*" + ShortcutFile.Extension)
+                    .FirstOrDefault(f => string.Equals(Path.GetFileName(f), fileName, StringComparison.OrdinalIgnoreCase));
+
+                if (file == null)
+                {
+                    return null;
+                }
+
+                return TryParse(file) ?? new Keycut
+                {
+                    Name = Path.GetFileNameWithoutExtension(file),
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.Unknown,
+                    Destination = "",
+                    FilePath = file
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
             var all = await LoadAllAsync(ct).ConfigureAwait(false);

@@ -67,7 +67,7 @@ namespace keycuts.CLI
                 // The library puts a blank line between the "Commands:" heading and the verb list; drop it
                 text = text.Replace("Commands:" + Environment.NewLine + Environment.NewLine, "Commands:" + Environment.NewLine);
 
-                output.WriteLine(topLevel ? text +Environment.NewLine + Environment.NewLine + TopLevelText : text);
+                output.WriteLine(topLevel ? text + Environment.NewLine + Environment.NewLine + TopLevelText : text);
                 return ExitCode.Success;
             }
 

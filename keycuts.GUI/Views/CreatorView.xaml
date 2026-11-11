@@ -8,11 +8,14 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.CreatorUrl}"
              Background="{DynamicResource SurfaceBrush}" Loaded="CreatorView_Loaded"
-             PreviewKeyDown="CreatorView_PreviewKeyDown"
+             PreviewKeyDown="CreatorView_PreviewKeyDown" PreviewKeyUp="CreatorView_PreviewKeyUp"
+             IsKeyboardFocusWithinChanged="CreatorView_IsKeyboardFocusWithinChanged"
              PreviewDragEnter="Creator_DragEnter" PreviewDragOver="Creator_DragOver" PreviewDragLeave="Creator_DragLeave"
              PreviewDrop="Creator_Drop"
              AllowDrop="{Binding IsInputEnabled}">
   <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
     <!-- Borderless single-line field that sits inside the drop area; focus is shown on the drop area instead. -->
     <Style x:Key="InlineTextBox" TargetType="TextBox">
       <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
@@ -175,6 +178,27 @@
       </Style.Triggers>
     </Style>
 
+    <!-- The name form's helper line also shows name warnings (#153), in amber; an error still wins. It wraps, since a
+         warning names a full path. -->
+    <Style x:Key="NameHelperText" TargetType="TextBlock" BasedOn="{StaticResource HelperText}">
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="None" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsSuccess}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HelperIsWarning}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
     <Style x:Key="BrowseChevron" TargetType="controls:Icon">
       <Setter Property="Size" Value="12" />
       <Setter Property="Kind" Value="Chevron" />
@@ -211,6 +235,7 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
       <Grid Grid.Row="0" Margin="0,0,0,20">
@@ -226,8 +251,50 @@
         </StackPanel>
       </Grid>
 
+      <!-- First-run welcome (#61, #11): shown once, while the keycuts folder is empty. Collapsed without a Welcome. -->
+      <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
+              CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
+              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+        <StackPanel>
+          <TextBlock Text="Welcome to keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                     AutomationProperties.HeadingLevel="Level2" />
+          <TextBlock TextWrapping="Wrap" Margin="0,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
+                     Text="Give anything a short name here. Then press Win+R, type the name, and press Enter to open it." />
+          <TextBlock Text="Start with a keycut to keycuts itself:" FontWeight="SemiBold" Margin="0,0,0,6"
+                     Foreground="{DynamicResource TextBrush}" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TextboxWelcomeName" Height="34" MinHeight="34"
+                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                     themes:TextBoxChrome.HasError="{Binding HelperIsError}"
+                     IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Name for the keycuts keycut"
+                     AutomationProperties.HelpText="{Binding HelperText}">
+              <TextBox.InputBindings>
+                <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+              </TextBox.InputBindings>
+            </TextBox>
+            <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
+                    Command="{Binding CreateCommand}" Content="Create keycut"
+                    AutomationProperties.Name="Create keycut to keycuts" />
+            <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
+                    Command="{Binding DismissCommand}" Content="Got it" AutomationProperties.Name="Dismiss welcome" />
+          </Grid>
+          <TextBlock x:Name="WelcomeHelperTextBlock" Margin="0,8,0,0" Text="{Binding HelperText}"
+                     Style="{StaticResource HelperText}" TextWrapping="Wrap" TextTrimming="None" />
+          <!-- Only after a create, when the keycuts folder isn't on PATH yet (a portable copy), so Win+R can't find it -->
+          <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Height="34"
+                  Padding="12,0" Command="{Binding AddToPathCommand}" Content="Add to PATH"
+                  AutomationProperties.Name="Add the keycuts folder to PATH"
+                  Visibility="{Binding NeedsPath, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+        </StackPanel>
+      </Border>
+
       <!-- Destination drop area -->
-      <Grid x:Name="DropArea" Grid.Row="1" MinHeight="96">
+      <Grid x:Name="DropArea" Grid.Row="2" MinHeight="96">
         <Border Style="{StaticResource DropGlow}" />
         <Border Style="{StaticResource DropFill}" />
         <Rectangle Style="{StaticResource DropStroke}" />
@@ -253,6 +320,11 @@
                      AutomationProperties.HelpText="{Binding DestinationHelpText}"
                      PreviewKeyDown="TextboxDestination_PreviewKeyDown" TextChanged="TextboxDestination_TextChanged"
                      LostFocus="TextboxDestination_LostFocus" />
+            <!-- #31: the path as it will be saved, with or without environment variables (the setting, flipped by Shift) -->
+            <TextBlock x:Name="SavedAsText" Margin="0,4,0,0" FontSize="{StaticResource FontSizeCaption}"
+                       Foreground="{DynamicResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis"
+                       Text="{Binding SavedAsPath, StringFormat='Saved as {0}'}" ToolTip="{Binding SavedAsPath}"
+                       Visibility="{Binding ShowSavedAs, Converter={StaticResource BoolToVisibility}}" />
           </StackPanel>
 
           <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
@@ -298,7 +370,7 @@
       </Grid>
 
       <!-- Name form -->
-      <StackPanel Grid.Row="2" Margin="0,18,0,0">
+      <StackPanel Grid.Row="3" Margin="0,18,0,0">
         <TextBlock Text="Name your keycut" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6" />
         <Grid>
           <Grid.ColumnDefinitions>
@@ -308,13 +380,15 @@
           <TextBox x:Name="TextboxShortcut" Height="38" MinHeight="38"
                    Text="{Binding ShortcutName, UpdateSourceTrigger=PropertyChanged}"
                    themes:TextBoxChrome.Placeholder="e.g. l-vicki"
-                   themes:TextBoxChrome.HasError="{Binding IsDuplicateName}"
+                   themes:TextBoxChrome.HasError="{Binding IsNameError}"
+                   themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
                    IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
                    AutomationProperties.HelpText="{Binding NameHelpText}"
                    TextChanged="TextboxShortcut_TextChanged">
             <TextBox.InputBindings>
-              <!-- Enter creates only from the name field -->
+              <!-- Enter creates only from the name field; Shift+Enter too, with the environment-variables setting flipped -->
               <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+              <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
             </TextBox.InputBindings>
           </TextBox>
           <Button x:Name="BtnCreateShortcut" Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
@@ -353,8 +427,21 @@
             </Grid>
           </Button>
         </Grid>
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" MinHeight="18">
-          <controls:Icon Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
+        <DockPanel Margin="0,8,0,0" MinHeight="18">
+          <controls:Icon DockPanel.Dock="Left" Kind="Warning" Size="14" Margin="0,1,6,0" VerticalAlignment="Top"
+                         Foreground="{DynamicResource WarningBrush}">
+            <controls:Icon.Style>
+              <Style TargetType="controls:Icon">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HelperIsWarning}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </controls:Icon.Style>
+          </controls:Icon>
+          <controls:Icon DockPanel.Dock="Left" Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
                          Foreground="{DynamicResource SuccessBrush}">
             <controls:Icon.Style>
               <Style TargetType="controls:Icon">
@@ -367,9 +454,8 @@
               </Style>
             </controls:Icon.Style>
           </controls:Icon>
-          <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource HelperText}"
-                     ToolTip="{Binding HelperText}" />
-        </StackPanel>
+          <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource NameHelperText}" />
+        </DockPanel>
       </StackPanel>
     </Grid>
 

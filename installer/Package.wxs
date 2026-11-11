@@ -33,7 +33,10 @@
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="UserProgramsFolder" Name="Programs">
-        <Directory Id="INSTALLFOLDER" Name="keycuts" />
+        <Directory Id="INSTALLFOLDER" Name="keycuts">
+          <!-- The folder on PATH: only the keycuts.cmd and keypaste.cmd shims, so the runtime DLLs stay off PATH -->
+          <Directory Id="BINFOLDER" Name="bin" />
+        </Directory>
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
@@ -43,7 +46,13 @@
     </StandardDirectory>
 
     <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
-      <Files Include="$(PublishDir)\**" />
+      <Files Include="$(PublishDir)\**">
+        <Exclude Files="$(PublishDir)\bin\**" />
+      </Files>
+    </ComponentGroup>
+
+    <ComponentGroup Id="BinFiles" Directory="BINFOLDER">
+      <Files Include="$(PublishDir)\bin\**" />
     </ComponentGroup>
 
     <ComponentGroup Id="UserIntegration" Directory="INSTALLFOLDER">
@@ -53,9 +62,10 @@
         <!-- Uninstall leaves the folder alone unless it is empty, so keycuts survive -->
         <CreateFolder Directory="OUTPUTFOLDER" />
 
-        <!-- Win+R finds keycuts through the output folder; the install folder exposes keycuts.exe and keypaste.exe -->
+        <!-- Win+R finds keycuts through the output folder; bin exposes the keycuts and keypaste commands as .cmd shims.
+             Not the install folder itself, which would put the runtime's DLLs and createdump.exe on PATH. -->
         <Environment Id="PathOutputFolder" Name="PATH" Value="[OUTPUTFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
-        <Environment Id="PathInstallFolder" Name="PATH" Value="[INSTALLFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
+        <Environment Id="PathBinFolder" Name="PATH" Value="[BINFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
 
         <!-- Settings can add these after install, so uninstall removes them even when the component below is absent -->
         <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Directory\shell\keycuts" />
@@ -63,6 +73,7 @@
         <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\*\shell\keycuts" />
         <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Folder\shell\keycuts" />
 
+        <RemoveFolder Id="RemoveBinFolder" Directory="BINFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveUserProgramsFolder" Directory="UserProgramsFolder" On="uninstall" />
       </Component>
@@ -112,6 +123,7 @@
 
     <Feature Id="Main" Title="keycuts">
       <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="BinFiles" />
       <ComponentGroupRef Id="UserIntegration" />
     </Feature>
 

@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.Common
 {
@@ -18,7 +17,8 @@ namespace keycuts.Common
         /// <summary>Per-user, so a non-admin can write to it. The installer's default must match; a test compares the two.</summary>
         public static readonly string DefaultOutputFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Shortcuts");
 
-        public static readonly bool DefaultForceOverwrite = false;
+        /// <summary>"Ask before replacing a keycut" is on unless the user turned it off (or had Force overwrite on, #153).</summary>
+        public static readonly bool DefaultAskBeforeReplacing = true;
 
         public static readonly string RightClickContextMenuText = "keycut this!";
 
@@ -52,10 +52,15 @@ namespace keycuts.Common
 
         public ExitCode Run(KeycutArgs args)
         {
-            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description);
+            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description,
+                args.UseEnvironmentVariables, args.PathVariables);
         }
 
-        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "")
+        /// <param name="useEnvironmentVariables">Save a file or folder destination with environment variables (#31). This
+        /// happens after the destination is classified, which needs the real path.</param>
+        /// <param name="pathVariables">The variables to use; null reads them from this machine.</param>
+        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "",
+            bool useEnvironmentVariables = false, IReadOnlyList<PathVariable> pathVariables = null)
         {
             var result = ExitCode.NotStarted;
 
@@ -81,6 +86,11 @@ namespace keycuts.Common
             else
             {
                 var shortcut = new Shortcut(destination, shortcutPath, outputFolder, openWithAppPath);
+
+                if (useEnvironmentVariables && PathVariables.AppliesTo(shortcut.Type))
+                {
+                    shortcut.SetDestination(PathVariables.Substitute(shortcut.Destination, pathVariables ?? PathVariables.GetDefault()));
+                }
 
                 if (shortcut.Type != ShortcutType.Unknown)
                 {
@@ -120,11 +130,9 @@ namespace keycuts.Common
             return outputFolder;
         }
 
-        public bool GetForceOverwrite()
+        public bool GetAskBeforeReplacing()
         {
-            var forceOverwrite = RegistryStuff.GetForceOverwrite(DefaultForceOverwrite);
-
-            return forceOverwrite;
+            return RegistryStuff.GetAskBeforeReplacing(DefaultAskBeforeReplacing);
         }
 
         public bool GetRightClickContextMenu()
@@ -135,6 +143,11 @@ namespace keycuts.Common
         public ThemePreference GetThemePreference()
         {
             return RegistryStuff.GetThemePreference();
+        }
+
+        public bool GetUseEnvironmentVariables()
+        {
+            return RegistryStuff.GetUseEnvironmentVariables();
         }
 
         #endregion Get Methods
@@ -171,13 +184,11 @@ namespace keycuts.Common
             return outputFolder;
         }
 
-        public void SetForceOverwrite(bool forceOverwrite)
+        public void SetAskBeforeReplacing(bool askBeforeReplacing)
         {
-            var currentForceOverwrite = RegistryStuff.GetForceOverwrite(DefaultForceOverwrite);
-
-            if (currentForceOverwrite != forceOverwrite)
+            if (GetAskBeforeReplacing() != askBeforeReplacing)
             {
-                RegistryStuff.SetForceOverwrite(forceOverwrite);
+                RegistryStuff.SetAskBeforeReplacing(askBeforeReplacing);
             }
         }
 
@@ -186,6 +197,14 @@ namespace keycuts.Common
             if (RegistryStuff.GetThemePreference() != preference)
             {
                 RegistryStuff.SetThemePreference(preference);
+            }
+        }
+
+        public void SetUseEnvironmentVariables(bool useEnvironmentVariables)
+        {
+            if (RegistryStuff.GetUseEnvironmentVariables() != useEnvironmentVariables)
+            {
+                RegistryStuff.SetUseEnvironmentVariables(useEnvironmentVariables);
             }
         }
 
@@ -235,58 +254,7 @@ namespace keycuts.Common
             // If the shortcut file already exists, let overwrite decide
             if (!File.Exists(shortcut.FullPath) || overwrite)
             {
-                // Create lines with comments and command based on type (file or folder)
-                var shortcutTypeLower = shortcut.Type.ToString().ToLower();
-
-                var lines = new List<string>
-                {
-                    "@ECHO OFF",
-                    $"REM {AppName} {Version}",
-                    $"REM <shortcut>{shortcut.FullPath}</shortcut>",
-                    $"REM <type>{shortcutTypeLower}</type>",
-                    $"REM <destination>{shortcut.Destination}</destination>",
-                    $"REM <description>{SanitizeDescription(description)}</description>",
-                };
-
-                // START: "" = Title (empty) of console window
-                //  /B = don't create a new window
-                //  "{0}" = command/program
-                //  "{1}" = parameters
-                var start = "START \"\" /B \"{0}\"";
-                var command = "";
-
-                if (shortcut.OpenWithApp)
-                {
-                    start = $"{start} \"{{1}}\"";
-                    command = string.Format(start, shortcut.OpenWithAppPath, shortcut.Destination);
-                }
-                else
-                {
-                    if (shortcut.Type == ShortcutType.Url)
-                    {
-                        var sanitized = Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination);
-
-                        command = $"START {sanitized}";
-                    }
-                    else if (shortcut.Type == ShortcutType.File)
-                    {
-                        command = string.Format(start, shortcut.Destination);
-                    }
-                    else if (shortcut.Type == ShortcutType.HostsFile)
-                    {
-                        var notepadPath = @"%windir%\system32\notepad.exe";
-
-                        start = $"{start} \"{{1}}\"";
-                        command = string.Format(start, notepadPath, shortcut.Destination);
-                    }
-                    else if (shortcut.Type == ShortcutType.Folder || shortcut.Type == ShortcutType.CLSIDKey)
-                    {
-                        command = $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"";
-                    }
-                }
-
-                lines.Add(command);
-                lines.Add("EXIT");
+                var lines = BuildShortcutLines(shortcut, description);
 
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
@@ -297,6 +265,59 @@ namespace keycuts.Common
             }
 
             return result;
+        }
+
+        /// <summary>The lines of a keycut's .bat file. Touches no files, so tests can pin the output.</summary>
+        public static List<string> BuildShortcutLines(Shortcut shortcut, string description = "")
+        {
+            // Create lines with comments and command based on type (file or folder)
+            var shortcutTypeLower = shortcut.Type.ToString().ToLower();
+
+            var lines = new List<string>
+            {
+                "@ECHO OFF",
+                $"REM {AppName} {Version}",
+                $"REM <shortcut>{shortcut.FullPath}</shortcut>",
+                $"REM <type>{shortcutTypeLower}</type>",
+                $"REM <destination>{shortcut.Destination}</destination>",
+                $"REM <description>{SanitizeDescription(description)}</description>",
+            };
+
+            lines.Add(BuildCommand(shortcut));
+            lines.Add("EXIT");
+
+            return lines;
+        }
+
+        /// <summary>The launch line. Every <see cref="ShortcutType"/> has a case, so a new one can't silently emit nothing.</summary>
+        private static string BuildCommand(Shortcut shortcut)
+        {
+            // START: "" = Title (empty) of console window
+            //  /B = don't create a new window
+            //  "{0}" = command/program
+            //  "{1}" = parameters
+            var start = "START \"\" /B \"{0}\"";
+            var startWithArgument = $"{start} \"{{1}}\"";
+
+            if (shortcut.OpenWithApp)
+            {
+                return string.Format(startWithArgument, shortcut.OpenWithAppPath, shortcut.Destination);
+            }
+
+            // No discard arm, so a ShortcutType added later without a case here is a build error (CS8509). CS8524
+            // only covers integers outside the enum, which throw SwitchExpressionException.
+#pragma warning disable CS8524
+            return shortcut.Type switch
+            {
+                ShortcutType.Url => $"START {Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination)}",
+                ShortcutType.File => string.Format(start, shortcut.Destination),
+                ShortcutType.HostsFile => string.Format(startWithArgument, @"%windir%\system32\notepad.exe", shortcut.Destination),
+                ShortcutType.Folder or ShortcutType.CLSIDKey => $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"",
+                // cmd /C runs the whole line, arguments included, which START "" /B "<line>" would treat as one program name
+                ShortcutType.Command => $"START \"\" /B cmd /C \"{shortcut.Destination}\"",
+                ShortcutType.Unknown => throw new InvalidOperationException($"Can't write a keycut of type {shortcut.Type}."),
+            };
+#pragma warning restore CS8524
         }
 
         #region Static Methods

@@ -272,3 +272,6 @@ node_modules/
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+# Characterization snapshots written by a failing test
+*.received.txt

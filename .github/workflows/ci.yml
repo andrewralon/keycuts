@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop, master]
+    branches: [develop, main]
   push:
     branches: [develop]
   workflow_dispatch:
@@ -10,43 +10,210 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels that PR's older run. Every other run (pushes to develop, manual runs) gets a group of its
+# own, because a shared group keeps only one pending run and would cancel a queued develop run when a third push lands.
+# So every merge keeps its own result.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
 jobs:
+  # The job id is a required status check on develop and main; keep it named build.
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     defaults:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          dotnet-version: 10.0.x
+          persist-credentials: false
+
+      # global.json pins the SDK feature band; latestPatch makes this install that band's newest patch.
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        id: dotnet
+        with:
+          global-json-file: global.json
+
+      - name: Summarize the run
+        env:
+          SDK_VERSION: ${{ steps.dotnet.outputs.dotnet-version }}
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          @(
+            "## keycuts $version"
+            ''
+            '| | |'
+            '|---|---|'
+            "| Commit | ``$($env:GITHUB_SHA.Substring(0, 7))`` |"
+            "| .NET SDK | $env:SDK_VERSION |"
+            "| Runner image | $env:ImageOS $env:ImageVersion |"
+            ''
+          ) | Add-Content $env:GITHUB_STEP_SUMMARY
 
       - name: Build
         run: dotnet build keycuts.sln -c Release
 
-      - name: Format
-        run: dotnet format keycuts.sln --verify-no-changes --severity error --no-restore
-
+      # GitHubActionsTestLogger annotates failed tests and writes the results to the run summary. The quoted '--' keeps
+      # PowerShell from swallowing it, so the RunConfiguration setting reaches VSTest (it gives annotations their source
+      # line).
       - name: Test
-        run: dotnet test keycuts.sln -c Release --no-build
+        run: >-
+          dotnet test keycuts.sln -c Release --no-build
+          --results-directory artifacts/test-results
+          --logger trx
+          --logger "GitHubActions;summary-include-passed=false"
+          '--' RunConfiguration.CollectSourceInformation=true
 
-      # A PR into master is a release candidate: prove the MSI builds and say whether merging will release.
-      - name: Build installer
-        if: github.base_ref == 'master'
-        run: ./tools/Build-Installer.ps1
+      # A failed characterization test writes a .received.txt next to its .verified.txt; upload them so the received
+      # file can be copied over the verified one without rerunning the tests locally.
+      - name: Upload test results
+        id: test-results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results
+          path: |
+            artifacts/test-results/
+            keycuts.Tests/Characterization/Snapshots/*.received.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Summarize snapshot changes
+        if: failure()
+        env:
+          ARTIFACT_URL: ${{ steps.test-results.outputs.artifact-url }}
+        run: |
+          $received = @(Get-ChildItem keycuts.Tests/Characterization/Snapshots -Filter *.received.txt -ErrorAction SilentlyContinue)
+          if (-not $received) { exit 0 }
+          $lines = @(
+            '## Snapshot changes'
+            ''
+            "These characterization snapshots changed. If the change is intended, copy each ``.received.txt`` from the [test-results artifact]($env:ARTIFACT_URL) over its ``.verified.txt`` in the same commit."
+            ''
+          )
+          foreach ($file in $received) {
+            $verified = $file.FullName -replace '\.received\.txt$', '.verified.txt'
+            # Skip git's four header lines; cap each diff so a rewrite can't overflow the 1 MB summary limit.
+            $diff = @(git diff --no-index --no-color --ignore-cr-at-eol -- $verified $file.FullName | Select-Object -Skip 4)
+            $shown = $diff | Select-Object -First 300
+            $lines += "### $($file.Name -replace '\.received\.txt$')", '', '```diff'
+            $lines += $shown
+            $lines += '```'
+            if ($diff.Count -gt $shown.Count) { $lines += "_$($diff.Count - $shown.Count) more lines in the artifact._" }
+            $lines += ''
+          }
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit 0
+
+  # Formatting doesn't depend on the OS, and a Linux runner starts faster than a Windows one, so the check runs beside
+  # the Windows build instead of after it. EnableWindowsTargeting lets the net10.0-windows projects restore on Linux.
+  # The job id is a required status check on develop and main.
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EnableWindowsTargeting: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Format
+        run: dotnet format keycuts.sln --verify-no-changes --severity error --report artifacts/format
+
+      - name: Summarize format issues
+        if: failure()
+        shell: pwsh
+        run: |
+          $report = 'artifacts/format/format-report.json'
+          if (-not (Test-Path $report)) { exit 0 }
+          $rows = @(foreach ($doc in (Get-Content $report -Raw | ConvertFrom-Json)) {
+            $path = [IO.Path]::GetRelativePath($env:GITHUB_WORKSPACE, $doc.FilePath)
+            foreach ($change in $doc.FileChanges) {
+              "| ``$($path):$($change.LineNumber)`` | $($change.DiagnosticId) | $($change.FormatDescription -replace '\|', '\|') |"
+            }
+          })
+          $lines = @(
+            '## Format issues'
+            ''
+            "$($rows.Count) issue(s). Fix them locally with ``dotnet format keycuts.sln --severity error``."
+            ''
+            '| Location | Rule | Fix |'
+            '|---|---|---|'
+          )
+          $lines += $rows | Select-Object -First 100
+          if ($rows.Count -gt 100) { $lines += '', "_$($rows.Count - 100) more not shown._" }
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+
+  # A PR into main is a release candidate: prove the MSI builds (WiX's ICE validation included) and say whether merging
+  # will release. The script publishes everything itself, so this doesn't wait for the build job; it runs beside it.
+  # The job id is a required status check on main.
+  installer:
+    if: github.base_ref == 'main'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Build installers
+        run: |
+          ./tools/Build-Installer.ps1 -Runtime win-x64
+          ./tools/Build-Installer.ps1 -Runtime win-arm64
+
+      # The release candidate's MSIs, so they can be installed and tried before the merge publishes them.
+      - name: Upload installers
+        id: msi
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keycuts-setup
+          path: artifacts/installer/*/keycuts-setup-*.msi
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Release preview
-        if: github.base_ref == 'master'
+        env:
+          MSI_URL: ${{ steps.msi.outputs.artifact-url }}
         run: |
           $tag = "v$((dotnet msbuild keycuts.Common/keycuts.Common.csproj -getProperty:Version).Trim())"
           if (git ls-remote --tags origin "refs/tags/$tag") {
-            "::warning::$tag already exists, so merging this will not publish a release. Raise <Version> in Directory.Build.props to release."
+            $status = "$tag already exists, so merging this will not publish a release. Raise <Version> in Directory.Build.props to release."
+            "::warning::$status"
           } else {
-            "::notice::Merging this publishes release $tag."
+            $status = "Merging this publishes release $tag."
+            "::notice::$status"
           }
+          $lines = @(
+            '## Release candidate'
+            ''
+            $status
+            ''
+            "Both installers are in the [keycuts-setup artifact]($env:MSI_URL)."
+            ''
+            '| Installer | Size | SHA256 |'
+            '|---|---|---|'
+          )
+          $lines += foreach ($msi in Get-ChildItem artifacts/installer/*/keycuts-setup-*.msi) {
+            "| $($msi.Name) | $([math]::Round($msi.Length / 1MB, 1)) MB | ``$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower())`` |"
+          }
+          $lines += ''
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY

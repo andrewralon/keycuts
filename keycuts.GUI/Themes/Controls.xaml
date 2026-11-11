@@ -166,6 +166,9 @@
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource DangerSoftBrush}" />
                         </Trigger>
+                        <Trigger Property="themes:TextBoxChrome.HasWarning" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                        </Trigger>
                         <Trigger Property="themes:TextBoxChrome.HasError" Value="True">
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
                         </Trigger>
@@ -173,6 +176,14 @@
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             <Setter TargetName="Glow" Property="Opacity" Value="0.2" />
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="themes:TextBoxChrome.HasWarning" Value="True" />
+                                <Condition Property="IsKeyboardFocusWithin" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                            <Setter TargetName="Glow" Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                        </MultiTrigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="themes:TextBoxChrome.HasError" Value="True" />
@@ -526,6 +537,59 @@
                 </Setter>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!--
+        ToggleSwitch: a 36x20 track with a 14px thumb for ToggleButton. Off is a plain outlined track; on fills with the accent.
+        ToggleButton's automation peer already exposes the Toggle pattern; set AutomationProperties.Name where it is used.
+    -->
+    <Style x:Key="ToggleSwitch" TargetType="ToggleButton">
+        <!-- Space toggles; Enter passes through to the dialog's default button, as with CheckBox (a bare ToggleButton takes Enter) -->
+        <Setter Property="KeyboardNavigation.AcceptsReturn" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Track" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" SnapsToDevicePixels="True">
+                        <Ellipse x:Name="Thumb" Width="14" Height="14" HorizontalAlignment="Left" Margin="2,0,0,0"
+                                 Fill="{DynamicResource TextSecondaryBrush}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource OnAccentBrush}" />
+                            <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True" />
+                                <Condition Property="IsMouseOver" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                            <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource TextTertiaryBrush}" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Inline spinner; takes its color from Foreground (for example OnAccentBrush inside a primary button). -->

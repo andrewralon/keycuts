@@ -8,9 +8,14 @@
     <UseWPF>false</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="CommandLineParser" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The commands on PATH: a bin folder beside keycuts.exe holding only these shims, so PATH reaches keycuts and
+         keypaste (#97, "keycuts paste") but not the self-contained runtime's DLLs next to the exe -->
+    <None Update="shims\*.cmd" Link="bin\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

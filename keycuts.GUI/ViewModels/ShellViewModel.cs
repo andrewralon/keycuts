@@ -40,7 +40,8 @@ namespace keycuts.GUI.ViewModels
             Func<Task<int>> countProvider,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
             Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null,
-            IKeycutActions? actions = null)
+            IKeycutActions? actions = null,
+            WelcomeViewModel? welcome = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
 
@@ -48,11 +49,16 @@ namespace keycuts.GUI.ViewModels
             ShowCreatorCommand = new RelayCommand(ShowCreator);
             OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
 
-            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand);
+            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand) { Welcome = welcome };
             Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, destinationChecker, actions);
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();
+
+            if (welcome != null)
+            {
+                welcome.KeycutCreated += (sender, e) => _ = ReloadAsync();
+            }
             Manager.KeycutDeleted += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
         }
 
@@ -97,6 +103,13 @@ namespace keycuts.GUI.ViewModels
             Manager.IsMenuOpen = false;
             SetMode(ShellMode.Manager, Manager);
             _ = ReloadAsync();
+        }
+
+        /// <summary>Settings → Show welcome: back to the creator with the first-run panel showing.</summary>
+        public void ShowWelcome()
+        {
+            ShowCreator();
+            Creator.Welcome?.Show();
         }
 
         public void ShowCreator()
@@ -147,6 +160,7 @@ namespace keycuts.GUI.ViewModels
             {
                 await Manager.LoadAsync();
                 Creator.KeycutCount = Manager.KeycutCount;
+                Creator.Welcome?.OnKeycutCountLoaded(Manager.KeycutCount);
                 return;
             }
 
@@ -162,6 +176,7 @@ namespace keycuts.GUI.ViewModels
 
             Creator.KeycutCount = count;
             Manager.KeycutCount = count;
+            Creator.Welcome?.OnKeycutCountLoaded(count);
         }
 
         private void SetMode(ShellMode newMode, object view)

@@ -1,11 +1,11 @@
-# Publishes a GitHub release when master carries a version that has no tag yet.
-# To release: raise <Version> in Directory.Build.props on develop, then merge develop into master.
+# Publishes a GitHub release when main carries a version that has no tag yet.
+# To release: raise <Version> in Directory.Build.props on develop, then merge develop into main.
 # Merges that keep the same version do nothing, so re-running this is always safe.
 name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -17,18 +17,21 @@ concurrency:
 
 jobs:
   release:
-    # A manual run from another branch would publish unmerged code and take the tag master needs.
-    if: github.ref == 'refs/heads/master'
+    # A manual run from another branch would publish unmerged code and take the tag main needs.
+    if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
+    timeout-minutes: 45
     defaults:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          dotnet-version: 10.0.x
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
 
       - name: Read version
         id: version
@@ -40,23 +43,32 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "exists=$($exists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          if ($exists) { "::notice::$tag is already released; nothing to do. Raise <Version> in Directory.Build.props to release." }
+          if ($exists) {
+            $message = "$tag is already released; nothing to do. Raise <Version> in Directory.Build.props to release."
+            "::notice::$message"
+            "## keycuts $tag`n`n$message" | Add-Content $env:GITHUB_STEP_SUMMARY
+          }
 
       - name: Test
         if: steps.version.outputs.exists == 'false'
-        run: dotnet test keycuts.sln -c Release
+        run: dotnet test keycuts.sln -c Release --logger "GitHubActions;summary-include-passed=false"
 
-      - name: Build installer
+      - name: Build installers
         if: steps.version.outputs.exists == 'false'
-        run: ./tools/Build-Installer.ps1
+        run: |
+          ./tools/Build-Installer.ps1 -Runtime win-x64
+          ./tools/Build-Installer.ps1 -Runtime win-arm64
 
       - name: Package
         if: steps.version.outputs.exists == 'false'
         run: |
           $out = 'artifacts/release'
           New-Item $out -ItemType Directory -Force | Out-Null
-          Copy-Item artifacts/installer/keycuts-setup.msi $out
-          Compress-Archive -Path artifacts/publish/* -DestinationPath "$out/keycuts-portable-win-x64.zip"
+          foreach ($runtime in 'win-x64', 'win-arm64') {
+            $arch = $runtime -replace '^win-', ''
+            Copy-Item "artifacts/installer/$runtime/keycuts-setup-$arch.msi" $out
+            Compress-Archive -Path "artifacts/publish/$runtime/*" -DestinationPath "$out/keycuts-portable-$runtime.zip"
+          }
           Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
             Set-Content "$out/SHA256SUMS.txt"
           Get-Content "$out/SHA256SUMS.txt"
@@ -65,8 +77,21 @@ jobs:
         if: steps.version.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" (Get-ChildItem artifacts/release -File).FullName `
-            --target "${{ github.sha }}" `
-            --title "keycuts ${{ steps.version.outputs.tag }}" `
+          $assets = Get-ChildItem artifacts/release -File
+          $url = gh release create $env:TAG $assets.FullName `
+            --target $env:GITHUB_SHA `
+            --title "keycuts $env:TAG" `
             --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw 'Creating the release failed.' }
+          $lines = @(
+            "## Released [keycuts $env:TAG]($url)"
+            ''
+            '| Asset | Size | SHA256 |'
+            '|---|---|---|'
+          )
+          $lines += foreach ($asset in $assets) {
+            "| $($asset.Name) | $([math]::Round($asset.Length / 1MB, 1)) MB | ``$((Get-FileHash $asset.FullName -Algorithm SHA256).Hash.ToLower())`` |"
+          }
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY

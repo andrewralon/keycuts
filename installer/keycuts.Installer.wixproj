@@ -6,10 +6,13 @@
     <PublishDir Condition="'$(PublishDir)' == ''">..\artifacts\publish</PublishDir>
     <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir)</DefineConstants>
     <!-- ICE38/ICE64 want an HKCU key path on every per-user component. The harvested files are removed with the
-         product regardless, and those rules only matter for roaming profiles. -->
-    <SuppressIces>ICE38;ICE64;ICE91</SuppressIces>
+         product regardless, and those rules only matter for roaming profiles.
+         ICE61 objects to MajorUpgrade AllowSameVersionUpgrades, which Package.wxs uses on purpose so reinstalling the
+         same version replaces it. It is only a warning, but TreatWarningsAsErrors (Directory.Build.props) makes it fail
+         the MSI build. -->
+    <SuppressIces>ICE38;ICE61;ICE64;ICE91</SuppressIces>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
+    <PackageReference Include="WixToolset.UI.wixext" />
   </ItemGroup>
 </Project>

@@ -8,7 +8,8 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.ManagerTwoItems}"
              Background="{DynamicResource SurfaceBrush}"
-             Loaded="ManagerView_Loaded" PreviewKeyDown="ManagerView_PreviewKeyDown">
+             Loaded="ManagerView_Loaded" PreviewKeyDown="ManagerView_PreviewKeyDown"
+             PreviewMouseDown="ManagerView_PreviewMouseDown">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
@@ -298,10 +299,25 @@
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <StackPanel VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource CellText}" Text="{Binding Name}" FontWeight="Bold"
-                               Foreground="{DynamicResource TextBrush}" />
+                    <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource TextBrush}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <!-- Rename in place (F2 or Rename): Enter saves, Escape cancels, clicking or tabbing away saves -->
+                    <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Height="30" MinHeight="30"
+                             Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibility}}"
+                             AutomationProperties.Name="{Binding RenameLabel}"
+                             IsVisibleChanged="RenameBox_IsVisibleChanged" PreviewKeyDown="RenameBox_PreviewKeyDown"
+                             LostKeyboardFocus="RenameBox_LostKeyboardFocus" />
                     <StackPanel Orientation="Horizontal" Margin="0,1,0,0" ToolTip="{Binding MissingTooltip}"
-                                Visibility="{Binding IsDestinationMissing, Converter={StaticResource BoolToVisibility}}">
+                                Visibility="{Binding ShowMissingIndicator, Converter={StaticResource BoolToVisibility}}">
                       <controls:Icon Kind="Close" Size="11" VerticalAlignment="Center"
                                      Foreground="{DynamicResource DangerBrush}" />
                       <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
@@ -359,11 +375,18 @@
                             <controls:Icon Kind="File" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
+                        <MenuItem Header="Open file location" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="Folder" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
                         <MenuItem Header="Copy destination" Command="{Binding CopyDestinationCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Copy" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
+                        <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
+                        <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
                         <Separator />
                         <MenuItem Header="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
                           <MenuItem.Icon>

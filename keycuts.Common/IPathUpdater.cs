@@ -90,6 +90,43 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// Whether <paramref name="folder"/> is on the user or machine PATH as stored in the registry, which is what Win+R
+        /// sees (this process's own PATH can be stale). Entries are compared both as written and with %VARS% expanded.
+        /// If the PATH can't be read it answers true, so nobody is asked to fix a problem that may not exist.
+        /// </summary>
+        public static bool IsOnPath(string folder)
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(EnvironmentKey);
+
+                var userPath = key?.GetValue(PathValueName, string.Empty, RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+                var machinePath = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine);
+
+                return IsOnPath(folder, userPath, machinePath);
+            }
+            catch (Exception e) when (ContextMenuRegistrar.IsRegistryFailure(e))
+            {
+                return true;
+            }
+        }
+
+        /// <summary>The pure part of <see cref="IsOnPath(string)"/>: checks both PATH values, as written and expanded.</summary>
+        public static bool IsOnPath(string folder, string userPath, string machinePath)
+        {
+            foreach (var pathValue in new[] { userPath, machinePath })
+            {
+                if (PathList.Contains(pathValue, folder) ||
+                    PathList.Contains(Environment.ExpandEnvironmentVariables(pathValue ?? string.Empty), folder))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>Tells Explorer to reload its environment, so Win+R sees the change without a new login.</summary>
         private static void BroadcastEnvironmentChange()
         {

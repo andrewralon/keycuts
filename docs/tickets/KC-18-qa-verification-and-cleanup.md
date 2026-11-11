@@ -49,7 +49,7 @@ Run in **light and dark** themes against the KC-16 fixtures (0, 2, 20, and 100 i
 
 **Cleanup audit (grep + build + tests)**
 - Already gone earlier: `Steps`/`Instructions`, per-grid drag handlers, `MainFormLogic.ClearDestination`, `OpenBatmanager`, the Open Batmanager button, `Thread.Sleep` and `MessageBox` creator paths.
-- Kept deliberately: `MainFormLogic` (`HandleNewDestination` for Explorer `args[0]`, `SaveSettings` for the Settings window, `ActivateThisWindow`); the `Thread.Sleep` retry in `SystemKeycutActions` (clipboard retry, not UI blocking); `keycuts.GUI/Images/*` (tracked, may be used as app icons outside XAML).
+- Kept deliberately: `MainFormLogic` (`HandleNewDestination` for Explorer `args[0]`, `ActivateThisWindow`; `SaveSettings` was removed in KC-21, when the Settings window moved to `SettingsViewModel`); the `Thread.Sleep` retry in `SystemKeycutActions` (clipboard retry, not UI blocking); `keycuts.GUI/Images/*` (tracked, may be used as app icons outside XAML).
 - Results: build 27 warnings / 0 errors (`--no-incremental`); tests 378 passed on two consecutive runs (no flakiness seen); format: 28 WHITESPACE errors in 7 files (baseline, not grown).
 
 **Prototype folders (not deleted, user decides)**
@@ -153,7 +153,16 @@ Run in light and dark themes against KC-16 fixtures (0, 2, 20, 100 items; `KEYCU
 - [ ] Settings opens modally, saves; changing the output folder refreshes count and manager. Registry `OutputFolder` unchanged after Settings use with the override active. (KC-08, KC-16)
 - [ ] CLI still creates keycuts (and `.bat` runs). (KC-20, KC-03, KC-04)
 - [ ] Batmanager fully removed; clean checkout builds without a stale `keycuts.Batmanager` folder. (KC-20)
-- [ ] Legacy Settings window still looks acceptable with the implicit styles. (KC-05)
+- [ ] ~~Legacy Settings window still looks acceptable with the implicit styles. (KC-05)~~ Replaced by the KC-21 redesign; see below.
+
+**Settings window (KC-21)**
+- [ ] Light, Dark and HighContrast with the real Windows setting: palette, toggle track and thumb, focus rings on toggles and buttons, the folder error state, themed title bar. (KC-21)
+- [ ] Narrator: heading "Settings"; "Output folder" with helper/error help text and the error announced; each toggle's name, note and on/off state; Choose, Launch, Cancel, Save changes. (KC-21)
+- [ ] DPI 125%/150%/200% and text size 150%: nothing clipped, window fits the screen. (KC-21)
+- [ ] Choose opens the folder picker at the current folder; Launch opens Explorer and is disabled for a missing folder. (KC-21)
+- [ ] Enter saves (from the folder box and from a toggle); Escape and Cancel close without saving, registry unchanged. (KC-21)
+- [ ] Real right-click registration: toggle "Right-click context menus" off and on, Save, and check Explorer (Windows 11: Show more options) for "keycut this!". (KC-21)
+- [ ] New output folder: created on Save, count and manager refresh, PATH follows (touches real PATH; do deliberately). An unwritable folder shows the inline error. (KC-21)
 
 ### Deviations from tickets (consolidated)
 - KC-01: `dotnet format --verify-no-changes` is not clean (pre-existing whitespace errors; now 28 in 7 files after KC-20). `-warnaserror` not used (27 CA1416 baseline).

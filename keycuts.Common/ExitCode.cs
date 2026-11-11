@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.Common
 {
@@ -17,6 +16,9 @@ namespace keycuts.Common
         HandleIsInvalid = 6,
         FileAlreadyExists = 10,
         CannotCreateOutputFolder = 11,
-        CannotUpdatePath = 12
+        CannotUpdatePath = 12,
+        CannotSetClipboard = 13,
+        /// <summary>The name needs a y / n answer (a replace or a name conflict, #153), but input is redirected.</summary>
+        ConfirmationNeeded = 14
     }
 }

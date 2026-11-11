@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace keycuts.Common
 {
@@ -13,6 +12,12 @@ namespace keycuts.Common
         #region Properties
 
         public string Destination { get; private set; }
+
+        /// <summary>Replaces the classified destination with an equivalent spelling (environment variables, #31).</summary>
+        internal void SetDestination(string destination)
+        {
+            Destination = destination;
+        }
 
         public string Extension { get; private set; } = ".bat";
 
@@ -41,16 +46,73 @@ namespace keycuts.Common
             Type = GetShortcutTypeFromDestination(destination, out string newDestination);
             Destination = newDestination;
             Extension = ".bat";
-            Filename = shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
-                shortcut :
-                Path.GetFileNameWithoutExtension(shortcut);
+            Filename = GetFilename(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
-            Folder = IsNotFullPath(shortcut) ?
-                defaultFolder :
-                Path.GetDirectoryName(shortcut);
-            FullPath = Path.Combine(Folder, FilenameWithExtension);
+            Folder = GetFolder(shortcut, defaultFolder);
+            FullPath = GetFullPath(shortcut, defaultFolder);
             OpenWithAppPath = openWithAppPath;
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
+        }
+
+        private Shortcut()
+        {
+        }
+
+        /// <summary>The keycut's name (no .bat) for a shortcut argument, as the constructor reads it. Touches no files.</summary>
+        public static string GetFilename(string shortcut)
+        {
+            return shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
+                shortcut :
+                Path.GetFileNameWithoutExtension(shortcut);
+        }
+
+        /// <summary>
+        /// The keycut's bare name for a shortcut argument, without any folder. <see cref="GetFilename"/> keeps a name
+        /// ending in .exe as given, folder included, so a full path like <c>C:\Shortcuts\tool.exe</c> needs this to be
+        /// looked up as <c>tool.exe</c> (#153).
+        /// </summary>
+        public static string GetName(string shortcut)
+        {
+            return Path.GetFileName(GetFilename(shortcut));
+        }
+
+        /// <summary>
+        /// The .bat a shortcut argument is written to, exactly as the constructor builds it. A name ending in .exe keeps
+        /// any folder it was given, so <c>nested\tool.exe</c> lands in a subfolder and a rooted one replaces the folder.
+        /// </summary>
+        public static string GetFullPath(string shortcut, string defaultFolder)
+        {
+            return Path.Combine(GetFolder(shortcut, defaultFolder), GetFilename(shortcut) + ".bat");
+        }
+
+        /// <summary>The folder a shortcut argument is written to: its own if it's a full path, else <paramref name="defaultFolder"/>.</summary>
+        public static string GetFolder(string shortcut, string defaultFolder)
+        {
+            return IsNotFullPath(shortcut) ?
+                defaultFolder :
+                Path.GetDirectoryName(shortcut);
+        }
+
+        /// <summary>
+        /// A shortcut whose type and destination are already known, so nothing on disk is checked. Lets tests emit
+        /// any type, including ones the classifier never returns.
+        /// </summary>
+        public static Shortcut FromParts(ShortcutType type, string destination, string fullPath, string openWithAppPath = null)
+        {
+            var folder = Path.GetDirectoryName(fullPath);
+            var filename = Path.GetFileNameWithoutExtension(fullPath);
+
+            return new Shortcut
+            {
+                Type = type,
+                Destination = destination,
+                Filename = filename,
+                FilenameWithExtension = $"{filename}.bat",
+                Folder = folder,
+                FullPath = fullPath,
+                OpenWithAppPath = openWithAppPath,
+                OpenWithApp = openWithAppPath != null,
+            };
         }
 
         #endregion Constructors
@@ -85,16 +147,18 @@ namespace keycuts.Common
                 destination = Path.GetFullPath(destination);
                 newDestination = destination;
 
-                var attributes = File.GetAttributes(destination);
-
-                if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                if (!TryGetAttributes(destination, out var attributes))
+                {
+                    // Missing, or not readable by this user: report Unknown rather than crash (#68)
+                    type = ShortcutType.Unknown;
+                }
+                else if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
                     type = ShortcutType.Folder;
                 }
                 else if (File.Exists(destination))
                 {
-                    if (destination.ToLower() == @"C:\Windows\System32\drivers\etc\hosts".ToLower() ||
-                        destination.ToLower() == @"%windir%\System32\drivers\etc\hosts".ToLower())
+                    if (IsHostsFile(destination))
                     {
                         type = ShortcutType.HostsFile;
                     }
@@ -111,6 +175,41 @@ namespace keycuts.Common
             }
 
             return type;
+        }
+
+        /// <summary>
+        /// The hosts file has no default handler, so it is opened with Notepad. Compares the full path against this
+        /// machine's System32 (Windows isn't always on C:) as well as the usual C: path.
+        /// </summary>
+        public static bool IsHostsFile(string fullPath)
+        {
+            return IsHostsFile(fullPath, Environment.SystemDirectory);
+        }
+
+        /// <summary>The testable part of <see cref="IsHostsFile(string)"/>.</summary>
+        public static bool IsHostsFile(string fullPath, string systemDirectory)
+        {
+            var hosts = new[]
+            {
+                @"C:\Windows\System32\drivers\etc\hosts",
+                Path.Combine(systemDirectory, @"drivers\etc\hosts")
+            };
+
+            return hosts.Any(h => string.Equals(h, fullPath, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool TryGetAttributes(string path, out FileAttributes attributes)
+        {
+            try
+            {
+                attributes = File.GetAttributes(path);
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                attributes = default;
+                return false;
+            }
         }
 
         public static bool IsValidUrl(string destination, out string url)
@@ -137,9 +236,9 @@ namespace keycuts.Common
                     }
                 }
             }
-            catch (UriFormatException e)
+            catch (UriFormatException)
             {
-                Console.WriteLine($"UriFormatException: {destination} -- {e.Message}");
+                // Not a URL; the caller tries the other types
             }
 
             return result;
@@ -221,15 +320,48 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// Escapes a URL for the unquoted <c>START &lt;url&gt;</c> line so cmd passes every character through literally:
+        /// each % is doubled (a .bat reads % as a variable, even inside quotes), and outside double quotes ^ &amp; | &lt; &gt;
+        /// each get a ^ (cmd's escape character, so ^ itself must be escaped too). Inside quotes cmd takes those literally,
+        /// including ^, so they are left alone there; each " toggles that state, as it does for cmd. The result is exactly
+        /// reversible: an existing %% or ^&amp; in the URL is literal text and is escaped again.
+        /// </summary>
         public static string SanitizeBatEscapeCharacters(string command)
         {
-            // Bat files use % for variables, so replace a single % with %%
-            command = Regex.Replace(command, "(?<!%)%(?!%)", "%%");
+            var escaped = new StringBuilder(command.Length);
+            var inQuotes = false;
 
-            // Replace a single & with ^&
-            command = Regex.Replace(command, "(?<!^)&(?!&)", "^&");
+            foreach (var c in command)
+            {
+                switch (c)
+                {
+                    case '%':
+                        escaped.Append("%%");
+                        break;
+                    case '"':
+                        inQuotes = !inQuotes;
+                        escaped.Append(c);
+                        break;
+                    case '^':
+                    case '&':
+                    case '|':
+                    case '<':
+                    case '>':
+                        if (!inQuotes)
+                        {
+                            escaped.Append('^');
+                        }
 
-            return command;
+                        escaped.Append(c);
+                        break;
+                    default:
+                        escaped.Append(c);
+                        break;
+                }
+            }
+
+            return escaped.ToString();
         }
 
         public static bool IsCLSIDKey(string guid)

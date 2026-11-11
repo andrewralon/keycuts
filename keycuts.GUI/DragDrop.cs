@@ -7,7 +7,8 @@ using System.Windows;
 namespace keycuts.GUI
 {
     /// <summary>
-    /// Reads a destination from drag-and-drop or clipboard data. Priority: files (first item wins), then browser links, then text.
+    /// Reads a destination from drag-and-drop or clipboard data. Priority: files (first item wins), then virtual shell items
+    /// (as a <c>::{CLSID}</c> key), then browser links, then text.
     /// </summary>
     public static class DragDrop
     {
@@ -23,6 +24,15 @@ namespace keycuts.GUI
         /// <summary>Gets the raw destination text from the data, or false if none of the supported formats holds usable text.</summary>
         public static bool TryGetDestination(IDataObject? data, out string destination)
         {
+            return TryGetDestination(data, out destination, ShellIdList.GetParsingName);
+        }
+
+        /// <summary>
+        /// <see cref="TryGetDestination(IDataObject?, out string)"/> with the shell's parsing-name lookup passed in, so
+        /// tests don't depend on this machine's shell namespace.
+        /// </summary>
+        public static bool TryGetDestination(IDataObject? data, out string destination, Func<byte[], string?> getParsingName)
+        {
             destination = string.Empty;
             if (data == null)
             {
@@ -32,6 +42,7 @@ namespace keycuts.GUI
             var candidates = new Func<string?>[]
             {
                 () => GetFirstFile(data),
+                () => GetShellItem(data, getParsingName),
                 () => GetUrl(data, UrlFormatUnicode, Encoding.Unicode),
                 () => GetUrl(data, UrlFormatAnsi, Encoding.UTF8),
                 () => GetText(data, DataFormats.UnicodeText),
@@ -104,6 +115,31 @@ namespace keycuts.GUI
             }
 
             return (data.GetData(DataFormats.FileDrop, false) as string[])?.FirstOrDefault(f => !string.IsNullOrWhiteSpace(f));
+        }
+
+        /// <summary>
+        /// A virtual shell item with no file path, like the Recycle Bin (#9), as its <c>::{CLSID}</c> key. Real files and
+        /// folders come through <see cref="GetFirstFile"/> first; any other parsing name (a library, a path) is ignored.
+        /// </summary>
+        private static string? GetShellItem(IDataObject data, Func<byte[], string?> getParsingName)
+        {
+            if (!data.GetDataPresent(ShellIdList.Format, false))
+            {
+                return null;
+            }
+
+            var bytes = data.GetData(ShellIdList.Format, false) switch
+            {
+                MemoryStream memory => memory.ToArray(),
+                byte[] array => array,
+                _ => null
+            };
+
+            var item = ShellIdList.GetFirstItem(bytes);
+            var name = item == null ? null : getParsingName(item);
+
+            // Only a bare key: "::" and one braced GUID, not a nested path like ::{...}\::{...}
+            return name != null && name.StartsWith("::{", StringComparison.Ordinal) && Guid.TryParseExact(name.Substring(2), "B", out _) ? name : null;
         }
 
         private static string? GetUrl(IDataObject data, string format, Encoding encoding)

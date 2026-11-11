@@ -5,18 +5,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.GUI
 {
     public class MainFormLogic
     {
-        /// <summary>Returns a message for the user when something couldn't be saved, otherwise null.</summary>
-        public string? SaveSettings(Settings settings)
-        {
-            return settings?.SaveSettings();
-        }
-
         /// <summary>
         /// Sets the creator's destination; the creator view focuses the name field when it is shown with a destination set.
         /// </summary>

@@ -20,11 +20,12 @@ using Xunit;
 
 namespace keycuts.Tests
 {
+    [Collection(WpfCollection.Name)]
     public class AccessibilityTests
     {
         static CreatorViewModel NewCreator()
         {
-            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings);
             creator.Destination = "https://example.com";
             creator.DestinationKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
@@ -34,12 +35,12 @@ namespace keycuts.Tests
         #region View model text for screen readers
 
         [Fact]
-        public void NameHelpText_ReflectsNameAndSubmitErrorsOnly()
+        public void NameHelpText_ReflectsNameWarningsAndErrorsOnly()
         {
             var creator = NewCreator();
             Assert.Equal(string.Empty, creator.NameHelpText);
 
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
             Assert.Equal(creator.HelperText, creator.NameHelpText);
             Assert.Contains("already exists", creator.NameHelpText);
 
@@ -53,7 +54,7 @@ namespace keycuts.Tests
             var creator = NewCreator();
             Assert.Equal(string.Empty, creator.DestinationHelpText);
 
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
             creator.DestinationError = DestinationError.NotFound;
 
             Assert.Equal(CreatorViewModel.GetDestinationErrorMessage(DestinationError.NotFound), creator.DestinationHelpText);
@@ -212,6 +213,38 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void Creator_WelcomePanel_ComesFirstInTabOrder_WithNamedControls_AndHidesOnDismiss()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
+                    (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { Welcome = welcome };
+                creator.Destination = "https://example.com";
+                creator.DestinationKind = KeycutKind.Url;
+                creator.ShortcutName = "ex";
+                welcome.OnKeycutCountLoaded(0);
+
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    Assert.Equal(
+                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" },
+                        TabStops(window));
+
+                    welcome.Dismiss();
+                    Pump();
+                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         // WPF's default Label and CheckBox styles set the system control-text color, so they don't inherit the window's Foreground.
         [Fact]
         public void LabelAndCheckBox_UseThePaletteTextColor()
@@ -314,7 +347,7 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
+                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings);
                 var window = Host(new CreatorView(), empty);
                 try
                 {
@@ -353,7 +386,7 @@ namespace keycuts.Tests
                     var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
                     Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(helper));
 
-                    creator.SetDuplicateName("ex");
+                    creator.SetNameWarning(TestNameChecks.Existing("ex"));
                     Pump();
                     Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(helper));
 
@@ -380,6 +413,10 @@ namespace keycuts.Tests
             {
             }
 
+            public void OpenFileLocation(string path)
+            {
+            }
+
             public void CopyText(string text)
             {
             }
@@ -387,6 +424,14 @@ namespace keycuts.Tests
             public Task DeleteAsync(Keycut keycut)
             {
                 return Task.CompletedTask;
+            }
+
+            public List<string> Renamed { get; } = new List<string>();
+
+            public Task<string> RenameAsync(Keycut keycut, string newName)
+            {
+                Renamed.Add(newName);
+                return Task.FromResult(keycut.FilePath);
             }
         }
 
@@ -444,6 +489,80 @@ namespace keycuts.Tests
 
                     Assert.True(Press(search, Key.Enter));
                     Assert.Equal(new[] { @"C:\fixture\alpha.bat" }, actions.Launched);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_F2RenamesTheSelectedRowInPlace_EscapeCancels_AndEnterSaves()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    Assert.True(Press(search, Key.Down));
+                    Assert.True(Press(search, Key.Down));
+
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    var box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    Assert.Equal("bravo", box.Text);
+                    Assert.True(box.IsKeyboardFocusWithin);
+
+                    // The arrows stay in the box instead of moving the selection, and Escape cancels without leaving the manager
+                    Assert.True(Press(box, Key.Up));
+                    Assert.Equal("bravo", manager.SelectedRow?.Name);
+                    Assert.True(Press(box, Key.Escape));
+                    Assert.False(manager.IsRenaming);
+                    Assert.Empty(actions.Renamed);
+
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    box.Text = "zulu";
+                    Assert.True(Press(box, Key.Enter));
+                    Assert.Equal(new[] { "zulu" }, actions.Renamed);
+                    Assert.False(manager.IsRenaming);
+
+                    // A click on something that can't take focus (another row's name) saves too
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    box.Text = "yankee";
+                    var otherName = Descendants<TextBlock>(window).First(t => t.Text == "alpha" && t.IsVisible);
+                    otherName.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                    Pump();
+                    Assert.Equal(new[] { "zulu", "yankee" }, actions.Renamed);
+                    Assert.False(manager.IsRenaming);
+
+                    // A click inside the box doesn't
+                    Assert.True(Press(search, Key.F2));
+                    Pump();
+                    box = Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == "New name for bravo");
+                    box.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                    Pump();
+                    Assert.True(manager.IsRenaming);
+
+                    // Neither does focus moving into the box's own context menu (Cut, Copy, Paste); focus elsewhere saves
+                    var menu = new ContextMenu { PlacementTarget = box };
+                    var paste = new MenuItem { Header = "Paste" };
+                    menu.Items.Add(paste);
+                    box.RaiseEvent(new KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, 0, box, paste) { RoutedEvent = Keyboard.LostKeyboardFocusEvent });
+                    Pump();
+                    Assert.True(manager.IsRenaming);
+
+                    box.RaiseEvent(new KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, 0, box, search) { RoutedEvent = Keyboard.LostKeyboardFocusEvent });
+                    Pump();
+                    Assert.False(manager.IsRenaming);
                 }
                 finally
                 {

@@ -3,32 +3,26 @@ using CommandLine.Text;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.CLI
 {
+    /// <summary>Creating a keycut is the default verb, so <c>keycuts -d … -s …</c> works without naming it.</summary>
+    [Verb("create", isDefault: true, HelpText = "Create a keycut.")]
     public class Options
     {
-        [Option('d', "destination", Required = false, HelpText = "The destination path to be opened with a shortcut.")]
+        [Option('d', "destination", Required = false, MetaValue = "<path>", HelpText = "What the keycut opens: a file, folder, URL or shell: path.")]
         public string Destination { get; set; }
 
-        [Option('s', "shortcut", Required = false, HelpText = "The shortcut filename (or full path) used to open the destination.")]
+        [Option('s', "shortcut", Required = false, MetaValue = "<name>", HelpText = "The keycut's name, typed in Win+R (or a full path for the .bat).")]
         public string Shortcut { get; set; }
 
-        [Option('w', "openwithapp", Required = false, HelpText = "The program path which opens the destination file.")]
+        [Option('w', "openwithapp", Required = false, MetaValue = "<program>", HelpText = "A program to open the destination file with.")]
         public string OpenWithApp { get; set; }
 
-        [Option('o', "outputfolder", Required = false, HelpText = "Output folder for shortcuts created without a full path.")]
+        [Option('o', "outputfolder", Required = false, MetaValue = "<folder>", HelpText = "Where to put the keycut when --shortcut isn't a full path.")]
         public string OutputFolder { get; set; }
 
-        [Option('f', "force", Default = false, HelpText = "Force overwrite the shortcut file if it already exists.")]
+        [Option('f', "force", HelpText = "Don't ask: replace a keycut with the same name, and create it even if another command has the name.")]
         public bool Force { get; set; }
-
-        //[HelpOption(HelpText = "Displays this help screen.")]
-        //public string GetUsage()
-        //{
-        //	return HelpText.AutoBuild(this,
-        //	  (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current), true);
-        //}
     }
 }

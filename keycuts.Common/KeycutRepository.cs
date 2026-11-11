@@ -14,7 +14,9 @@ namespace keycuts.Common
         AccessDenied,
         InvalidPath,
         InUse,
-        Unknown
+        Unknown,
+        AlreadyExists,
+        InvalidName
     }
 
     public class KeycutRepositoryException : Exception
@@ -80,6 +82,49 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// The keycut named <paramref name="name"/> (any case), or null if there is none. A file that exists but can't be
+        /// parsed still counts: it comes back with just its name and path, and an empty destination.
+        /// </summary>
+        public Keycut Find(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            try
+            {
+                var fileName = name + ShortcutFile.Extension;
+
+                if (!Directory.Exists(_outputFolder))
+                {
+                    return null;
+                }
+
+                var file = Directory.EnumerateFiles(_outputFolder, "*" + ShortcutFile.Extension)
+                    .FirstOrDefault(f => string.Equals(Path.GetFileName(f), fileName, StringComparison.OrdinalIgnoreCase));
+
+                if (file == null)
+                {
+                    return null;
+                }
+
+                return TryParse(file) ?? new Keycut
+                {
+                    Name = Path.GetFileNameWithoutExtension(file),
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.Unknown,
+                    Destination = "",
+                    FilePath = file
+                };
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
             var all = await LoadAllAsync(ct).ConfigureAwait(false);
@@ -91,6 +136,81 @@ namespace keycuts.Common
         public Task DeleteAsync(Keycut keycut, CancellationToken ct = default)
         {
             return Task.Run(() => Delete(keycut), ct);
+        }
+
+        /// <summary>
+        /// Renames the keycut's file to <paramref name="newName"/>.bat in the same folder and returns the new path. Only the
+        /// file name and its <c>REM &lt;shortcut&gt;</c> line change: the file is not re-emitted, so a hand-edited launch line
+        /// (an added <c>%*</c>, say) survives. A name that is taken is refused, never overwritten; a change of case only is
+        /// allowed. If the comment can't be rewritten (not UTF-8), the rename still stands, since nothing reads that line.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The name is invalid or taken, or the file is gone, locked, or can't be renamed.</exception>
+        public Task<string> RenameAsync(Keycut keycut, string newName, CancellationToken ct = default)
+        {
+            return Task.Run(() => Rename(keycut.FilePath, newName), ct);
+        }
+
+        /// <summary>
+        /// Renames each keycut named after a keycuts command (<see cref="CommandNames"/>) to that name plus
+        /// <see cref="CommandNames.PreviousSuffix"/> (keypaste_previous, then keypaste_previous2 and so on if that's taken),
+        /// so the command on PATH works again. It's renamed like <see cref="RenameAsync"/>, so it still works under the
+        /// new name. A file that can't be renamed (locked, read-only) is left as it is. Returns what was renamed.
+        /// </summary>
+        public IReadOnlyList<RenamedKeycut> MoveAsideCommandNames()
+        {
+            var renamed = new List<RenamedKeycut>();
+
+            if (string.IsNullOrWhiteSpace(_outputFolder) || !Directory.Exists(_outputFolder))
+            {
+                return renamed;
+            }
+
+            foreach (var command in CommandNames.All)
+            {
+                try
+                {
+                    // The file's own spelling, so a "KeyPaste.bat" is reported as it's named
+                    var path = Directory.EnumerateFiles(_outputFolder, command + ShortcutFile.Extension)
+                        .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), command, StringComparison.OrdinalIgnoreCase));
+
+                    if (path == null)
+                    {
+                        continue;
+                    }
+
+                    var newName = FreeName(command + CommandNames.PreviousSuffix);
+
+                    if (newName == null)
+                    {
+                        continue;
+                    }
+
+                    Rename(path, newName);
+                    renamed.Add(new RenamedKeycut(Path.GetFileNameWithoutExtension(path), newName));
+                }
+                catch (Exception ex) when (ex is KeycutRepositoryException || ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // Left in place; the next start tries again
+                }
+            }
+
+            return renamed;
+        }
+
+        /// <summary><paramref name="baseName"/>, or it with 2, 3 and so on appended, whichever isn't taken; null if all are.</summary>
+        private string FreeName(string baseName)
+        {
+            for (var i = 1; i <= 100; i++)
+            {
+                var candidate = i == 1 ? baseName : baseName + i;
+
+                if (!File.Exists(Path.Combine(_outputFolder, candidate + ShortcutFile.Extension)))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -191,7 +311,7 @@ namespace keycuts.Common
                     Kind = KeycutKinds.FromShortcutType(shortcut.Type),
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
-                    Destination = (shortcut.Destination ?? "").Trim('"'),
+                    Destination = shortcut.Destination ?? "",
                     FilePath = file
                 };
             }
@@ -222,6 +342,98 @@ namespace keycuts.Common
             catch (Exception ex)
             {
                 throw Translate(ex, $"Can't delete \"{path}\".");
+            }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex ShortcutRemLine = new System.Text.RegularExpressions.Regex(
+            @"^(\s*REM\s+<shortcut>).*?(</shortcut>)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        private static string Rename(string path, string newName)
+        {
+            if (!KeycutCreator.IsValidName(newName))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidName, $"\"{newName}\" isn't a valid keycut name.");
+            }
+
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{path}\" no longer exists.");
+                }
+
+                var newPath = Path.Combine(Path.GetDirectoryName(path), newName + ShortcutFile.Extension);
+
+                if (string.Equals(newPath, path, StringComparison.Ordinal))
+                {
+                    return path;
+                }
+
+                // Another keycut with that name, unless it's this file under a different case
+                if (File.Exists(newPath) && !string.Equals(newPath, path, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{newName}\" already exists.");
+                }
+
+                File.Move(path, newPath);
+                TryRewriteShortcutLine(newPath);
+
+                return newPath;
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't rename \"{path}\".");
+            }
+        }
+
+        /// <summary>Points the REM &lt;shortcut&gt; line at the new path, keeping the encoding, BOM and line endings.</summary>
+        private static void TryRewriteShortcutLine(string path)
+        {
+            try
+            {
+                var bytes = File.ReadAllBytes(path);
+                var preamble = System.Text.Encoding.UTF8.GetPreamble();
+                var hasBom = bytes.Length >= preamble.Length && bytes.AsSpan(0, preamble.Length).SequenceEqual(preamble);
+                var strict = new System.Text.UTF8Encoding(false, true);
+                var text = strict.GetString(bytes, hasBom ? preamble.Length : 0, bytes.Length - (hasBom ? preamble.Length : 0));
+                var updated = ShortcutRemLine.Replace(text, match => match.Groups[1].Value + path + match.Groups[2].Value);
+
+                if (updated == text)
+                {
+                    return;
+                }
+
+                var body = strict.GetBytes(updated);
+                // Write a temp file beside it and swap it in only once it's complete: writing in place truncates first,
+                // so a failed write (a full disk) would leave the keycut empty or half written
+                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+                try
+                {
+                    File.WriteAllBytes(temp, hasBom ? preamble.Concat(body).ToArray() : body);
+
+                    // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
+                    // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
+                    // it throws, and the original stays as it was.
+                    File.Replace(temp, path, null);
+                }
+                finally
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is System.Text.DecoderFallbackException || ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // The REM line is only a comment, so a file we can't decode or rewrite keeps its old one
+                Debug.WriteLine($"keycuts: kept the old <shortcut> line in \"{path}\": {ex.Message}");
             }
         }
 

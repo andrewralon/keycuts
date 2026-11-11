@@ -59,6 +59,12 @@ namespace keycuts.GUI.Views
                 oldViewModel.FocusRequested -= ViewModel_FocusRequested;
                 oldViewModel.KeycutCreated -= ViewModel_KeycutCreated;
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                oldViewModel.ConfirmName = null;
+
+                if (oldViewModel.Welcome != null)
+                {
+                    oldViewModel.Welcome.PropertyChanged -= Welcome_PropertyChanged;
+                }
             }
 
             if (e.NewValue is CreatorViewModel newViewModel)
@@ -68,24 +74,49 @@ namespace keycuts.GUI.Views
                 newViewModel.FocusRequested += ViewModel_FocusRequested;
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
                 newViewModel.PropertyChanged += ViewModel_PropertyChanged;
+                newViewModel.ConfirmName = ConfirmName;
+
+                if (newViewModel.Welcome != null)
+                {
+                    newViewModel.Welcome.PropertyChanged += Welcome_PropertyChanged;
+                }
             }
         }
 
         // Tell screen readers when the helper line (errors, Saving, Created) changes
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(CreatorViewModel.HelperText))
+            if (e.PropertyName == nameof(CreatorViewModel.HelperText))
             {
-                return;
+                AnnounceLiveRegion(HelperTextBlock);
             }
+        }
 
+        // The welcome panel's helper line (name errors, Saving, how to use the new keycut, the PATH warning)
+        private void Welcome_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(WelcomeViewModel.HelperText))
+            {
+                AnnounceLiveRegion(WelcomeHelperTextBlock);
+            }
+        }
+
+        // The LiveSetting on the text block alone doesn't raise the event; the peer has to
+        private void AnnounceLiveRegion(UIElement element)
+        {
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                if (UIElementAutomationPeer.FromElement(HelperTextBlock) is AutomationPeer peer)
+                if (UIElementAutomationPeer.FromElement(element) is AutomationPeer peer)
                 {
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
                 }
             }));
+        }
+
+        // A name that would replace a keycut or clash with another command asks first, in the app's own dialog (#153)
+        private bool ConfirmName(NameCheck check, string destination)
+        {
+            return ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForCreate(check, destination));
         }
 
         private void ViewModel_KeycutCreated(object? sender, EventArgs e)
@@ -126,7 +157,7 @@ namespace keycuts.GUI.Views
             nameTimer.Stop();
             if (ViewModel != null)
             {
-                _ = ViewModel.CheckDuplicateNameAsync();
+                _ = ViewModel.CheckNameAsync();
             }
         }
 
@@ -138,9 +169,39 @@ namespace keycuts.GUI.Views
             Keyboard.Focus(target);
         }
 
+        // Holding Shift flips the environment-variables setting for this keycut (#31); the "Saved as" line follows it
+        private void CreatorView_PreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = IsShiftDown();
+            }
+        }
+
+        // Shift pressed or released in another window never reaches us, so read it again whenever focus comes or goes:
+        // holding Shift elsewhere and then clicking Create must still flip the setting
+        private void CreatorView_IsKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = IsKeyboardFocusWithin && IsShiftDown();
+            }
+        }
+
+        private static bool IsShiftDown()
+        {
+            return Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+        }
+
         /// <summary>Ctrl+V anywhere except the two text fields pastes into the destination.</summary>
         private void CreatorView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
+            {
+                ViewModel.IsShiftHeld = true;
+                return;
+            }
+
             if (e.Key != Key.V || Keyboard.Modifiers != ModifierKeys.Control || ViewModel?.IsInputEnabled != true)
             {
                 return;
@@ -393,7 +454,9 @@ namespace keycuts.GUI.Views
             {
                 if (result.IsValid && !normalize)
                 {
+                    // Keep what was typed, but preview what will be saved (a shortcut's target, a normalized path)
                     viewModel.DestinationKind = result.Kind;
+                    viewModel.ResolvedDestination = result.Destination;
                 }
                 else
                 {

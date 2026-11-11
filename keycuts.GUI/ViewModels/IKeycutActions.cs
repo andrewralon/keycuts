@@ -20,11 +20,17 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Opens the keycut's .bat file in Notepad. Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
         void Edit(string path);
 
+        /// <summary>Opens Explorer with the keycut's .bat file selected. Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
+        void OpenFileLocation(string path);
+
         /// <summary>Puts the text on the clipboard. Throws if the clipboard can't be used.</summary>
         void CopyText(string text);
 
         /// <summary>Deletes the keycut file. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
         Task DeleteAsync(Keycut keycut);
+
+        /// <summary>Renames the keycut file and returns its new path. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
+        Task<string> RenameAsync(Keycut keycut, string newName);
     }
 
     /// <summary>The production implementation, which uses the shell, the clipboard and the configured output folder.</summary>
@@ -49,6 +55,17 @@ namespace keycuts.GUI.ViewModels
             Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = true });
         }
 
+        public void OpenFileLocation(string path)
+        {
+            if (!System.IO.File.Exists(path))
+            {
+                throw new System.IO.FileNotFoundException("The keycut file no longer exists.", path);
+            }
+
+            // /select, opens the containing folder with the file highlighted
+            Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true });
+        }
+
         public void CopyText(string text)
         {
             // Another process can hold the clipboard open for a moment.
@@ -69,6 +86,11 @@ namespace keycuts.GUI.ViewModels
         public Task DeleteAsync(Keycut keycut)
         {
             return KeycutRepository.CreateDefault().DeleteAsync(keycut);
+        }
+
+        public Task<string> RenameAsync(Keycut keycut, string newName)
+        {
+            return KeycutRepository.CreateDefault().RenameAsync(keycut, newName);
         }
     }
 }

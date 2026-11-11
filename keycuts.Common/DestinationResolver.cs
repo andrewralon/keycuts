@@ -160,7 +160,7 @@ namespace keycuts.Common
                 return DestinationResult.Valid(ShortcutType.Folder, fullPath);
             }
 
-            if (IsHostsFile(fullPath))
+            if (Shortcut.IsHostsFile(fullPath))
             {
                 return DestinationResult.Valid(ShortcutType.HostsFile, fullPath);
             }
@@ -209,17 +209,6 @@ namespace keycuts.Common
             {
                 return null;
             }
-        }
-
-        private static bool IsHostsFile(string fullPath)
-        {
-            var hosts = new[]
-            {
-                @"C:\Windows\System32\drivers\etc\hosts",
-                Path.Combine(Environment.SystemDirectory, @"drivers\etc\hosts")
-            };
-
-            return hosts.Any(h => string.Equals(h, fullPath, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

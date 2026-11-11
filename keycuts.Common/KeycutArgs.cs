@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace keycuts.Common
 {
@@ -13,6 +12,12 @@ namespace keycuts.Common
         public string OutputFolder { get; set; }
         public bool Force { get; set; }
         public string Description { get; set; } = "";
+
+        /// <summary>Save a file or folder destination with environment variables (#31), e.g. %USERPROFILE%\Desktop.</summary>
+        public bool UseEnvironmentVariables { get; set; }
+
+        /// <summary>The variables to use; null reads them from this machine (<see cref="Common.PathVariables.GetDefault"/>).</summary>
+        public IReadOnlyList<PathVariable> PathVariables { get; set; }
 
         public KeycutArgs(
             string destination = "",

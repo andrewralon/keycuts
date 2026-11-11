@@ -108,7 +108,7 @@ namespace keycuts.Tests
             {
                 "AccentBrush", "AccentHoverBrush", "AccentPressedBrush", "AccentSoftBrush", "CanvasBrush", "SurfaceBrush",
                 "SurfaceSubtleBrush", "SurfaceHoverBrush", "SurfaceRaisedBrush", "TextBrush", "TextSecondaryBrush",
-                "TextTertiaryBrush", "BorderBrush", "BorderStrongBrush", "DangerBrush", "DangerSoftBrush", "SuccessBrush"
+                "TextTertiaryBrush", "BorderBrush", "BorderStrongBrush", "DangerBrush", "DangerSoftBrush", "SuccessBrush", "WarningBrush"
             };
 
             foreach (var file in new[] { "Light.xaml", "Dark.xaml", "HighContrast.xaml" })
@@ -153,6 +153,7 @@ namespace keycuts.Tests
                     yield return new object[] { palette, "TextSecondaryBrush", surface, 4.5 };
                     yield return new object[] { palette, "DangerBrush", surface, 4.5 };
                     yield return new object[] { palette, "SuccessBrush", surface, 4.5 };
+                    yield return new object[] { palette, "WarningBrush", surface, 4.5 };
                 }
 
                 yield return new object[] { palette, "DangerBrush", "DangerSoftBrush", 4.5 };

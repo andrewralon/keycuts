@@ -298,6 +298,16 @@ namespace keycuts.Tests
             Assert.Equal(env.UserPath, env.WithOutputFolderMoved(Output, newFolder).UserPath);
         }
 
+        [Theory]
+        [InlineData(Windows)]
+        [InlineData(System32)]
+        public void TheKeycutsOwnBat_IsSkipped_EvenWhenTheOutputFolderIsSearchedEarly(string outputFolder)
+        {
+            var env = Environment(new[] { Path.Combine(outputFolder, "db.bat") });
+
+            Assert.Empty(NameConflicts.Find("db", outputFolder, env));
+        }
+
         [Fact]
         public void ANameThatAlreadyEndsWithAPathExtExtension_IsAlsoTriedAsTyped()
         {

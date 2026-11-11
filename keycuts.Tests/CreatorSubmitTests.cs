@@ -211,6 +211,9 @@ namespace keycuts.Tests
         {
             var fake = new FakeCreator();
             var creator = Ready(fake);
+            // Long enough that the state is still Success when the test resumes: the name check runs on the thread
+            // pool, so under a parallel test run the continuation can arrive later than the default 20 ms
+            creator.SuccessDuration = TimeSpan.FromMilliseconds(500);
             var created = 0;
             var focus = new List<CreatorFocusTarget>();
             creator.KeycutCreated += (sender, e) => created++;

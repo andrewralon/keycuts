@@ -81,6 +81,16 @@ namespace keycuts.Tests
             Assert.Equal(name, Shortcut.GetName(shortcut));
         }
 
+        [Theory]
+        [InlineData("gmail", @"C:\Keys\gmail.bat")]
+        [InlineData(@"nested\tool.exe", @"C:\Keys\nested\tool.exe.bat")]
+        [InlineData(@"C:\Other\.\tool.exe", @"C:\Other\.\tool.exe.bat")]
+        [InlineData(@"C:\Other\db", @"C:\Other\db.bat")]
+        public void ShortcutGetFullPath_IsTheFileTheCreateWrites(string shortcut, string expected)
+        {
+            Assert.Equal(expected, Shortcut.GetFullPath(shortcut, @"C:\Keys"));
+        }
+
         [Fact]
         public void AFullPathEndingInExe_FindsTheExistingKeycut()
         {

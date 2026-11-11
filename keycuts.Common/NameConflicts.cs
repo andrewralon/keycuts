@@ -219,7 +219,7 @@ namespace keycuts.Common
                 return Array.Empty<NameConflict>();
             }
 
-            var finder = new Finder(name, environment);
+            var finder = new Finder(name, environment, outputFolder);
 
             finder.CheckFolder(environment.WindowsFolder, NameConflictEffect.Hidden, NameConflictSource.WindowsFolder);
             finder.CheckFolder(environment.SystemFolder, NameConflictEffect.Hidden, NameConflictSource.SystemFolder);
@@ -345,12 +345,16 @@ namespace keycuts.Common
             // Without .BAT in PATHEXT, Win+R never runs a keycut, so nothing it finds is shadowed: it all wins
             private readonly bool _keycutRuns;
 
-            public Finder(string name, NameConflictEnvironment environment)
+            // The keycut's own .bat, skipped wherever it's found (the output folder could even be System32)
+            private readonly string _ownBat;
+
+            public Finder(string name, NameConflictEnvironment environment, string outputFolder)
             {
                 _name = name;
                 _environment = environment;
                 _extensions = ParsePathExt(environment.PathExt);
                 _keycutRuns = IndexOf(ShortcutFile.Extension) >= 0;
+                _ownBat = IsUsableFolder(outputFolder) ? NormalizeFolder(Path.Combine(outputFolder, name + ShortcutFile.Extension)) : null;
             }
 
             public List<NameConflict> Results { get; } = new List<NameConflict>();
@@ -467,6 +471,11 @@ namespace keycuts.Common
 
             private void Add(string path, NameConflictEffect effect, NameConflictSource source)
             {
+                if (_ownBat != null && string.Equals(NormalizeFolder(path), _ownBat, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
                 if (!_keycutRuns)
                 {
                     effect = NameConflictEffect.Hidden;

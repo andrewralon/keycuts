@@ -49,7 +49,7 @@ namespace keycuts.Common
             Filename = GetFilename(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
             Folder = GetFolder(shortcut, defaultFolder);
-            FullPath = Path.Combine(Folder, FilenameWithExtension);
+            FullPath = GetFullPath(shortcut, defaultFolder);
             OpenWithAppPath = openWithAppPath;
             OpenWithApp = openWithAppPath != null && File.Exists(openWithAppPath);
         }
@@ -74,6 +74,15 @@ namespace keycuts.Common
         public static string GetName(string shortcut)
         {
             return Path.GetFileName(GetFilename(shortcut));
+        }
+
+        /// <summary>
+        /// The .bat a shortcut argument is written to, exactly as the constructor builds it. A name ending in .exe keeps
+        /// any folder it was given, so <c>nested\tool.exe</c> lands in a subfolder and a rooted one replaces the folder.
+        /// </summary>
+        public static string GetFullPath(string shortcut, string defaultFolder)
+        {
+            return Path.Combine(GetFolder(shortcut, defaultFolder), GetFilename(shortcut) + ".bat");
         }
 
         /// <summary>The folder a shortcut argument is written to: its own if it's a full path, else <paramref name="defaultFolder"/>.</summary>

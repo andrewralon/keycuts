@@ -128,9 +128,11 @@ namespace keycuts.CLI
             var currentFolder = app.GetOutputFolder();
             var outputFolder = DebugOverrides.GetOutputFolder() != null ? currentFolder : options.OutputFolder ?? currentFolder;
             var environment = NameConflictEnvironment.GetDefault().WithOutputFolderMoved(currentFolder, outputFolder);
-            var folder = Shortcut.GetFolder(options.Shortcut, outputFolder);
+            // Check the exact file the create will write, so a replace shows that file's destination
+            var target = Shortcut.GetFullPath(options.Shortcut, outputFolder);
 
-            return NameCheck.Run(Shortcut.GetName(options.Shortcut), folder, askBeforeReplacing, environment);
+            return NameCheck.Run(System.IO.Path.GetFileNameWithoutExtension(target), System.IO.Path.GetDirectoryName(target),
+                askBeforeReplacing, environment);
         }
     }
 }

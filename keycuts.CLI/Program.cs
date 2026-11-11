@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 using keycuts.Common;
 using System;
 using System.Collections.Generic;
@@ -13,8 +13,16 @@ namespace keycuts.CLI
 
         public static int Main(string[] args)
         {
-            var result = Run(args);
-            if (result != ExitCode.Success)
+            // A bare "keycuts" (Win+R, Start) opens the app; any argument, even --help, stays the command line
+            var launched = GuiLauncher.TryLaunch(args, AppContext.BaseDirectory, System.IO.File.Exists, StartGui);
+            if (launched == ExitCode.CannotFindFile)
+            {
+                // A CLI-only copy has no GUI beside it, so show the help it used to
+                return (int)Run(new[] { "--help" });
+            }
+
+            var result = launched ?? Run(args);
+            if (result != ExitCode.Success && !Usage.WroteError)
             {
                 // stderr, so a failed `keycuts paste` leaves stdout empty for a script that reads it
                 Console.Error.WriteLine($"Error: {result}");
@@ -23,13 +31,21 @@ namespace keycuts.CLI
             return (int)result;
         }
 
+        private static void StartGui(string path)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+        }
+
         public static ExitCode Run(string[] args)
         {
             // "create" is the default verb, so the original "keycuts -d … -s …" still works
-            return Parser.Default.ParseArguments<Options, PasteOptions>(args).MapResult(
+            // -h is the usual short form of --help; the parser only knows the long one
+            args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
+            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions>(args);
+            return result.MapResult(
                 (Options parsed) => RunCreate(parsed),
                 (PasteOptions parsed) => RunPaste(parsed),
-                errors => errors.IsHelp() || errors.IsVersion() ? ExitCode.Success : ExitCode.NotStarted);
+                errors => Usage.Show(result, errors, Console.Out, Console.Error));
         }
 
         /// <summary><c>keycuts paste &lt;name&gt;</c>, which the bin\keypaste.cmd shim also runs (#97).</summary>
@@ -110,9 +126,9 @@ namespace keycuts.CLI
             }
             else
             {
-                // Show help text, listing both verbs
-                Parser.Default.ParseArguments<Options, PasteOptions>(new string[] { "--help" });
-                result = ExitCode.Success;
+                // Say what is missing on stderr, and fail, so a script notices
+                Usage.WriteMissingArguments(Console.Error);
+                result = ExitCode.BadArguments;
             }
 
             return result;

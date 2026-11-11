@@ -111,7 +111,8 @@ with `.bat`. `keypaste` used to be a separate program; it's now a small `keypast
 `keycuts paste`.
 
 `keycuts` on its own, typed in Win+R or a terminal, opens the app (`kc` does too once you've made its keycut from the welcome
-panel). Give it any argument, even `--help`, and it's the command line.
+panel). Give it any argument, even `--help`, and it's the command line. `keycuts -h` (or `--help`) lists the commands and options and exits 0; a
+mistake in the arguments prints a short message to stderr and exits 1.
 
 A keycut can't be named `keycuts` or `keypaste`: Windows would find it instead of the command, or the other way round.
 If your keycuts folder already has one (a `keypaste.bat` made for the old `keypaste.exe`, say), keycuts renames it to

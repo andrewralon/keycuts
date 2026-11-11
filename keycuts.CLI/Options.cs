@@ -22,7 +22,7 @@ namespace keycuts.CLI
         [Option('o', "outputfolder", Required = false, MetaValue = "<folder>", HelpText = "Where to put the keycut when --shortcut isn't a full path.")]
         public string OutputFolder { get; set; }
 
-        [Option('f', "force", HelpText = "Replace the keycut if it already exists, without asking.")]
+        [Option('f', "force", HelpText = "Don't ask: replace a keycut with the same name, and create it even if another command has the name.")]
         public bool Force { get; set; }
     }
 }

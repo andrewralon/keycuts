@@ -62,7 +62,7 @@ Implementing agents: start with [HANDOFF.md](HANDOFF.md). The orchestrator promp
 | 2 | Edit | Opens the keycut `.bat` in Notepad, the same as Batmanager today. No in-app edit form. Editing the description comment in Notepad is how users set a description. | KC-15 |
 | 3 | Browse: file vs folder | **Browse ▾** opens a menu: **File…** (*Choose a single file*) / **Folder…** (*Choose a directory*). Per UI2. | KC-09, KC-10 |
 | 4 | Paste | The destination line is an inline, borderless text field (placeholder "Drop or paste a file, folder, or URL here"). Users can paste or type into it. Per UI2. | KC-09, KC-10 |
-| 5 | Force overwrite | When on, duplicate names are overwritten silently with no confirmation. When off, the creator shows the inline duplicate-name error. | KC-04, KC-11 |
+| 5 | Force overwrite | When on, duplicate names are overwritten silently with no confirmation. When off, the creator shows the inline duplicate-name error. Superseded by #153: the toggle is now "Ask before replacing a keycut", and a duplicate is a warning that asks before replacing. | KC-04, KC-11 |
 | 6 | Theme | Follow the Windows light/dark app setting and switch live. No in-app toggle. High contrast falls back to system colors. | KC-05 |
 | 7 | Batmanager | Retire it. Remove the project, its launch code, and the GUI button once the new manager reaches parity. | KC-20 |
 | 8 | Delete | No confirmation. Delete from the row menu removes the keycut immediately. | KC-14 |

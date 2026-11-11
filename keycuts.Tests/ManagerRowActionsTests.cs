@@ -283,6 +283,88 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Rename_ToANameAnotherCommandUses_Asks_AndNoKeepsEditingTheTypedName()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.CheckRename = name => TestNameChecks.Conflict(name);
+            var asked = new List<string>();
+            manager.ConfirmRename = check => { asked.Add(check.Name); return false; };
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = " winword ";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(new[] { "winword" }, asked);
+            Assert.Empty(actions.Renamed);
+            Assert.True(manager.IsRenaming);
+            Assert.True(manager.Rows[0].IsRenaming);
+            Assert.Equal("winword", manager.Rows[0].EditName);
+        }
+
+        [Fact]
+        public async Task Rename_ToANameAnotherCommandUses_RenamesAfterAYes()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.CheckRename = name => TestNameChecks.Conflict(name);
+            manager.ConfirmRename = check => true;
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "winword";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(new[] { (@"C:\fixture\a.bat", "winword") }, actions.Renamed);
+            Assert.False(manager.IsRenaming);
+        }
+
+        [Fact]
+        public async Task Rename_WithNoWayToAsk_DoesNotRenameOverAConflict()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.CheckRename = name => TestNameChecks.Conflict(name);
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "winword";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Empty(actions.Renamed);
+            Assert.True(manager.IsRenaming);
+        }
+
+        [Fact]
+        public async Task Rename_ToAFreeName_DoesNotAsk()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.CheckRename = name => NameCheck.None(name);
+            manager.ConfirmRename = check => throw new InvalidOperationException("should not ask");
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "b";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(new[] { (@"C:\fixture\a.bat", "b") }, actions.Renamed);
+        }
+
+        [Fact]
+        public async Task Rename_ToAnInvalidName_IsNotChecked_AndFailsAsBefore()
+        {
+            var actions = new FakeActions { RenameError = new KeycutRepositoryException(KeycutRepositoryError.InvalidName, "bad") };
+            var manager = await LoadedAsync(actions, "a");
+            var checks = 0;
+            manager.CheckRename = name => { checks++; return TestNameChecks.Conflict(name); };
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "a/b";
+
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(0, checks);
+            Assert.True(manager.StatusIsError);
+        }
+
+        [Fact]
         public async Task Rename_UnchangedName_JustEndsTheEdit()
         {
             var actions = new FakeActions();

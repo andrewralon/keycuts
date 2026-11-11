@@ -60,7 +60,7 @@ namespace keycuts.GUI.ViewModels
 
         private string? saveError;
 
-        private bool forceOverwrite;
+        private bool askBeforeReplacing;
 
         private bool rightClickContextMenus;
 
@@ -90,7 +90,7 @@ namespace keycuts.GUI.ViewModels
 
             var loaded = store.Load();
             outputFolder = loaded.OutputFolder ?? string.Empty;
-            forceOverwrite = loaded.ForceOverwrite;
+            askBeforeReplacing = loaded.AskBeforeReplacing;
             rightClickContextMenus = loaded.RightClickContextMenus;
             useEnvironmentVariables = loaded.UseEnvironmentVariables;
             theme = loaded.Theme;
@@ -161,10 +161,11 @@ namespace keycuts.GUI.ViewModels
             get { return saveError != null; }
         }
 
-        public bool ForceOverwrite
+        /// <summary>Confirm before a new keycut replaces one with the same name (#153). Name conflicts always warn.</summary>
+        public bool AskBeforeReplacing
         {
-            get { return forceOverwrite; }
-            set { SetProperty(ref forceOverwrite, value); }
+            get { return askBeforeReplacing; }
+            set { SetProperty(ref askBeforeReplacing, value); }
         }
 
         public bool RightClickContextMenus
@@ -225,7 +226,7 @@ namespace keycuts.GUI.ViewModels
             var settings = new Settings
             {
                 OutputFolder = folder,
-                ForceOverwrite = forceOverwrite,
+                AskBeforeReplacing = askBeforeReplacing,
                 RightClickContextMenus = rightClickContextMenus,
                 UseEnvironmentVariables = useEnvironmentVariables,
                 Theme = theme

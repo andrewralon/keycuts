@@ -17,6 +17,8 @@ namespace keycuts.Common
         FileAlreadyExists = 10,
         CannotCreateOutputFolder = 11,
         CannotUpdatePath = 12,
-        CannotSetClipboard = 13
+        CannotSetClipboard = 13,
+        /// <summary>The name needs a y / n answer (a replace or a name conflict, #153), but input is redirected.</summary>
+        ConfirmationNeeded = 14
     }
 }

@@ -20,7 +20,8 @@ namespace keycuts.GUI
 
         public string OutputFolder { get; set; } = string.Empty;
 
-        public bool ForceOverwrite { get; set; }
+        /// <summary>"Ask before replacing a keycut" (#153), which replaced "Force overwrite" with the opposite meaning.</summary>
+        public bool AskBeforeReplacing { get; set; } = Runner.DefaultAskBeforeReplacing;
 
         /// <summary>Save new file and folder keycuts with environment variables (#31).</summary>
         public bool UseEnvironmentVariables { get; set; }
@@ -37,7 +38,7 @@ namespace keycuts.GUI
         public void LoadSettings()
         {
             OutputFolder = runner.GetOutputFolder();
-            ForceOverwrite = runner.GetForceOverwrite();
+            AskBeforeReplacing = runner.GetAskBeforeReplacing();
             UseEnvironmentVariables = runner.GetUseEnvironmentVariables();
             RightClickContextMenus = runner.GetRightClickContextMenu();
             Theme = runner.GetThemePreference();
@@ -67,7 +68,7 @@ namespace keycuts.GUI
                     problems.Add(PathUpdateFailedMessage);
                 }
 
-                runner.SetForceOverwrite(ForceOverwrite);
+                runner.SetAskBeforeReplacing(AskBeforeReplacing);
                 runner.SetUseEnvironmentVariables(UseEnvironmentVariables);
                 runner.SetThemePreference(Theme);
 

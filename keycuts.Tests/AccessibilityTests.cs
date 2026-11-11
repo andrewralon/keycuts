@@ -25,7 +25,7 @@ namespace keycuts.Tests
     {
         static CreatorViewModel NewCreator()
         {
-            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false);
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings);
             creator.Destination = "https://example.com";
             creator.DestinationKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
@@ -35,12 +35,12 @@ namespace keycuts.Tests
         #region View model text for screen readers
 
         [Fact]
-        public void NameHelpText_ReflectsNameAndSubmitErrorsOnly()
+        public void NameHelpText_ReflectsNameWarningsAndErrorsOnly()
         {
             var creator = NewCreator();
             Assert.Equal(string.Empty, creator.NameHelpText);
 
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
             Assert.Equal(creator.HelperText, creator.NameHelpText);
             Assert.Contains("already exists", creator.NameHelpText);
 
@@ -54,7 +54,7 @@ namespace keycuts.Tests
             var creator = NewCreator();
             Assert.Equal(string.Empty, creator.DestinationHelpText);
 
-            creator.SetDuplicateName("ex");
+            creator.SetNameWarning(TestNameChecks.Existing("ex"));
             creator.DestinationError = DestinationError.NotFound;
 
             Assert.Equal(CreatorViewModel.GetDestinationErrorMessage(DestinationError.NotFound), creator.DestinationHelpText);
@@ -221,7 +221,7 @@ namespace keycuts.Tests
                 EnsureApplication();
                 var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
                     (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
-                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false) { Welcome = welcome };
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { Welcome = welcome };
                 creator.Destination = "https://example.com";
                 creator.DestinationKind = KeycutKind.Url;
                 creator.ShortcutName = "ex";
@@ -347,7 +347,7 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), nameExists: _ => false);
+                var empty = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings);
                 var window = Host(new CreatorView(), empty);
                 try
                 {
@@ -386,7 +386,7 @@ namespace keycuts.Tests
                     var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
                     Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(helper));
 
-                    creator.SetDuplicateName("ex");
+                    creator.SetNameWarning(TestNameChecks.Existing("ex"));
                     Pump();
                     Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(helper));
 

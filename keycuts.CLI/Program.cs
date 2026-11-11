@@ -100,27 +100,28 @@ namespace keycuts.CLI
                 // Run app and pass arguments as parameters. Environment variables in paths (#31) follow the setting.
                 var app = new Runner();
                 keycutArgs.UseEnvironmentVariables = app.GetUseEnvironmentVariables();
+
+                // Replacing a keycut and a name that other commands use both ask first, unless -f (#153)
+                var askBeforeReplacing = app.GetAskBeforeReplacing();
+                var check = options.Force ? null : CheckName(app, options, askBeforeReplacing);
+                var decision = CreateConfirmation.Decide(check, options.Destination, options.Force, askBeforeReplacing,
+                    Console.IsInputRedirected, () => Console.ReadKey().KeyChar, Console.Out, out var overwrite);
+
+                switch (decision)
+                {
+                    case CreateDecision.Declined:
+                        // Declining is a choice, not a failure (#65)
+                        return ExitCode.Success;
+                    case CreateDecision.ConfirmationNeeded:
+                        return ExitCode.ConfirmationNeeded;
+                }
+
+                keycutArgs.Force = overwrite;
                 result = app.Run(keycutArgs);
 
                 if (result == ExitCode.FileAlreadyExists)
                 {
-                    Console.WriteLine($"Shortcut file {options.Shortcut} already exists.");
-                    Console.Write("Overwrite? (y / n)  ");
-                    var overwriteInput = Console.ReadKey().KeyChar.ToString();
-                    Console.WriteLine();
-
-                    if (overwriteInput.ToLower() == "y")
-                    {
-                        // Force overwrite
-                        keycutArgs.Force = true;
-                        result = app.Run(keycutArgs);
-                    }
-                    else
-                    {
-                        // Declining is a choice, not a failure (#65)
-                        Console.WriteLine("Kept the existing shortcut.");
-                        result = ExitCode.Success;
-                    }
+                    Console.WriteLine($"Shortcut file {options.Shortcut} already exists. Run it again with -f to replace it.");
                 }
             }
             else
@@ -131,6 +132,23 @@ namespace keycuts.CLI
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// What the shortcut's name runs into, in the folder it will be written to (as <see cref="Shortcut"/> reads it),
+        /// against PATH as it will be after the create: <c>-o</c> moves the output folder, and its PATH entry with it.
+        /// </summary>
+        private static NameCheck CheckName(Runner app, Options options, bool askBeforeReplacing)
+        {
+            // The Debug KEYCUTS_OUTPUT_FOLDER override pins the folder, so Runner ignores -o and leaves PATH alone
+            var currentFolder = app.GetOutputFolder();
+            var outputFolder = DebugOverrides.GetOutputFolder() != null ? currentFolder : options.OutputFolder ?? currentFolder;
+            var environment = NameConflictEnvironment.GetDefault().WithOutputFolderMoved(currentFolder, outputFolder);
+            // Check the exact file the create will write, so a replace shows that file's destination
+            var target = Shortcut.GetFullPath(options.Shortcut, outputFolder);
+
+            return NameCheck.Run(System.IO.Path.GetFileNameWithoutExtension(target), System.IO.Path.GetDirectoryName(target),
+                askBeforeReplacing, environment);
         }
     }
 }

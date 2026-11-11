@@ -198,11 +198,13 @@ namespace keycuts.GUI.Views
             if (e.OldValue is ManagerViewModel oldViewModel)
             {
                 oldViewModel.FocusRowRequested -= ViewModel_FocusRowRequested;
+                oldViewModel.ConfirmRename = null;
             }
 
             if (e.NewValue is ManagerViewModel newViewModel)
             {
                 newViewModel.FocusRowRequested += ViewModel_FocusRowRequested;
+                newViewModel.ConfirmRename = check => ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForRename(check));
             }
         }
 

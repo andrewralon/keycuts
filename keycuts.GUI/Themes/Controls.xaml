@@ -166,6 +166,9 @@
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource DangerSoftBrush}" />
                         </Trigger>
+                        <Trigger Property="themes:TextBoxChrome.HasWarning" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                        </Trigger>
                         <Trigger Property="themes:TextBoxChrome.HasError" Value="True">
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
                         </Trigger>
@@ -173,6 +176,14 @@
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             <Setter TargetName="Glow" Property="Opacity" Value="0.2" />
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="themes:TextBoxChrome.HasWarning" Value="True" />
+                                <Condition Property="IsKeyboardFocusWithin" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                            <Setter TargetName="Glow" Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                        </MultiTrigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="themes:TextBoxChrome.HasError" Value="True" />

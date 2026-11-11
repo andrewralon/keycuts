@@ -17,7 +17,8 @@ namespace keycuts.Common
         /// <summary>Per-user, so a non-admin can write to it. The installer's default must match; a test compares the two.</summary>
         public static readonly string DefaultOutputFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Shortcuts");
 
-        public static readonly bool DefaultForceOverwrite = false;
+        /// <summary>"Ask before replacing a keycut" is on unless the user turned it off (or had Force overwrite on, #153).</summary>
+        public static readonly bool DefaultAskBeforeReplacing = true;
 
         public static readonly string RightClickContextMenuText = "keycut this!";
 
@@ -129,11 +130,9 @@ namespace keycuts.Common
             return outputFolder;
         }
 
-        public bool GetForceOverwrite()
+        public bool GetAskBeforeReplacing()
         {
-            var forceOverwrite = RegistryStuff.GetForceOverwrite(DefaultForceOverwrite);
-
-            return forceOverwrite;
+            return RegistryStuff.GetAskBeforeReplacing(DefaultAskBeforeReplacing);
         }
 
         public bool GetRightClickContextMenu()
@@ -185,13 +184,11 @@ namespace keycuts.Common
             return outputFolder;
         }
 
-        public void SetForceOverwrite(bool forceOverwrite)
+        public void SetAskBeforeReplacing(bool askBeforeReplacing)
         {
-            var currentForceOverwrite = RegistryStuff.GetForceOverwrite(DefaultForceOverwrite);
-
-            if (currentForceOverwrite != forceOverwrite)
+            if (GetAskBeforeReplacing() != askBeforeReplacing)
             {
-                RegistryStuff.SetForceOverwrite(forceOverwrite);
+                RegistryStuff.SetAskBeforeReplacing(askBeforeReplacing);
             }
         }
 

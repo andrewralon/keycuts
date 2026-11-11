@@ -178,6 +178,27 @@
       </Style.Triggers>
     </Style>
 
+    <!-- The name form's helper line also shows name warnings (#153), in amber; an error still wins. It wraps, since a
+         warning names a full path. -->
+    <Style x:Key="NameHelperText" TargetType="TextBlock" BasedOn="{StaticResource HelperText}">
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="None" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsSuccess}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HelperIsWarning}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
     <Style x:Key="BrowseChevron" TargetType="controls:Icon">
       <Setter Property="Size" Value="12" />
       <Setter Property="Kind" Value="Chevron" />
@@ -359,7 +380,8 @@
           <TextBox x:Name="TextboxShortcut" Height="38" MinHeight="38"
                    Text="{Binding ShortcutName, UpdateSourceTrigger=PropertyChanged}"
                    themes:TextBoxChrome.Placeholder="e.g. l-vicki"
-                   themes:TextBoxChrome.HasError="{Binding IsDuplicateName}"
+                   themes:TextBoxChrome.HasError="{Binding IsNameError}"
+                   themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
                    IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
                    AutomationProperties.HelpText="{Binding NameHelpText}"
                    TextChanged="TextboxShortcut_TextChanged">
@@ -405,8 +427,21 @@
             </Grid>
           </Button>
         </Grid>
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" MinHeight="18">
-          <controls:Icon Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
+        <DockPanel Margin="0,8,0,0" MinHeight="18">
+          <controls:Icon DockPanel.Dock="Left" Kind="Warning" Size="14" Margin="0,1,6,0" VerticalAlignment="Top"
+                         Foreground="{DynamicResource WarningBrush}">
+            <controls:Icon.Style>
+              <Style TargetType="controls:Icon">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HelperIsWarning}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </controls:Icon.Style>
+          </controls:Icon>
+          <controls:Icon DockPanel.Dock="Left" Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
                          Foreground="{DynamicResource SuccessBrush}">
             <controls:Icon.Style>
               <Style TargetType="controls:Icon">
@@ -419,9 +454,8 @@
               </Style>
             </controls:Icon.Style>
           </controls:Icon>
-          <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource HelperText}"
-                     ToolTip="{Binding HelperText}" />
-        </StackPanel>
+          <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource NameHelperText}" />
+        </DockPanel>
       </StackPanel>
     </Grid>
 

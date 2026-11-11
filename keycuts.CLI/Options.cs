@@ -7,7 +7,7 @@ using System.Text;
 namespace keycuts.CLI
 {
     /// <summary>Creating a keycut is the default verb, so <c>keycuts -d … -s …</c> works without naming it.</summary>
-    [Verb("create", isDefault: true, HelpText = "Create a keycut (the default: \"create\" can be left out).")]
+    [Verb("create", isDefault: true, HelpText = "Create a keycut.")]
     public class Options
     {
         [Option('d', "destination", Required = false, MetaValue = "<path>", HelpText = "What the keycut opens: a file, folder, URL or shell: path.")]

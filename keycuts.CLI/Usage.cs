@@ -64,6 +64,9 @@ namespace keycuts.CLI
                 // The library only lists the long form; -h is accepted too (see Program.Run), so say so, keeping the column
                 text = text.Replace("  --help    ", "  -h, --help");
 
+                // The library puts a blank line between the "Commands:" heading and the verb list; drop it
+                text = text.Replace("Commands:" + Environment.NewLine + Environment.NewLine, "Commands:" + Environment.NewLine);
+
                 output.WriteLine(topLevel ? text + Environment.NewLine + Environment.NewLine + TopLevelText : text);
                 return ExitCode.Success;
             }
@@ -92,10 +95,12 @@ namespace keycuts.CLI
                 help.AddPreOptionsLines(new[]
                 {
                     "Usage:",
-                    "  keycuts                                   Open the app",
-                    "  keycuts -d <path> -s <name> [options]     Create a keycut",
-                    "  keycuts paste <name>                      Copy a keycut's destination",
-                    "  keycuts <command> --help                  Help for one command",
+                    "  keycuts                                         Open the app UI",
+                    "  keycuts [create] -d <path> -s <name> [options]  Create a keycut",
+                    "  keycuts paste <name>                            Copy destination to clipboard",
+                    "    keypaste <name>                                 ",
+                    "  keycuts <command> --help                        Help for that command",
+                    "  keycuts --help                                  Open this help message",
                     "",
                     "Commands:"
                 });
@@ -115,10 +120,12 @@ namespace keycuts.CLI
 
         private static string TopLevelText =>
             "Examples:" + Environment.NewLine +
-            "  keycuts -d C:\\Projects -s proj" + Environment.NewLine +
-            "  keycuts -d https://mail.google.com -s gmail" + Environment.NewLine +
             "  keycuts -d C:\\Windows\\notepad.exe -s np -f" + Environment.NewLine +
-            "  keycuts paste gmail";
+            "  keycuts -d C:\\Path\\To\\Hobbies -s hobbies" + Environment.NewLine +
+            "  keycuts -d C:\\Users\\MyUser\\Desktop -s desktop" + Environment.NewLine +
+            "  keycuts -d https://mail.google.com -s gmail" + Environment.NewLine +
+            "  keycuts paste gmail" + Environment.NewLine +
+            "  keypaste gmail";
 
         /// <summary>The error shown when create is missing what it needs.</summary>
         public static void WriteMissingArguments(TextWriter error)

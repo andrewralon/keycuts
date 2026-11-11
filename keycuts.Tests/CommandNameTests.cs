@@ -37,7 +37,7 @@ namespace keycuts.Tests
             File.WriteAllLines(path, new[]
             {
                 "@ECHO OFF",
-                "REM keycuts 1.1.0",
+                "REM keycuts 1.1.1",
                 $"REM <shortcut>{path}</shortcut>",
                 "REM <type>file</type>",
                 $"REM <destination>{destination}</destination>",

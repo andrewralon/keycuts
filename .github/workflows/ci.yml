@@ -25,6 +25,9 @@ env:
 jobs:
   # The job id is a required status check on develop and main; keep it named build.
   build:
+    # A PR from develop (the release PR into main) has the commit the push run already tested, so skip the second
+    # run; a skipped job satisfies the required check and the push run's result shows on the PR.
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
@@ -116,6 +119,8 @@ jobs:
   # the Windows build instead of after it. EnableWindowsTargeting lets the net10.0-windows projects restore on Linux.
   # The job id is a required status check on develop and main.
   format:
+    # Skipped for a PR from develop, for the same reason as build.
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

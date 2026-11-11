@@ -1,0 +1,55 @@
+name: Backmerge
+
+# After a release, merging develop into main leaves a merge commit that develop doesn't have. This opens a PR that
+# merges main back into develop and turns on auto-merge, so the branches stay level without anyone remembering to.
+# Nothing happens when develop already contains main.
+#
+# Needs "Allow GitHub Actions to create and approve pull requests" in the repository settings. A PR opened with the
+# default GITHUB_TOKEN doesn't start other workflows, so CI never runs on it and the required checks never report.
+# Add a personal access token (pull requests and contents write) as the BACKMERGE_TOKEN secret so CI runs; this
+# workflow uses it when it exists.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: backmerge
+  cancel-in-progress: false
+
+jobs:
+  backmerge:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.BACKMERGE_TOKEN || secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Open the backmerge PR
+        run: |
+          behind=$(git rev-list --count origin/develop..origin/main)
+          if [ "$behind" -eq 0 ]; then
+            echo "develop already contains main; nothing to merge back."
+            exit 0
+          fi
+          existing=$(gh pr list --base develop --head main --state open --json number --jq 'length')
+          if [ "$existing" -gt 0 ]; then
+            echo "A backmerge PR is already open."
+            exit 0
+          fi
+          url=$(gh pr create --base develop --head main \
+            --title "Merge main back into develop" \
+            --body "Brings the release merge commit from main into develop so the two branches match. Opened by the Backmerge workflow.")
+          echo "Opened $url"
+          # Merge commit, never squash or rebase: the point is to make develop contain main's history.
+          gh pr merge --auto --merge "$url"

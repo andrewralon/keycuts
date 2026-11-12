@@ -356,6 +356,14 @@ OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%SHORTCUTS%"|
 Description: ||
 
+## target-tag/description-percent.bat
+Shortcut:    |description-percent|
+Type:        Url
+Target:      |https://example.com/docs|
+OpenWithApp: <null>
+Command:     |START https://example.com/docs|
+Description: |Opens %~dp0 and 100% done & more|
+
 ## target-tag/folder.bat
 Shortcut:    |folder|
 Type:        Folder

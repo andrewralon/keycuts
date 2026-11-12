@@ -335,9 +335,16 @@ namespace keycuts.Common
 
         #region Static Methods
 
+        /// <summary>
+        /// A description as it goes on its <c>REM</c> line: on one line, with every <c>%</c> doubled. cmd expands <c>%</c>
+        /// before it reads <c>REM</c>, so a <c>%~</c> (as in <c>%~dp0</c>) stops the whole .bat with a syntax error and the
+        /// keycut never launches; <c>%%~</c> is inert. Folding newlines also keeps a line ending in <c>^</c> from joining the
+        /// next line, which the closing tag does anyway. <see cref="ShortcutFile.ParseDescription"/> halves the <c>%%</c> again.
+        /// The other special characters (<c>&amp; | &lt; &gt; ^</c>, a lone <c>%</c>, <c>%1</c>, <c>%*</c>) are inert on a REM line.
+        /// </summary>
         private static string SanitizeDescription(string description)
         {
-            return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+            return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim().Replace("%", "%%");
         }
 
         #endregion Static Methods

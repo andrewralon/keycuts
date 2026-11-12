@@ -114,6 +114,7 @@ namespace keycuts.Tests.Characterization
             new EmitterCase { Name = "unknown", Type = ShortcutType.Unknown, Target = @"C:\missing.txt", Note = "Runner.Run never emits Unknown; there is no launch line to write." },
             new EmitterCase { Name = "description", Type = ShortcutType.Url, Target = "https://example.com", Description = "  Line one\r\nline two  " },
             new EmitterCase { Name = "description-null", Type = ShortcutType.Url, Target = "https://example.com", Description = null },
+            new EmitterCase { Name = "description-special-characters", Type = ShortcutType.Url, Target = "https://example.com", Description = "Opens %~dp0 & 100% | <b> ^ >c %1 %* %PATH:~0,3%", Note = "Every % is doubled, because cmd expands % before it reads REM and a %~ stops the script (#162). The other characters are inert on a REM line." },
         };
 
         /// <summary>One block per case: the lines <see cref="Runner.BuildShortcutLines"/> writes. The version is masked.</summary>

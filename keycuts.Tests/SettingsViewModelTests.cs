@@ -873,8 +873,7 @@ namespace keycuts.Tests
                     window.Close();
                 }
 
-                state.LatestVersion = "1.2.0";
-                state.LatestReleaseUrl = "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0";
+                state.LatestReleaseSeen = ("1.2.0", "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0");
                 window = ShowOffscreen(new SettingsViewModel(store, updates: checker));
                 try
                 {

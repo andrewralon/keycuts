@@ -254,8 +254,7 @@ namespace keycuts.Tests
                 EnsureApplication();
                 var state = new FakeUpdateState
                 {
-                    LatestVersion = "1.2.0",
-                    LatestReleaseUrl = "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0"
+                    LatestReleaseSeen = ("1.2.0", "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0")
                 };
                 var notice = new UpdateNoticeViewModel(UpdateFakes.Checker(new FakeReleaseSource(), state), _ => { });
                 notice.Refresh();

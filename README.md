@@ -77,7 +77,7 @@ Batmanager app, which has been removed).
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
 Settings (the gear button) holds the output folder (**Choose** picks one, **Launch** opens it in Explorer), **Ask before replacing a keycut**,
-**Right-click context menus**, **Use environment variables in paths**, and the theme. **Save changes** (or Enter) checks that the
+**Right-click context menus**, **Use environment variables in paths**, the theme, and **Check for updates**. **Save changes** (or Enter) checks that the
 folder can be written to, creating it if needed, and shows any problem under the field; **Cancel** (or Escape) closes without saving.
 
 Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.
@@ -87,6 +87,19 @@ so a keycuts folder copied to another machine or account still works. It uses `%
 `%OneDrive%`, `%USERPROFILE%`, `%ProgramFiles(x86)%`, `%ProgramFiles%`, `%ProgramData%` and `%SystemRoot%`, plus any
 variable you've defined yourself whose value is a folder (a `DROPBOX` variable, say); the longest match wins. Existing
 keycuts aren't changed, and the command-line `keycuts.exe` follows the setting too.
+
+### Update notice
+
+When a newer version is out, the creator's footer says so ("keycuts 1.2.0 is available · Download"). **Download** opens
+the release page in your browser; nothing is downloaded or installed by the app. Dismiss the line with **×** and it stays
+hidden until the next release after that one. Settings shows the version you're running and has **Check now**, which asks
+straight away and always says what it found, including when it couldn't check.
+
+The app checks at most once a day, when it starts, and never slows startup; if the check fails (offline, a proxy, GitHub's
+rate limit) it says nothing. Only the app checks; the command-line `keycuts.exe` never does. **No telemetry**: the check
+is one unauthenticated request to `https://api.github.com/repos/andrewralon/keycuts/releases/latest`, carrying nothing
+beyond any GitHub API call (a `User-Agent` of `keycuts/<version>` and an `Accept` header). To stop it, turn off
+**Check for updates** in Settings. Prereleases never show up as updates.
 
 ### Name warnings
 

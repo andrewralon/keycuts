@@ -30,6 +30,9 @@ namespace keycuts.GUI
 
         public ThemePreference Theme { get; set; }
 
+        /// <summary>Check GitHub for a newer release once a day (#171). On by default.</summary>
+        public bool CheckForUpdates { get; set; } = true;
+
         public Settings()
         {
             runner = new Runner();
@@ -42,6 +45,7 @@ namespace keycuts.GUI
             UseEnvironmentVariables = runner.GetUseEnvironmentVariables();
             RightClickContextMenus = runner.GetRightClickContextMenu();
             Theme = runner.GetThemePreference();
+            CheckForUpdates = runner.GetCheckForUpdates();
         }
 
         public static bool IsValidOutputFolder(string? folder)
@@ -71,6 +75,7 @@ namespace keycuts.GUI
                 runner.SetAskBeforeReplacing(AskBeforeReplacing);
                 runner.SetUseEnvironmentVariables(UseEnvironmentVariables);
                 runner.SetThemePreference(Theme);
+                runner.SetCheckForUpdates(CheckForUpdates);
 
                 if (!runner.SetRightClickContextMenu(RightClickContextMenus))
                 {

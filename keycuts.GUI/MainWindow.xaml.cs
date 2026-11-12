@@ -52,7 +52,9 @@ namespace keycuts.GUI
 
         private void Shell_SettingsRequested(object? sender, EventArgs e)
         {
-            var settingsWindow = new SettingsWindow { Owner = this };
+            var settingsWindow = new SettingsWindow(null, shell.Creator.UpdateNotice?.Checker) { Owner = this };
+            // Check now can answer after the window closed; the creator's line follows whenever it does
+            settingsWindow.ViewModel.UpdateChecked += (_, _) => shell.Creator.UpdateNotice?.Refresh();
             // A save that reported a problem (for example PATH) may still have stored the folder, so a later Cancel refreshes too
             var saved = settingsWindow.ShowDialog() == true || settingsWindow.ViewModel.StoreChanged;
 
@@ -61,6 +63,9 @@ namespace keycuts.GUI
                 // The environment-variables setting may have changed; the preview follows it
                 shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
             }
+
+            // A saved toggle may hide or show the line
+            shell.Creator.UpdateNotice?.Refresh();
 
             if (settingsWindow.ShowWelcomeRequested)
             {

@@ -61,6 +61,11 @@ namespace keycuts.GUI.Views
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 oldViewModel.ConfirmName = null;
 
+                if (oldViewModel.UpdateNotice != null)
+                {
+                    oldViewModel.UpdateNotice.PropertyChanged -= UpdateNotice_PropertyChanged;
+                }
+
                 if (oldViewModel.Welcome != null)
                 {
                     oldViewModel.Welcome.PropertyChanged -= Welcome_PropertyChanged;
@@ -75,6 +80,11 @@ namespace keycuts.GUI.Views
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
                 newViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 newViewModel.ConfirmName = ConfirmName;
+
+                if (newViewModel.UpdateNotice != null)
+                {
+                    newViewModel.UpdateNotice.PropertyChanged += UpdateNotice_PropertyChanged;
+                }
 
                 if (newViewModel.Welcome != null)
                 {
@@ -101,12 +111,23 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // The LiveSetting on the text block alone doesn't raise the event; the peer has to
+        // The update line (#171) appears after a background check, with focus elsewhere, so it has to be announced
+        private void UpdateNotice_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(UpdateNoticeViewModel.Message) && sender is UpdateNoticeViewModel { IsVisible: true })
+            {
+                AnnounceLiveRegion(UpdateNoticeText);
+            }
+        }
+
+        // The LiveSetting on the text block alone doesn't raise the event; the peer has to. CreatePeerForElement, not
+        // FromElement: a line that was collapsed until now (the update line) may have no peer yet, and FromElement
+        // returns only an existing one. It returns the existing peer when there is one.
         private void AnnounceLiveRegion(UIElement element)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                if (UIElementAutomationPeer.FromElement(element) is AutomationPeer peer)
+                if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
                 {
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
                 }

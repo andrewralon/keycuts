@@ -288,6 +288,9 @@ namespace keycuts.GUI.ViewModels
         /// <summary>The first-run panel shown above the form, or null when the app was started without one (tests, design data).</summary>
         public WelcomeViewModel? Welcome { get; init; }
 
+        /// <summary>The "new version is out" line in the footer (#171), or null without one (tests, design data).</summary>
+        public UpdateNoticeViewModel? UpdateNotice { get; init; }
+
         /// <summary>Changing the text invalidates the resolved kind, any destination error, and the success message.</summary>
         public string Destination
         {

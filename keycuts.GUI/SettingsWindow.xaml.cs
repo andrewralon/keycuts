@@ -30,11 +30,12 @@ namespace keycuts.GUI
         }
 
         /// <param name="viewModel">Tests pass one over a fake store; the app uses the registry-backed one.</param>
-        public SettingsWindow(SettingsViewModel? viewModel)
+        /// <param name="updates">The update check behind Check now, shared with the creator's notice (#171). Used only without a view model.</param>
+        public SettingsWindow(SettingsViewModel? viewModel, UpdateChecker? updates = null)
         {
             InitializeComponent();
 
-            this.viewModel = viewModel ?? new SettingsViewModel(new RunnerSettingsStore(), PickFolder, OpenFolder);
+            this.viewModel = viewModel ?? new SettingsViewModel(new RunnerSettingsStore(), PickFolder, OpenFolder, updates: updates);
             DataContext = this.viewModel;
 
             // Checking the saved choice raises Checked; that is not a preview, so the palette is left alone
@@ -103,6 +104,10 @@ namespace keycuts.GUI
             else if (e.PropertyName == nameof(SettingsViewModel.SaveError) && viewModel.HasSaveError)
             {
                 AnnounceLiveRegion(SaveErrorMessage);
+            }
+            else if (e.PropertyName == nameof(SettingsViewModel.UpdateStatusText) && viewModel.HasUpdateStatus)
+            {
+                AnnounceLiveRegion(UpdateStatusMessage);
             }
         }
 

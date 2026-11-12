@@ -462,26 +462,50 @@
     <!-- Footer strip -->
     <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,1,0,0" Padding="20,10">
-      <Button Style="{StaticResource FooterLinkButton}" Command="{Binding ShowManagerCommand}"
-              AutomationProperties.Name="{Binding KeycutCount, StringFormat='View all keycuts ({0})'}">
-        <Grid>
+      <StackPanel>
+        <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing.
+             Declared in reading order so Tab reaches Download before the dismiss button. -->
+        <Grid x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" Margin="0,0,0,6"
+              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
           <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <controls:Icon Kind="External" Size="15" />
-            <TextBlock Text="View all keycuts" Margin="8,0,0,0" VerticalAlignment="Center" />
-          </StackPanel>
-          <Border Grid.Column="1" MinWidth="24" Height="20" Padding="7,0" CornerRadius="10"
-                  Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                  BorderThickness="1" VerticalAlignment="Center">
-            <TextBlock Text="{Binding KeycutCount}" FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-          </Border>
+          <controls:Icon Grid.Column="0" Kind="Spark" Size="15" Margin="0,0,8,0" VerticalAlignment="Center"
+                         Foreground="{DynamicResource AccentBrush}" />
+          <TextBlock x:Name="UpdateNoticeText" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
+                     Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
+            <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
+                Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentBrush}"
+                AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">Download</Hyperlink>
+          </TextBlock>
+          <Button x:Name="BtnDismissUpdate" Grid.Column="2" Style="{StaticResource IconButton}" Margin="8,0,0,0"
+                  Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
+            <controls:Icon Kind="Close" Size="14" />
+          </Button>
         </Grid>
-      </Button>
+        <Button Style="{StaticResource FooterLinkButton}" Command="{Binding ShowManagerCommand}"
+                AutomationProperties.Name="{Binding KeycutCount, StringFormat='View all keycuts ({0})'}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <controls:Icon Kind="External" Size="15" />
+              <TextBlock Text="View all keycuts" Margin="8,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <Border Grid.Column="1" MinWidth="24" Height="20" Padding="7,0" CornerRadius="10"
+                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" VerticalAlignment="Center">
+              <TextBlock Text="{Binding KeycutCount}" FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                         Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
+            </Border>
+          </Grid>
+        </Button>
+      </StackPanel>
     </Border>
 
     <!-- Declared last so Tab reaches it after the footer link, as it sits visually at the top right. -->

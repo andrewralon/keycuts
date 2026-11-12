@@ -39,7 +39,7 @@ namespace keycuts.GUI.ViewModels
         public ShellViewModel(
             Func<Task<int>> countProvider,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
-            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null,
+            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? targetChecker = null,
             IKeycutActions? actions = null,
             WelcomeViewModel? welcome = null,
             UpdateNoticeViewModel? updateNotice = null)
@@ -51,7 +51,7 @@ namespace keycuts.GUI.ViewModels
             OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
 
             Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand) { Welcome = welcome, UpdateNotice = updateNotice };
-            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, destinationChecker, actions);
+            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, targetChecker, actions);
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();

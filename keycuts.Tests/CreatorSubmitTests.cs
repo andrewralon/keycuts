@@ -14,7 +14,7 @@ namespace keycuts.Tests
     {
         sealed class FakeCreator
         {
-            public readonly List<(string Destination, string Name)> Calls = new List<(string, string)>();
+            public readonly List<(string Target, string Name)> Calls = new List<(string, string)>();
 
             public readonly List<bool> UsedEnvironmentVariables = new List<bool>();
 
@@ -22,9 +22,9 @@ namespace keycuts.Tests
 
             public Func<Task<CreateResult>> Result = () => Task.FromResult(CreateResult.Success(null!));
 
-            public Task<CreateResult> Create(string destination, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
+            public Task<CreateResult> Create(string target, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
             {
-                Calls.Add((destination, name));
+                Calls.Add((target, name));
                 UsedEnvironmentVariables.Add(useEnvironmentVariables);
                 Replaced.Add(replace);
                 return Result();
@@ -42,12 +42,12 @@ namespace keycuts.Tests
 
         static readonly PathVariable[] TestVariables = { new PathVariable("USERPROFILE", @"C:\Users\me") };
 
-        static CreatorViewModel FileCreator(FakeCreator fake, string destination = @"C:\Users\me\Desktop\notes.txt")
+        static CreatorViewModel FileCreator(FakeCreator fake, string target = @"C:\Users\me\Desktop\notes.txt")
         {
             var creator = Create(fake);
             creator.PathVariables = TestVariables;
-            creator.Destination = destination;
-            creator.DestinationKind = KeycutKind.File;
+            creator.Target = target;
+            creator.TargetKind = KeycutKind.File;
             creator.ShortcutName = "notes";
             return creator;
         }
@@ -91,35 +91,35 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void SavedAs_PreviewsTheResolvedDestination_NotTheTypedText()
+        public void SavedAs_PreviewsTheResolvedTarget_NotTheTypedText()
         {
             var creator = Create(new FakeCreator());
             creator.PathVariables = TestVariables;
             creator.UseEnvironmentVariablesSetting = true;
-            creator.Destination = @"C:\Users\me\Desktop\app.lnk";   // typed; it resolves to the shortcut's target
-            creator.DestinationKind = KeycutKind.File;
+            creator.Target = @"C:\Users\me\Desktop\app.lnk";   // typed; it resolves to the shortcut's target
+            creator.TargetKind = KeycutKind.File;
 
-            creator.ResolvedDestination = @"C:\Users\me\Tools\app.exe";
+            creator.ResolvedTarget = @"C:\Users\me\Tools\app.exe";
             Assert.Equal(@"%USERPROFILE%\Tools\app.exe", creator.SavedAsPath);
 
-            creator.ResolvedDestination = @"D:\Tools\app.exe";      // no variable fits the target: nothing to choose
+            creator.ResolvedTarget = @"D:\Tools\app.exe";      // no variable fits the target: nothing to choose
             Assert.False(creator.ShowSavedAs);
 
-            creator.Destination = @"C:\Users\me\Desktop\notes.txt";  // new text forgets the old resolution
-            creator.DestinationKind = KeycutKind.File;
-            Assert.Null(creator.ResolvedDestination);
+            creator.Target = @"C:\Users\me\Desktop\notes.txt";  // new text forgets the old resolution
+            creator.TargetKind = KeycutKind.File;
+            Assert.Null(creator.ResolvedTarget);
             Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
         }
 
         [Theory]
         [InlineData(@"D:\Data\notes.txt", KeycutKind.File)]           // no variable fits: nothing to choose
         [InlineData("https://example.com", KeycutKind.Url)]           // not a path
-        public void SavedAs_IsHidden_WhenThereIsNothingToChoose(string destination, KeycutKind kind)
+        public void SavedAs_IsHidden_WhenThereIsNothingToChoose(string target, KeycutKind kind)
         {
             var creator = Create(new FakeCreator());
             creator.PathVariables = TestVariables;
-            creator.Destination = destination;
-            creator.DestinationKind = kind;
+            creator.Target = target;
+            creator.TargetKind = kind;
 
             Assert.False(creator.ShowSavedAs);
             Assert.Equal(string.Empty, creator.SavedAsPath);
@@ -128,24 +128,24 @@ namespace keycuts.Tests
         static CreatorViewModel Ready(FakeCreator fake, Func<string, NameCheck>? checkName = null)
         {
             var creator = Create(fake, checkName);
-            creator.Destination = "https://example.com";
-            creator.DestinationKind = KeycutKind.Url;
+            creator.Target = "https://example.com";
+            creator.TargetKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
             return creator;
         }
 
-        static CreateResult Failure(CreateOutcome outcome, DestinationError error = DestinationError.None)
+        static CreateResult Failure(CreateOutcome outcome, TargetError error = TargetError.None)
         {
-            return CreateResult.Failure(outcome, destinationError: error);
+            return CreateResult.Failure(outcome, targetError: error);
         }
 
         [Fact]
-        public void CanCreate_NeedsDestinationAndName()
+        public void CanCreate_NeedsTargetAndName()
         {
             var creator = Create(new FakeCreator());
             Assert.False(creator.CreateCommand.CanExecute(null));
 
-            creator.Destination = "https://example.com";
+            creator.Target = "https://example.com";
             Assert.False(creator.CreateCommand.CanExecute(null));
 
             creator.ShortcutName = "   ";
@@ -156,11 +156,11 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void CanCreate_IsFalseForADestinationError()
+        public void CanCreate_IsFalseForATargetError()
         {
             var creator = Ready(new FakeCreator());
 
-            creator.DestinationError = DestinationError.NotFound;
+            creator.TargetError = TargetError.NotFound;
 
             Assert.False(creator.CreateCommand.CanExecute(null));
         }
@@ -197,7 +197,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task Execute_PassesTheTrimmedNameAndDestination()
+        public async Task Execute_PassesTheTrimmedNameAndTarget()
         {
             var fake = new FakeCreator();
             var creator = Ready(fake);
@@ -230,9 +230,9 @@ namespace keycuts.Tests
 
             await WaitFor(() => creator.State == CreatorState.Empty);
 
-            Assert.Equal(string.Empty, creator.Destination);
+            Assert.Equal(string.Empty, creator.Target);
             Assert.Equal(string.Empty, creator.ShortcutName);
-            Assert.Equal(new[] { CreatorFocusTarget.Destination }, focus);
+            Assert.Equal(new[] { CreatorFocusTarget.Target }, focus);
         }
 
         [Fact]
@@ -246,7 +246,7 @@ namespace keycuts.Tests
             await Task.Delay(150);
 
             Assert.Equal("next", creator.ShortcutName);
-            Assert.Equal("https://example.com", creator.Destination);
+            Assert.Equal("https://example.com", creator.Target);
         }
 
         [Fact]
@@ -254,17 +254,17 @@ namespace keycuts.Tests
         {
             var fake = new FakeCreator();
             var creator = Ready(fake, name => TestNameChecks.Existing(name));
-            var asked = new List<(NameCheck Check, string Destination)>();
-            creator.ConfirmName = (check, destination) => { asked.Add((check, destination)); return false; };
+            var asked = new List<(NameCheck Check, string Target)>();
+            creator.ConfirmName = (check, target) => { asked.Add((check, target)); return false; };
             var focus = new List<CreatorFocusTarget>();
             creator.FocusRequested += (sender, e) => focus.Add(e);
 
             await creator.CreateCommand.ExecuteAsync();
 
             Assert.Empty(fake.Calls);
-            var (askedCheck, askedDestination) = Assert.Single(asked);
-            Assert.Equal(TestNameChecks.OldDestination, askedCheck.Existing!.Destination);
-            Assert.Equal("https://example.com", askedDestination);
+            var (askedCheck, askedTarget) = Assert.Single(asked);
+            Assert.Equal(TestNameChecks.OldTarget, askedCheck.Existing!.Target);
+            Assert.Equal("https://example.com", askedTarget);
             Assert.Equal(CreatorState.NameWarning, creator.State);
             Assert.True(creator.HelperIsWarning);
             Assert.Contains("already exists", creator.HelperText);
@@ -274,7 +274,7 @@ namespace keycuts.Tests
 
             creator.ShortcutName = "ex2";
 
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
         }
 
         [Fact]
@@ -282,7 +282,7 @@ namespace keycuts.Tests
         {
             var fake = new FakeCreator();
             var creator = Ready(fake, name => TestNameChecks.Existing(name));
-            creator.ConfirmName = (check, destination) => true;
+            creator.ConfirmName = (check, target) => true;
 
             await creator.CreateCommand.ExecuteAsync();
 
@@ -295,7 +295,7 @@ namespace keycuts.Tests
         {
             var fake = new FakeCreator();
             var creator = Ready(fake, name => TestNameChecks.Conflict(name));
-            creator.ConfirmName = (check, destination) => true;
+            creator.ConfirmName = (check, target) => true;
 
             await creator.CreateCommand.ExecuteAsync();
 
@@ -320,7 +320,7 @@ namespace keycuts.Tests
         {
             var fake = new FakeCreator();
             var creator = Ready(fake);
-            creator.ConfirmName = (check, destination) => throw new InvalidOperationException("should not ask");
+            creator.ConfirmName = (check, target) => throw new InvalidOperationException("should not ask");
 
             await creator.CreateCommand.ExecuteAsync();
 
@@ -346,7 +346,7 @@ namespace keycuts.Tests
             var fake = new FakeCreator { Result = () => Task.FromResult(results.Dequeue()) };
             var creator = Ready(fake);
             var asked = 0;
-            creator.ConfirmName = (check, destination) => { asked++; return check.Existing != null; };
+            creator.ConfirmName = (check, target) => { asked++; return check.Existing != null; };
 
             await creator.CreateCommand.ExecuteAsync();
 
@@ -392,33 +392,33 @@ namespace keycuts.Tests
         }
 
         [Theory]
-        [InlineData(DestinationError.NotFound)]
-        [InlineData(DestinationError.AccessDenied)]
-        public async Task DestinationInvalid_ShowsTheInvalidDestinationState(DestinationError error)
+        [InlineData(TargetError.NotFound)]
+        [InlineData(TargetError.AccessDenied)]
+        public async Task TargetInvalid_ShowsTheInvalidTargetState(TargetError error)
         {
-            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.DestinationInvalid, error)) };
+            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.TargetInvalid, error)) };
             var creator = Ready(fake);
             var focus = new List<CreatorFocusTarget>();
             creator.FocusRequested += (sender, e) => focus.Add(e);
 
             await creator.CreateCommand.ExecuteAsync();
 
-            Assert.Equal(CreatorState.InvalidDestination, creator.State);
-            Assert.Equal(error, creator.DestinationError);
-            Assert.Equal(CreatorViewModel.GetDestinationErrorMessage(error), creator.HelperText);
+            Assert.Equal(CreatorState.InvalidTarget, creator.State);
+            Assert.Equal(error, creator.TargetError);
+            Assert.Equal(CreatorViewModel.GetTargetErrorMessage(error), creator.HelperText);
             Assert.False(creator.CanCreate);
-            Assert.Equal(new[] { CreatorFocusTarget.Destination }, focus);
+            Assert.Equal(new[] { CreatorFocusTarget.Target }, focus);
         }
 
         [Fact]
-        public async Task DestinationInvalid_WithoutAReason_FallsBackToNotFound()
+        public async Task TargetInvalid_WithoutAReason_FallsBackToNotFound()
         {
-            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.DestinationInvalid)) };
+            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.TargetInvalid)) };
             var creator = Ready(fake);
 
             await creator.CreateCommand.ExecuteAsync();
 
-            Assert.Equal(DestinationError.NotFound, creator.DestinationError);
+            Assert.Equal(TargetError.NotFound, creator.TargetError);
         }
 
         [Theory]
@@ -466,7 +466,7 @@ namespace keycuts.Tests
             await creator.CheckNameAsync();
 
             Assert.Equal(CreatorState.NameWarning, creator.State);
-            Assert.Contains(TestNameChecks.OldDestination, creator.HelperText);
+            Assert.Contains(TestNameChecks.OldTarget, creator.HelperText);
         }
 
         [Fact]
@@ -476,7 +476,7 @@ namespace keycuts.Tests
 
             await creator.CheckNameAsync();
 
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
         }
 
         [Fact]
@@ -504,7 +504,7 @@ namespace keycuts.Tests
             gate.SetResult(true);
             await check;
 
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
         }
 
         static async Task WaitFor(Func<bool> condition)

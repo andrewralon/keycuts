@@ -49,9 +49,9 @@ namespace keycuts.Tests
             return WriteBat(name, lines.ToArray());
         }
 
-        private string CreateWithRunner(string name, string destination, string description = "")
+        private string CreateWithRunner(string name, string target, string description = "")
         {
-            var shortcut = new Shortcut(destination, name, _folder);
+            var shortcut = new Shortcut(target, name, _folder);
             new Runner().CreateShortcutFile(shortcut, true, description);
             return shortcut.FullPath;
         }
@@ -94,12 +94,12 @@ namespace keycuts.Tests
             Assert.Equal(KeycutKind.Url, all["site"].Kind);
             Assert.Equal(ShortcutType.Url, all["site"].RawType);
             Assert.Equal(KeycutKind.Folder, all["afolder"].Kind);
-            Assert.Equal(targetFolder, all["afolder"].Destination);
+            Assert.Equal(targetFolder, all["afolder"].Target);
             Assert.Equal(KeycutKind.File, all["afile"].Kind);
-            Assert.Equal(targetFile, all["afile"].Destination);
+            Assert.Equal(targetFile, all["afile"].Target);
             Assert.Equal(KeycutKind.Command, all["cmd"].Kind);
             Assert.Equal(Path.Combine(_folder, "site.bat"), all["site"].FilePath);
-            Assert.All(all.Values, k => Assert.Equal(DestinationStatus.Unknown, k.DestinationStatus));
+            Assert.All(all.Values, k => Assert.Equal(TargetStatus.Unknown, k.TargetStatus));
         }
 
         [Fact]
@@ -107,7 +107,7 @@ namespace keycuts.Tests
         {
             WriteBat("npp", "@ECHO OFF", "START \"\" /B \"C:\\Program Files\\npp.exe\"", "EXIT");
 
-            Assert.Equal(@"C:\Program Files\npp.exe", (await Repo().LoadAllAsync()).Single().Destination);
+            Assert.Equal(@"C:\Program Files\npp.exe", (await Repo().LoadAllAsync()).Single().Target);
         }
 
         [Theory]
@@ -117,7 +117,7 @@ namespace keycuts.Tests
         {
             WriteBat("c", "@ECHO OFF", launchLine, "EXIT");
 
-            Assert.Equal(expected, (await Repo().LoadAllAsync()).Single().Destination);
+            Assert.Equal(expected, (await Repo().LoadAllAsync()).Single().Target);
         }
 
         [Fact]
@@ -209,9 +209,9 @@ namespace keycuts.Tests
             var k = (await Repo().LoadAllAsync()).Single();
 
             Assert.Equal(KeycutKind.Folder, k.Kind);
-            Assert.Equal(target, k.Destination);
+            Assert.Equal(target, k.Target);
             Assert.Contains("explorer.exe", k.Description);
-            Assert.DoesNotContain("wrong", k.Destination);
+            Assert.DoesNotContain("wrong", k.Target);
             Assert.True(File.Exists(path));
         }
 
@@ -457,7 +457,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task CheckDestinations_MarksMissingAndOk_AndSkipsUrlsAndCommands()
+        public async Task CheckTargets_MarksMissingAndOk_AndSkipsUrlsAndCommands()
         {
             var existing = Path.Combine(_root, "here.txt");
             File.WriteAllText(existing, "x");
@@ -481,31 +481,31 @@ namespace keycuts.Tests
             File.Delete(gone);
             Directory.Delete(goneDir);
 
-            await repo.CheckDestinationsAsync(all);
+            await repo.CheckTargetsAsync(all);
 
             var byName = all.ToDictionary(k => k.Name);
-            Assert.Equal(DestinationStatus.Ok, byName["okfile"].DestinationStatus);
-            Assert.Equal(DestinationStatus.Ok, byName["okdir"].DestinationStatus);
-            Assert.Equal(DestinationStatus.Missing, byName["missfile"].DestinationStatus);
-            Assert.Equal(DestinationStatus.Missing, byName["missdir"].DestinationStatus);
-            Assert.Equal(DestinationStatus.Unknown, byName["site"].DestinationStatus);
-            Assert.Equal(DestinationStatus.Unknown, byName["cmd"].DestinationStatus);
+            Assert.Equal(TargetStatus.Ok, byName["okfile"].TargetStatus);
+            Assert.Equal(TargetStatus.Ok, byName["okdir"].TargetStatus);
+            Assert.Equal(TargetStatus.Missing, byName["missfile"].TargetStatus);
+            Assert.Equal(TargetStatus.Missing, byName["missdir"].TargetStatus);
+            Assert.Equal(TargetStatus.Unknown, byName["site"].TargetStatus);
+            Assert.Equal(TargetStatus.Unknown, byName["cmd"].TargetStatus);
         }
 
         [Fact]
-        public async Task CheckDestinations_ExpandsEnvironmentVariables()
+        public async Task CheckTargets_ExpandsEnvironmentVariables()
         {
             var k = new Keycut
             {
                 Name = "env",
                 Kind = KeycutKind.Folder,
                 RawType = ShortcutType.Folder,
-                Destination = "%SystemRoot%"
+                Target = "%SystemRoot%"
             };
 
-            await Repo().CheckDestinationsAsync(new[] { k });
+            await Repo().CheckTargetsAsync(new[] { k });
 
-            Assert.Equal(DestinationStatus.Ok, k.DestinationStatus);
+            Assert.Equal(TargetStatus.Ok, k.TargetStatus);
         }
 
         [Fact]

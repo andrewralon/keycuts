@@ -6,7 +6,7 @@ namespace keycuts.GUI
     /// <summary>
     /// Reads the "Shell IDList Array" drag format (CFSTR_SHELLIDLIST, a CIDA), which Explorer puts on a drag of items
     /// that have no file path, like the Recycle Bin or This PC (#9). The first item's parsing name is a CLSID key such
-    /// as <c>::{645FF040-5081-101B-9F08-00AA002F954E}</c>, which keycuts already accepts as a destination.
+    /// as <c>::{645FF040-5081-101B-9F08-00AA002F954E}</c>, which keycuts already accepts as a target.
     /// </summary>
     public static class ShellIdList
     {

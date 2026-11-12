@@ -96,8 +96,8 @@ namespace keycuts.CLI
                 {
                     "Usage:",
                     "  keycuts                                         Open the app UI",
-                    "  keycuts [create] -d <path> -s <name> [options]  Create a keycut",
-                    "  keycuts paste <name>                            Copy destination to clipboard",
+                    "  keycuts [create] -t <path> -s <name> [options]  Create a keycut",
+                    "  keycuts paste <name>                            Copy target to clipboard",
                     "    keypaste <name>                                 ",
                     "  keycuts <command> --help                        Help for that command",
                     "  keycuts --help                                  Open this help message",
@@ -109,7 +109,7 @@ namespace keycuts.CLI
             {
                 help.AddPreOptionsLines(new[]
                 {
-                    verb == "paste" ? "Usage: keycuts paste <name>" : "Usage: keycuts [create] -d <path> -s <name> [options]",
+                    verb == "paste" ? "Usage: keycuts paste <name>" : "Usage: keycuts [create] -t <path> -s <name> [options]",
                     "",
                     "Options:"
                 });
@@ -120,17 +120,17 @@ namespace keycuts.CLI
 
         private static string TopLevelText =>
             "Examples:" + Environment.NewLine +
-            "  keycuts -d C:\\Windows\\notepad.exe -s np -f" + Environment.NewLine +
-            "  keycuts -d C:\\Path\\To\\Hobbies -s hobbies" + Environment.NewLine +
-            "  keycuts -d C:\\Users\\MyUser\\Desktop -s desktop" + Environment.NewLine +
-            "  keycuts -d https://mail.google.com -s gmail" + Environment.NewLine +
+            "  keycuts -t C:\\Windows\\notepad.exe -s np -f" + Environment.NewLine +
+            "  keycuts -t C:\\Path\\To\\Hobbies -s hobbies" + Environment.NewLine +
+            "  keycuts -t C:\\Users\\MyUser\\Desktop -s desktop" + Environment.NewLine +
+            "  keycuts -t https://mail.google.com -s gmail" + Environment.NewLine +
             "  keycuts paste gmail" + Environment.NewLine +
             "  keypaste gmail";
 
         /// <summary>The error shown when create is missing what it needs.</summary>
         public static void WriteMissingArguments(TextWriter error)
         {
-            error.WriteLine("keycuts: creating a keycut needs both --destination (-d) and --shortcut (-s).");
+            error.WriteLine("keycuts: creating a keycut needs both --target (-t) and --shortcut (-s).");
             error.WriteLine("Run 'keycuts --help' for usage.");
             WroteError = true;
         }

@@ -14,24 +14,24 @@ namespace keycuts.GUI.DesignData
 
         public const string VickiDescription = "logs for vicki";
 
-        public const string VickiDestination = "https://logs.example.com/vicki";
+        public const string VickiTarget = "https://logs.example.com/vicki";
 
         public const string DownloadsName = "downloads";
 
         public const string DownloadsDescription = "Downloads folder";
 
-        public const string DownloadsDestination = @"C:\Users\sample\Downloads";
+        public const string DownloadsTarget = @"C:\Users\sample\Downloads";
 
         private const string SampleFolder = @"C:\Shortcuts";
 
         public static Keycut Vicki()
         {
-            return Create(VickiName, KeycutKind.Url, VickiDescription, VickiDestination, DestinationStatus.Unknown);
+            return Create(VickiName, KeycutKind.Url, VickiDescription, VickiTarget, TargetStatus.Unknown);
         }
 
         public static Keycut Downloads()
         {
-            return Create(DownloadsName, KeycutKind.Folder, DownloadsDescription, DownloadsDestination, DestinationStatus.Ok);
+            return Create(DownloadsName, KeycutKind.Folder, DownloadsDescription, DownloadsTarget, TargetStatus.Ok);
         }
 
         /// <summary>The two canonical entries.</summary>
@@ -42,7 +42,7 @@ namespace keycuts.GUI.DesignData
 
         /// <summary>
         /// The canonical entries first, then a deterministic mix of every kind with long names, long descriptions,
-        /// very long destinations and a few missing files.
+        /// very long targets and a few missing files.
         /// </summary>
         public static IReadOnlyList<Keycut> Generate(int count)
         {
@@ -67,31 +67,31 @@ namespace keycuts.GUI.DesignData
             var number = index + 1;
             var name = $"sample-{number:000}";
             var description = $"Sample keycut {number}";
-            var longDestinationTail = new string('x', 210);
+            var longTargetTail = new string('x', 210);
 
             switch (index % 6)
             {
                 case 0:
-                    return Create(name, KeycutKind.Url, description, $"https://example.com/items/{number}", DestinationStatus.Unknown);
+                    return Create(name, KeycutKind.Url, description, $"https://example.com/items/{number}", TargetStatus.Unknown);
                 case 1:
-                    return Create(name, KeycutKind.Folder, description, $@"C:\Sample\Folder{number}", DestinationStatus.Ok);
+                    return Create(name, KeycutKind.Folder, description, $@"C:\Sample\Folder{number}", TargetStatus.Ok);
                 case 2:
-                    return Create(name, KeycutKind.File, description, $@"C:\Sample\File{number}.txt", DestinationStatus.Ok);
+                    return Create(name, KeycutKind.File, description, $@"C:\Sample\File{number}.txt", TargetStatus.Ok);
                 case 3:
-                    return Create(name, KeycutKind.File, description, $@"C:\Sample\Missing{number}.txt", DestinationStatus.Missing);
+                    return Create(name, KeycutKind.File, description, $@"C:\Sample\Missing{number}.txt", TargetStatus.Missing);
                 case 4:
-                    return Create(name, KeycutKind.Command, description, "\"C:\\Windows\\System32\\cmd.exe\" /k echo hello", DestinationStatus.Unknown);
+                    return Create(name, KeycutKind.Command, description, "\"C:\\Windows\\System32\\cmd.exe\" /k echo hello", TargetStatus.Unknown);
                 default:
                     return Create(
                         $"a-very-long-keycut-name-for-layout-testing-{number}",
                         KeycutKind.Folder,
                         $"A deliberately long description for keycut {number} that should be truncated or wrapped instead of breaking the row layout",
-                        $@"C:\Sample\{longDestinationTail}\{number}",
-                        DestinationStatus.Ok);
+                        $@"C:\Sample\{longTargetTail}\{number}",
+                        TargetStatus.Ok);
             }
         }
 
-        private static Keycut Create(string name, KeycutKind kind, string description, string destination, DestinationStatus status)
+        private static Keycut Create(string name, KeycutKind kind, string description, string target, TargetStatus status)
         {
             return new Keycut
             {
@@ -99,9 +99,9 @@ namespace keycuts.GUI.DesignData
                 Kind = kind,
                 RawType = ToRawType(kind),
                 Description = description,
-                Destination = destination,
+                Target = target,
                 FilePath = $@"{SampleFolder}\{name}.bat",
-                DestinationStatus = status
+                TargetStatus = status
             };
         }
 

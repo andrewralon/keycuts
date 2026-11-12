@@ -7,11 +7,11 @@ using Xunit;
 
 namespace keycuts.Tests
 {
-    public class DestinationResolverTests : IDisposable
+    public class TargetResolverTests : IDisposable
     {
         private readonly string _dir;
 
-        public DestinationResolverTests()
+        public TargetResolverTests()
         {
             _dir = Path.Combine(Path.GetTempPath(), "keycuts-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_dir);
@@ -48,38 +48,38 @@ namespace keycuts.Tests
         [Fact]
         public void Url_IsValidUrl()
         {
-            var r = DestinationResolver.Resolve("https://example.com/a?b=1");
+            var r = TargetResolver.Resolve("https://example.com/a?b=1");
             Assert.True(r.IsValid);
             Assert.Equal(KeycutKind.Url, r.Kind);
             Assert.Equal(ShortcutType.Url, r.RawType);
-            Assert.Equal("https://example.com/a?b=1", r.Destination);
+            Assert.Equal("https://example.com/a?b=1", r.Target);
         }
 
         [Fact]
         public void SchemelessUrl_GetsHttpScheme()
         {
-            var r = DestinationResolver.Resolve("amazon.com");
+            var r = TargetResolver.Resolve("amazon.com");
             Assert.True(r.IsValid);
             Assert.Equal(KeycutKind.Url, r.Kind);
-            Assert.Equal("http://amazon.com/", r.Destination);
+            Assert.Equal("http://amazon.com/", r.Target);
         }
 
         [Fact]
         public void MissingFileLikeName_IsNotAUrl()
         {
-            var r = DestinationResolver.Resolve("notes.txt");
+            var r = TargetResolver.Resolve("notes.txt");
             Assert.False(r.IsValid);
-            Assert.Equal(DestinationError.NotFound, r.Error);
+            Assert.Equal(TargetError.NotFound, r.Error);
         }
 
         [Fact]
         public void UrlFile_ReadsUrl()
         {
             var path = MakeFile("site.url", "[InternetShortcut]\r\nURL=https://example.org/\r\n");
-            var r = DestinationResolver.Resolve(path);
+            var r = TargetResolver.Resolve(path);
             Assert.True(r.IsValid);
             Assert.Equal(ShortcutType.Url, r.RawType);
-            Assert.Equal("https://example.org/", r.Destination);
+            Assert.Equal("https://example.org/", r.Target);
         }
 
         [Fact]
@@ -98,10 +98,10 @@ namespace keycuts.Tests
             shortcut.TargetPath = target;
             shortcut.Save();
 
-            var r = DestinationResolver.Resolve(lnk);
+            var r = TargetResolver.Resolve(lnk);
             Assert.True(r.IsValid);
             Assert.Equal(KeycutKind.File, r.Kind);
-            Assert.Equal(target, r.Destination, ignoreCase: true);
+            Assert.Equal(target, r.Target, ignoreCase: true);
         }
 
         [Theory]
@@ -110,7 +110,7 @@ namespace keycuts.Tests
         [InlineData("shell:::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]
         public void Clsid_IsFolderKind(string guid)
         {
-            var r = DestinationResolver.Resolve(guid);
+            var r = TargetResolver.Resolve(guid);
             Assert.True(r.IsValid);
             Assert.Equal(ShortcutType.CLSIDKey, r.RawType);
             Assert.Equal(KeycutKind.Folder, r.Kind);
@@ -119,21 +119,21 @@ namespace keycuts.Tests
         [Fact]
         public void ExistingFolder_IsFolder()
         {
-            var r = DestinationResolver.Resolve(_dir);
+            var r = TargetResolver.Resolve(_dir);
             Assert.True(r.IsValid);
             Assert.Equal(KeycutKind.Folder, r.Kind);
-            Assert.Equal(_dir, r.Destination);
+            Assert.Equal(_dir, r.Target);
         }
 
         [Fact]
         public void ExistingFile_IsFile()
         {
             var path = MakeFile("a.txt");
-            var r = DestinationResolver.Resolve(path);
+            var r = TargetResolver.Resolve(path);
             Assert.True(r.IsValid);
             Assert.Equal(ShortcutType.File, r.RawType);
             Assert.Equal(KeycutKind.File, r.Kind);
-            Assert.Equal(path, r.Destination);
+            Assert.Equal(path, r.Target);
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace keycuts.Tests
                 return;
             }
 
-            var r = DestinationResolver.Resolve(hosts);
+            var r = TargetResolver.Resolve(hosts);
             Assert.True(r.IsValid);
             Assert.Equal(ShortcutType.HostsFile, r.RawType);
             Assert.Equal(KeycutKind.File, r.Kind);
@@ -154,27 +154,27 @@ namespace keycuts.Tests
         [Fact]
         public void MissingPath_IsNotFound()
         {
-            var r = DestinationResolver.Resolve(Path.Combine(_dir, "nope", "missing.txt"));
+            var r = TargetResolver.Resolve(Path.Combine(_dir, "nope", "missing.txt"));
             Assert.False(r.IsValid);
-            Assert.Equal(DestinationError.NotFound, r.Error);
+            Assert.Equal(TargetError.NotFound, r.Error);
         }
 
         [Fact]
         public void QuotedPath_IsUnquoted()
         {
             var path = MakeFile("q.txt");
-            var r = DestinationResolver.Resolve("\"" + path + "\"");
+            var r = TargetResolver.Resolve("\"" + path + "\"");
             Assert.True(r.IsValid);
-            Assert.Equal(path, r.Destination);
+            Assert.Equal(path, r.Target);
         }
 
         [Fact]
         public void WhitespacePaddedPath_IsTrimmed()
         {
             var path = MakeFile("w.txt");
-            var r = DestinationResolver.Resolve("  \"" + path + "\"  \r\n");
+            var r = TargetResolver.Resolve("  \"" + path + "\"  \r\n");
             Assert.True(r.IsValid);
-            Assert.Equal(path, r.Destination);
+            Assert.Equal(path, r.Target);
         }
 
         [Fact]
@@ -185,9 +185,9 @@ namespace keycuts.Tests
             Environment.SetEnvironmentVariable(name, _dir);
             try
             {
-                var r = DestinationResolver.Resolve("%" + name + "%\\e.txt");
+                var r = TargetResolver.Resolve("%" + name + "%\\e.txt");
                 Assert.True(r.IsValid);
-                Assert.Equal(path, r.Destination);
+                Assert.Equal(path, r.Target);
             }
             finally
             {
@@ -199,9 +199,9 @@ namespace keycuts.Tests
         public void FileUri_IsLocalPath()
         {
             var path = MakeFile("u.txt");
-            var r = DestinationResolver.Resolve(new Uri(path).AbsoluteUri);
+            var r = TargetResolver.Resolve(new Uri(path).AbsoluteUri);
             Assert.True(r.IsValid);
-            Assert.Equal(path, r.Destination);
+            Assert.Equal(path, r.Target);
         }
 
         [Theory]
@@ -211,9 +211,9 @@ namespace keycuts.Tests
         [InlineData("\"\"")]
         public void Empty_IsEmptyError(string input)
         {
-            var r = DestinationResolver.Resolve(input);
+            var r = TargetResolver.Resolve(input);
             Assert.False(r.IsValid);
-            Assert.Equal(DestinationError.Empty, r.Error);
+            Assert.Equal(TargetError.Empty, r.Error);
         }
 
         [Theory]
@@ -222,15 +222,15 @@ namespace keycuts.Tests
         [InlineData("???")]
         public void WeirdInput_DoesNotThrow(string input)
         {
-            var r = DestinationResolver.Resolve(input);
+            var r = TargetResolver.Resolve(input);
             Assert.False(r.IsValid);
-            Assert.NotEqual(DestinationError.None, r.Error);
+            Assert.NotEqual(TargetError.None, r.Error);
         }
 
         [Fact]
         public async Task ResolveAsync_ReturnsResult()
         {
-            var r = await DestinationResolver.ResolveAsync(_dir, CancellationToken.None);
+            var r = await TargetResolver.ResolveAsync(_dir, CancellationToken.None);
             Assert.True(r.IsValid);
             Assert.Equal(KeycutKind.Folder, r.Kind);
         }
@@ -241,7 +241,7 @@ namespace keycuts.Tests
             using var cts = new CancellationTokenSource();
             cts.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(
-                () => DestinationResolver.ResolveAsync(_dir, cts.Token));
+                () => TargetResolver.ResolveAsync(_dir, cts.Token));
         }
 
         [Theory]

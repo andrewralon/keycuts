@@ -1,6 +1,6 @@
 namespace keycuts.Common
 {
-    public enum DestinationStatus
+    public enum TargetStatus
     {
         Unknown,
         Ok,
@@ -20,11 +20,11 @@ namespace keycuts.Common
         /// <summary>May be empty.</summary>
         public string Description { get; init; } = "";
 
-        public string Destination { get; init; }
+        public string Target { get; init; }
 
         public string FilePath { get; init; }
 
-        /// <summary>Set in the background by <see cref="KeycutRepository.CheckDestinationsAsync"/>.</summary>
-        public DestinationStatus DestinationStatus { get; set; } = DestinationStatus.Unknown;
+        /// <summary>Set in the background by <see cref="KeycutRepository.CheckTargetsAsync"/>.</summary>
+        public TargetStatus TargetStatus { get; set; } = TargetStatus.Unknown;
     }
 }

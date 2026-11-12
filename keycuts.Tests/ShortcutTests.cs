@@ -36,7 +36,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void GetShortcutTypeFromDestination_TheRealHostsFile_IsHostsFile()
+        public void GetShortcutTypeFromTarget_TheRealHostsFile_IsHostsFile()
         {
             // A valid install can lack the file, and the classifier only looks at existing files. xUnit 2 has no runtime
             // skip, so there is nothing to check on such a machine; IsHostsFile_UsesThisMachinesSystemFolder still runs.
@@ -46,22 +46,22 @@ namespace keycuts.Tests
                 return;
             }
 
-            Assert.Equal(ShortcutType.HostsFile, Shortcut.GetShortcutTypeFromDestination(hosts, out _));
+            Assert.Equal(ShortcutType.HostsFile, Shortcut.GetShortcutTypeFromTarget(hosts, out _));
         }
 
         [Fact]
-        public void GetShortcutTypeFromDestination_MissingPath_IsUnknownInsteadOfThrowing()
+        public void GetShortcutTypeFromTarget_MissingPath_IsUnknownInsteadOfThrowing()
         {
             var missing = Path.Combine(Path.GetTempPath(), "keycuts-tests-" + Guid.NewGuid().ToString("N"), "missing.txt");
 
-            var type = Shortcut.GetShortcutTypeFromDestination(missing, out var newDestination);
+            var type = Shortcut.GetShortcutTypeFromTarget(missing, out var newTarget);
 
             Assert.Equal(ShortcutType.Unknown, type);
-            Assert.Equal(missing, newDestination);
+            Assert.Equal(missing, newTarget);
         }
 
         [Fact]
-        public void GetShortcutTypeFromDestination_ExistingFileAndFolder_AreStillClassified()
+        public void GetShortcutTypeFromTarget_ExistingFileAndFolder_AreStillClassified()
         {
             var folder = Path.Combine(Path.GetTempPath(), "keycuts-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
@@ -70,8 +70,8 @@ namespace keycuts.Tests
 
             try
             {
-                Assert.Equal(ShortcutType.Folder, Shortcut.GetShortcutTypeFromDestination(folder, out _));
-                Assert.Equal(ShortcutType.File, Shortcut.GetShortcutTypeFromDestination(file, out _));
+                Assert.Equal(ShortcutType.Folder, Shortcut.GetShortcutTypeFromTarget(folder, out _));
+                Assert.Equal(ShortcutType.File, Shortcut.GetShortcutTypeFromTarget(file, out _));
             }
             finally
             {

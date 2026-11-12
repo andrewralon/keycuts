@@ -11,23 +11,23 @@ namespace keycuts.GUI
     public class MainFormLogic
     {
         /// <summary>
-        /// Sets the creator's destination; the creator view focuses the name field when it is shown with a destination set.
+        /// Sets the creator's target; the creator view focuses the name field when it is shown with a target set.
         /// </summary>
-        public void HandleNewDestination(CreatorViewModel creator, string destination)
+        public void HandleNewTarget(CreatorViewModel creator, string target)
         {
-            SetDestination(creator, destination);
+            SetTarget(creator, target);
             ActivateThisWindow();
         }
 
         #region Private Methods
 
-        private void SetDestination(CreatorViewModel creator, string destination)
+        private void SetTarget(CreatorViewModel creator, string target)
         {
-            // Follow the link (if it exists) and set the destination. A bad path shows as a field error, not a crash.
-            var result = DestinationResolver.Resolve(destination);
-            creator.Destination = result.Destination;
-            creator.DestinationKind = result.Kind;
-            creator.DestinationError = result.Error;
+            // Follow the link (if it exists) and set the target. A bad path shows as a field error, not a crash.
+            var result = TargetResolver.Resolve(target);
+            creator.Target = result.Target;
+            creator.TargetKind = result.Kind;
+            creator.TargetError = result.Error;
         }
 
         public void ActivateThisWindow()

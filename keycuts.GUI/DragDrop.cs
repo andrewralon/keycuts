@@ -7,7 +7,7 @@ using System.Windows;
 namespace keycuts.GUI
 {
     /// <summary>
-    /// Reads a destination from drag-and-drop or clipboard data. Priority: files (first item wins), then virtual shell items
+    /// Reads a target from drag-and-drop or clipboard data. Priority: files (first item wins), then virtual shell items
     /// (as a <c>::{CLSID}</c> key), then browser links, then text.
     /// </summary>
     public static class DragDrop
@@ -18,22 +18,22 @@ namespace keycuts.GUI
 
         public static bool HasSupportedData(IDataObject? data)
         {
-            return TryGetDestination(data, out _);
+            return TryGetTarget(data, out _);
         }
 
-        /// <summary>Gets the raw destination text from the data, or false if none of the supported formats holds usable text.</summary>
-        public static bool TryGetDestination(IDataObject? data, out string destination)
+        /// <summary>Gets the raw target text from the data, or false if none of the supported formats holds usable text.</summary>
+        public static bool TryGetTarget(IDataObject? data, out string target)
         {
-            return TryGetDestination(data, out destination, ShellIdList.GetParsingName);
+            return TryGetTarget(data, out target, ShellIdList.GetParsingName);
         }
 
         /// <summary>
-        /// <see cref="TryGetDestination(IDataObject?, out string)"/> with the shell's parsing-name lookup passed in, so
+        /// <see cref="TryGetTarget(IDataObject?, out string)"/> with the shell's parsing-name lookup passed in, so
         /// tests don't depend on this machine's shell namespace.
         /// </summary>
-        public static bool TryGetDestination(IDataObject? data, out string destination, Func<byte[], string?> getParsingName)
+        public static bool TryGetTarget(IDataObject? data, out string target, Func<byte[], string?> getParsingName)
         {
-            destination = string.Empty;
+            target = string.Empty;
             if (data == null)
             {
                 return false;
@@ -63,7 +63,7 @@ namespace keycuts.GUI
 
                 if (!string.IsNullOrWhiteSpace(value))
                 {
-                    destination = value!;
+                    target = value!;
                     return true;
                 }
             }

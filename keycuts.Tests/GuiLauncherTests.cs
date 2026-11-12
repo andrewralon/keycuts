@@ -22,7 +22,7 @@ namespace keycuts.Tests
         [Theory]
         [InlineData("--help")]
         [InlineData("paste")]
-        [InlineData("-d")]
+        [InlineData("-t")]
         public void AnyArgument_StaysTheCommandLine(string arg)
         {
             var started = false;

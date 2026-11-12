@@ -7,7 +7,7 @@ namespace keycuts.GUI.ViewModels
 {
     /// <summary>
     /// What the confirmation dialog shows (#153) before a keycut replaces another or takes a name another command uses:
-    /// a heading, a line of context, the current and new destinations for a replace, and one line per name conflict.
+    /// a heading, a line of context, the current and new targets for a replace, and one line per name conflict.
     /// </summary>
     public class ConfirmViewModel
     {
@@ -18,15 +18,15 @@ namespace keycuts.GUI.ViewModels
 
         public const string ConflictIntro = "Something else already answers to this name in Win+R.";
 
-        private ConfirmViewModel(string title, string heading, string intro, string confirmText, string? currentDestination,
-            string? newDestination, IReadOnlyList<string> warnings)
+        private ConfirmViewModel(string title, string heading, string intro, string confirmText, string? currentTarget,
+            string? newTarget, IReadOnlyList<string> warnings)
         {
             Title = title;
             Heading = heading;
             Intro = intro;
             ConfirmText = confirmText;
-            CurrentDestination = currentDestination;
-            NewDestination = newDestination;
+            CurrentTarget = currentTarget;
+            NewTarget = newTarget;
             Warnings = warnings;
         }
 
@@ -41,14 +41,14 @@ namespace keycuts.GUI.ViewModels
         public string ConfirmText { get; }
 
         /// <summary>What the keycut being replaced opens now; null when nothing is replaced.</summary>
-        public string? CurrentDestination { get; }
+        public string? CurrentTarget { get; }
 
         /// <summary>What it will open instead; null when nothing is replaced.</summary>
-        public string? NewDestination { get; }
+        public string? NewTarget { get; }
 
-        public bool ShowDestinations
+        public bool ShowTargets
         {
-            get { return CurrentDestination != null; }
+            get { return CurrentTarget != null; }
         }
 
         /// <summary>One line per name conflict, most important first.</summary>
@@ -66,10 +66,10 @@ namespace keycuts.GUI.ViewModels
             {
                 var parts = new List<string> { Heading, Intro };
 
-                if (ShowDestinations)
+                if (ShowTargets)
                 {
-                    parts.Add("Opens now: " + CurrentDestination + ".");
-                    parts.Add("Will open: " + NewDestination + ".");
+                    parts.Add("Opens now: " + CurrentTarget + ".");
+                    parts.Add("Will open: " + NewTarget + ".");
                 }
 
                 parts.AddRange(Warnings);
@@ -78,7 +78,7 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>For a new keycut: replace the existing one and/or use a name other commands have.</summary>
-        public static ConfirmViewModel ForCreate(NameCheck check, string newDestination)
+        public static ConfirmViewModel ForCreate(NameCheck check, string newTarget)
         {
             if (check == null)
             {
@@ -89,10 +89,10 @@ namespace keycuts.GUI.ViewModels
 
             if (check.Existing != null)
             {
-                var current = string.IsNullOrEmpty(check.Existing.Destination) ? "(unknown)" : check.Existing.Destination;
+                var current = string.IsNullOrEmpty(check.Existing.Target) ? "(unknown)" : check.Existing.Target;
 
                 return new ConfirmViewModel("Replace keycut", Quote("Replace ", check.Name, "?"), ReplaceIntro, "Replace",
-                    current, newDestination ?? string.Empty, warnings);
+                    current, newTarget ?? string.Empty, warnings);
             }
 
             return new ConfirmViewModel("Name already in use", Quote("Use ", check.Name, " anyway?"), ConflictIntro,

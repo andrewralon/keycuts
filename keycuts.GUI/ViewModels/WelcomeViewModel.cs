@@ -53,7 +53,7 @@ namespace keycuts.GUI.ViewModels
         /// <param name="appPath">The keycuts.GUI.exe the self-keycut opens.</param>
         /// <param name="isDismissed">Reads whether the panel was dismissed before (HKCU in production).</param>
         /// <param name="markDismissed">Records that it was dismissed. A failure is ignored: the panel just shows again next time.</param>
-        /// <param name="createAsync">Creates a keycut (destination, name), the same call the creator uses.</param>
+        /// <param name="createAsync">Creates a keycut (target, name), the same call the creator uses.</param>
         /// <param name="isOnPath">Whether Win+R can find keycuts in the given folder (it's on the user or machine PATH). The
         /// folder is where the self-keycut was written, or null if the create result didn't say (then use the output folder).
         /// Null treats it as on PATH: tests, and the Debug folder override, which must never write PATH.</param>
@@ -212,14 +212,14 @@ namespace keycuts.GUI.ViewModels
 
         private async Task CreateAsync()
         {
-            var target = name.Trim();
+            var trimmedName = name.Trim();
             error = null;
             IsSaving = true;
 
             CreateResult result;
             try
             {
-                result = await createAsync(appPath, target, CancellationToken.None);
+                result = await createAsync(appPath, trimmedName, CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -229,16 +229,16 @@ namespace keycuts.GUI.ViewModels
             switch (result.Outcome)
             {
                 case CreateOutcome.Success:
-                    createdName = target;
+                    createdName = trimmedName;
                     createdFolder = string.IsNullOrEmpty(result.Keycut?.FilePath) ? null : Path.GetDirectoryName(result.Keycut.FilePath);
                     needsPath = !isOnPath(createdFolder);
                     TryMarkDismissed();
                     break;
                 case CreateOutcome.DuplicateName:
-                    error = string.Format("“{0}” already exists. Choose another name.", target);
+                    error = string.Format("“{0}” already exists. Choose another name.", trimmedName);
                     break;
                 case CreateOutcome.InvalidName:
-                    error = CreatorViewModel.GetInvalidNameMessage(target);
+                    error = CreatorViewModel.GetInvalidNameMessage(trimmedName);
                     break;
                 case CreateOutcome.OutputFolderError:
                     error = CreatorViewModel.OutputFolderErrorMessage;

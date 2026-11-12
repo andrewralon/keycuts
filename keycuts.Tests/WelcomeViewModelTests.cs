@@ -21,7 +21,7 @@ namespace keycuts.Tests
             public int MarkCount;
             public Exception? ReadFailure;
             public Exception? MarkFailure;
-            public readonly List<(string Destination, string Name)> Creates = new List<(string, string)>();
+            public readonly List<(string Target, string Name)> Creates = new List<(string, string)>();
             public Func<Task<CreateResult>> Result = () => Task.FromResult(CreateResult.Success(null!));
             public bool OnPath = true;
             public bool AddSucceeds = true;
@@ -44,9 +44,9 @@ namespace keycuts.Tests
 
                         MarkCount++;
                     },
-                    (destination, name, ct) =>
+                    (target, name, ct) =>
                     {
-                        Creates.Add((destination, name));
+                        Creates.Add((target, name));
                         return Result();
                     },
                     folder =>
@@ -279,7 +279,7 @@ namespace keycuts.Tests
         {
             // The Debug folder override passes none, so it never offers to write PATH
             var welcome = new WelcomeViewModel(AppPath, () => false, () => { },
-                (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+                (target, name, ct) => Task.FromResult(CreateResult.Success(null!)));
 
             await welcome.CreateCommand.ExecuteAsync();
 

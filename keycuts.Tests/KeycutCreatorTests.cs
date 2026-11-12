@@ -61,7 +61,7 @@ namespace keycuts.Tests
             var lines = File.ReadAllLines(Path.Combine(_out, "mine.bat"));
             Assert.Contains(@"REM <destination>%KC_TEST_ROOT%\target.txt</destination>", lines);
             Assert.Contains(@"START """" /B ""%KC_TEST_ROOT%\target.txt""", lines);
-            Assert.Equal(@"%KC_TEST_ROOT%\target.txt", result.Keycut.Destination);
+            Assert.Equal(@"%KC_TEST_ROOT%\target.txt", result.Keycut.Target);
             Assert.Equal(KeycutKind.File, result.Keycut.Kind);
         }
 
@@ -73,7 +73,7 @@ namespace keycuts.Tests
 
             var result = await KeycutCreator.CreateAsync(_target, "mine", options);
 
-            Assert.Equal(_target, result.Keycut.Destination);
+            Assert.Equal(_target, result.Keycut.Target);
         }
 
         [Fact]
@@ -85,7 +85,7 @@ namespace keycuts.Tests
 
             var result = await KeycutCreator.CreateAsync("https://example.com", "site", options);
 
-            Assert.Equal("https://example.com", result.Keycut.Destination);
+            Assert.Equal("https://example.com", result.Keycut.Target);
         }
 
         [Fact]
@@ -210,33 +210,33 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task MissingDestination_IsDestinationInvalid()
+        public async Task MissingTarget_IsTargetInvalid()
         {
             var result = await KeycutCreator.CreateAsync(Path.Combine(_root, "nope.txt"), "x", Options());
 
-            Assert.Equal(CreateOutcome.DestinationInvalid, result.Outcome);
-            Assert.Equal(DestinationError.NotFound, result.DestinationError);
+            Assert.Equal(CreateOutcome.TargetInvalid, result.Outcome);
+            Assert.Equal(TargetError.NotFound, result.TargetError);
             Assert.False(Directory.Exists(_out));
         }
 
         [Fact]
-        public async Task EmptyDestination_IsDestinationInvalid()
+        public async Task EmptyTarget_IsTargetInvalid()
         {
             var result = await KeycutCreator.CreateAsync("", "x", Options());
 
-            Assert.Equal(CreateOutcome.DestinationInvalid, result.Outcome);
-            Assert.Equal(DestinationError.Empty, result.DestinationError);
+            Assert.Equal(CreateOutcome.TargetInvalid, result.Outcome);
+            Assert.Equal(TargetError.Empty, result.TargetError);
         }
 
         [Fact]
-        public async Task DestinationDeletedBetweenSelectionAndCreate_IsDestinationInvalid()
+        public async Task TargetDeletedBetweenSelectionAndCreate_IsTargetInvalid()
         {
-            Assert.True(DestinationResolver.Resolve(_target).IsValid);
+            Assert.True(TargetResolver.Resolve(_target).IsValid);
             File.Delete(_target);
 
             var result = await KeycutCreator.CreateAsync(_target, "x", Options());
 
-            Assert.Equal(CreateOutcome.DestinationInvalid, result.Outcome);
+            Assert.Equal(CreateOutcome.TargetInvalid, result.Outcome);
         }
 
         [Fact]

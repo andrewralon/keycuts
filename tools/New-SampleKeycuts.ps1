@@ -5,7 +5,7 @@
 .DESCRIPTION
     The .bat files use the exact format that keycuts.Common's Runner.CreateShortcutFile produces, including the
     REM <description> line. The first two entries are the canonical samples (l-vicki, downloads); the rest cycle through
-    URL, Folder, File and Command items with long names, long descriptions, very long destinations (200+ chars) and a few
+    URL, Folder, File and Command items with long names, long descriptions, very long targets (200+ chars) and a few
     File items whose targets don't exist (the Missing state).
 
     Safety: this script only ever writes inside -Folder, and it refuses to run when -Folder
@@ -19,7 +19,7 @@
         $env:KEYCUTS_OUTPUT_FOLDER = '<the folder>'
 
 .PARAMETER Folder
-    Explicit target folder. Required; there is no default.
+    Explicit folder to write the samples into. Required; there is no default.
 
 .PARAMETER Count
     Number of keycuts to write (2 to 1000). Default 100.
@@ -56,11 +56,11 @@ function Test-IsSameOrChild([string] $path, [string] $parent)
         $path.StartsWith($parent + '\', [System.StringComparison]::OrdinalIgnoreCase)
 }
 
-$target = Get-NormalizedPath $Folder
+$sampleRoot = Get-NormalizedPath $Folder
 
-if ([System.IO.Path]::GetPathRoot($target).TrimEnd('\').Equals($target, [System.StringComparison]::OrdinalIgnoreCase))
+if ([System.IO.Path]::GetPathRoot($sampleRoot).TrimEnd('\').Equals($sampleRoot, [System.StringComparison]::OrdinalIgnoreCase))
 {
-    throw "Refusing to write into a drive root: $target"
+    throw "Refusing to write into a drive root: $sampleRoot"
 }
 
 $forbidden = @('C:\Shortcuts', (Join-Path $env:USERPROFILE 'Shortcuts'))
@@ -75,29 +75,29 @@ foreach ($path in $forbidden)
 {
     $normalized = Get-NormalizedPath $path
 
-    if ((Test-IsSameOrChild $target $normalized) -or (Test-IsSameOrChild $normalized $target))
+    if ((Test-IsSameOrChild $sampleRoot $normalized) -or (Test-IsSameOrChild $normalized $sampleRoot))
     {
-        throw "Refusing to write into or around the real keycuts output folder '$normalized': $target"
+        throw "Refusing to write into or around the real keycuts output folder '$normalized': $sampleRoot"
     }
 }
 
 $temp = Get-NormalizedPath ([System.IO.Path]::GetTempPath())
 
-if (-not $AllowNonTemp -and -not $target.StartsWith($temp + '\', [System.StringComparison]::OrdinalIgnoreCase))
+if (-not $AllowNonTemp -and -not $sampleRoot.StartsWith($temp + '\', [System.StringComparison]::OrdinalIgnoreCase))
 {
-    throw "Refusing to write outside the temp folder ($temp). Pass -AllowNonTemp to allow another explicit folder: $target"
+    throw "Refusing to write outside the temp folder ($temp). Pass -AllowNonTemp to allow another explicit folder: $sampleRoot"
 }
 
-$marker = Join-Path $target $markerName
-$targetsFolder = Join-Path $target '_targets'
+$marker = Join-Path $sampleRoot $markerName
+$targetsFolder = Join-Path $sampleRoot '_targets'
 
-if (Test-Path -LiteralPath $target)
+if (Test-Path -LiteralPath $sampleRoot)
 {
-    $existingBats = @(Get-ChildItem -LiteralPath $target -Filter '*.bat' -File)
+    $existingBats = @(Get-ChildItem -LiteralPath $sampleRoot -Filter '*.bat' -File)
 
     if ($existingBats.Count -gt 0 -and -not (Test-Path -LiteralPath $marker))
     {
-        throw "Refusing to write into a folder that already has .bat files not created by this script: $target"
+        throw "Refusing to write into a folder that already has .bat files not created by this script: $sampleRoot"
     }
 
     if (Test-Path -LiteralPath $marker)
@@ -112,25 +112,25 @@ if (Test-Path -LiteralPath $target)
     }
 }
 
-New-Item -ItemType Directory -Path $target -Force | Out-Null
+New-Item -ItemType Directory -Path $sampleRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $targetsFolder -Force | Out-Null
 Set-Content -LiteralPath $marker -Value 'Created by tools/New-SampleKeycuts.ps1. Safe to delete.'
 
 function Write-Keycut(
     [string] $Name,
     [string] $Type,
-    [string] $Destination,
+    [string] $Target,
     [string] $Description,
     [string] $CommandLine)
 {
-    $fullPath = Join-Path $target ($Name + '.bat')
+    $fullPath = Join-Path $sampleRoot ($Name + '.bat')
 
     $lines = @(
         '@ECHO OFF',
         'REM keycuts sample',
         "REM <shortcut>$fullPath</shortcut>",
         "REM <type>$Type</type>",
-        "REM <destination>$Destination</destination>",
+        "REM <destination>$Target</destination>",
         "REM <description>$Description</description>",
         $CommandLine,
         'EXIT'
@@ -148,14 +148,14 @@ function Write-Url([string] $Name, [string] $Url, [string] $Description)
     Write-Keycut $Name 'url' $Url $Description "START $escaped"
 }
 
-function Write-Folder([string] $Name, [string] $Destination, [string] $Description)
+function Write-Folder([string] $Name, [string] $Target, [string] $Description)
 {
-    Write-Keycut $Name 'folder' $Destination $Description ('"%SystemRoot%\explorer.exe" "{0}"' -f $Destination)
+    Write-Keycut $Name 'folder' $Target $Description ('"%SystemRoot%\explorer.exe" "{0}"' -f $Target)
 }
 
-function Write-File([string] $Name, [string] $Destination, [string] $Description)
+function Write-File([string] $Name, [string] $Target, [string] $Description)
 {
-    Write-Keycut $Name 'file' $Destination $Description ('START "" /B "{0}"' -f $Destination)
+    Write-Keycut $Name 'file' $Target $Description ('START "" /B "{0}"' -f $Target)
 }
 
 function Write-Command([string] $Name, [string] $CommandText, [string] $Description)
@@ -210,7 +210,7 @@ for ($i = 2; $i -lt $Count; $i++)
         7 { Write-Folder $name (New-ExistingFolder "folder-$number") $description }
         8
         {
-            # Target intentionally missing, with a destination over 200 characters
+            # The file is intentionally missing, with a path over 200 characters
             $missing = Join-Path $targetsFolder ("missing\$longPathSegment\$longPathSegment\$longPathSegment\$longPathSegment\file-$number.txt")
             Write-File $name $missing $description
         }
@@ -223,4 +223,4 @@ for ($i = 2; $i -lt $Count; $i++)
     }
 }
 
-Write-Output $target
+Write-Output $sampleRoot

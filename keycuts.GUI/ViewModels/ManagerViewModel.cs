@@ -34,7 +34,7 @@ namespace keycuts.GUI.ViewModels
     {
         private readonly Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader;
 
-        private readonly Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker;
+        private readonly Func<IReadOnlyList<Keycut>, CancellationToken, Task>? targetChecker;
 
         private readonly List<KeycutRowViewModel> allRows = new List<KeycutRowViewModel>();
 
@@ -87,13 +87,13 @@ namespace keycuts.GUI.ViewModels
             ICommand showCreatorCommand,
             ICommand openSettingsCommand,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
-            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null,
+            Func<IReadOnlyList<Keycut>, CancellationToken, Task>? targetChecker = null,
             IKeycutActions? actions = null)
         {
             ShowCreatorCommand = showCreatorCommand;
             OpenSettingsCommand = openSettingsCommand;
             this.keycutLoader = keycutLoader;
-            this.destinationChecker = destinationChecker;
+            this.targetChecker = targetChecker;
             this.actions = actions;
 
             ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
@@ -381,9 +381,9 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        public void CopyDestination(KeycutRowViewModel row)
+        public void CopyTarget(KeycutRowViewModel row)
         {
-            if (Perform(row, "copy the destination of", () => actions?.CopyText(row.Destination)) && actions != null)
+            if (Perform(row, "copy the target of", () => actions?.CopyText(row.Target)) && actions != null)
             {
                 ShowStatusMessage("Copied", false);
             }
@@ -501,7 +501,7 @@ namespace keycuts.GUI.ViewModels
                 return;
             }
 
-            // No other rename while the file is being renamed. The reloads afterwards aren't awaited, so slow destination
+            // No other rename while the file is being renamed. The reloads afterwards aren't awaited, so slow target
             // checks can't hold this guard; stale rows after a success are blocked by renamedKeycut instead.
             savingPath = row.Keycut.FilePath;
 
@@ -713,7 +713,7 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Loads the keycuts and then checks their destinations in the background. A newer call cancels the previous one.
+        /// Loads the keycuts and then checks their targets in the background. A newer call cancels the previous one.
         /// The loading indicator shows only for the first load; later refreshes update the table quietly.
         /// </summary>
         public async Task LoadAsync()
@@ -776,7 +776,7 @@ namespace keycuts.GUI.ViewModels
                 ShowKeycuts(keycuts);
             }
 
-            await CheckDestinationsAsync(keycuts, token);
+            await CheckTargetsAsync(keycuts, token);
         }
 
         /// <summary>Replaces the rows with the given keycuts and leaves the loading and error states.</summary>
@@ -919,20 +919,20 @@ namespace keycuts.GUI.ViewModels
             RaiseStateChanged();
         }
 
-        private async Task CheckDestinationsAsync(IReadOnlyList<Keycut> keycuts, CancellationToken token)
+        private async Task CheckTargetsAsync(IReadOnlyList<Keycut> keycuts, CancellationToken token)
         {
-            if (destinationChecker == null || keycuts.Count == 0)
+            if (targetChecker == null || keycuts.Count == 0)
             {
                 return;
             }
 
             try
             {
-                await destinationChecker(keycuts, token);
+                await targetChecker(keycuts, token);
             }
             catch (Exception)
             {
-                // Missing-destination flags are a nicety; cancellation and failures just leave them as they were.
+                // Missing-target flags are a nicety; cancellation and failures just leave them as they were.
                 return;
             }
 
@@ -943,7 +943,7 @@ namespace keycuts.GUI.ViewModels
 
             foreach (var row in allRows)
             {
-                row.RefreshDestinationStatus();
+                row.RefreshTargetStatus();
             }
         }
 
@@ -960,7 +960,7 @@ namespace keycuts.GUI.ViewModels
                 var next = keycuts[i];
 
                 if (old.FilePath != next.FilePath || old.Name != next.Name || old.Kind != next.Kind ||
-                    old.Description != next.Description || old.Destination != next.Destination)
+                    old.Description != next.Description || old.Target != next.Target)
                 {
                     return false;
                 }

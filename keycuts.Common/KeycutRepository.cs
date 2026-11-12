@@ -84,7 +84,7 @@ namespace keycuts.Common
 
         /// <summary>
         /// The keycut named <paramref name="name"/> (any case), or null if there is none. A file that exists but can't be
-        /// parsed still counts: it comes back with just its name and path, and an empty destination.
+        /// parsed still counts: it comes back with just its name and path, and an empty target.
         /// </summary>
         public Keycut Find(string name)
         {
@@ -115,7 +115,7 @@ namespace keycuts.Common
                     Name = Path.GetFileNameWithoutExtension(file),
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.Unknown,
-                    Destination = "",
+                    Target = "",
                     FilePath = file
                 };
             }
@@ -214,15 +214,15 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// Sets <see cref="Keycut.DestinationStatus"/> for File/Folder keycuts. URLs, commands and
+        /// Sets <see cref="Keycut.TargetStatus"/> for File/Folder keycuts. URLs, commands and
         /// shell (CLSID) keys are never checked. Each check has its own timeout; on timeout the status stays Unknown.
         /// </summary>
-        public Task CheckDestinationsAsync(IEnumerable<Keycut> keycuts, CancellationToken ct = default)
+        public Task CheckTargetsAsync(IEnumerable<Keycut> keycuts, CancellationToken ct = default)
         {
-            return CheckDestinationsAsync(keycuts, DefaultCheckTimeout, ct);
+            return CheckTargetsAsync(keycuts, DefaultCheckTimeout, ct);
         }
 
-        public async Task CheckDestinationsAsync(IEnumerable<Keycut> keycuts, TimeSpan timeout, CancellationToken ct = default)
+        public async Task CheckTargetsAsync(IEnumerable<Keycut> keycuts, TimeSpan timeout, CancellationToken ct = default)
         {
             var checkable = keycuts.Where(IsCheckable).ToList();
 
@@ -234,11 +234,11 @@ namespace keycuts.Common
 
                     try
                     {
-                        var status = await CheckOneAsync(keycut.Destination, timeout, ct).ConfigureAwait(false);
+                        var status = await CheckOneAsync(keycut.Target, timeout, ct).ConfigureAwait(false);
 
-                        if (status != DestinationStatus.Unknown)
+                        if (status != TargetStatus.Unknown)
                         {
-                            keycut.DestinationStatus = status;
+                            keycut.TargetStatus = status;
                         }
                     }
                     finally
@@ -311,7 +311,7 @@ namespace keycuts.Common
                     Kind = KeycutKinds.FromShortcutType(shortcut.Type),
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
-                    Destination = shortcut.Destination ?? "",
+                    Target = shortcut.Target ?? "",
                     FilePath = file
                 };
             }
@@ -439,27 +439,27 @@ namespace keycuts.Common
 
         private static bool IsCheckable(Keycut keycut)
         {
-            return !string.IsNullOrWhiteSpace(keycut.Destination) &&
+            return !string.IsNullOrWhiteSpace(keycut.Target) &&
                 (keycut.RawType == ShortcutType.File ||
                  keycut.RawType == ShortcutType.Folder ||
                  keycut.RawType == ShortcutType.HostsFile);
         }
 
-        private static async Task<DestinationStatus> CheckOneAsync(string destination, TimeSpan timeout, CancellationToken ct)
+        private static async Task<TargetStatus> CheckOneAsync(string target, TimeSpan timeout, CancellationToken ct)
         {
             var work = Task.Run(() =>
             {
                 try
                 {
-                    var path = Environment.ExpandEnvironmentVariables(destination);
+                    var path = Environment.ExpandEnvironmentVariables(target);
 
                     return File.Exists(path) || Directory.Exists(path) ?
-                        DestinationStatus.Ok :
-                        DestinationStatus.Missing;
+                        TargetStatus.Ok :
+                        TargetStatus.Missing;
                 }
                 catch (Exception)
                 {
-                    return DestinationStatus.Unknown;
+                    return TargetStatus.Unknown;
                 }
             });
 
@@ -467,7 +467,7 @@ namespace keycuts.Common
 
             ct.ThrowIfCancellationRequested();
 
-            return finished == work ? await work.ConfigureAwait(false) : DestinationStatus.Unknown;
+            return finished == work ? await work.ConfigureAwait(false) : TargetStatus.Unknown;
         }
 
         private static KeycutRepositoryException Translate(Exception ex, string message)

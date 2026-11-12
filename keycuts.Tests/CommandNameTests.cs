@@ -31,7 +31,7 @@ namespace keycuts.Tests
             }
         }
 
-        private string WriteKeycut(string name, string destination = @"C:\Tools\app.exe")
+        private string WriteKeycut(string name, string target = @"C:\Tools\app.exe")
         {
             var path = Path.Combine(_folder, name + ".bat");
             File.WriteAllLines(path, new[]
@@ -40,8 +40,8 @@ namespace keycuts.Tests
                 "REM keycuts 1.1.1",
                 $"REM <shortcut>{path}</shortcut>",
                 "REM <type>file</type>",
-                $"REM <destination>{destination}</destination>",
-                $"START \"\" /B \"{destination}\" %*",
+                $"REM <destination>{target}</destination>",
+                $"START \"\" /B \"{target}\" %*",
                 "EXIT"
             });
             return path;

@@ -7,7 +7,7 @@ namespace keycuts.Common
 {
     /// <summary>
     /// <c>keycuts paste &lt;name&gt;</c> (#97, formerly <c>keypaste</c>): finds a keycut or text file by name and returns the
-    /// text to put on the clipboard. A keycut's .bat gives its destination; any other file gives its contents.
+    /// text to put on the clipboard. A keycut's .bat gives its target; any other file gives its contents.
     /// </summary>
     public static class KeycutPaste
     {
@@ -89,7 +89,7 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// The text to copy from <paramref name="path"/>: a keycut's destination (from its REM line or launch command), or
+        /// The text to copy from <paramref name="path"/>: a keycut's target (from its REM line or launch command), or
         /// a text file's contents. Null for a .bat that isn't a keycut, so there's nothing to copy.
         /// </summary>
         /// <param name="expandVariables">
@@ -105,14 +105,14 @@ namespace keycuts.Common
             if (string.Equals(Path.GetExtension(path), ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase))
             {
                 var file = new ShortcutFile(path, readLines(path));
-                var destination = file.Destination;
+                var target = file.Target;
 
-                if (string.IsNullOrEmpty(destination))
+                if (string.IsNullOrEmpty(target))
                 {
                     return null;
                 }
 
-                return PathVariables.AppliesTo(file.Type) ? expandVariables(destination) : destination;
+                return PathVariables.AppliesTo(file.Type) ? expandVariables(target) : target;
             }
 
             return readText(path);
@@ -168,7 +168,7 @@ namespace keycuts.Common
 
             if (text == null)
             {
-                error.WriteLine($"\"{path}\" isn't a keycut, so there's no destination to copy.");
+                error.WriteLine($"\"{path}\" isn't a keycut, so there's no target to copy.");
                 return ExitCode.CannotOpenFile;
             }
 

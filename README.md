@@ -44,7 +44,8 @@ Uninstalling removes the app, the menu, and the `PATH` entries. Your keycuts and
 To build the installer, run `pwsh -File tools/Build-Installer.ps1` (add `-Runtime win-arm64` for the ARM one). It needs only the
 .NET SDK.
 
-Releases are automatic: raise `<Version>` in `Directory.Build.props`, then merge `develop` into `main`. The release workflow tags
+Releases are automatic: raise `<Version>` in `Directory.Build.props`, regenerate the screenshots (`pwsh -File tools/New-Screenshots.ps1`;
+look at them and commit what changed, so a release never shows an older UI), then merge `develop` into `main`. The release workflow tags
 `v<Version>` and publishes both MSIs, a portable zip for each (`keycuts-portable-win-x64.zip`, `keycuts-portable-win-arm64.zip`),
 and SHA-256 checksums. Merges that don't change the version don't release.
 
@@ -217,6 +218,8 @@ The build has **0 warnings**, and it should stay that way. Each project's `Assem
 `SupportedOSPlatform("windows")`, so a new project with its own `AssemblyInfo.cs` needs the same line or CA1416
 (Windows-only API) warnings come back. Count with `--no-incremental`: an incremental build skips compilation and reports 0.
 
-The screenshots in `docs/images/` show sample keycuts, not a real folder, and the window's contents without its frame. To
-take new ones from a Debug build, point it at a fixture folder as described above (`KEYCUTS_OUTPUT_FOLDER` and
-`tools/New-SampleKeycuts.ps1`).
+The screenshots in `docs/images/` are made by `pwsh -File tools/New-Screenshots.ps1`, which runs `ScreenshotTests`: it shows
+the real views off screen with sample keycuts (never a real folder, the registry or PATH), light and dark, and writes each as
+a PNG at twice its size, the window's contents without its frame. Run it when a change moves how a screenshotted view looks,
+and when preparing a release. Without `KEYCUTS_SCREENSHOTS_OUT` set, which the script does, the test writes nothing. To add a
+view, add it to `RenderAll` in `ScreenshotTests` and to the README.

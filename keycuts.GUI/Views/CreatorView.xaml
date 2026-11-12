@@ -243,12 +243,8 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel Margin="0,0,44,0">
-          <TextBlock Text="NEW KEYCUT" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="Bold"
-                     Foreground="{DynamicResource AccentBrush}" />
-          <TextBlock Text="Launch anything instantly" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                     Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
-        </StackPanel>
+        <TextBlock Margin="0,0,44,0" Text="New keycut" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
       </Grid>
 
       <!-- First-run welcome (#61, #11): shown once, while the keycuts folder is empty. Collapsed without a Welcome. -->
@@ -456,6 +452,26 @@
           </controls:Icon>
           <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource NameHelperText}" />
         </DockPanel>
+
+        <!-- #162: the description is optional, so it stays a link until asked for and the main flow is still drop, name, Enter -->
+        <Button x:Name="BtnAddDescription" Style="{StaticResource FooterLinkButton}" HorizontalAlignment="Left"
+                MinHeight="28" Margin="0,4,0,0" Command="{Binding ShowDescriptionCommand}" Content="Add a description"
+                IsEnabled="{Binding IsInputEnabled}"
+                Visibility="{Binding ShowAddDescription, Converter={StaticResource BoolToVisibility}}" />
+        <StackPanel x:Name="DescriptionForm" Margin="0,12,0,0"
+                    Visibility="{Binding IsDescriptionVisible, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock Text="Description (optional)" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                     Margin="0,0,0,6" />
+          <TextBox x:Name="TextboxDescription" Height="38" MinHeight="38"
+                   Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                   themes:TextBoxChrome.Placeholder="What is it for? Shown in the manager"
+                   IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description">
+            <TextBox.InputBindings>
+              <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+              <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
+            </TextBox.InputBindings>
+          </TextBox>
+        </StackPanel>
       </StackPanel>
     </Grid>
 

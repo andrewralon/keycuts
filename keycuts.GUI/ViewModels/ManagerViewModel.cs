@@ -21,9 +21,12 @@ namespace keycuts.GUI.ViewModels
 
     public enum SortColumn
     {
+        /// <summary>The Name column. The member keeps its old name, as other internal names do (#168).</summary>
         Shortcut,
         Type,
-        Description
+        Description,
+        Target,
+        Modified
     }
 
     /// <summary>
@@ -43,6 +46,11 @@ namespace keycuts.GUI.ViewModels
         private readonly HashSet<KeycutRowViewModel> deleting = new HashSet<KeycutRowViewModel>();
 
         private int statusVersion;
+
+        // The keycut the "Deleted" message in the status bar can put back (#179), while that message shows
+        private DeletedKeycut? pendingUndo;
+
+        private bool undoing;
 
         private string statusMessage = string.Empty;
 
@@ -98,9 +106,13 @@ namespace keycuts.GUI.ViewModels
 
             ClearSearchCommand = new RelayCommand(() => SearchText = string.Empty);
             SortCommand = new RelayCommand<SortColumn>(SortBy);
+            UndoDeleteCommand = new RelayCommand(() => _ = UndoDeleteAsync());
         }
 
         public ICommand ShowCreatorCommand { get; }
+
+        /// <summary>The status bar's Undo button, and Ctrl+Z, while <see cref="CanUndoDelete"/>. Does nothing otherwise.</summary>
+        public ICommand UndoDeleteCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
 
@@ -140,6 +152,12 @@ namespace keycuts.GUI.ViewModels
         /// Without one a rename with a conflict goes back to editing, so nothing is renamed unasked.
         /// </summary>
         public Func<NameCheck, bool>? ConfirmRename { get; set; }
+
+        /// <summary>
+        /// Shows the Edit form (#180) as a dialog and returns when it closes. The view sets it; the form saves itself, so
+        /// the result is on <see cref="EditKeycutViewModel.Saved"/>. Without one (tests) Edit does nothing.
+        /// </summary>
+        public Func<EditKeycutViewModel, bool>? ShowEditForm { get; set; }
 
         /// <summary>True while a row's name is being edited (F2 or Rename…). Reloads wait until it ends.</summary>
         public bool IsRenaming
@@ -264,6 +282,21 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Raised after a keycut was deleted, so other views can refresh their counts.</summary>
         public event EventHandler? KeycutDeleted;
 
+        /// <summary>Raised after an Undo put a deleted keycut back, so other views can refresh their counts.</summary>
+        public event EventHandler? KeycutRestored;
+
+        /// <summary>
+        /// True while the status bar offers to undo the last delete: for <see cref="UndoDuration"/>, until another message
+        /// replaces it, or until it's used. The view shows the Undo button, and Ctrl+Z works, only then.
+        /// </summary>
+        public bool CanUndoDelete
+        {
+            get { return pendingUndo != null; }
+        }
+
+        /// <summary>How long "Deleted" and its Undo stay: longer than other messages, since a button needs time to be reached.</summary>
+        public TimeSpan UndoDuration { get; set; } = TimeSpan.FromSeconds(8);
+
         /// <summary>
         /// Raised after a delete to say where focus should go: the row to focus the menu button of,
         /// or null when no rows are left and the view should fall back to the search box.
@@ -332,7 +365,8 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        public void EditKeycut(KeycutRowViewModel row)
+        /// <summary>"Edit in Notepad": opens the raw .bat for hand edits. A file that is gone reloads the list.</summary>
+        public void EditInNotepad(KeycutRowViewModel row)
         {
             var keycut = KeycutOf(row);
 
@@ -356,7 +390,91 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit does.</summary>
+        /// <summary>
+        /// Edit (#180): opens the form for the keycut's target, name and description. Only a file the emitter would write
+        /// identically is offered the form, since saving writes the whole file again; any other says so and points to
+        /// Edit in Notepad. A saved keycut's row is replaced and selected, wherever the sort puts it.
+        /// </summary>
+        public async Task EditKeycutAsync(KeycutRowViewModel row)
+        {
+            var show = ShowEditForm;
+            var keycut = KeycutOf(row);
+
+            if (actions == null || show == null || keycut == null)
+            {
+                return;
+            }
+
+            bool editable;
+
+            try
+            {
+                editable = await actions.CanEditInFormAsync(keycut);
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
+            {
+                ShowStatusMessage("This keycut no longer exists", true);
+                _ = LoadAsync();
+                return;
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn’t edit “" + row.Name + "”: " + ReasonOf(ex), true);
+                return;
+            }
+
+            if (!editable)
+            {
+                ShowStatusMessage(EditKeycutViewModel.NotEditableMessage, true);
+                return;
+            }
+
+            IsMenuOpen = false;
+            var form = new EditKeycutViewModel(keycut, edit => actions.UpdateAsync(keycut, edit), CheckRename, ConfirmRename);
+            show(form);
+
+            if (form.Saved != null)
+            {
+                ReplaceEditedRow(keycut, form.Saved);
+                ShowStatusMessage("Saved “" + form.Saved.Name + "”", false);
+            }
+
+            // Whatever the form found out (a keycut that is gone, a name taken), the list catches up with the folder
+            _ = LoadAsync();
+        }
+
+        /// <summary>
+        /// Puts the loaded rows in the order the repository loads them (by path), so the reload that follows an edit or an
+        /// undo finds the same content and keeps these rows, instead of rebuilding them under the focus and selection.
+        /// </summary>
+        private void SortLikeTheFolder()
+        {
+            allRows.Sort((x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.Keycut.FilePath, y.Keycut.FilePath));
+        }
+
+        /// <summary>Shows the saved keycut in place of the edited one, selected and focused. A reload that got there first leaves one row.</summary>
+        private void ReplaceEditedRow(Keycut before, Keycut saved)
+        {
+            allRows.RemoveAll(r => string.Equals(r.Keycut.FilePath, before.FilePath, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r.Keycut.FilePath, saved.FilePath, StringComparison.OrdinalIgnoreCase));
+
+            var row = new KeycutRowViewModel(saved, this);
+            allRows.Add(row);
+            SortLikeTheFolder();
+            KeycutCount = allRows.Count;
+
+            // A search that no longer matches would hide what was just saved
+            if (!row.Matches(searchText))
+            {
+                SearchText = string.Empty;
+            }
+
+            ApplyFilter();
+            SelectedRow = row;
+            FocusRowRequested?.Invoke(this, row);
+        }
+
+        /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit in Notepad does.</summary>
         public void OpenFileLocation(KeycutRowViewModel row)
         {
             var keycut = KeycutOf(row);
@@ -390,8 +508,9 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Deletes the keycut's file without asking, removes the row and asks the view to focus the next row.
-        /// A file that is already gone counts as deleted (with an error message); other failures keep the row.
+        /// Deletes the keycut's file without asking (to the Recycle Bin), removes the row and asks the view to focus the
+        /// next row. The status bar then offers Undo for <see cref="UndoDuration"/> (#179). A file that is already gone
+        /// counts as deleted (with an error message); other failures keep the row.
         /// </summary>
         public async Task DeleteKeycutAsync(KeycutRowViewModel row)
         {
@@ -411,9 +530,12 @@ namespace keycuts.GUI.ViewModels
 
             try
             {
-                await actions.DeleteAsync(keycut);
+                var deleted = await actions.DeleteAsync(keycut);
                 RemoveRow(row);
-                ShowStatusMessage("Deleted \u201C" + row.Name + "\u201D", false);
+
+                // A drive without a Recycle Bin deleted it for good: say so, since Undo is then the only way back
+                var message = "Deleted \u201C" + row.Name + "\u201D" + (deleted != null && !deleted.Recycled ? " (this drive has no Recycle Bin)" : string.Empty);
+                ShowStatusMessage(message, false, deleted);
             }
             catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
             {
@@ -428,6 +550,77 @@ namespace keycuts.GUI.ViewModels
             {
                 deleting.Remove(row);
             }
+        }
+
+        /// <summary>
+        /// Puts the last deleted keycut back, byte for byte, while the status bar still offers it (#179). The row reappears
+        /// where the current sort puts it, selected and focused (a search that hides it is cleared). A name that was taken
+        /// again is refused and said so: nothing is overwritten. Does nothing when there is nothing to undo.
+        /// </summary>
+        public async Task UndoDeleteAsync()
+        {
+            var deleted = pendingUndo;
+
+            if (deleted == null || actions == null || undoing)
+            {
+                return;
+            }
+
+            var name = deleted.Keycut.Name;
+            undoing = true;
+            SetPendingUndo(null);
+
+            try
+            {
+                await actions.RestoreAsync(deleted);
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.AlreadyExists)
+            {
+                ShowStatusMessage("Can’t undo: “" + name + "” already exists.", true);
+                return;
+            }
+            catch (Exception ex)
+            {
+                var binHint = deleted.Recycled ? " It’s still in the Recycle Bin." : string.Empty;
+                ShowStatusMessage("Couldn’t restore “" + name + "”: " + ReasonOf(ex) + binHint, true);
+                return;
+            }
+            finally
+            {
+                undoing = false;
+            }
+
+            var row = AddRestoredRow(deleted);
+            ShowStatusMessage("Restored “" + name + "”", false);
+            KeycutRestored?.Invoke(this, EventArgs.Empty);
+            FocusRowRequested?.Invoke(this, row);
+        }
+
+        /// <summary>Shows the restored keycut's row again. A reload that already found the file shows it once, not twice.</summary>
+        private KeycutRowViewModel AddRestoredRow(DeletedKeycut deleted)
+        {
+            var path = deleted.Keycut.FilePath;
+            var row = allRows.FirstOrDefault(r => string.Equals(r.Keycut.FilePath, path, StringComparison.OrdinalIgnoreCase));
+
+            if (row == null)
+            {
+                var keycut = deleted.Modified == default ? deleted.Keycut : deleted.Keycut with { Modified = deleted.Modified };
+                row = new KeycutRowViewModel(keycut, this);
+                allRows.Add(row);
+                SortLikeTheFolder();
+            }
+
+            KeycutCount = allRows.Count;
+
+            // A search that hides it would make Undo look like it did nothing
+            if (!row.Matches(searchText))
+            {
+                SearchText = string.Empty;
+            }
+
+            ApplyFilter();
+            SelectedRow = row;
+            return row;
         }
 
         /// <summary>
@@ -690,17 +883,30 @@ namespace keycuts.GUI.ViewModels
             FocusRowRequested?.Invoke(this, next);
         }
 
-        private async void ShowStatusMessage(string message, bool isError)
+        /// <param name="undo">A delete this message offers to undo (#179). It lasts as long as the message does: another
+        /// message replaces it, and then the Undo button and Ctrl+Z are gone.</param>
+        private async void ShowStatusMessage(string message, bool isError, DeletedKeycut? undo = null)
         {
             var version = ++statusVersion;
             SetStatus(message, isError);
+            SetPendingUndo(undo);
 
-            var duration = isError ? StatusMessageDuration + StatusMessageDuration : StatusMessageDuration;
+            var duration = undo != null ? UndoDuration : isError ? StatusMessageDuration + StatusMessageDuration : StatusMessageDuration;
             await Task.Delay(duration);
 
             if (version == statusVersion)
             {
                 SetStatus(string.Empty, false);
+                SetPendingUndo(null);
+            }
+        }
+
+        private void SetPendingUndo(DeletedKeycut? undo)
+        {
+            if (!ReferenceEquals(pendingUndo, undo))
+            {
+                pendingUndo = undo;
+                OnPropertyChanged(nameof(CanUndoDelete));
             }
         }
 
@@ -768,6 +974,12 @@ namespace keycuts.GUI.ViewModels
             if (IsSameContent(keycuts))
             {
                 keycuts = allRows.Select(row => row.Keycut).ToList();
+
+                foreach (var row in allRows)
+                {
+                    row.RefreshModified();
+                }
+
                 ForgetStaleRow();
                 SelectPendingRename();
             }
@@ -838,7 +1050,10 @@ namespace keycuts.GUI.ViewModels
             ApplyFilter();
         }
 
-        /// <summary>Default is ascending; selecting the active column again toggles the direction.</summary>
+        /// <summary>
+        /// Default is ascending, except Modified, which starts with the newest first (what a click on it is for);
+        /// selecting the active column again toggles the direction.
+        /// </summary>
         public void SortBy(SortColumn column)
         {
             if (column == sortColumn)
@@ -848,7 +1063,7 @@ namespace keycuts.GUI.ViewModels
             else
             {
                 sortColumn = column;
-                sortDescending = false;
+                sortDescending = column == SortColumn.Modified;
             }
 
             OnPropertyChanged(nameof(SortColumn));
@@ -873,6 +1088,12 @@ namespace keycuts.GUI.ViewModels
                         break;
                     case SortColumn.Description:
                         result = CompareText(x.Description, y.Description);
+                        break;
+                    case SortColumn.Target:
+                        result = CompareText(x.Target, y.Target);
+                        break;
+                    case SortColumn.Modified:
+                        result = x.Modified.CompareTo(y.Modified);
                         break;
                 }
 
@@ -960,7 +1181,7 @@ namespace keycuts.GUI.ViewModels
                 var next = keycuts[i];
 
                 if (old.FilePath != next.FilePath || old.Name != next.Name || old.Kind != next.Kind ||
-                    old.Description != next.Description || old.Target != next.Target)
+                    old.Description != next.Description || old.Target != next.Target || old.Modified != next.Modified)
                 {
                     return false;
                 }

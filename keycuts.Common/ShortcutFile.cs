@@ -206,7 +206,11 @@ namespace keycuts.Common
             return line.TrimStart().StartsWith("REM ", StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>Returns the trimmed text of the first well-formed description line, or empty.</summary>
+        /// <summary>
+        /// Returns the trimmed text of the first well-formed description line, or empty. A doubled <c>%%</c> reads as one
+        /// <c>%</c>: the emitter doubles them so cmd doesn't expand them (<c>Runner.SanitizeDescription</c>), and cmd
+        /// itself reads <c>%%</c> in a batch file as one.
+        /// </summary>
         public static string ParseDescription(string[] lines)
         {
             foreach (var line in lines)
@@ -215,7 +219,7 @@ namespace keycuts.Common
 
                 if (match.Success)
                 {
-                    return match.Groups[1].Value.Trim();
+                    return match.Groups[1].Value.Trim().Replace("%%", "%");
                 }
             }
 

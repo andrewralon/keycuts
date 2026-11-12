@@ -39,7 +39,7 @@ namespace keycuts.GUI.ViewModels
     {
         public const string DefaultHelperText = "New keycuts files are saved here.";
 
-        public const string EmptyFolderMessage = "Choose where shortcuts are saved.";
+        public const string EmptyFolderMessage = "Choose where keycuts are saved.";
 
         public const string UnwritableFolderMessage = "Choose a folder you have permission to write to.";
 

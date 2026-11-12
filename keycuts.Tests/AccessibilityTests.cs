@@ -195,16 +195,51 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Button:Add a description", "View all keycuts (0)", "Settings" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
                     Assert.Equal(new[] { "View all keycuts (0)", "Settings" }, TabStops(window));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // #162: the description is a link until asked for; then it's a named field that follows Create, and Enter there creates
+        [Fact]
+        public void Creator_AddADescription_ShowsANamedField_AfterCreateInTheTabOrder()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var creator = NewCreator();
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    var link = Descendants<Button>(window).Single(b => b.Name == "BtnAddDescription");
+                    var form = (FrameworkElement)((FrameworkElement)window.Content).FindName("DescriptionForm");
+                    Assert.True(link.IsVisible);
+                    Assert.False(form.IsVisible);
+
+                    link.Command.Execute(null);
+                    Pump();
+
+                    Assert.False(link.IsVisible);
+                    Assert.True(form.IsVisible);
+                    Assert.Equal(
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Description", "View all keycuts (0)", "Settings" },
+                        TabStops(window));
+
+                    var box = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Description");
+                    Assert.Contains(box.InputBindings.OfType<KeyBinding>(), b => b.Key == Key.Return && ReferenceEquals(b.Command, creator.CreateCommand));
                 }
                 finally
                 {
@@ -231,12 +266,12 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" },
+                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -267,14 +302,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Target", "Browse", "Keycut name", "Create", "Dismiss update notice", "View all keycuts (0)", "Settings" },
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "Dismiss update notice", "View all keycuts (0)", "Settings" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)((FrameworkElement)window.Content).FindName("UpdateDownloadLink");
                     Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -437,7 +472,7 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), creator);
                 try
                 {
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Launch anything instantly");
+                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "New keycut");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
@@ -478,8 +513,20 @@ namespace keycuts.Tests
             {
             }
 
-            public Task DeleteAsync(Keycut keycut)
+            public List<DeletedKeycut> Deleted { get; } = new List<DeletedKeycut>();
+
+            public List<DeletedKeycut> Restored { get; } = new List<DeletedKeycut>();
+
+            public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
             {
+                var deleted = new DeletedKeycut(keycut, new byte[] { 1 }, default, true);
+                Deleted.Add(deleted);
+                return Task.FromResult(deleted);
+            }
+
+            public Task RestoreAsync(DeletedKeycut deleted)
+            {
+                Restored.Add(deleted);
                 return Task.CompletedTask;
             }
 
@@ -489,6 +536,16 @@ namespace keycuts.Tests
             {
                 Renamed.Add(newName);
                 return Task.FromResult(keycut.FilePath);
+            }
+
+            public Task<bool> CanEditInFormAsync(Keycut keycut)
+            {
+                return Task.FromResult(true);
+            }
+
+            public Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit)
+            {
+                return Task.FromResult(keycut with { Name = edit.Name, Target = edit.Target, Description = edit.Description });
             }
         }
 
@@ -521,6 +578,106 @@ namespace keycuts.Tests
             return args.Handled;
         }
 
+        // #179: the Undo button shows with the "Deleted" message, and Ctrl+Z does the same, even from the search box
+        [Fact]
+        public void Manager_Undo_ShowsAButton_AndCtrlZWorksFromTheSearchBoxWhileItShows()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
+                    Assert.False(undo.IsVisible);
+                    Assert.Equal("Undo delete", AutomationProperties.GetName(undo));
+
+                    // Nothing to undo: Ctrl+Z is left to the search box's own undo
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control));
+
+                    manager.DeleteKeycutAsync(manager.Rows[0]).GetAwaiter().GetResult();
+                    Pump();
+
+                    Assert.True(undo.IsVisible);
+                    Assert.Contains(undo, Descendants<Button>(window).Where(b => b.IsTabStop && b.IsEnabled && b.IsVisible));
+
+                    // Z alone (typing) and Ctrl+Z with another modifier aren't an undo
+                    Assert.False(Press(search, Key.Z));
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control | ModifierKeys.Shift));
+                    Assert.Empty(actions.Restored);
+
+                    Assert.True(Press(search, Key.Z, ModifierKeys.Control));
+
+                    Assert.Single(actions.Restored);
+                    Assert.Equal(2, manager.Rows.Count);
+                    Assert.False(undo.IsVisible);
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_Undo_TheButtonRestoresTheKeycut()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    manager.DeleteKeycutAsync(manager.Rows[1]).GetAwaiter().GetResult();
+                    Pump();
+                    var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
+
+                    undo.Command.Execute(null);
+                    Pump();
+
+                    Assert.Single(actions.Restored);
+                    Assert.Equal(new[] { "alpha", "bravo" }, manager.Rows.Select(r => r.Name));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_CtrlZ_IsLeftToTheNameBoxWhileRenaming()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    manager.DeleteKeycutAsync(manager.Rows[1]).GetAwaiter().GetResult();
+                    manager.BeginRename(manager.Rows[0]);
+                    Pump();
+
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control));
+                    Assert.Empty(actions.Restored);
+                    Assert.True(manager.CanUndoDelete);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         // Also proves the handler reads the event's keyboard: no modifier is held on this machine, yet Ctrl on the event is respected
         [Theory]
         [InlineData(ModifierKeys.Control)]
@@ -535,7 +692,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
 
                     Assert.False(Press(search, Key.Down, modifiers));
                     Assert.Null(manager.SelectedRow);
@@ -566,7 +723,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     var table = Descendants<DataGrid>(window).Single();
 
                     Assert.False(Press(search, Key.Enter));
@@ -601,7 +758,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     Assert.True(Press(search, Key.Down));
                     Assert.True(Press(search, Key.Down));
 
@@ -755,7 +912,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     manager.IsMenuOpen = true;
 
                     Assert.False(Press(search, Key.Down));
@@ -796,21 +953,83 @@ namespace keycuts.Tests
                         new[]
                         {
                             "Button:",
-                            "Search shortcuts",
-                            "SortHeaderButton:Shortcut",
+                            "Search keycuts",
+                            "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
+                            "SortHeaderButton:Target",
                             "Actions for alpha",
                             "Actions for bravo",
                             "Open settings"
                         },
                         TabStops(window));
-                    Assert.Equal("Search shortcuts", FocusedName());
+                    Assert.Equal("Search keycuts", FocusedName());
 
                     var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Your keycuts");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     Assert.Equal(2, Descendants<TypeBadge>(window).Count());
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // #167: the Modified column is sortable and shows how long ago with the exact time in a tooltip, but it makes way for
+        // the other columns when the table is narrow
+        [Fact]
+        public void Manager_ModifiedColumn_ShowsWhenWide_AndMakesWayWhenNarrow()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var noop = new RelayCommand(() => { });
+                var modified = DateTime.Now.AddDays(-3);
+                var keycuts = new[]
+                {
+                    new Keycut
+                    {
+                        Name = "alpha",
+                        Kind = KeycutKind.File,
+                        RawType = ShortcutType.File,
+                        Target = @"C:\temp\alpha.txt",
+                        FilePath = @"C:\Shortcuts\alpha.bat",
+                        Modified = modified
+                    }
+                };
+                var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null);
+                manager.LoadAsync().GetAwaiter().GetResult();
+
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var column = (DataGridColumn)((FrameworkElement)window.Content).FindName("ModifiedColumn");
+
+                    // Host is 700 wide: its table is under the threshold
+                    Assert.Equal(Visibility.Collapsed, column.Visibility);
+                    Assert.DoesNotContain("SortHeaderButton:Modified", TabStops(window));
+
+                    window.Width = 1000;
+                    Pump();
+                    window.UpdateLayout();
+                    Pump();
+
+                    Assert.Equal(Visibility.Visible, column.Visibility);
+                    Assert.Equal(
+                        new[] { "Button:", "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha", "Open settings" },
+                        TabStops(window));
+
+                    var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");
+                    Assert.Equal(modified.ToString("f"), text.ToolTip);
+
+                    window.Width = 700;
+                    Pump();
+                    window.UpdateLayout();
+                    Pump();
+
+                    Assert.Equal(Visibility.Collapsed, column.Visibility);
                 }
                 finally
                 {

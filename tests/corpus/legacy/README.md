@@ -70,7 +70,7 @@ Type/situation combinations the real corpus doesn't happen to contain, crafted t
 | `trailing-whitespace.bat` | trailing spaces after the target on both the header and command lines |
 | `unicode-destination.bat` | non-ASCII characters (`résumé.docx`) in the target |
 
-## `target-tag/` — 2 files, keycuts 1.3.0.0 header, hand-crafted
+## `target-tag/` — 3 files, keycuts 1.3.0.0 header, hand-crafted
 
 What the emitter writes from 1.3 on (#195): `REM <target>...</target>` instead of `REM <destination>...</destination>`, and the `REM <description>` line. Written to match `Runner.BuildShortcutLines`; `Emitter.verified.txt` is the reference.
 
@@ -78,6 +78,7 @@ What the emitter writes from 1.3 on (#195): `REM <target>...</target>` instead o
 |---|---|
 | `url.bat` | a URL, with a description |
 | `folder.bat` | a folder saved with an environment variable (`%USERPROFILE%`, #31), no description |
+| `description-percent.bat` | a description with `%` in it, written doubled (`%%~dp0`) as the emitter does since #162: cmd expands `%` before it reads `REM`, so a lone `%~` stops the whole script. The parser reads it back as `%~dp0` |
 
 ## What's still missing
 

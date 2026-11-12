@@ -84,6 +84,8 @@ Issue: #179
 
 Delete calls `File.Delete` ([KeycutRepository.cs](../keycuts.Common/KeycutRepository.cs), `DeleteAsync`). Current practice prefers undo over a confirmation dialog: move the file to the Recycle Bin and put **Undo** in the Manager's status bar for a few seconds. It's cheap, and it's the only action in the app that loses data.
 
+Done (#179). Notes for whoever extends it: `KeycutRepository.CreateDefault()` recycles (`RecycleBinRecycler`, `Microsoft.VisualBasic.FileIO`) and the plain constructor deletes for good (`PermanentDeleter`), so tests can't fill the real bin. The Undo keeps the file's bytes and write time in memory and writes them back through a temp file and a no-overwrite move, so a hand edit and an old `REM <destination>` tag survive. It is one level (the latest delete), tied to the "Deleted" message, and 8 seconds long. That leaves a copy in the Recycle Bin after an Undo, which Windows can't be asked to drop from code. The shell shows its own error dialog if a delete fails (a file open elsewhere); `UIOption` has no "no UI" value. #161 (multi-select) should make the pending undo a list, so one Undo covers a batch, and `keycuts rm` (#173) should use `RecycleBinRecycler`.
+
 #### 3. There's no way to edit a keycut in the app
 
 Issues: #162 (description field), #180 (Edit form)
@@ -92,6 +94,13 @@ Issues: #162 (description field), #180 (Edit form)
 
 - add an optional description field to the Creator, and a `--description` option to the CLI;
 - add an **Edit** form for the destination, either limited to files the emitter wrote unchanged, or with a warning that hand edits will be overwritten. (Rename deliberately never re-emits a file; an Edit form would, so the hand-edit case needs a decision.)
+
+Done (#162, #180), with the first option for the hand-edit case: the form is offered only when the emitter would write the file identically from its parse, and otherwise says "This keycut can't be edited here. Edit it in Notepad." Notes for whoever extends it:
+
+- The comparison (`KeycutRepository.CanEditInForm`) ignores the version in the `REM keycuts` header, the old `<destination>` tag name (#195) and the path in `REM <shortcut>` (a copied or moved file's is stale and changes nothing). It also treats a missing `REM <description>` line as an empty one: keycuts 1.0 wrote none, and refusing them would have made the form useless for most existing folders. Everything else must match, so a trailing space, a `%*` or an extra line makes a file uneditable. `KeycutEditTests` pins the answer for every file in the corpus.
+- Saving writes a temp file and swaps it in (`File.Replace`), or, for a new name, moves it into place without overwriting and then deletes the old file, taking the new one back out if that fails. A target whose text wasn't changed is written from the parse as it was (type, target, open-with), never resolved again; a changed one is resolved like a new keycut's, with environment variables if the setting is on.
+- It is a dialog (`EditWindow`), not a mode of the Creator, which keeps the Creator's state machine out of it. The target is checked when you save, not while you type.
+- Saving also rewrites an older keycut in the current format. That overlaps with #196 (migrating `<destination>` for every file), which it doesn't replace: only the keycuts someone edits are touched.
 
 #### 4. Suggest a name from the destination
 

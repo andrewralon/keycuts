@@ -174,3 +174,14 @@ throws InvalidOperationException: Can't write a keycut of type Unknown.
 |REM <description></description>|
 |START https://example.com|
 |EXIT|
+
+## description-special-characters
+# Note: Every % is doubled, because cmd expands % before it reads REM and a %~ stops the script (#162). The other characters are inert on a REM line.
+|@ECHO OFF|
+|REM keycuts <version>|
+|REM <shortcut>C:\Shortcuts\description-special-characters.bat</shortcut>|
+|REM <type>url</type>|
+|REM <target>https://example.com</target>|
+|REM <description>Opens %%~dp0 & 100%% | <b> ^ >c %%1 %%* %%PATH:~0,3%%</description>|
+|START https://example.com|
+|EXIT|

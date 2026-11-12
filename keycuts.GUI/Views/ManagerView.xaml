@@ -108,6 +108,33 @@
       </Setter>
     </Style>
 
+    <!-- Small accent link for the status bar (Undo). -->
+    <Style x:Key="StatusLinkButton" TargetType="Button">
+      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Padding" Value="6,2" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+                    CornerRadius="{StaticResource RadiusSm}">
+              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" RecognizesAccessKey="False" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
     <!-- Rows take no keyboard focus: Up and Down move the selection while focus stays in the search box.
          The bar keeps the selection visible in high contrast, where the tint disappears. -->
     <Style x:Key="ManagerRow" TargetType="DataGridRow">
@@ -246,16 +273,10 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <StackPanel>
-        <TextBlock Text="KEYCUT MANAGER" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource AccentBrush}" />
-        <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
-        <TextBlock Text="Scan, search, and manage every shortcut in one place." Margin="0,4,0,0"
-                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextTrimming="CharacterEllipsis" />
-      </StackPanel>
-      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top" Margin="12,0,40,0"
+      <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                 AutomationProperties.HeadingLevel="Level1" />
+      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Margin="12,0,40,0"
               Command="{Binding ShowCreatorCommand}">
         <StackPanel Orientation="Horizontal">
           <controls:Icon Kind="Spark" Size="15" />
@@ -274,7 +295,7 @@
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
                  themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
-                 AutomationProperties.Name="Search shortcuts" />
+                 AutomationProperties.Name="Search keycuts" />
         <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
@@ -294,7 +315,7 @@
           <DataGrid.Columns>
             <DataGridTemplateColumn Width="1.7*" MinWidth="190">
               <DataGridTemplateColumn.Header>
-                <controls:SortHeaderButton Column="Shortcut" Content="Shortcut" Style="{StaticResource SortHeaderButtonStyle}" />
+                <controls:SortHeaderButton Column="Shortcut" Content="Name" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -347,10 +368,25 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="Target" Width="2.8*" MinWidth="120">
+            <DataGridTemplateColumn Width="2.8*" MinWidth="120">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Target" Content="Target" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="110">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <!-- The text is how long ago; the tooltip is the exact date and time -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding ModifiedText}" ToolTip="{Binding ModifiedTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
@@ -373,6 +409,11 @@
                         <MenuItem Header="Edit" Command="{Binding EditCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="File" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Edit in Notepad" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="External" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="Open file location" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
@@ -468,6 +509,7 @@
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <TextBlock VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
                    Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding StatusText}" />
@@ -485,6 +527,11 @@
             </Style>
           </TextBlock.Style>
         </TextBlock>
+        <!-- #179: shown while the "Deleted" message is; Ctrl+Z does the same -->
+        <Button x:Name="UndoButton" Grid.Column="2" Style="{StaticResource StatusLinkButton}" Margin="12,0,0,0"
+                VerticalAlignment="Center" Content="Undo" Command="{Binding UndoDeleteCommand}"
+                ToolTip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="Undo delete"
+                Visibility="{Binding CanUndoDelete, Converter={StaticResource BoolToVisibility}}" />
       </Grid>
     </Border>
 

@@ -37,11 +37,17 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Round the table's corners so the pinned header doesn't poke out of the border.
+        /// <summary>The table width below which the Modified column is hidden: the other columns need their room more.</summary>
+        internal const double ModifiedColumnMinTableWidth = 780;
+
+        // Round the table's corners so the pinned header doesn't poke out of the border, and drop the Modified column
+        // when the window is narrow (at its minimum width the other columns' minimum widths already fill the table).
         private void TableHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var radius = TableHost.CornerRadius.TopLeft;
             TableHost.Clip = new RectangleGeometry(new Rect(0, 0, TableHost.ActualWidth, TableHost.ActualHeight), radius, radius);
+
+            ModifiedColumn.Visibility = TableHost.ActualWidth < ModifiedColumnMinTableWidth ? Visibility.Collapsed : Visibility.Visible;
         }
 
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.
@@ -49,7 +55,21 @@ namespace keycuts.GUI.Views
         {
             // While renaming, the name box owns the keys (this handler runs before it). Modifiers come from the event's own device:
             // in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give the event its own.
-            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming || e.KeyboardDevice.Modifiers != ModifierKeys.None)
+            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming)
+            {
+                return;
+            }
+
+            // Ctrl+Z undoes a delete while the status bar offers it, even from the search box, where it would otherwise be
+            // the box's own undo. Any other time the box keeps it.
+            if (e.Key == Key.Z && e.KeyboardDevice.Modifiers == ModifierKeys.Control && ViewModel.CanUndoDelete)
+            {
+                e.Handled = true;
+                _ = ViewModel.UndoDeleteAsync();
+                return;
+            }
+
+            if (e.KeyboardDevice.Modifiers != ModifierKeys.None)
             {
                 return;
             }
@@ -200,12 +220,15 @@ namespace keycuts.GUI.Views
             {
                 oldViewModel.FocusRowRequested -= ViewModel_FocusRowRequested;
                 oldViewModel.ConfirmRename = null;
+                oldViewModel.ShowEditForm = null;
             }
 
             if (e.NewValue is ManagerViewModel newViewModel)
             {
                 newViewModel.FocusRowRequested += ViewModel_FocusRowRequested;
                 newViewModel.ConfirmRename = check => ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForRename(check));
+                // The Edit form (#180) is a dialog over the window; the form saves itself, and its name checks use the same dialog
+                newViewModel.ShowEditForm = form => EditWindow.Show(Window.GetWindow(this), form);
             }
         }
 

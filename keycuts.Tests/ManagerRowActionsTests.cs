@@ -75,15 +75,84 @@ namespace keycuts.Tests
                 Copied.Add(text);
             }
 
-            public Task DeleteAsync(Keycut keycut)
+            /// <summary>Whether the fake says the Edit form can save a keycut (its file is one the emitter writes identically).</summary>
+            public bool Editable { get; set; } = true;
+
+            public Exception? CanEditError { get; set; }
+
+            public Task<bool> CanEditInFormAsync(Keycut keycut)
+            {
+                return CanEditError != null ? Task.FromException<bool>(CanEditError) : Task.FromResult(Editable);
+            }
+
+            public List<(Keycut Keycut, KeycutEdit Edit)> Updated { get; } = new List<(Keycut, KeycutEdit)>();
+
+            public Exception? UpdateError { get; set; }
+
+            public Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit)
+            {
+                if (UpdateError != null)
+                {
+                    return Task.FromException<Keycut>(UpdateError);
+                }
+
+                Updated.Add((keycut, edit));
+                var saved = keycut with
+                {
+                    Name = edit.Name,
+                    Target = edit.Target,
+                    Description = edit.Description,
+                    FilePath = @"C:\fixture\" + edit.Name + ".bat",
+                    Modified = new DateTime(2026, 6, 7, 8, 9, 10)
+                };
+
+                // What a loader reads next time, so the reload after an edit sees the saved keycut as the folder would
+                if (Disk != null)
+                {
+                    Disk[Disk.FindIndex(k => k.FilePath == keycut.FilePath)] = saved;
+                    Disk.Sort((x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.FilePath, y.FilePath));
+                }
+
+                return Task.FromResult(saved);
+            }
+
+            /// <summary>The keycuts "on disk", for <see cref="LoadedOnDiskAsync"/>; an update replaces its entry.</summary>
+            public List<Keycut>? Disk { get; set; }
+
+            /// <summary>What the fake reports for a delete: false is a drive without a Recycle Bin.</summary>
+            public bool Recycled { get; set; } = true;
+
+            public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
             {
                 if (DeleteError != null)
                 {
-                    return Task.FromException(DeleteError);
+                    return Task.FromException<DeletedKeycut>(DeleteError);
                 }
 
                 Deleted.Add(keycut.FilePath);
-                return Task.CompletedTask;
+                return Task.FromResult(new DeletedKeycut(keycut, new byte[] { 1, 2, 3 }, new DateTime(2026, 1, 2, 3, 4, 5), Recycled));
+            }
+
+            public List<DeletedKeycut> Restored { get; } = new List<DeletedKeycut>();
+
+            public Exception? RestoreError { get; set; }
+
+            /// <summary>When set, a restore waits for this before it finishes.</summary>
+            public Task? RestoreGate { get; set; }
+
+            public async Task RestoreAsync(DeletedKeycut deleted)
+            {
+                if (RestoreGate != null)
+                {
+                    await RestoreGate;
+                }
+
+                if (RestoreError != null)
+                {
+                    throw RestoreError;
+                }
+
+                Restored.Add(deleted);
             }
 
             public List<(string Path, string NewName)> Renamed { get; } = new List<(string, string)>();
@@ -135,6 +204,19 @@ namespace keycuts.Tests
             return manager;
         }
 
+        /// <summary>Like <see cref="LoadedAsync"/>, but every load reads <see cref="FakeActions.Disk"/>, which saving an edit changes.</summary>
+        static async Task<ManagerViewModel> LoadedOnDiskAsync(FakeActions actions, params string[] names)
+        {
+            var noop = new RelayCommand(() => { });
+            actions.Disk = names.Select(n => NewKeycut(n)).ToList();
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(actions.Disk.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            return manager;
+        }
+
         [Fact]
         public async Task Open_LaunchesTheKeycutFile()
         {
@@ -166,7 +248,7 @@ namespace keycuts.Tests
             var actions = new FakeActions();
             var manager = await LoadedAsync(actions, "a");
 
-            manager.Rows[0].EditCommand.Execute(null);
+            manager.Rows[0].EditInNotepadCommand.Execute(null);
 
             Assert.Equal(new[] { @"C:\fixture\a.bat" }, actions.Edited);
         }
@@ -184,7 +266,7 @@ namespace keycuts.Tests
             await manager.LoadAsync();
             current.RemoveAt(0);
 
-            manager.Rows[0].EditCommand.Execute(null);
+            manager.Rows[0].EditInNotepadCommand.Execute(null);
 
             Assert.Equal("This keycut no longer exists", manager.StatusMessage);
             Assert.True(manager.StatusIsError);
@@ -198,7 +280,7 @@ namespace keycuts.Tests
             var actions = new FakeActions { EditError = new InvalidOperationException("no notepad") };
             var manager = await LoadedAsync(actions, "a");
 
-            manager.Rows[0].EditCommand.Execute(null);
+            manager.Rows[0].EditInNotepadCommand.Execute(null);
 
             Assert.True(manager.StatusIsError);
             Assert.Contains("no notepad", manager.StatusMessage);
@@ -461,7 +543,7 @@ namespace keycuts.Tests
             var newPath = @"C:\fixture\zed.bat";
 
             manager.OpenKeycut(row);
-            manager.EditKeycut(row);
+            manager.EditInNotepad(row);
             manager.OpenFileLocation(row);
             await manager.DeleteKeycutAsync(row);
 
@@ -486,7 +568,7 @@ namespace keycuts.Tests
 
             var saving = manager.CommitRenameAsync();   // the file is being moved
             manager.OpenKeycut(row);
-            manager.EditKeycut(row);
+            manager.EditInNotepad(row);
             manager.OpenFileLocation(row);
             await manager.DeleteKeycutAsync(row);
             manager.OpenKeycut(manager.Rows[1]);       // other rows aren't affected
@@ -839,6 +921,557 @@ namespace keycuts.Tests
             Assert.False(manager.StatusIsError);
             Assert.Equal(1, deletedEvents);
         }
+
+        #region Edit form (#180)
+
+        /// <summary>A form that saves what it's given: the dialog the view would show, without a window.</summary>
+        static Func<EditKeycutViewModel, bool> Saving(Action<EditKeycutViewModel> fill, List<EditKeycutViewModel>? shown = null)
+        {
+            return form =>
+            {
+                shown?.Add(form);
+                fill(form);
+                form.SaveAsync().GetAwaiter().GetResult();
+                return form.Saved != null;
+            };
+        }
+
+        [Fact]
+        public async Task Edit_OpensTheFormFilledInFromTheKeycut()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            var shown = new List<EditKeycutViewModel>();
+            manager.ShowEditForm = form => { shown.Add(form); return false; };
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            var form = Assert.Single(shown);
+            Assert.Equal("a", form.Name);
+            Assert.Equal(@"C:\temp\a.txt", form.Target);
+            Assert.Equal(string.Empty, form.Description);
+            Assert.Equal(@"C:\fixture\a.bat", form.Original.FilePath);
+        }
+
+        [Fact]
+        public async Task Edit_TheRowCommandOpensTheForm()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            var shown = 0;
+            manager.ShowEditForm = form => { shown++; return false; };
+
+            manager.Rows[0].EditCommand.Execute(null);
+            await WaitFor(() => shown == 1);
+
+            Assert.Empty(actions.Edited);
+        }
+
+        [Fact]
+        public async Task Edit_Saving_ReplacesTheRow_SelectsItAndFocusesIt_AndSaysSo()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a", "b", "c");
+            var requests = new List<KeycutRowViewModel?>();
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+            manager.ShowEditForm = Saving(form =>
+            {
+                form.Target = "https://example.com/new";
+                form.Description = "Changed";
+            });
+
+            await manager.EditKeycutAsync(manager.Rows[1]);
+
+            var edit = Assert.Single(actions.Updated);
+            Assert.Equal(@"C:\fixture\b.bat", edit.Keycut.FilePath);
+            Assert.Equal(new KeycutEdit("https://example.com/new", "b", "Changed"), edit.Edit);
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(3, manager.KeycutCount);
+            var row = manager.Rows[1];
+            Assert.Equal("https://example.com/new", row.Target);
+            Assert.Equal("Changed", row.Description);
+            Assert.Same(row, manager.SelectedRow);
+            Assert.Same(row, requests.Single());
+            Assert.Equal("Saved \u201Cb\u201D", manager.StatusMessage);
+            Assert.False(manager.StatusIsError);
+
+            // The reload that follows the dialog finds the folder as the manager now shows it, so it keeps this row
+            // (and the focus that was just sent to it) instead of building another
+            await manager.LoadAsync();
+            Assert.Same(row, manager.Rows[1]);
+        }
+
+        [Fact]
+        public async Task Edit_SavingANewName_MovesTheRowToWhereTheSortPutsIt()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a", "b", "c");
+            manager.ShowEditForm = Saving(form => form.Name = "z");
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(new[] { "b", "c", "z" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal("z", manager.SelectedRow!.Name);
+            Assert.Equal(@"C:\fixture\z.bat", manager.SelectedRow.Keycut.FilePath);
+            Assert.Equal("Saved \u201Cz\u201D", manager.StatusMessage);
+            Assert.Equal(3, manager.KeycutCount);
+        }
+
+        [Fact]
+        public async Task Edit_TheSavedRowShowsTheNewModifiedDate()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a");
+            manager.ShowEditForm = Saving(form => form.Description = "x");
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(new DateTime(2026, 6, 7, 8, 9, 10), manager.Rows[0].Modified);
+        }
+
+        [Fact]
+        public async Task Edit_ASearchThatNoLongerMatchesTheSavedKeycut_IsCleared()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "alpha", "beta");
+            manager.SearchText = "alp";
+            manager.ShowEditForm = Saving(form => form.Name = "gamma");
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(string.Empty, manager.SearchText);
+            Assert.Equal("gamma", manager.SelectedRow!.Name);
+            Assert.Equal(new[] { "beta", "gamma" }, manager.Rows.Select(r => r.Name));
+        }
+
+        [Fact]
+        public async Task Edit_Cancelling_ChangesNothing_AndSaysNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            var before = manager.Rows.ToArray();
+            manager.ShowEditForm = form => false;
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.True(before.SequenceEqual(manager.Rows));
+            Assert.Empty(actions.Updated);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Edit_ClosingTheFormWithNothingChanged_ChangesNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.ShowEditForm = Saving(form => { });
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Empty(actions.Updated);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Edit_AKeycutTheFormCantSave_SaysToUseNotepad_AndShowsNoForm()
+        {
+            var actions = new FakeActions { Editable = false };
+            var manager = await LoadedAsync(actions, "a");
+            var shown = 0;
+            manager.ShowEditForm = form => { shown++; return false; };
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(0, shown);
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("This keycut can\u2019t be edited here. Edit it in Notepad.", manager.StatusMessage);
+            Assert.Empty(actions.Edited);
+        }
+
+        [Fact]
+        public async Task Edit_AKeycutThatIsGone_SaysSo_AndReloads()
+        {
+            var actions = new FakeActions { CanEditError = new KeycutRepositoryException(KeycutRepositoryError.NotFound, "gone") };
+            var loads = 0;
+            var noop = new RelayCommand(() => { });
+            var keycuts = new List<Keycut> { NewKeycut("a") };
+            var manager = new ManagerViewModel(noop, noop, ct => { loads++; return Task.FromResult<IReadOnlyList<Keycut>>(keycuts.ToList()); }, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.ShowEditForm = form => false;
+            keycuts.Clear();
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+            await WaitFor(() => loads == 2);
+
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("This keycut no longer exists", manager.StatusMessage);
+            await WaitFor(() => manager.Rows.Count == 0);
+        }
+
+        [Fact]
+        public async Task Edit_AFileThatCantBeChecked_SaysWhy()
+        {
+            var actions = new FakeActions { CanEditError = new UnauthorizedAccessException("Access to the path is denied.") };
+            var manager = await LoadedAsync(actions, "a");
+            manager.ShowEditForm = form => false;
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("Couldn\u2019t edit \u201Ca\u201D: Access to the path is denied.", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Edit_WithoutAWayToShowTheForm_DoesNothing()
+        {
+            var actions = new FakeActions { CanEditError = new InvalidOperationException("must not be asked") };
+            var manager = await LoadedAsync(actions, "a");
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Edit_ANewNameAsksAboutConflictsThroughTheManagersOwnChecks()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a");
+            var asked = new List<string>();
+            manager.CheckRename = name => TestNameChecks.Conflict(name, NameConflictEffect.Hidden, @"C:\Windows\" + name + ".exe");
+            manager.ConfirmRename = check => { asked.Add(check.Name); return true; };
+            manager.ShowEditForm = Saving(form => form.Name = "notepad");
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(new[] { "notepad" }, asked);
+            Assert.Equal("notepad", actions.Updated.Single().Edit.Name);
+        }
+
+        [Fact]
+        public async Task Edit_ADeclinedConflict_SavesNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            manager.CheckRename = name => TestNameChecks.Conflict(name, NameConflictEffect.Hidden, @"C:\Windows\" + name + ".exe");
+            manager.ConfirmRename = check => false;
+            manager.ShowEditForm = Saving(form => form.Name = "notepad");
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Empty(actions.Updated);
+            Assert.Equal("a", manager.Rows.Single().Name);
+        }
+
+        [Fact]
+        public async Task Edit_AReloadThatAlreadyFoundTheSavedFile_LeavesOneRowForIt()
+        {
+            var actions = new FakeActions();
+            var onDisk = new List<Keycut> { NewKeycut("a"), NewKeycut("b") };
+            var noop = new RelayCommand(() => { });
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(onDisk.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.ShowEditForm = form =>
+            {
+                form.Name = "c";
+                form.SaveAsync().GetAwaiter().GetResult();
+
+                // The window was activated while the form was open: the folder now holds c, not a
+                onDisk[0] = form.Saved!;
+                manager.LoadAsync().GetAwaiter().GetResult();
+                return true;
+            };
+
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(new[] { "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(2, manager.KeycutCount);
+            Assert.Equal("c", manager.SelectedRow!.Name);
+        }
+
+        [Fact]
+        public async Task EditInNotepad_StaysAsASeparateAction_AndNeverShowsTheForm()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+            var shown = 0;
+            manager.ShowEditForm = form => { shown++; return false; };
+
+            manager.Rows[0].EditInNotepadCommand.Execute(null);
+
+            Assert.Equal(new[] { @"C:\fixture\a.bat" }, actions.Edited);
+            Assert.Equal(0, shown);
+        }
+
+        #endregion Edit form (#180)
+
+        #region Undo (#179)
+
+        [Fact]
+        public async Task Delete_OffersUndo_WhileTheMessageShows()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            var changed = new List<string?>();
+            manager.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+            Assert.False(manager.CanUndoDelete);
+
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            Assert.True(manager.CanUndoDelete);
+            Assert.Contains(nameof(ManagerViewModel.CanUndoDelete), changed);
+            Assert.Equal("Deleted \u201Cb\u201D", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Undo_PutsTheKeycutBackWhereTheSortPutsIt_SelectedAndFocused()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            var restored = 0;
+            var requests = new List<KeycutRowViewModel?>();
+            manager.KeycutRestored += (s, e) => restored++;
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Restored.Select(d => d.Keycut.FilePath));
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(3, manager.KeycutCount);
+            Assert.Equal("3 items", manager.StatusText);
+            Assert.Equal("b", manager.SelectedRow!.Name);
+            Assert.Equal("b", requests.Single()!.Name);
+            Assert.Equal("Restored \u201Cb\u201D", manager.StatusMessage);
+            Assert.False(manager.StatusIsError);
+            Assert.False(manager.CanUndoDelete);
+            Assert.Equal(1, restored);
+        }
+
+        [Fact]
+        public async Task Undo_RestoresTheLastKeycutOutOfTheEmptyState_WithItsOldDate()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "only");
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+            Assert.Equal(ManagerState.Empty, manager.State);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(ManagerState.Populated, manager.State);
+            Assert.Equal("only", manager.Rows.Single().Name);
+            Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), manager.Rows[0].Modified);
+        }
+
+        [Fact]
+        public async Task Undo_ASearchThatHidesTheKeycut_IsCleared()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "alpha", "beta");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            manager.SearchText = "alpha";
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(string.Empty, manager.SearchText);
+            Assert.Equal(new[] { "alpha", "beta" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal("beta", manager.SelectedRow!.Name);
+        }
+
+        [Fact]
+        public async Task Undo_ANameTakenAgain_IsRefusedAndSaidSo_AndNothingIsAdded()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            actions.RestoreError = new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, "\"b\" already exists.");
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { "a" }, manager.Rows.Select(r => r.Name));
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("Can\u2019t undo: \u201Cb\u201D already exists.", manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Theory]
+        [InlineData(true, " It\u2019s still in the Recycle Bin.")]
+        [InlineData(false, "")]
+        public async Task Undo_AnotherFailure_SaysWhy_AndPointsToTheRecycleBinWhenItIsThere(bool recycled, string hint)
+        {
+            var actions = new FakeActions { Recycled = recycled };
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            actions.RestoreError = new System.IO.IOException("disk is full");
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { "a" }, manager.Rows.Select(r => r.Name));
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("Couldn\u2019t restore \u201Cb\u201D: disk is full" + hint, manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Undo_WithNothingToUndo_DoesNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+
+            await manager.UndoDeleteAsync();
+            manager.UndoDeleteCommand.Execute(null);
+
+            Assert.Empty(actions.Restored);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Undo_IsUsedOnce()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            await manager.UndoDeleteAsync();
+            await manager.UndoDeleteAsync();
+
+            Assert.Single(actions.Restored);
+            Assert.Equal(2, manager.Rows.Count);
+        }
+
+        [Fact]
+        public async Task Undo_TheCommandDoesItToo()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            manager.UndoDeleteCommand.Execute(null);
+            await WaitFor(() => manager.Rows.Count == 2);
+
+            Assert.Single(actions.Restored);
+        }
+
+        [Fact]
+        public async Task Undo_ExpiresWithTheMessage()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.UndoDuration = TimeSpan.FromMilliseconds(50);
+
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            Assert.True(manager.CanUndoDelete);
+            await WaitFor(() => !manager.CanUndoDelete);
+
+            Assert.Equal(string.Empty, manager.StatusMessage);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Empty(actions.Restored);
+        }
+
+        [Fact]
+        public async Task Undo_IsGoneOnceAnotherMessageReplacesTheDeletedOne()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            manager.CopyTarget(manager.Rows[0]);
+
+            Assert.Equal("Copied", manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task ASecondDelete_ReplacesTheUndo_SoOnlyTheLatestComesBack()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Restored.Select(d => d.Keycut.FilePath));
+            Assert.Equal(new[] { "b", "c" }, manager.Rows.Select(r => r.Name));
+        }
+
+        [Fact]
+        public async Task Delete_OnADriveWithoutARecycleBin_SaysSo_AndStillOffersUndo()
+        {
+            var actions = new FakeActions { Recycled = false };
+            var manager = await LoadedAsync(actions, "a", "b");
+
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            Assert.Equal("Deleted \u201Cb\u201D (this drive has no Recycle Bin)", manager.StatusMessage);
+            Assert.True(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Delete_AFailureOrAnAlreadyGoneFile_OffersNoUndo()
+        {
+            var actions = new FakeActions { DeleteError = new KeycutRepositoryException(KeycutRepositoryError.NotFound, "gone") };
+            var manager = await LoadedAsync(actions, "a", "b");
+
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.False(manager.CanUndoDelete);
+
+            actions.DeleteError = new KeycutRepositoryException(KeycutRepositoryError.InUse, "in use");
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Undo_AReloadThatFindsTheFileBeforeTheRestoreFinishes_DoesNotMakeASecondRow()
+        {
+            var gate = new TaskCompletionSource<bool>();
+            var actions = new FakeActions { RestoreGate = gate.Task };
+            var onDisk = new List<Keycut> { NewKeycut("a"), NewKeycut("b"), NewKeycut("c") };
+            var noop = new RelayCommand(() => { });
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(onDisk.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            onDisk.RemoveAt(1);
+
+            var undo = manager.UndoDeleteAsync();
+
+            // The file is back on disk and the window was activated: a reload reads it before the undo reports
+            onDisk.Insert(1, NewKeycut("b"));
+            await manager.LoadAsync();
+            Assert.Equal(3, manager.Rows.Count);
+
+            gate.SetResult(true);
+            await undo;
+
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(3, manager.KeycutCount);
+            Assert.Equal("b", manager.SelectedRow!.Name);
+        }
+
+        static async Task WaitFor(Func<bool> condition)
+        {
+            for (var i = 0; i < 100 && !condition(); i++)
+            {
+                await Task.Delay(20);
+            }
+
+            Assert.True(condition());
+        }
+
+        #endregion Undo (#179)
 
         [Fact]
         public async Task Delete_RequestsFocusOnTheNextRow()

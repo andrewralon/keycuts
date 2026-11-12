@@ -16,17 +16,27 @@ namespace keycuts.Common
         InUse,
         Unknown,
         AlreadyExists,
-        InvalidName
+        InvalidName,
+
+        /// <summary>The file isn't one the Edit form can rewrite without losing something (#180).</summary>
+        NotEditable,
+
+        /// <summary>The new target of an edit was rejected; <see cref="KeycutRepositoryException.TargetError"/> says why.</summary>
+        InvalidTarget
     }
 
     public class KeycutRepositoryException : Exception
     {
         public KeycutRepositoryError Error { get; }
 
-        public KeycutRepositoryException(KeycutRepositoryError error, string message, Exception inner = null)
+        /// <summary>For <see cref="KeycutRepositoryError.InvalidTarget"/>: why the target was rejected.</summary>
+        public TargetError TargetError { get; }
+
+        public KeycutRepositoryException(KeycutRepositoryError error, string message, Exception inner = null, TargetError targetError = TargetError.None)
             : base(message, inner)
         {
             Error = error;
+            TargetError = targetError;
         }
     }
 
@@ -39,17 +49,29 @@ namespace keycuts.Common
 
         private readonly string _outputFolder;
 
+        private readonly IFileRecycler _recycler;
+
+        /// <summary>
+        /// A repository that deletes files for good. Use <see cref="CreateDefault"/> (or pass a
+        /// <see cref="RecycleBinRecycler"/>) for the app, which sends them to the Recycle Bin.
+        /// </summary>
         public KeycutRepository(string outputFolder)
+            : this(outputFolder, new PermanentDeleter())
+        {
+        }
+
+        public KeycutRepository(string outputFolder, IFileRecycler recycler)
         {
             _outputFolder = outputFolder;
+            _recycler = recycler ?? throw new ArgumentNullException(nameof(recycler));
         }
 
         public string OutputFolder => _outputFolder;
 
-        /// <summary>Production repository for the configured output folder.</summary>
+        /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179).</summary>
         public static KeycutRepository CreateDefault()
         {
-            return new KeycutRepository(new Runner().GetOutputFolder());
+            return new KeycutRepository(new Runner().GetOutputFolder(), new RecycleBinRecycler());
         }
 
         /// <summary>
@@ -116,7 +138,8 @@ namespace keycuts.Common
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.Unknown,
                     Target = "",
-                    FilePath = file
+                    FilePath = file,
+                    Modified = File.GetLastWriteTime(file)
                 };
             }
             catch (Exception)
@@ -132,10 +155,144 @@ namespace keycuts.Common
             return all.Count;
         }
 
+        /// <summary>
+        /// Removes the keycut's file (to the Recycle Bin, with <see cref="CreateDefault"/>) and returns what
+        /// <see cref="RestoreAsync"/> needs to put it back: the file's exact bytes and write time, read first.
+        /// </summary>
         /// <exception cref="KeycutRepositoryException">The file is already gone, locked, or can't be deleted.</exception>
-        public Task DeleteAsync(Keycut keycut, CancellationToken ct = default)
+        public Task<DeletedKeycut> DeleteAsync(Keycut keycut, CancellationToken ct = default)
         {
             return Task.Run(() => Delete(keycut), ct);
+        }
+
+        /// <summary>
+        /// Writes a deleted keycut back exactly as it was, bytes and last write time, and never over a file: if its name
+        /// was taken again in the meantime that's refused. The bytes go to a temp file first and are moved into place, so
+        /// a failure can't leave a half-written keycut, and a keycut created at that moment is never replaced.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The name is taken (<see cref="KeycutRepositoryError.AlreadyExists"/>), or the folder is gone or can't be written.</exception>
+        public Task RestoreAsync(DeletedKeycut deleted, CancellationToken ct = default)
+        {
+            return Task.Run(() => Restore(deleted), ct);
+        }
+
+        /// <summary>
+        /// Whether the Edit form can save this keycut without losing anything (#180): true when the emitter would write
+        /// the very same file from what the parser reads. A hand-edited launch line (an added <c>%*</c>), a file the
+        /// parser reads wrongly, and the 0.1.x format fail it; so does a file that can't be read.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The file is already gone (<see cref="KeycutRepositoryError.NotFound"/>), which isn't the same as "not editable".</exception>
+        public Task<bool> CanEditInFormAsync(Keycut keycut, CancellationToken ct = default)
+        {
+            return Task.Run(() =>
+            {
+                if (!File.Exists(keycut.FilePath))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{keycut.FilePath}\" no longer exists.");
+                }
+
+                return CanEditInForm(keycut.FilePath);
+            }, ct);
+        }
+
+        /// <summary><see cref="CanEditInFormAsync"/> for a file path. False when the file can't be read.</summary>
+        public static bool CanEditInForm(string path)
+        {
+            try
+            {
+                return CanEditInForm(path, File.ReadAllLines(path));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// The test behind <see cref="CanEditInFormAsync"/>, on lines already read: <see cref="Runner.BuildShortcutLines"/>
+        /// of the parse must equal the file. Three things are ignored because they change nothing about what runs: the
+        /// version in the <c>REM keycuts</c> header, the old <c>&lt;destination&gt;</c> tag name (#195) and the path in
+        /// the <c>REM &lt;shortcut&gt;</c> line. A missing description line counts as an empty one, because keycuts written
+        /// before descriptions existed (1.0) have none and nothing is lost by adding it. Touches no files.
+        /// </summary>
+        public static bool CanEditInForm(string path, string[] lines)
+        {
+            return TryReadEditable(path, lines, out _);
+        }
+
+        private static bool TryReadEditable(string path, string[] lines, out ShortcutFile parsed)
+        {
+            parsed = new ShortcutFile(path, lines);
+
+            if (parsed.Type == ShortcutType.Unknown || string.IsNullOrEmpty(parsed.Target))
+            {
+                return false;
+            }
+
+            List<string> emitted;
+
+            try
+            {
+                var shortcut = Shortcut.FromParts(parsed.Type, parsed.Target, path, string.IsNullOrEmpty(parsed.OpenWithApp) ? null : parsed.OpenWithApp);
+                emitted = Runner.BuildShortcutLines(shortcut, parsed.Description);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+
+            // Written before descriptions: no line to compare, and an empty one would be added, which loses nothing
+            if (parsed.Description.Length == 0 && !lines.Any(line => DescriptionRemLine.IsMatch(line)))
+            {
+                emitted.RemoveAll(line => DescriptionRemLine.IsMatch(line));
+            }
+
+            return lines.Select(NormalizeForComparison).SequenceEqual(emitted.Select(NormalizeForComparison), StringComparer.Ordinal);
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex DescriptionRemLine = new System.Text.RegularExpressions.Regex(
+            @"^\s*REM\s+<description>.*</description>\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex HeaderRemLine = new System.Text.RegularExpressions.Regex(
+            @"^REM keycuts(\s.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex ShortcutRemPath = new System.Text.RegularExpressions.Regex(
+            @"^REM <shortcut>.*</shortcut>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex DestinationRemTag = new System.Text.RegularExpressions.Regex(
+            @"^REM <destination>(.*)</destination>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>A line with what <see cref="CanEditInForm(string, string[])"/> ignores taken out.</summary>
+        private static string NormalizeForComparison(string line)
+        {
+            if (HeaderRemLine.IsMatch(line))
+            {
+                return "REM keycuts";
+            }
+
+            if (ShortcutRemPath.IsMatch(line))
+            {
+                return "REM <shortcut></shortcut>";
+            }
+
+            return DestinationRemTag.Replace(line, "REM <target>$1</target>");
+        }
+
+        /// <summary>
+        /// Saves the Edit form (#180): writes the keycut again with a new target, name and description. Only a file
+        /// <see cref="CanEditInFormAsync"/> accepts is touched, since the file is re-emitted whole. The target is written
+        /// exactly as it was when its text is unchanged (no re-reading of the type, so nothing about it can drift);
+        /// otherwise it is resolved like a new keycut's, with environment variables if <see cref="KeycutEdit.UseEnvironmentVariables"/>.
+        /// A new name is a rename and an edit in one: the new file is complete before the old one goes, and a name that is
+        /// taken is refused, never overwritten. The content goes through a temp file, so a failed write leaves the keycut as it was.
+        /// Returns the keycut as read back from the file.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The name or target is invalid (<see cref="KeycutRepositoryError.InvalidName"/>,
+        /// <see cref="KeycutRepositoryError.InvalidTarget"/>), the name is taken, the file is gone, can't be edited here
+        /// (<see cref="KeycutRepositoryError.NotEditable"/>), or can't be written.</exception>
+        public Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit, CancellationToken ct = default)
+        {
+            return Task.Run(() => Update(keycut, edit), ct);
         }
 
         /// <summary>
@@ -312,7 +469,8 @@ namespace keycuts.Common
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
                     Target = shortcut.Target ?? "",
-                    FilePath = file
+                    FilePath = file,
+                    Modified = File.GetLastWriteTime(file)
                 };
             }
             catch (Exception ex)
@@ -322,7 +480,7 @@ namespace keycuts.Common
             }
         }
 
-        private static void Delete(Keycut keycut)
+        private DeletedKeycut Delete(Keycut keycut)
         {
             var path = keycut.FilePath;
 
@@ -333,7 +491,14 @@ namespace keycuts.Common
                     throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{path}\" no longer exists.");
                 }
 
-                File.Delete(path);
+                // Read before removing: a file that can't be read can't be undone, and isn't deleted
+                var contents = File.ReadAllBytes(path);
+                var modified = File.GetLastWriteTime(path);
+                var recycled = _recycler.UsesRecycleBin(path);
+
+                _recycler.Remove(path);
+
+                return new DeletedKeycut(keycut, contents, modified, recycled);
             }
             catch (KeycutRepositoryException)
             {
@@ -342,6 +507,191 @@ namespace keycuts.Common
             catch (Exception ex)
             {
                 throw Translate(ex, $"Can't delete \"{path}\".");
+            }
+        }
+
+        private static Keycut Update(Keycut keycut, KeycutEdit edit)
+        {
+            var oldPath = keycut.FilePath;
+            var name = (edit.Name ?? string.Empty).Trim();
+
+            if (!KeycutCreator.IsValidName(name))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidName, $"\"{name}\" isn't a valid keycut name.");
+            }
+
+            var folder = Path.GetDirectoryName(oldPath);
+            var newPath = Path.Combine(folder, name + ShortcutFile.Extension);
+            var sameFile = string.Equals(newPath, oldPath, StringComparison.OrdinalIgnoreCase);
+
+            try
+            {
+                if (!File.Exists(oldPath))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{oldPath}\" no longer exists.");
+                }
+
+                if (!TryReadEditable(oldPath, File.ReadAllLines(oldPath), out var parsed))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{oldPath}\" can't be edited here.");
+                }
+
+                // Another keycut with that name, unless it's this file under a different case
+                if (!sameFile && File.Exists(newPath))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+                }
+
+                var lines = Runner.BuildShortcutLines(BuildShortcutForEdit(parsed, edit, name, newPath, folder), edit.Description);
+
+                // Beside the keycut, and not a .bat, so a listing never sees it; swapped in only once it's complete
+                var temp = Path.Combine(folder, "." + Path.GetFileName(oldPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+                try
+                {
+                    File.WriteAllLines(temp, lines);
+
+                    if (sameFile)
+                    {
+                        // Replace, not Move: it keeps the original's identity (permissions, the "downloaded" mark)
+                        File.Replace(temp, oldPath, null);
+
+                        if (!string.Equals(newPath, oldPath, StringComparison.Ordinal))
+                        {
+                            File.Move(oldPath, newPath);
+                        }
+                    }
+                    else
+                    {
+                        // Move never overwrites, so a keycut made under that name since the check above is kept (it throws)
+                        File.Move(temp, newPath);
+
+                        try
+                        {
+                            File.Delete(oldPath);
+                        }
+                        catch (Exception)
+                        {
+                            // Two keycuts is worse than a failed save: take the new one back out
+                            File.Delete(newPath);
+                            throw;
+                        }
+                    }
+                }
+                finally
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+
+                return TryParse(newPath) ?? new Keycut
+                {
+                    Name = name,
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.Unknown,
+                    Target = edit.Target,
+                    FilePath = newPath,
+                    Modified = File.GetLastWriteTime(newPath)
+                };
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (IOException) when (!sameFile && File.Exists(newPath))
+            {
+                // Taken between the check and the move
+                throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't save \"{oldPath}\".");
+            }
+        }
+
+        /// <summary>The keycut the form's values describe, for the emitter to write.</summary>
+        private static Shortcut BuildShortcutForEdit(ShortcutFile parsed, KeycutEdit edit, string name, string newPath, string folder)
+        {
+            var target = (edit.Target ?? string.Empty).Trim();
+
+            // Unchanged: the type and target as read, so the launch line comes out as it was (TryReadEditable proved it does)
+            if (string.Equals(target, parsed.Target, StringComparison.Ordinal))
+            {
+                return Shortcut.FromParts(parsed.Type, parsed.Target, newPath, string.IsNullOrEmpty(parsed.OpenWithApp) ? null : parsed.OpenWithApp);
+            }
+
+            var resolved = TargetResolver.Resolve(target);
+
+            if (!resolved.IsValid)
+            {
+                var error = resolved.Error == TargetError.None || resolved.Error == TargetError.Empty ? TargetError.NotFound : resolved.Error;
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidTarget, $"\"{target}\" can't be used as a target.", null, error);
+            }
+
+            // As a new keycut: the ".bat" keeps a dot in the name from being read as an extension
+            var shortcut = new Shortcut(resolved.Target, name + ShortcutFile.Extension, folder);
+
+            if (shortcut.Type == ShortcutType.Unknown)
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidTarget, $"\"{target}\" can't be used as a target.", null, TargetError.NotFound);
+            }
+
+            if (edit.UseEnvironmentVariables && PathVariables.AppliesTo(shortcut.Type))
+            {
+                shortcut.SetTarget(PathVariables.Substitute(shortcut.Target, edit.PathVariables ?? PathVariables.GetDefault()));
+            }
+
+            return shortcut;
+        }
+
+        private static void Restore(DeletedKeycut deleted)
+        {
+            var path = deleted.Keycut.FilePath;
+            var name = Path.GetFileNameWithoutExtension(path);
+
+            try
+            {
+                // Never overwrite: the name may have been used again since (a new keycut with the same name)
+                if (File.Exists(path))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+                }
+
+                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+                try
+                {
+                    File.WriteAllBytes(temp, deleted.Contents);
+
+                    if (deleted.Modified != default)
+                    {
+                        File.SetLastWriteTime(temp, deleted.Modified);
+                    }
+
+                    // Move without overwriting, so a file created between the check and here is kept (it throws)
+                    File.Move(temp, path);
+                }
+                finally
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't restore \"{path}\".");
             }
         }
 

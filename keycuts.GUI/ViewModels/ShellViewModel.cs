@@ -61,6 +61,7 @@ namespace keycuts.GUI.ViewModels
                 welcome.KeycutCreated += (sender, e) => _ = ReloadAsync();
             }
             Manager.KeycutDeleted += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
+            Manager.KeycutRestored += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
         }
 
         /// <summary>Raised when a settings button is pressed. The window opens the dialog and then calls <see cref="ReloadAsync"/>.</summary>

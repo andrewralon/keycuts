@@ -114,7 +114,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="TextboxOutputFolder" Grid.Column="0" Style="{StaticResource OutputFolderBox}"
                              Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
-                             themes:TextBoxChrome.Placeholder="Choose where shortcuts are saved"
+                             themes:TextBoxChrome.Placeholder="Choose where keycuts are saved"
                              AutomationProperties.Name="Output folder"
                              AutomationProperties.HelpText="{Binding OutputFolderMessage}" />
                     <!-- Icon-only, so each says what it does in a tooltip; the automation names are unchanged -->

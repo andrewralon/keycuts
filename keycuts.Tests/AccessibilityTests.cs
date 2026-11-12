@@ -254,8 +254,7 @@ namespace keycuts.Tests
                 EnsureApplication();
                 var state = new FakeUpdateState
                 {
-                    LatestVersion = "1.2.0",
-                    LatestReleaseUrl = "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0"
+                    LatestReleaseSeen = ("1.2.0", "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0")
                 };
                 var notice = new UpdateNoticeViewModel(UpdateFakes.Checker(new FakeReleaseSource(), state), _ => { });
                 notice.Refresh();
@@ -509,15 +508,51 @@ namespace keycuts.Tests
             return manager;
         }
 
-        static bool Press(UIElement target, Key key)
+        // The event carries its own keyboard, so a handler that reads e.KeyboardDevice.Modifiers sees exactly these modifiers and
+        // not whatever is held on the machine while the tests run (that used to fail them at random)
+        static bool Press(UIElement target, Key key, ModifierKeys modifiers = ModifierKeys.None)
         {
-            var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(target), 0, key)
+            var args = new KeyEventArgs(new FakeKeyboardDevice(modifiers), PresentationSource.FromVisual(target), 0, key)
             {
                 RoutedEvent = Keyboard.PreviewKeyDownEvent
             };
             target.RaiseEvent(args);
             Pump();
             return args.Handled;
+        }
+
+        // Also proves the handler reads the event's keyboard: no modifier is held on this machine, yet Ctrl on the event is respected
+        [Theory]
+        [InlineData(ModifierKeys.Control)]
+        [InlineData(ModifierKeys.Shift)]
+        [InlineData(ModifierKeys.Alt)]
+        public void Manager_IgnoresArrowsAndF2WithAModifier_ButHandlesThemWithout(ModifierKeys modifiers)
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+
+                    Assert.False(Press(search, Key.Down, modifiers));
+                    Assert.Null(manager.SelectedRow);
+
+                    Assert.True(Press(search, Key.Down));
+                    Assert.Equal("alpha", manager.SelectedRow?.Name);
+
+                    Assert.False(Press(search, Key.F2, modifiers));
+                    Assert.False(manager.IsRenaming);
+                    Assert.True(Press(search, Key.F2));
+                    Assert.True(manager.IsRenaming);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
         }
 
         [Fact]

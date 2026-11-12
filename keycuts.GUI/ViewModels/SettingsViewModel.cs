@@ -33,11 +33,11 @@ namespace keycuts.GUI.ViewModels
 
     /// <summary>
     /// State and rules of the Settings window. Nothing is stored until <see cref="Save"/> passes validation;
-    /// closing the window any other way (Cancel, Escape) leaves the store untouched.
+    /// closing the window any other way (Escape, the close button) leaves the store untouched.
     /// </summary>
     public class SettingsViewModel : ObservableObject
     {
-        public const string DefaultHelperText = "New .bat files will be saved here.";
+        public const string DefaultHelperText = "New keycuts files are saved here.";
 
         public const string EmptyFolderMessage = "Choose where shortcuts are saved.";
 

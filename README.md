@@ -76,9 +76,10 @@ Batmanager app, which has been removed).
   **Open file location** (shows the `.bat` in Explorer), **Copy destination**, and **Delete**. Delete has no confirmation.
 * Missing destinations are flagged. The list refreshes when the window is activated and on F5.
 
-Settings (the gear button) holds the output folder (**Choose** picks one, **Launch** opens it in Explorer), **Ask before replacing a keycut**,
-**Right-click context menus**, **Use environment variables in paths**, the theme, and **Check for updates**. **Save changes** (or Enter) checks that the
-folder can be written to, creating it if needed, and shows any problem under the field; **Cancel** (or Escape) closes without saving.
+Settings (the gear button) holds the output folder (the folder button picks one, and the button beside it opens it in Explorer; hover
+either to see what it does), **Ask before replacing a keycut**, **Right-click context menus**, **Use environment variables in paths**, the
+theme, and **Check for updates**. **Save** (or Enter) checks that the folder can be written to, creating it if needed, and shows any
+problem beside the **Output folder** label; Escape or the window's close button closes without saving.
 
 Settings has a theme choice: System (the default), which follows Windows live, Light, or Dark. A click previews the theme, and Save keeps it. Windows high contrast always wins over the choice.
 

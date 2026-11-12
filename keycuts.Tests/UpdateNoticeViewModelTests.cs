@@ -59,7 +59,7 @@ namespace keycuts.Tests
         public async Task Startup_WithinADay_ShowsWhatTheLastCheckFound_WithoutARequest()
         {
             var source = new FakeReleaseSource();
-            var state = new FakeUpdateState { LastCheck = UpdateFakes.Now.AddHours(-1), LatestVersion = "1.2.0", LatestReleaseUrl = ReleaseUrl };
+            var state = new FakeUpdateState { LastCheck = UpdateFakes.Now.AddHours(-1), LatestReleaseSeen = ("1.2.0", ReleaseUrl) };
             var notice = new UpdateNoticeViewModel(UpdateFakes.Checker(source, state), _ => { });
 
             await notice.CheckOnStartupAsync();
@@ -72,7 +72,7 @@ namespace keycuts.Tests
         public async Task Startup_WhenTurnedOff_ShowsNothing_AndMakesNoRequest()
         {
             var source = new FakeReleaseSource { Next = () => FakeReleaseSource.Release("v1.2.0") };
-            var state = new FakeUpdateState { Enabled = false, LatestVersion = "1.2.0", LatestReleaseUrl = ReleaseUrl };
+            var state = new FakeUpdateState { Enabled = false, LatestReleaseSeen = ("1.2.0", ReleaseUrl) };
             var notice = new UpdateNoticeViewModel(UpdateFakes.Checker(source, state), _ => { });
 
             await notice.CheckOnStartupAsync();
@@ -110,7 +110,7 @@ namespace keycuts.Tests
 
             Assert.False(notice.IsVisible);
             Assert.Contains(nameof(UpdateNoticeViewModel.IsVisible), changed);
-            Assert.Equal("1.2.0", state.DismissedVersion);
+            Assert.Equal("1.2.0", state.DismissedRelease);
 
             // The next start: the same release stays hidden
             notice.Refresh();
@@ -216,7 +216,7 @@ namespace keycuts.Tests
         [Fact]
         public void Settings_ShowsWhatTheLastCheckFound()
         {
-            var state = new FakeUpdateState { LatestVersion = "1.2.0", LatestReleaseUrl = ReleaseUrl };
+            var state = new FakeUpdateState { LatestReleaseSeen = ("1.2.0", ReleaseUrl) };
             var vm = NewSettings(UpdateFakes.Checker(new FakeReleaseSource(), state));
 
             Assert.Equal("keycuts 1.2.0 is available", vm.UpdateStatusText);
@@ -227,7 +227,7 @@ namespace keycuts.Tests
         [Fact]
         public void Settings_ShowsADismissedRelease_TooBecauseItIsStillNewer()
         {
-            var state = new FakeUpdateState { LatestVersion = "1.2.0", LatestReleaseUrl = ReleaseUrl, DismissedVersion = "1.2.0" };
+            var state = new FakeUpdateState { LatestReleaseSeen = ("1.2.0", ReleaseUrl), DismissedRelease = "1.2.0" };
             var vm = NewSettings(UpdateFakes.Checker(new FakeReleaseSource(), state));
 
             Assert.True(vm.IsUpdateAvailable);
@@ -264,7 +264,7 @@ namespace keycuts.Tests
         [Fact]
         public async Task CheckNow_AFailure_SaysSo_InsteadOfStayingSilent()
         {
-            var state = new FakeUpdateState { LatestVersion = "1.2.0", LatestReleaseUrl = ReleaseUrl };
+            var state = new FakeUpdateState { LatestReleaseSeen = ("1.2.0", ReleaseUrl) };
             var source = new FakeReleaseSource { Next = () => throw new HttpRequestException("offline") };
             var vm = NewSettings(UpdateFakes.Checker(source, state));
             Assert.True(vm.IsUpdateAvailable);
@@ -294,7 +294,7 @@ namespace keycuts.Tests
             var state = new FakeUpdateState();
             var vm = NewSettings(UpdateFakes.Checker(source, state));
             string? storedWhenRaised = null;
-            vm.UpdateChecked += (sender, e) => storedWhenRaised = state.LatestVersion;
+            vm.UpdateChecked += (sender, e) => storedWhenRaised = state.LatestReleaseSeen?.Version;
 
             await vm.CheckNowCommand.ExecuteAsync();
 

@@ -47,8 +47,9 @@ namespace keycuts.GUI.Views
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.
         private void ManagerView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // While renaming, the name box owns the keys (this handler runs before it)
-            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming || Keyboard.Modifiers != ModifierKeys.None)
+            // While renaming, the name box owns the keys (this handler runs before it). Modifiers come from the event's own device:
+            // in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give the event its own.
+            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming || e.KeyboardDevice.Modifiers != ModifierKeys.None)
             {
                 return;
             }
@@ -230,7 +231,7 @@ namespace keycuts.GUI.Views
 
         private void RowMenu_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            var altDown = (e.Key == Key.Down && Keyboard.Modifiers == ModifierKeys.Alt) ||
+            var altDown = (e.Key == Key.Down && e.KeyboardDevice.Modifiers == ModifierKeys.Alt) ||
                           (e.Key == Key.System && e.SystemKey == Key.Down);
 
             if (altDown && sender is MenuButton button && button.ContextMenu != null)

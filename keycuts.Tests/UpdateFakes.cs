@@ -46,11 +46,9 @@ namespace keycuts.Tests
     {
         private DateTimeOffset? lastCheck;
 
-        private string? latestVersion;
+        private (string Version, string Url)? latestReleaseSeen;
 
-        private string? latestReleaseUrl;
-
-        private string? dismissedVersion;
+        private string? dismissedRelease;
 
         public bool Enabled { get; set; } = true;
 
@@ -73,22 +71,17 @@ namespace keycuts.Tests
             set { Write(); lastCheck = value; }
         }
 
-        public string LatestVersion
+        // One property for the pair, as in the real store, so a test can't set a version without its URL
+        public (string Version, string Url)? LatestReleaseSeen
         {
-            get { return Read(latestVersion)!; }
-            set { Write(); latestVersion = value; }
+            get { return Read(latestReleaseSeen); }
+            set { Write(); latestReleaseSeen = value; }
         }
 
-        public string LatestReleaseUrl
+        public string DismissedRelease
         {
-            get { return Read(latestReleaseUrl)!; }
-            set { Write(); latestReleaseUrl = value; }
-        }
-
-        public string DismissedVersion
-        {
-            get { return Read(dismissedVersion)!; }
-            set { Write(); dismissedVersion = value; }
+            get { return Read(dismissedRelease)!; }
+            set { Write(); dismissedRelease = value; }
         }
 
         private T Read<T>(T value)

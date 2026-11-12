@@ -5,6 +5,7 @@ using System.Windows;
 using System.ComponentModel;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using keycuts.Common;
 using keycuts.GUI.Themes;
@@ -13,7 +14,7 @@ using keycuts.GUI.ViewModels;
 namespace keycuts.GUI
 {
     /// <summary>
-    /// The modal Settings dialog. Save validates and closes with a true result; Cancel and Escape close without saving.
+    /// The modal Settings dialog. Save validates and closes with a true result; Escape and the window's close button close without saving.
     /// </summary>
     public partial class SettingsWindow : Window
     {
@@ -146,11 +147,25 @@ namespace keycuts.GUI
             }
         }
 
-        // Unsaved changes are dropped, as with Cancel
+        // Unsaved changes are dropped, as with Escape
         private void ShowWelcome_Click(object sender, RoutedEventArgs e)
         {
             ShowWelcomeRequested = true;
             DialogResult = false;
+        }
+
+        // There is no Cancel button, so Escape closes the window the way its close button does: nothing is saved, and the theme
+        // preview is dropped in Settings_Closed. Like the IsCancel button this replaces, it acts only on a key nothing inside the
+        // window handled: WPF doesn't call OnKeyDown for a key that is already marked handled.
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                Close();
+            }
         }
 
         // A click previews the theme right away; only Save keeps it.

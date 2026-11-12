@@ -33,7 +33,9 @@ foreach ($folder in $publish, $output) {
     if (Test-Path $folder) { Remove-Item $folder -Recurse -Force }
 }
 
-$versionArgs = if ($Version) { @("-p:Version=$Version") } else { @() }
+# @(...) keeps this an array: an if expression unrolls a one-element array to a string, and splatting a string passes
+# each character as its own argument (dotnet then sees "- p : V e r s i o n")
+$versionArgs = @(if ($Version) { "-p:Version=$Version" })
 
 foreach ($project in 'keycuts.GUI', 'keycuts.CLI') {
     dotnet publish (Join-Path $root "$project\$project.csproj") -c Release -r $Runtime --self-contained true `

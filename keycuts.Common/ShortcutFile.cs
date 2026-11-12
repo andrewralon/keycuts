@@ -27,15 +27,17 @@ namespace keycuts.Common
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex regexRemType = new Regex(@"^\s*REM\s+<type>(.*)</type>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex regexRemDestination = new Regex(@"^\s*REM\s+<destination>(.*)</destination>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex regexRemType = new Regex(@"^\s*REM\s+<type>(?<value>.*)</type>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // <target> is what the emitter writes (#195). Files written before that call the same thing <destination>, and users
+        // still have them, so both are read; the closing tag has to match the opening one.
+        private static readonly Regex regexRemTarget = new Regex(@"^\s*REM\s+<(?<tag>target|destination)>(?<value>.*)</\k<tag>>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static readonly string Extension = ".bat";
 
         public string Path { get; set; }
         public string Shortcut { get; set; }
         public ShortcutType Type { get; set; }
-        public string Destination { get; set; }
+        public string Target { get; set; }
         public string OpenWithApp { get; set; }
         public string Command { get; set; }
 
@@ -73,50 +75,50 @@ namespace keycuts.Common
 
                 if (ShortcutFile.IsEmittedCommand(line, out string emittedCommand))
                 {
-                    Destination = emittedCommand;
+                    Target = emittedCommand;
                     Type = ShortcutType.Command;
                     break;
                 }
                 else if (ShortcutFile.IsCLSIDKey(line, out string clsidKey))
                 {
-                    Destination = clsidKey;
+                    Target = clsidKey;
                     Type = ShortcutType.CLSIDKey;
                     break;
                 }
                 else if (ShortcutFile.IsFolder(line, out string folder))
                 {
-                    Destination = Unquote(folder);
+                    Target = Unquote(folder);
                     Type = ShortcutType.Folder;
                     break;
                 }
                 else if (ShortcutFile.IsHostsFile(line, out string hostsFile, out string openWithApp))
                 {
-                    Destination = hostsFile;
+                    Target = hostsFile;
                     Type = ShortcutType.HostsFile;
                     OpenWithApp = Unquote(openWithApp);
                     break;
                 }
                 else if (ShortcutFile.IsStartInFolder(line, out string fileInFolder))
                 {
-                    Destination = fileInFolder;
+                    Target = fileInFolder;
                     Type = ShortcutType.File;
                     break;
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
                 {
-                    Destination = Unquote(newFile);
+                    Target = Unquote(newFile);
                     Type = ShortcutType.File;
                     break;
                 }
                 else if (ShortcutFile.IsCommand(line, out string command))
                 {
-                    Destination = command;
+                    Target = command;
                     Type = ShortcutType.Command;
                     break;
                 }
                 else if (ShortcutFile.IsValidUrl(line, out string url))
                 {
-                    Destination = url;
+                    Target = url;
                     Type = ShortcutType.Url;
                     break;
                 }
@@ -124,35 +126,37 @@ namespace keycuts.Common
                 Type = ShortcutType.Unknown;
             }
 
-            // The comment lines hold the type and destination as the emitter was given them (only surrounding
+            // The comment lines hold the type and target as the emitter was given them (only surrounding
             // whitespace is trimmed: Windows paths can't start or end with it), so they beat the regexes above,
             // which are the fallback for files that don't have them (the 0.1.x format).
             // They win even when the launch command disagrees (hand-edited %* arguments, a changed program, a legacy
             // file whose REM holds the expanded path). That is deliberate: this parser only feeds display and checks,
             // the .bat still runs its own command, and Command keeps the full launch line. Don't re-emit a file from
             // these fields without keeping Command, or hand-added arguments are lost.
-            if (TryParseRemTypeAndDestination(allLines, out var remType, out var remDestination))
+            if (TryParseRemTypeAndTarget(allLines, out var remType, out var remTarget))
             {
                 Type = remType;
-                Destination = remDestination;
+                Target = remTarget;
             }
         }
 
         /// <summary>
-        /// Reads the first well-formed <c>REM &lt;type&gt;</c> and <c>REM &lt;destination&gt;</c> lines. Both must be present,
-        /// the type must be a known one other than Unknown, and the destination must not be empty, or neither is used.
+        /// Reads the first well-formed <c>REM &lt;type&gt;</c> line and the first well-formed <c>REM &lt;target&gt;</c> line
+        /// (or <c>REM &lt;destination&gt;</c>, which files written before #195 have; whichever comes first in the file).
+        /// Both must be present, the type must be a known one other than Unknown, and the target must not be empty, or
+        /// neither is used.
         /// </summary>
-        public static bool TryParseRemTypeAndDestination(string[] lines, out ShortcutType type, out string destination)
+        public static bool TryParseRemTypeAndTarget(string[] lines, out ShortcutType type, out string target)
         {
             type = ShortcutType.Unknown;
-            destination = null;
+            target = null;
 
             var typeText = FirstRemValue(lines, regexRemType);
-            var destinationText = FirstRemValue(lines, regexRemDestination);
+            var targetText = FirstRemValue(lines, regexRemTarget);
 
             // The name must match a defined value exactly (ignoring case): Enum.TryParse alone also accepts numbers
             // ("3" is Folder, "-1" is an undefined value whose name is "-1") and lists ("file,folder").
-            if (typeText == null || string.IsNullOrEmpty(destinationText) ||
+            if (typeText == null || string.IsNullOrEmpty(targetText) ||
                 !Enum.TryParse(typeText, true, out ShortcutType parsed) ||
                 !Enum.IsDefined(typeof(ShortcutType), parsed) ||
                 !string.Equals(parsed.ToString(), typeText, StringComparison.OrdinalIgnoreCase) ||
@@ -162,7 +166,7 @@ namespace keycuts.Common
             }
 
             type = parsed;
-            destination = destinationText;
+            target = targetText;
             return true;
         }
 
@@ -174,7 +178,7 @@ namespace keycuts.Common
 
                 if (match.Success)
                 {
-                    return match.Groups[1].Value.Trim();
+                    return match.Groups["value"].Value.Trim();
                 }
             }
 
@@ -183,7 +187,7 @@ namespace keycuts.Common
 
         /// <summary>
         /// Removes one leading and one trailing quote. The File and Folder patterns capture the launch line from its first
-        /// quote to its last, and the emitter wraps the destination in one pair of quotes, so this is its exact inverse.
+        /// quote to its last, and the emitter wraps the target in one pair of quotes, so this is its exact inverse.
         /// That holds even when the value has quotes inside (a program followed by quoted arguments, in a hand-written
         /// file): re-emitting it gives back the original line. A path itself can't contain quotes on Windows.
         /// </summary>
@@ -252,7 +256,7 @@ namespace keycuts.Common
         /// <summary>
         /// Reads the 0.1.x launch line for a program, <c>START "" /D "&lt;folder&gt;" "&lt;program&gt;" ["&lt;argument&gt;" ...]</c>.
         /// The folder and program are joined into one path (just the program when the folder is empty), and any quoted
-        /// arguments are kept after it, unquoted like a File destination: <c>C:\Tools\app.exe" "arg</c>. The /B line the
+        /// arguments are kept after it, unquoted like a File target: <c>C:\Tools\app.exe" "arg</c>. The /B line the
         /// emitter writes for that reads back the same. A line with an unquoted program, or any unquoted argument (even
         /// one between quoted arguments), is left to the other patterns.
         /// </summary>

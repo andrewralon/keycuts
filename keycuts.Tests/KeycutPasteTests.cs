@@ -47,9 +47,9 @@ namespace keycuts.Tests
             }
         }
 
-        static string Keycut(string destination, ShortcutType type = ShortcutType.Folder)
+        static string Keycut(string target, ShortcutType type = ShortcutType.Folder)
         {
-            var lines = Runner.BuildShortcutLines(Shortcut.FromParts(type, destination, @"C:\Shortcuts\db.bat"));
+            var lines = Runner.BuildShortcutLines(Shortcut.FromParts(type, target, @"C:\Shortcuts\db.bat"));
             return string.Join("\r\n", lines);
         }
 
@@ -58,10 +58,10 @@ namespace keycuts.Tests
         [InlineData(ShortcutType.File, @"%userprofile%\notes.txt", @"C:\Users\me\notes.txt")]
         [InlineData(ShortcutType.Folder, @"D:\Data", @"D:\Data")]                                   // no variables: unchanged
         [InlineData(ShortcutType.Url, "https://example.com/%USERPROFILE%", "https://example.com/%USERPROFILE%")]  // a URL is copied as written
-        public void Run_AFileOrFolderKeycut_IsCopiedWithItsVariablesExpanded(ShortcutType type, string destination, string expected)
+        public void Run_AFileOrFolderKeycut_IsCopiedWithItsVariablesExpanded(ShortcutType type, string target, string expected)
         {
             var fake = new FakeFiles();
-            fake.Files[@"C:\Shortcuts\db.bat"] = Keycut(destination, type);
+            fake.Files[@"C:\Shortcuts\db.bat"] = Keycut(target, type);
 
             Assert.Equal(ExitCode.Success, fake.Run("db"));
             Assert.Equal(new[] { expected }, fake.Copied);
@@ -124,7 +124,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Run_AKeycut_CopiesItsDestination_AndPrintsIt()
+        public void Run_AKeycut_CopiesItsTarget_AndPrintsIt()
         {
             var fake = new FakeFiles();
             fake.Files[@"C:\Shortcuts\db.bat"] = Keycut(@"C:\Users\me\Dropbox");

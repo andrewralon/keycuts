@@ -6,29 +6,29 @@ namespace keycuts.Common
 {
     public class KeycutArgs
     {
-        public string Destination { get; set; }
+        public string Target { get; set; }
         public string Shortcut { get; set; }
         public string OpenWithApp { get; set; }
         public string OutputFolder { get; set; }
         public bool Force { get; set; }
         public string Description { get; set; } = "";
 
-        /// <summary>Save a file or folder destination with environment variables (#31), e.g. %USERPROFILE%\Desktop.</summary>
+        /// <summary>Save a file or folder target with environment variables (#31), e.g. %USERPROFILE%\Desktop.</summary>
         public bool UseEnvironmentVariables { get; set; }
 
         /// <summary>The variables to use; null reads them from this machine (<see cref="Common.PathVariables.GetDefault"/>).</summary>
         public IReadOnlyList<PathVariable> PathVariables { get; set; }
 
         public KeycutArgs(
-            string destination = "",
+            string target = "",
             string shortcut = "",
             string openWithApp = "",
             string outputFolder = "",
             bool force = false)
         {
-            if (destination != "")
+            if (target != "")
             {
-                Destination = destination;
+                Target = target;
             }
             if (shortcut != "")
             {

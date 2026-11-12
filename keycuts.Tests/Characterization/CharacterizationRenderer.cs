@@ -22,14 +22,14 @@ namespace keycuts.Tests.Characterization
         {
             ["edge-cases/command-type.bat"] = "The REM lines make it Command. Its launch line is the old emitter's START \"\" /B \"<command>\", which the fallback would read as File: the file pattern matches any quoted START (#93).",
             ["edge-cases/empty.bat"] = "No command line, so Unknown.",
-            ["edge-cases/header-content-drift.bat"] = "The REM url wins over the Chrome launch line, by design: REM type and destination beat the launch command. Command keeps the real line (#91).",
-            ["edge-cases/openwithapp.bat"] = "Read from the REM lines, so OpenWithApp is lost: the fallback has no File-with-app form, and without REM lines it would read the app and the file as one File destination (the line between its first and last quote), which re-emits the same line (#89).",
-            ["new-format/keypaste.bat"] = "The REM destination wins, so the hand-added %* is only in Command, not Destination (#91). Re-emitting from these fields would drop it.",
-            ["new-format/kp.bat"] = "The REM destination wins, so the hand-added %* is only in Command, not Destination (#91). Re-emitting from these fields would drop it.",
+            ["edge-cases/header-content-drift.bat"] = "The REM url wins over the Chrome launch line, by design: REM type and target beat the launch command. Command keeps the real line (#91).",
+            ["edge-cases/openwithapp.bat"] = "Read from the REM lines, so OpenWithApp is lost: the fallback has no File-with-app form, and without REM lines it would read the app and the file as one File target (the line between its first and last quote), which re-emits the same line (#89).",
+            ["new-format/keypaste.bat"] = "The REM target wins, so the hand-added %* is only in Command, not Target (#91). Re-emitting from these fields would drop it.",
+            ["new-format/kp.bat"] = "The REM target wins, so the hand-added %* is only in Command, not Target (#91). Re-emitting from these fields would drop it.",
             ["not-keycuts/dequote.bat"] = "Not a keycut. No START or explorer.exe line, so Unknown.",
             ["not-keycuts/ss.bat"] = "Not a keycut. The explorer.exe argument is unquoted, so no pattern matches.",
             ["old-format/gg.bat"] = "Header says url, but the command is a hand-edited Chrome launcher; only the command line is read (#91).",
-            ["old-format/pm.bat"] = "A real keycut, but the command line starts with a quoted path rather than START, so it is never read: Unknown, with no destination, and the manager doesn't list it.",
+            ["old-format/pm.bat"] = "A real keycut, but the command line starts with a quoted path rather than START, so it is never read: Unknown, with no target, and the manager doesn't list it.",
         };
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace keycuts.Tests.Characterization
         {
             builder.Append("Shortcut:    ").Append(Show(parsed.Shortcut)).Append('\n');
             builder.Append("Type:        ").Append(parsed.Type).Append('\n');
-            builder.Append("Destination: ").Append(Show(parsed.Destination)).Append('\n');
+            builder.Append("Target:      ").Append(Show(parsed.Target)).Append('\n');
             builder.Append("OpenWithApp: ").Append(Show(parsed.OpenWithApp)).Append('\n');
             builder.Append("Command:     ").Append(Show(parsed.Command)).Append('\n');
             builder.Append("Description: ").Append(Show(parsed.Description)).Append('\n');
@@ -88,7 +88,7 @@ namespace keycuts.Tests.Characterization
         {
             public string Name;
             public ShortcutType Type;
-            public string Destination;
+            public string Target;
             public string OpenWithAppPath;
             public string Description = "";
             public string Note;
@@ -96,24 +96,24 @@ namespace keycuts.Tests.Characterization
 
         private static readonly EmitterCase[] EmitterCases =
         {
-            new EmitterCase { Name = "url", Type = ShortcutType.Url, Destination = "https://mail.google.com/mail/u/0/#inbox" },
-            new EmitterCase { Name = "url-with-ampersand-and-percent", Type = ShortcutType.Url, Destination = "https://example.com/search?q=a&b=50%&c=%%d" },
-            new EmitterCase { Name = "url-with-double-ampersand", Type = ShortcutType.Url, Destination = "https://example.com/?a=1&&b=2" },
-            new EmitterCase { Name = "url-with-open-with-app", Type = ShortcutType.Url, Destination = "https://example.com", OpenWithAppPath = @"C:\Program Files\Mozilla Firefox\firefox.exe" },
-            new EmitterCase { Name = "file", Type = ShortcutType.File, Destination = @"C:\Program Files\Notepad++\notepad++.exe" },
-            new EmitterCase { Name = "file-with-ampersand-and-percent", Type = ShortcutType.File, Destination = @"C:\R&D\100% done.txt", Note = "Not escaped for cmd, unlike URLs." },
-            new EmitterCase { Name = "file-with-quote", Type = ShortcutType.File, Destination = "C:\\odd\\a\"b.txt" },
-            new EmitterCase { Name = "file-with-open-with-app", Type = ShortcutType.File, Destination = @"C:\Shortcuts\README.txt", OpenWithAppPath = @"C:\Program Files\Notepad++\notepad++.exe" },
-            new EmitterCase { Name = "file-unc", Type = ShortcutType.File, Destination = @"\\fileserver\share\report.xlsx" },
-            new EmitterCase { Name = "hostsfile", Type = ShortcutType.HostsFile, Destination = @"C:\Windows\System32\drivers\etc\hosts" },
-            new EmitterCase { Name = "folder", Type = ShortcutType.Folder, Destination = @"C:\Users\me\Downloads" },
-            new EmitterCase { Name = "folder-with-variable", Type = ShortcutType.Folder, Destination = @"%USERPROFILE%\Google Drive" },
-            new EmitterCase { Name = "clsidkey", Type = ShortcutType.CLSIDKey, Destination = "::{645FF040-5081-101B-9F08-00AA002F954E}" },
-            new EmitterCase { Name = "clsidkey-nested", Type = ShortcutType.CLSIDKey, Destination = @"::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}" },
-            new EmitterCase { Name = "command", Type = ShortcutType.Command, Destination = "ipconfig /all" },
-            new EmitterCase { Name = "unknown", Type = ShortcutType.Unknown, Destination = @"C:\missing.txt", Note = "Runner.Run never emits Unknown; there is no launch line to write." },
-            new EmitterCase { Name = "description", Type = ShortcutType.Url, Destination = "https://example.com", Description = "  Line one\r\nline two  " },
-            new EmitterCase { Name = "description-null", Type = ShortcutType.Url, Destination = "https://example.com", Description = null },
+            new EmitterCase { Name = "url", Type = ShortcutType.Url, Target = "https://mail.google.com/mail/u/0/#inbox" },
+            new EmitterCase { Name = "url-with-ampersand-and-percent", Type = ShortcutType.Url, Target = "https://example.com/search?q=a&b=50%&c=%%d" },
+            new EmitterCase { Name = "url-with-double-ampersand", Type = ShortcutType.Url, Target = "https://example.com/?a=1&&b=2" },
+            new EmitterCase { Name = "url-with-open-with-app", Type = ShortcutType.Url, Target = "https://example.com", OpenWithAppPath = @"C:\Program Files\Mozilla Firefox\firefox.exe" },
+            new EmitterCase { Name = "file", Type = ShortcutType.File, Target = @"C:\Program Files\Notepad++\notepad++.exe" },
+            new EmitterCase { Name = "file-with-ampersand-and-percent", Type = ShortcutType.File, Target = @"C:\R&D\100% done.txt", Note = "Not escaped for cmd, unlike URLs." },
+            new EmitterCase { Name = "file-with-quote", Type = ShortcutType.File, Target = "C:\\odd\\a\"b.txt" },
+            new EmitterCase { Name = "file-with-open-with-app", Type = ShortcutType.File, Target = @"C:\Shortcuts\README.txt", OpenWithAppPath = @"C:\Program Files\Notepad++\notepad++.exe" },
+            new EmitterCase { Name = "file-unc", Type = ShortcutType.File, Target = @"\\fileserver\share\report.xlsx" },
+            new EmitterCase { Name = "hostsfile", Type = ShortcutType.HostsFile, Target = @"C:\Windows\System32\drivers\etc\hosts" },
+            new EmitterCase { Name = "folder", Type = ShortcutType.Folder, Target = @"C:\Users\me\Downloads" },
+            new EmitterCase { Name = "folder-with-variable", Type = ShortcutType.Folder, Target = @"%USERPROFILE%\Google Drive" },
+            new EmitterCase { Name = "clsidkey", Type = ShortcutType.CLSIDKey, Target = "::{645FF040-5081-101B-9F08-00AA002F954E}" },
+            new EmitterCase { Name = "clsidkey-nested", Type = ShortcutType.CLSIDKey, Target = @"::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}" },
+            new EmitterCase { Name = "command", Type = ShortcutType.Command, Target = "ipconfig /all" },
+            new EmitterCase { Name = "unknown", Type = ShortcutType.Unknown, Target = @"C:\missing.txt", Note = "Runner.Run never emits Unknown; there is no launch line to write." },
+            new EmitterCase { Name = "description", Type = ShortcutType.Url, Target = "https://example.com", Description = "  Line one\r\nline two  " },
+            new EmitterCase { Name = "description-null", Type = ShortcutType.Url, Target = "https://example.com", Description = null },
         };
 
         /// <summary>One block per case: the lines <see cref="Runner.BuildShortcutLines"/> writes. The version is masked.</summary>
@@ -124,7 +124,7 @@ namespace keycuts.Tests.Characterization
 
             foreach (var item in EmitterCases)
             {
-                var shortcut = Shortcut.FromParts(item.Type, item.Destination, $@"C:\Shortcuts\{item.Name}.bat", item.OpenWithAppPath);
+                var shortcut = Shortcut.FromParts(item.Type, item.Target, $@"C:\Shortcuts\{item.Name}.bat", item.OpenWithAppPath);
 
                 builder.Append('\n').Append("## ").Append(item.Name).Append('\n');
 
@@ -172,14 +172,14 @@ namespace keycuts.Tests.Characterization
 
         /// <summary>
         /// Same as <see cref="RenderRoundTrip(string)"/>, but the second parse doesn't see the emitted REM &lt;type&gt; and
-        /// REM &lt;destination&gt; lines. Those lines copy whatever the first parse returned, so with them the round trip
+        /// REM &lt;target&gt; lines. Those lines copy whatever the first parse returned, so with them the round trip
         /// passes even when the emitted launch line is broken. Without them, only the launch line carries the keycut.
         /// </summary>
         public static string RenderLaunchLineRoundTrip(string repoRoot)
         {
             var header =
                 "# Launch-line round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field, where the second\n" +
-                "# parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch\n" +
+                "# parse doesn't see the emitted REM <type> and REM <target> lines. This checks that the emitted launch\n" +
                 "# line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.\n" +
                 "# Files that parse as Unknown have nothing to emit and are listed as skipped.\n";
 
@@ -210,14 +210,14 @@ namespace keycuts.Tests.Characterization
 
                 var name = Path.GetFileNameWithoutExtension(relativePath);
                 var openWithApp = string.IsNullOrEmpty(first.OpenWithApp) ? null : first.OpenWithApp;
-                var shortcut = Shortcut.FromParts(first.Type, first.Destination, $@"C:\Shortcuts\{name}.bat", openWithApp);
+                var shortcut = Shortcut.FromParts(first.Type, first.Target, $@"C:\Shortcuts\{name}.bat", openWithApp);
                 var emitted = Runner.BuildShortcutLines(shortcut, first.Description).ToArray();
-                var reparsed = launchLineOnly ? emitted.Where(line => !IsTypeOrDestinationRem(line)).ToArray() : emitted;
+                var reparsed = launchLineOnly ? emitted.Where(line => !IsTypeOrTargetRem(line)).ToArray() : emitted;
                 var second = new ShortcutFile(relativePath, reparsed);
 
                 var differences = Compare(first, second).ToList();
 
-                // Only the launch line shows these: in the full round trip the REM lines carry the destination unescaped.
+                // Only the launch line shows these: in the full round trip the REM lines carry the target unescaped.
                 string expectedReason = null;
                 var isExpectedFailure = launchLineOnly && ExpectedRoundTripFailures.TryGetValue(relativePath, out expectedReason);
 
@@ -256,12 +256,13 @@ namespace keycuts.Tests.Characterization
             return builder.ToString();
         }
 
-        // The tag must come right after REM, so a description that mentions <type> is kept
-        private static readonly Regex TypeOrDestinationRem = new Regex(@"^\s*REM\s+<(type|destination)>", RegexOptions.IgnoreCase);
+        // The tag must come right after REM, so a description that mentions <type> is kept. <destination> is the tag older
+        // files carry; the emitter writes <target> now.
+        private static readonly Regex TypeOrTargetRem = new Regex(@"^\s*REM\s+<(type|target|destination)>", RegexOptions.IgnoreCase);
 
-        private static bool IsTypeOrDestinationRem(string line)
+        private static bool IsTypeOrTargetRem(string line)
         {
-            return TypeOrDestinationRem.IsMatch(line);
+            return TypeOrTargetRem.IsMatch(line);
         }
 
         private static IEnumerable<string> Compare(ShortcutFile first, ShortcutFile second)
@@ -271,9 +272,9 @@ namespace keycuts.Tests.Characterization
                 yield return $"Type:        {first.Type} -> {second.Type}";
             }
 
-            if (first.Destination != second.Destination)
+            if (first.Target != second.Target)
             {
-                yield return $"Destination: {Show(first.Destination)} -> {Show(second.Destination)}";
+                yield return $"Target: {Show(first.Target)} -> {Show(second.Target)}";
             }
 
             if ((first.OpenWithApp ?? "") != (second.OpenWithApp ?? ""))

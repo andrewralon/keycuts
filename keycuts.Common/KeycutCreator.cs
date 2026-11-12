@@ -12,7 +12,7 @@ namespace keycuts.Common
         Success,
         DuplicateName,
         InvalidName,
-        DestinationInvalid,
+        TargetInvalid,
         OutputFolderError,
         PathUpdateError,
         Unexpected
@@ -35,7 +35,7 @@ namespace keycuts.Common
         /// <summary>Null updates the real system PATH.</summary>
         public IPathUpdater PathUpdater { get; set; }
 
-        /// <summary>Save a file or folder destination with environment variables (#31). The caller decides (the setting, flipped by Shift).</summary>
+        /// <summary>Save a file or folder target with environment variables (#31). The caller decides (the setting, flipped by Shift).</summary>
         public bool UseEnvironmentVariables { get; set; }
 
         /// <summary>The variables for <see cref="UseEnvironmentVariables"/>; null reads them from this machine. Tests pass their own.</summary>
@@ -49,8 +49,8 @@ namespace keycuts.Common
         /// <summary>Set on success when the created file could be read back.</summary>
         public Keycut Keycut { get; private set; }
 
-        /// <summary>For DestinationInvalid: why the destination failed.</summary>
-        public DestinationError DestinationError { get; private set; }
+        /// <summary>For TargetInvalid: why the target failed.</summary>
+        public TargetError TargetError { get; private set; }
 
         /// <summary>For Unexpected: the exception message, for logging.</summary>
         public string Message { get; private set; }
@@ -62,9 +62,9 @@ namespace keycuts.Common
             return new CreateResult { Outcome = CreateOutcome.Success, Keycut = keycut };
         }
 
-        public static CreateResult Failure(CreateOutcome outcome, string message = null, DestinationError destinationError = DestinationError.None)
+        public static CreateResult Failure(CreateOutcome outcome, string message = null, TargetError targetError = TargetError.None)
         {
-            return new CreateResult { Outcome = outcome, Message = message, DestinationError = destinationError };
+            return new CreateResult { Outcome = outcome, Message = message, TargetError = targetError };
         }
     }
 
@@ -113,12 +113,12 @@ namespace keycuts.Common
             return !ReservedNames.Contains(stem, StringComparer.OrdinalIgnoreCase);
         }
 
-        public static Task<CreateResult> CreateAsync(string destination, string name, CreateOptions options = null, CancellationToken ct = default)
+        public static Task<CreateResult> CreateAsync(string target, string name, CreateOptions options = null, CancellationToken ct = default)
         {
-            return Task.Run(() => CreateCore(destination, name, options ?? new CreateOptions(), ct), ct);
+            return Task.Run(() => CreateCore(target, name, options ?? new CreateOptions(), ct), ct);
         }
 
-        private static CreateResult CreateCore(string destination, string name, CreateOptions options, CancellationToken ct)
+        private static CreateResult CreateCore(string target, string name, CreateOptions options, CancellationToken ct)
         {
             try
             {
@@ -127,11 +127,11 @@ namespace keycuts.Common
                     return CreateResult.Failure(CreateOutcome.InvalidName);
                 }
 
-                var resolved = DestinationResolver.Resolve(destination);
+                var resolved = TargetResolver.Resolve(target);
 
                 if (!resolved.IsValid)
                 {
-                    return CreateResult.Failure(CreateOutcome.DestinationInvalid, destinationError: resolved.Error);
+                    return CreateResult.Failure(CreateOutcome.TargetInvalid, targetError: resolved.Error);
                 }
 
                 ct.ThrowIfCancellationRequested();
@@ -155,7 +155,7 @@ namespace keycuts.Common
                 }
 
                 var fixedRunner = new Runner(outputFolder, options.PathUpdater);
-                var args = new KeycutArgs(resolved.Destination, fileName, force: overwrite)
+                var args = new KeycutArgs(resolved.Target, fileName, force: overwrite)
                 {
                     Description = options.Description ?? "",
                     UseEnvironmentVariables = options.UseEnvironmentVariables,
@@ -173,7 +173,7 @@ namespace keycuts.Common
                     case ExitCode.CannotUpdatePath:
                         return CreateResult.Failure(CreateOutcome.PathUpdateError);
                     default:
-                        return CreateResult.Failure(CreateOutcome.DestinationInvalid, destinationError: DestinationError.Unsupported);
+                        return CreateResult.Failure(CreateOutcome.TargetInvalid, targetError: TargetError.Unsupported);
                 }
             }
             catch (OperationCanceledException)

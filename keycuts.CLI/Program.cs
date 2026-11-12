@@ -38,7 +38,7 @@ namespace keycuts.CLI
 
         public static ExitCode Run(string[] args)
         {
-            // "create" is the default verb, so the original "keycuts -d … -s …" still works
+            // "create" is the default verb, so the original "keycuts -t … -s …" still works
             // -h is the usual short form of --help; the parser only knows the long one
             args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
             var result = Usage.CreateParser().ParseArguments<Options, PasteOptions>(args);
@@ -52,7 +52,7 @@ namespace keycuts.CLI
         private static ExitCode RunPaste(PasteOptions parsed)
         {
             // The library logs with Console.WriteLine (the parser does while reading a keycut). Send that to stderr, so
-            // stdout holds only the copied text and `keycuts paste db > file` or `for /f` gets just the destination.
+            // stdout holds only the copied text and `keycuts paste db > file` or `for /f` gets just the target.
             var output = Console.Out;
             Console.SetOut(Console.Error);
 
@@ -81,17 +81,17 @@ namespace keycuts.CLI
 
             var options = new Options
             {
-                Destination = parsed.Destination?.Trim(),
+                Target = parsed.Target?.Trim(),
                 Shortcut = parsed.Shortcut?.Trim(),
                 OpenWithApp = parsed.OpenWithApp?.Trim(),
                 OutputFolder = parsed.OutputFolder?.Trim(),
                 Force = parsed.Force
             };
 
-            if (options.Destination != null && options.Shortcut != null)
+            if (options.Target != null && options.Shortcut != null)
             {
                 var keycutArgs = new KeycutArgs(
-                    options.Destination,
+                    options.Target,
                     options.Shortcut,
                     options.OpenWithApp,
                     options.OutputFolder,
@@ -104,7 +104,7 @@ namespace keycuts.CLI
                 // Replacing a keycut and a name that other commands use both ask first, unless -f (#153)
                 var askBeforeReplacing = app.GetAskBeforeReplacing();
                 var check = options.Force ? null : CheckName(app, options, askBeforeReplacing);
-                var decision = CreateConfirmation.Decide(check, options.Destination, options.Force, askBeforeReplacing,
+                var decision = CreateConfirmation.Decide(check, options.Target, options.Force, askBeforeReplacing,
                     Console.IsInputRedirected, () => Console.ReadKey().KeyChar, Console.Out, out var overwrite);
 
                 switch (decision)
@@ -144,10 +144,10 @@ namespace keycuts.CLI
             var currentFolder = app.GetOutputFolder();
             var outputFolder = DebugOverrides.GetOutputFolder() != null ? currentFolder : options.OutputFolder ?? currentFolder;
             var environment = NameConflictEnvironment.GetDefault().WithOutputFolderMoved(currentFolder, outputFolder);
-            // Check the exact file the create will write, so a replace shows that file's destination
-            var target = Shortcut.GetFullPath(options.Shortcut, outputFolder);
+            // Check the exact file the create will write, so a replace shows that file's target
+            var batPath = Shortcut.GetFullPath(options.Shortcut, outputFolder);
 
-            return NameCheck.Run(System.IO.Path.GetFileNameWithoutExtension(target), System.IO.Path.GetDirectoryName(target),
+            return NameCheck.Run(System.IO.Path.GetFileNameWithoutExtension(batPath), System.IO.Path.GetDirectoryName(batPath),
                 askBeforeReplacing, environment);
         }
     }

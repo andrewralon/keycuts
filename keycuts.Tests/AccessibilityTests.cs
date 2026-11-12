@@ -26,8 +26,8 @@ namespace keycuts.Tests
         static CreatorViewModel NewCreator()
         {
             var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings);
-            creator.Destination = "https://example.com";
-            creator.DestinationKind = KeycutKind.Url;
+            creator.Target = "https://example.com";
+            creator.TargetKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
             return creator;
         }
@@ -49,15 +49,15 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void DestinationHelpText_ReflectsTheDestinationError_AndWinsOverNameHelp()
+        public void TargetHelpText_ReflectsTheTargetError_AndWinsOverNameHelp()
         {
             var creator = NewCreator();
-            Assert.Equal(string.Empty, creator.DestinationHelpText);
+            Assert.Equal(string.Empty, creator.TargetHelpText);
 
             creator.SetNameWarning(TestNameChecks.Existing("ex"));
-            creator.DestinationError = DestinationError.NotFound;
+            creator.TargetError = TargetError.NotFound;
 
-            Assert.Equal(CreatorViewModel.GetDestinationErrorMessage(DestinationError.NotFound), creator.DestinationHelpText);
+            Assert.Equal(CreatorViewModel.GetTargetErrorMessage(TargetError.NotFound), creator.TargetHelpText);
             Assert.Equal(string.Empty, creator.NameHelpText);
         }
 
@@ -195,12 +195,12 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "View all keycuts (0)", "Settings" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
@@ -220,10 +220,10 @@ namespace keycuts.Tests
             {
                 EnsureApplication();
                 var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
-                    (destination, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+                    (target, name, ct) => Task.FromResult(CreateResult.Success(null!)));
                 var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { Welcome = welcome };
-                creator.Destination = "https://example.com";
-                creator.DestinationKind = KeycutKind.Url;
+                creator.Target = "https://example.com";
+                creator.TargetKind = KeycutKind.Url;
                 creator.ShortcutName = "ex";
                 welcome.OnKeycutCountLoaded(0);
 
@@ -231,12 +231,12 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" },
+                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -259,22 +259,22 @@ namespace keycuts.Tests
                 var notice = new UpdateNoticeViewModel(UpdateFakes.Checker(new FakeReleaseSource(), state), _ => { });
                 notice.Refresh();
                 var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { UpdateNotice = notice };
-                creator.Destination = "https://example.com";
-                creator.DestinationKind = KeycutKind.Url;
+                creator.Target = "https://example.com";
+                creator.TargetKind = KeycutKind.Url;
                 creator.ShortcutName = "ex";
 
                 var window = Host(new CreatorView(), creator);
                 try
                 {
                     Assert.Equal(
-                        new[] { "Destination", "Browse", "Keycut name", "Create", "Dismiss update notice", "View all keycuts (0)", "Settings" },
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Dismiss update notice", "View all keycuts (0)", "Settings" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)((FrameworkElement)window.Content).FindName("UpdateDownloadLink");
                     Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -399,7 +399,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Creator_LaunchFocus_GoesToTheDestinationOrTheName()
+        public void Creator_LaunchFocus_GoesToTheTargetOrTheName()
         {
             RunSta(() =>
             {
@@ -408,7 +408,7 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), empty);
                 try
                 {
-                    Assert.Equal("Destination", FocusedName());
+                    Assert.Equal("Target", FocusedName());
                 }
                 finally
                 {
@@ -500,7 +500,7 @@ namespace keycuts.Tests
                 Name = name,
                 Kind = KeycutKind.File,
                 RawType = ShortcutType.File,
-                Destination = @"C:\temp\" + name + ".txt",
+                Target = @"C:\temp\" + name + ".txt",
                 FilePath = @"C:\fixture\" + name + ".bat"
             }).ToList();
             var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, actions);
@@ -780,7 +780,7 @@ namespace keycuts.Tests
                     Name = name,
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.File,
-                    Destination = @"C:\temp\" + name + ".txt",
+                    Target = @"C:\temp\" + name + ".txt",
                     FilePath = @"C:\Shortcuts\" + name + ".bat"
                 }).ToList();
                 var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null);

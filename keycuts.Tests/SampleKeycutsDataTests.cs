@@ -45,8 +45,8 @@ namespace keycuts.Tests
                 Assert.Contains(keycuts, k => k.Kind == kind);
             }
 
-            Assert.Contains(keycuts, k => k.DestinationStatus == DestinationStatus.Missing);
-            Assert.Contains(keycuts, k => k.Destination.Length > 200);
+            Assert.Contains(keycuts, k => k.TargetStatus == TargetStatus.Missing);
+            Assert.Contains(keycuts, k => k.Target.Length > 200);
             Assert.Contains(keycuts, k => k.Name.Length > 40);
         }
 
@@ -61,7 +61,7 @@ namespace keycuts.Tests
         [Fact]
         public void Design_creator_states_use_the_canonical_entries()
         {
-            Assert.Equal(string.Empty, DesignViewModels.CreatorEmpty.Destination);
+            Assert.Equal(string.Empty, DesignViewModels.CreatorEmpty.Target);
             Assert.Equal("l-vicki", DesignViewModels.CreatorUrl.ShortcutName);
             Assert.Equal("downloads", DesignViewModels.CreatorFolder.ShortcutName);
         }

@@ -14,11 +14,11 @@ namespace keycuts.Tests
             return new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }));
         }
 
-        static CreatorViewModel WithDestinationAndName()
+        static CreatorViewModel WithTargetAndName()
         {
             var creator = Create();
-            creator.Destination = "https://example.com";
-            creator.DestinationKind = KeycutKind.Url;
+            creator.Target = "https://example.com";
+            creator.TargetKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
             return creator;
         }
@@ -29,7 +29,7 @@ namespace keycuts.Tests
             var creator = Create();
 
             Assert.Equal(CreatorState.Empty, creator.State);
-            Assert.Equal(IconKind.Arrow, creator.DestinationIcon);
+            Assert.Equal(IconKind.Arrow, creator.TargetIcon);
             Assert.Equal("Press Enter to create it", creator.HelperText);
             Assert.False(creator.CanCreate);
             Assert.True(creator.IsInputEnabled);
@@ -43,28 +43,28 @@ namespace keycuts.Tests
         public void ResolvedKind_ChoosesTheTypeIcon(KeycutKind kind, IconKind icon)
         {
             var creator = Create();
-            creator.Destination = "x";
-            creator.DestinationKind = kind;
+            creator.Target = "x";
+            creator.TargetKind = kind;
 
-            Assert.Equal(icon, creator.DestinationIcon);
+            Assert.Equal(icon, creator.TargetIcon);
         }
 
         [Fact]
-        public void EditingTheDestination_ResetsTheIconToArrow()
+        public void EditingTheTarget_ResetsTheIconToArrow()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
 
-            creator.Destination = "https://example.org";
+            creator.Target = "https://example.org";
 
-            Assert.Equal(IconKind.Arrow, creator.DestinationIcon);
+            Assert.Equal(IconKind.Arrow, creator.TargetIcon);
         }
 
         [Fact]
-        public void CreateNeedsDestinationAndName()
+        public void CreateNeedsTargetAndName()
         {
             var creator = Create();
-            creator.Destination = "C:\\temp";
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            creator.Target = "C:\\temp";
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
             Assert.False(creator.CanCreate);
 
             creator.ShortcutName = "   ";
@@ -73,14 +73,14 @@ namespace keycuts.Tests
             creator.ShortcutName = "tmp";
             Assert.True(creator.CanCreate);
 
-            creator.Destination = string.Empty;
+            creator.Target = string.Empty;
             Assert.False(creator.CanCreate);
         }
 
         [Fact]
         public void Saving_DisablesInputAndCreate_AndHidesDragHover()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
             creator.IsDragHover = true;
             Assert.True(creator.ShowDragHover);
 
@@ -104,16 +104,16 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void ExistingName_IsAWarningOnTheNameField_WithTheCurrentDestination()
+        public void ExistingName_IsAWarningOnTheNameField_WithTheCurrentTarget()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
 
             creator.SetNameWarning(TestNameChecks.Existing("l-vicki", "https://old.example.com"));
 
             Assert.Equal(CreatorState.NameWarning, creator.State);
             Assert.True(creator.IsNameWarning);
             Assert.False(creator.IsNameError);
-            Assert.False(creator.ShowDestinationError);
+            Assert.False(creator.ShowTargetError);
             Assert.False(creator.HelperIsError);
             Assert.True(creator.HelperIsWarning);
             Assert.True(creator.CanCreate);
@@ -125,7 +125,7 @@ namespace keycuts.Tests
         [InlineData(NameConflictEffect.Hidden, "\u201cex\u201d already opens C:\\Program Files\\Tool\\ex.exe, so Win+R would never run this keycut.")]
         public void NameConflict_IsAWarning_ThatNamesTheOtherProgram(NameConflictEffect effect, string message)
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
 
             creator.SetNameWarning(TestNameChecks.Conflict("ex", effect));
 
@@ -137,7 +137,7 @@ namespace keycuts.Tests
         [Fact]
         public void NameWarning_ListsTheReplaceFirst_ThenTheConflictThatMattersMost()
         {
-            var check = new NameCheck("ex", new Keycut { Name = "ex", Destination = @"D:\old" },
+            var check = new NameCheck("ex", new Keycut { Name = "ex", Target = @"D:\old" },
                 new[] { new NameConflict(@"C:\a\ex.exe", NameConflictEffect.Shadows, NameConflictSource.PathAfter),
                         new NameConflict(@"C:\Windows\ex.exe", NameConflictEffect.Hidden, NameConflictSource.WindowsFolder) });
 
@@ -151,7 +151,7 @@ namespace keycuts.Tests
         [Fact]
         public void AnInvalidName_WinsOverTheWarning()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
             creator.SetNameWarning(TestNameChecks.Existing("ex"));
             creator.ShortcutName = "a/b";
 
@@ -162,68 +162,68 @@ namespace keycuts.Tests
         [Fact]
         public void EditingTheName_ClearsTheNameWarning()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
             creator.SetNameWarning(TestNameChecks.Existing("ex"));
 
             creator.ShortcutName = "ex2";
 
             Assert.False(creator.IsNameWarning);
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
             Assert.Equal(CreatorViewModel.DefaultHelperText, creator.HelperText);
         }
 
         [Theory]
-        [InlineData(DestinationError.NotFound, "That destination wasn\u2019t found.")]
-        [InlineData(DestinationError.AccessDenied, "Access to that destination was denied.")]
-        [InlineData(DestinationError.Unsupported, "That destination type isn\u2019t supported.")]
-        public void InvalidDestination_ShowsSpecificMessage_AndDisablesCreate(DestinationError error, string message)
+        [InlineData(TargetError.NotFound, "That target wasn\u2019t found.")]
+        [InlineData(TargetError.AccessDenied, "Access to that target was denied.")]
+        [InlineData(TargetError.Unsupported, "That target type isn\u2019t supported.")]
+        public void InvalidTarget_ShowsSpecificMessage_AndDisablesCreate(TargetError error, string message)
         {
-            var creator = WithDestinationAndName();
-            creator.Destination = "C:\\missing";
+            var creator = WithTargetAndName();
+            creator.Target = "C:\\missing";
             creator.ShortcutName = "m";
 
-            creator.DestinationError = error;
+            creator.TargetError = error;
 
-            Assert.Equal(CreatorState.InvalidDestination, creator.State);
-            Assert.True(creator.ShowDestinationError);
+            Assert.Equal(CreatorState.InvalidTarget, creator.State);
+            Assert.True(creator.ShowTargetError);
             Assert.False(creator.CanCreate);
-            Assert.Equal("C:\\missing", creator.Destination);
+            Assert.Equal("C:\\missing", creator.Target);
             Assert.Equal(message, creator.HelperText);
             Assert.True(creator.HelperIsError);
         }
 
         [Fact]
-        public void DestinationError_WinsOverANameWarning_ForTheHelperLine()
+        public void TargetError_WinsOverANameWarning_ForTheHelperLine()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
             creator.SetNameWarning(TestNameChecks.Existing("ex"));
 
-            creator.DestinationError = DestinationError.NotFound;
+            creator.TargetError = TargetError.NotFound;
 
-            Assert.Equal(CreatorState.InvalidDestination, creator.State);
-            Assert.Equal("That destination wasn\u2019t found.", creator.HelperText);
+            Assert.Equal(CreatorState.InvalidTarget, creator.State);
+            Assert.Equal("That target wasn\u2019t found.", creator.HelperText);
         }
 
         [Fact]
-        public void EditingTheDestination_ClearsTheDestinationError()
+        public void EditingTheTarget_ClearsTheTargetError()
         {
-            var creator = WithDestinationAndName();
-            creator.DestinationError = DestinationError.NotFound;
+            var creator = WithTargetAndName();
+            creator.TargetError = TargetError.NotFound;
 
-            creator.Destination = "C:\\fixed";
+            creator.Target = "C:\\fixed";
 
-            Assert.Equal(DestinationError.None, creator.DestinationError);
-            Assert.False(creator.ShowDestinationError);
+            Assert.Equal(TargetError.None, creator.TargetError);
+            Assert.False(creator.ShowTargetError);
         }
 
         [Fact]
-        public void EmptyError_IsNotAVisibleDestinationError()
+        public void EmptyError_IsNotAVisibleTargetError()
         {
             var creator = Create();
 
-            creator.DestinationError = DestinationError.Empty;
+            creator.TargetError = TargetError.Empty;
 
-            Assert.False(creator.ShowDestinationError);
+            Assert.False(creator.ShowTargetError);
             Assert.Equal(CreatorState.Empty, creator.State);
         }
 
@@ -246,15 +246,15 @@ namespace keycuts.Tests
         [Fact]
         public void Clear_ReturnsToEmpty()
         {
-            var creator = WithDestinationAndName();
+            var creator = WithTargetAndName();
             creator.SetNameWarning(TestNameChecks.Existing("ex"));
 
             creator.Clear();
 
             Assert.Equal(CreatorState.Empty, creator.State);
-            Assert.Equal(string.Empty, creator.Destination);
+            Assert.Equal(string.Empty, creator.Target);
             Assert.Equal(string.Empty, creator.ShortcutName);
-            Assert.Null(creator.DestinationKind);
+            Assert.Null(creator.TargetKind);
         }
 
         [Fact]

@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 namespace keycuts.Common
 {
     /// <summary>
-    /// Non-throwing destination detection for user input (drop, paste, Browse).
+    /// Non-throwing target detection for user input (drop, paste, Browse).
     /// </summary>
-    public static class DestinationResolver
+    public static class TargetResolver
     {
         public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(2);
 
@@ -30,7 +30,7 @@ namespace keycuts.Common
         /// Synchronous resolution. Never throws for user input, but it touches the filesystem and can
         /// block on unreachable network paths; use <see cref="ResolveAsync"/> from UI code.
         /// </summary>
-        public static DestinationResult Resolve(string rawInput)
+        public static TargetResult Resolve(string rawInput)
         {
             try
             {
@@ -38,29 +38,29 @@ namespace keycuts.Common
             }
             catch (UnauthorizedAccessException)
             {
-                return DestinationResult.Invalid(DestinationError.AccessDenied, rawInput);
+                return TargetResult.Invalid(TargetError.AccessDenied, rawInput);
             }
             catch (FileNotFoundException)
             {
-                return DestinationResult.Invalid(DestinationError.NotFound, rawInput);
+                return TargetResult.Invalid(TargetError.NotFound, rawInput);
             }
             catch (DirectoryNotFoundException)
             {
-                return DestinationResult.Invalid(DestinationError.NotFound, rawInput);
+                return TargetResult.Invalid(TargetError.NotFound, rawInput);
             }
             catch (Exception)
             {
-                return DestinationResult.Invalid(DestinationError.Unsupported, rawInput);
+                return TargetResult.Invalid(TargetError.Unsupported, rawInput);
             }
         }
 
         /// <summary>Resolves off the calling thread; returns a Timeout error if it takes longer than the timeout.</summary>
-        public static async Task<DestinationResult> ResolveAsync(string rawInput, CancellationToken ct = default)
+        public static async Task<TargetResult> ResolveAsync(string rawInput, CancellationToken ct = default)
         {
             return await ResolveAsync(rawInput, DefaultTimeout, ct).ConfigureAwait(false);
         }
 
-        public static async Task<DestinationResult> ResolveAsync(string rawInput, TimeSpan timeout, CancellationToken ct)
+        public static async Task<TargetResult> ResolveAsync(string rawInput, TimeSpan timeout, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -74,7 +74,7 @@ namespace keycuts.Common
             }
 
             ct.ThrowIfCancellationRequested();
-            return DestinationResult.Invalid(DestinationError.Timeout, Clean(rawInput));
+            return TargetResult.Invalid(TargetError.Timeout, Clean(rawInput));
         }
 
         public static string Clean(string rawInput)
@@ -91,17 +91,17 @@ namespace keycuts.Common
             return text;
         }
 
-        private static DestinationResult ResolveCore(string rawInput)
+        private static TargetResult ResolveCore(string rawInput)
         {
             var text = Clean(rawInput);
             if (text.Length == 0)
             {
-                return DestinationResult.Invalid(DestinationError.Empty, text);
+                return TargetResult.Invalid(TargetError.Empty, text);
             }
 
             if (Shortcut.IsCLSIDKey(text))
             {
-                return DestinationResult.Valid(ShortcutType.CLSIDKey, text);
+                return TargetResult.Valid(ShortcutType.CLSIDKey, text);
             }
 
             if (Uri.TryCreate(text, UriKind.Absolute, out var uri))
@@ -116,14 +116,14 @@ namespace keycuts.Common
                 }
                 else if (uri.Scheme.Length > 1)
                 {
-                    return DestinationResult.Valid(ShortcutType.Url, text);
+                    return TargetResult.Valid(ShortcutType.Url, text);
                 }
             }
 
             return ResolvePath(text);
         }
 
-        private static DestinationResult ResolvePath(string text)
+        private static TargetResult ResolvePath(string text)
         {
             var expanded = Environment.ExpandEnvironmentVariables(text);
 
@@ -134,7 +134,7 @@ namespace keycuts.Common
             }
             catch (Exception)
             {
-                return DestinationResult.Invalid(DestinationError.Unsupported, text);
+                return TargetResult.Invalid(TargetError.Unsupported, text);
             }
 
             FileAttributes attributes;
@@ -144,7 +144,7 @@ namespace keycuts.Common
             }
             catch (UnauthorizedAccessException)
             {
-                return DestinationResult.Invalid(DestinationError.AccessDenied, text);
+                return TargetResult.Invalid(TargetError.AccessDenied, text);
             }
             catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
             {
@@ -152,17 +152,17 @@ namespace keycuts.Common
             }
             catch (Exception)
             {
-                return DestinationResult.Invalid(DestinationError.Unsupported, text);
+                return TargetResult.Invalid(TargetError.Unsupported, text);
             }
 
             if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
             {
-                return DestinationResult.Valid(ShortcutType.Folder, fullPath);
+                return TargetResult.Valid(ShortcutType.Folder, fullPath);
             }
 
             if (Shortcut.IsHostsFile(fullPath))
             {
-                return DestinationResult.Valid(ShortcutType.HostsFile, fullPath);
+                return TargetResult.Valid(ShortcutType.HostsFile, fullPath);
             }
 
             if (string.Equals(Path.GetExtension(fullPath), ".url", StringComparison.OrdinalIgnoreCase))
@@ -170,15 +170,15 @@ namespace keycuts.Common
                 var url = ReadUrlFile(fullPath);
                 if (url != null)
                 {
-                    return DestinationResult.Valid(ShortcutType.Url, url);
+                    return TargetResult.Valid(ShortcutType.Url, url);
                 }
             }
 
             Shortcut.IsLink(fullPath, out var target);
-            return DestinationResult.Valid(ShortcutType.File, target);
+            return TargetResult.Valid(ShortcutType.File, target);
         }
 
-        private static DestinationResult ResolveMissing(string text, string expanded)
+        private static TargetResult ResolveMissing(string text, string expanded)
         {
             // Nothing on disk: accept "amazon.com" style input as a URL
             if (!Path.IsPathRooted(expanded) &&
@@ -190,11 +190,11 @@ namespace keycuts.Common
                 if (!FileLikeExtensions.Contains(tld) &&
                     Uri.TryCreate("http://" + text, UriKind.Absolute, out var uri))
                 {
-                    return DestinationResult.Valid(ShortcutType.Url, uri.AbsoluteUri);
+                    return TargetResult.Valid(ShortcutType.Url, uri.AbsoluteUri);
                 }
             }
 
-            return DestinationResult.Invalid(DestinationError.NotFound, text);
+            return TargetResult.Invalid(TargetError.NotFound, text);
         }
 
         private static string ReadUrlFile(string path)

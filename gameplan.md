@@ -4,6 +4,8 @@ Updated 2026-11-10. This replaces the original 44-issue plan, which is still in 
 
 The overall order hasn't changed: **Windows first, then the parser safety net before any format change, with macOS last.**
 
+**Naming (#195, 2026-11-12).** What a keycut opens is its *target*; until then it was the *destination*. Finished items below keep the name they were done under: `DestinationResolver` is `TargetResolver` now, `TryParseRemTypeAndDestination` is `TryParseRemTypeAndTarget`, and `REM <destination>` is `REM <target>` in files written from 1.3 on. The parser still reads the old tag.
+
 ## Where things stand
 
 | Area | State | Issues |
@@ -105,3 +107,10 @@ The overall order hasn't changed: **Windows first, then the parser safety net be
 |---|---|---|
 | #107 logging | No `ILogger`. Library debug output is deleted rather than routed; `Runner`'s "Shortcut created" line stays on `Console.Out`. | Nothing consumes a logger: the GUI has no console, and the CLI's only output is its result. That line is the CLI's success message, and `keycuts paste` already sends library output to stderr. |
 | #107 `#region` | Kept. | CLAUDE.md lists `#region` blocks as a house convention; removing them would touch every file for no behavior change. |
+
+## Decisions made on 2026-11-12
+
+| Issue | Decision | Why |
+|---|---|---|
+| #195 destination → target | Renamed everywhere in code, UI, CLI and tests. `-d`/`--destination` are deleted with no alias (`-t`/`--target`). The parser reads `REM <target>` and `REM <destination>` (the first well-formed line in the file wins) and the emitter writes `<target>`. Historical docs (`docs/tickets/`, `docs/ux-review.md`, `docs/design-reference/`) keep the old word. Version raised by one minor step (1.3.0), though the CLI change is breaking. | The word is the same thing in every place, and one name is easier to say. Files already on disk can't be changed by a release, so the old tag stays readable. Two commits (rename, then format) so the behavior change is a diff of its own. |
+| #196 migrate `<destination>` files | Planned, not started: back up and rewrite the tag on first GUI start, keeping each file's modified date. Not in the same release as #195. | A migrated file read by a pre-#195 keycuts falls back to regex-parsing the launch command, which misreads some cases. |

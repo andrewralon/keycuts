@@ -2,8 +2,8 @@ using CommandLine;
 
 namespace keycuts.CLI
 {
-    /// <summary><c>keycuts paste &lt;name&gt;</c> (#97): copies a keycut's destination, or a text file's contents, to the clipboard.</summary>
-    [Verb("paste", HelpText = "Copy a keycut's destination (or a text file's contents) to the clipboard, same as keypaste.")]
+    /// <summary><c>keycuts paste &lt;name&gt;</c> (#97): copies a keycut's target, or a text file's contents, to the clipboard.</summary>
+    [Verb("paste", HelpText = "Copy a keycut's target (or a text file's contents) to the clipboard, same as keypaste.")]
     public class PasteOptions
     {
         [Value(0, MetaName = "name", Required = true,

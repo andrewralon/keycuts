@@ -77,7 +77,7 @@ namespace keycuts.Tests
 
             var repository = new KeycutRepository(folder);
             var keycuts = await repository.LoadAllAsync();
-            await repository.CheckDestinationsAsync(keycuts);
+            await repository.CheckTargetsAsync(keycuts);
 
             return keycuts;
         }
@@ -101,12 +101,12 @@ namespace keycuts.Tests
             var vicki = keycuts.Single(k => k.Name == "l-vicki");
             Assert.Equal(KeycutKind.Url, vicki.Kind);
             Assert.Equal("logs for vicki", vicki.Description);
-            Assert.StartsWith("https://logs.example.com/vicki", vicki.Destination);
+            Assert.StartsWith("https://logs.example.com/vicki", vicki.Target);
 
             var downloads = keycuts.Single(k => k.Name == "downloads");
             Assert.Equal(KeycutKind.Folder, downloads.Kind);
             Assert.Equal("Downloads folder", downloads.Description);
-            Assert.Equal(@"%USERPROFILE%\Downloads", downloads.Destination);
+            Assert.Equal(@"%USERPROFILE%\Downloads", downloads.Target);
         }
 
         [Fact]
@@ -121,9 +121,9 @@ namespace keycuts.Tests
 
             Assert.Contains(keycuts, k => k.Name.Length > 40);
             Assert.Contains(keycuts, k => k.Description.Length > 100);
-            Assert.Contains(keycuts, k => k.Destination.Length > 200);
-            Assert.Contains(keycuts, k => k.Kind == KeycutKind.File && k.DestinationStatus == DestinationStatus.Missing);
-            Assert.Contains(keycuts, k => k.Kind == KeycutKind.File && k.DestinationStatus == DestinationStatus.Ok);
+            Assert.Contains(keycuts, k => k.Target.Length > 200);
+            Assert.Contains(keycuts, k => k.Kind == KeycutKind.File && k.TargetStatus == TargetStatus.Missing);
+            Assert.Contains(keycuts, k => k.Kind == KeycutKind.File && k.TargetStatus == TargetStatus.Ok);
         }
 
         [Fact]

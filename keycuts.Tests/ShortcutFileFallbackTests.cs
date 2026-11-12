@@ -3,7 +3,7 @@ using Xunit;
 
 namespace keycuts.Tests
 {
-    /// <summary>The regex fallback, for files without valid REM type and destination lines (the 0.1.x format).</summary>
+    /// <summary>The regex fallback, for files without valid REM type and target lines (the 0.1.x format).</summary>
     public class ShortcutFileFallbackTests
     {
         [Theory]
@@ -27,7 +27,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\npp.bat", new[] { "@ECHO OFF", "START \"\" /B \"C:\\Program Files\\npp.exe\"", "EXIT" });
 
             Assert.Equal(ShortcutType.File, file.Type);
-            Assert.Equal(@"C:\Program Files\npp.exe", file.Destination);
+            Assert.Equal(@"C:\Program Files\npp.exe", file.Target);
         }
 
         [Fact]
@@ -36,7 +36,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\docs.bat", new[] { "@ECHO OFF", "\"%SystemRoot%\\explorer.exe\" \"%USERPROFILE%\\Documents\"", "EXIT" });
 
             Assert.Equal(ShortcutType.Folder, file.Type);
-            Assert.Equal(@"%USERPROFILE%\Documents", file.Destination);
+            Assert.Equal(@"%USERPROFILE%\Documents", file.Target);
         }
 
         [Theory]
@@ -50,14 +50,14 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
 
             Assert.Equal(ShortcutType.File, file.Type);
-            Assert.Equal(expected, file.Destination);
+            Assert.Equal(expected, file.Target);
         }
 
         [Fact]
         public void StartInFolder_WithQuotedArguments_ReEmitsALineThatRunsTheProgram()
         {
             var original = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { "START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\"" });
-            var emitted = Runner.BuildShortcutLines(Shortcut.FromParts(original.Type, original.Destination, @"C:\Shortcuts\app.bat"));
+            var emitted = Runner.BuildShortcutLines(Shortcut.FromParts(original.Type, original.Target, @"C:\Shortcuts\app.bat"));
 
             Assert.Contains("START \"\" /B \"C:\\Tools\\app.exe\" \"arg\"", emitted);
         }
@@ -79,7 +79,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ShortcutType.HostsFile, file.Type);
             Assert.Equal(@"%windir%\system32\notepad.exe", file.OpenWithApp);
-            Assert.Equal(@"C:\Windows\System32\drivers\etc\hosts", file.Destination);
+            Assert.Equal(@"C:\Windows\System32\drivers\etc\hosts", file.Target);
         }
 
         [Theory]
@@ -90,7 +90,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\none.bat", joinedLines.Split('|'));
 
             Assert.Equal(ShortcutType.Unknown, file.Type);
-            Assert.Null(file.Destination);
+            Assert.Null(file.Target);
             Assert.Null(file.Command);
         }
 
@@ -106,7 +106,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\cmd.bat", launchOnly);
 
             Assert.Equal(ShortcutType.Command, file.Type);
-            Assert.Equal(command, file.Destination);
+            Assert.Equal(command, file.Target);
         }
     }
 }

@@ -5,7 +5,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\url.bat</shortcut>|
 |REM <type>url</type>|
-|REM <destination>https://mail.google.com/mail/u/0/#inbox</destination>|
+|REM <target>https://mail.google.com/mail/u/0/#inbox</target>|
 |REM <description></description>|
 |START https://mail.google.com/mail/u/0/#inbox|
 |EXIT|
@@ -15,7 +15,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\url-with-ampersand-and-percent.bat</shortcut>|
 |REM <type>url</type>|
-|REM <destination>https://example.com/search?q=a&b=50%&c=%%d</destination>|
+|REM <target>https://example.com/search?q=a&b=50%&c=%%d</target>|
 |REM <description></description>|
 |START https://example.com/search?q=a^&b=50%%^&c=%%%%d|
 |EXIT|
@@ -25,7 +25,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\url-with-double-ampersand.bat</shortcut>|
 |REM <type>url</type>|
-|REM <destination>https://example.com/?a=1&&b=2</destination>|
+|REM <target>https://example.com/?a=1&&b=2</target>|
 |REM <description></description>|
 |START https://example.com/?a=1^&^&b=2|
 |EXIT|
@@ -35,7 +35,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\url-with-open-with-app.bat</shortcut>|
 |REM <type>url</type>|
-|REM <destination>https://example.com</destination>|
+|REM <target>https://example.com</target>|
 |REM <description></description>|
 |START "" /B "C:\Program Files\Mozilla Firefox\firefox.exe" "https://example.com"|
 |EXIT|
@@ -45,7 +45,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\file.bat</shortcut>|
 |REM <type>file</type>|
-|REM <destination>C:\Program Files\Notepad++\notepad++.exe</destination>|
+|REM <target>C:\Program Files\Notepad++\notepad++.exe</target>|
 |REM <description></description>|
 |START "" /B "C:\Program Files\Notepad++\notepad++.exe"|
 |EXIT|
@@ -56,7 +56,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\file-with-ampersand-and-percent.bat</shortcut>|
 |REM <type>file</type>|
-|REM <destination>C:\R&D\100% done.txt</destination>|
+|REM <target>C:\R&D\100% done.txt</target>|
 |REM <description></description>|
 |START "" /B "C:\R&D\100% done.txt"|
 |EXIT|
@@ -66,7 +66,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\file-with-quote.bat</shortcut>|
 |REM <type>file</type>|
-|REM <destination>C:\odd\a"b.txt</destination>|
+|REM <target>C:\odd\a"b.txt</target>|
 |REM <description></description>|
 |START "" /B "C:\odd\a"b.txt"|
 |EXIT|
@@ -76,7 +76,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\file-with-open-with-app.bat</shortcut>|
 |REM <type>file</type>|
-|REM <destination>C:\Shortcuts\README.txt</destination>|
+|REM <target>C:\Shortcuts\README.txt</target>|
 |REM <description></description>|
 |START "" /B "C:\Program Files\Notepad++\notepad++.exe" "C:\Shortcuts\README.txt"|
 |EXIT|
@@ -86,7 +86,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\file-unc.bat</shortcut>|
 |REM <type>file</type>|
-|REM <destination>\\fileserver\share\report.xlsx</destination>|
+|REM <target>\\fileserver\share\report.xlsx</target>|
 |REM <description></description>|
 |START "" /B "\\fileserver\share\report.xlsx"|
 |EXIT|
@@ -96,7 +96,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\hostsfile.bat</shortcut>|
 |REM <type>hostsfile</type>|
-|REM <destination>C:\Windows\System32\drivers\etc\hosts</destination>|
+|REM <target>C:\Windows\System32\drivers\etc\hosts</target>|
 |REM <description></description>|
 |START "" /B "%windir%\system32\notepad.exe" "C:\Windows\System32\drivers\etc\hosts"|
 |EXIT|
@@ -106,7 +106,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\folder.bat</shortcut>|
 |REM <type>folder</type>|
-|REM <destination>C:\Users\me\Downloads</destination>|
+|REM <target>C:\Users\me\Downloads</target>|
 |REM <description></description>|
 |"%SystemRoot%\explorer.exe" "C:\Users\me\Downloads"|
 |EXIT|
@@ -116,7 +116,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\folder-with-variable.bat</shortcut>|
 |REM <type>folder</type>|
-|REM <destination>%USERPROFILE%\Google Drive</destination>|
+|REM <target>%USERPROFILE%\Google Drive</target>|
 |REM <description></description>|
 |"%SystemRoot%\explorer.exe" "%USERPROFILE%\Google Drive"|
 |EXIT|
@@ -126,7 +126,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\clsidkey.bat</shortcut>|
 |REM <type>clsidkey</type>|
-|REM <destination>::{645FF040-5081-101B-9F08-00AA002F954E}</destination>|
+|REM <target>::{645FF040-5081-101B-9F08-00AA002F954E}</target>|
 |REM <description></description>|
 |"%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
 |EXIT|
@@ -136,7 +136,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\clsidkey-nested.bat</shortcut>|
 |REM <type>clsidkey</type>|
-|REM <destination>::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}</destination>|
+|REM <target>::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}</target>|
 |REM <description></description>|
 |"%SystemRoot%\explorer.exe" "::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}"|
 |EXIT|
@@ -146,7 +146,7 @@
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\command.bat</shortcut>|
 |REM <type>command</type>|
-|REM <destination>ipconfig /all</destination>|
+|REM <target>ipconfig /all</target>|
 |REM <description></description>|
 |START "" /B cmd /C "ipconfig /all"|
 |EXIT|
@@ -160,7 +160,7 @@ throws InvalidOperationException: Can't write a keycut of type Unknown.
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\description.bat</shortcut>|
 |REM <type>url</type>|
-|REM <destination>https://example.com</destination>|
+|REM <target>https://example.com</target>|
 |REM <description>Line one  line two</description>|
 |START https://example.com|
 |EXIT|
@@ -170,7 +170,7 @@ throws InvalidOperationException: Can't write a keycut of type Unknown.
 |REM keycuts <version>|
 |REM <shortcut>C:\Shortcuts\description-null.bat</shortcut>|
 |REM <type>url</type>|
-|REM <destination>https://example.com</destination>|
+|REM <target>https://example.com</target>|
 |REM <description></description>|
 |START https://example.com|
 |EXIT|

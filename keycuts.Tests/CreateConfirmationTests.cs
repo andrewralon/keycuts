@@ -100,7 +100,7 @@ namespace keycuts.Tests
 
             var check = NameCheck.Run(Shortcut.GetName(shortcut), Shortcut.GetFolder(shortcut, @"C:\elsewhere"), true, NoCommands);
 
-            Assert.Equal("https://old.example.com", check.Existing!.Destination);
+            Assert.Equal("https://old.example.com", check.Existing!.Target);
         }
 
         [Fact]
@@ -117,7 +117,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void AReplace_ShowsTheOldAndNewDestinations_AndYesOverwrites()
+        public void AReplace_ShowsTheOldAndNewTargets_AndYesOverwrites()
         {
             var decision = Decide(Replace(), false, false, 'Y', out var overwrite, out var output, out var reads);
 
@@ -207,7 +207,7 @@ namespace keycuts.Tests
             var doesNotAsk = NameCheck.Run("gmail", root, false, NoCommands);
 
             Assert.Equal("GMail", asks.Name);
-            Assert.Equal("https://mail.example.com", asks.Existing!.Destination);
+            Assert.Equal("https://mail.example.com", asks.Existing!.Target);
             Assert.True(asks.HasWarnings);
             Assert.Null(doesNotAsk.Existing);
             Assert.False(doesNotAsk.HasWarnings);
@@ -224,14 +224,14 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void RepositoryFind_ReturnsAnUnparseableFile_WithAnEmptyDestination()
+        public void RepositoryFind_ReturnsAnUnparseableFile_WithAnEmptyTarget()
         {
             File.WriteAllText(Path.Combine(root, "junk.bat"), "not a keycut");
 
             var found = new KeycutRepository(root).Find("JUNK");
 
             Assert.Equal(Path.Combine(root, "junk.bat"), found!.FilePath);
-            Assert.Equal(string.Empty, found.Destination);
+            Assert.Equal(string.Empty, found.Target);
             Assert.Null(new KeycutRepository(root).Find("missing"));
             Assert.Null(new KeycutRepository(Path.Combine(root, "nope")).Find("junk"));
         }

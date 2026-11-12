@@ -31,18 +31,18 @@ namespace keycuts.GUI.DesignData
 
         public static CreatorViewModel CreatorUrl
         {
-            get { return NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url); }
+            get { return NewCreator(SampleKeycuts.VickiTarget, SampleKeycuts.VickiName, 2, KeycutKind.Url); }
         }
 
         public static CreatorViewModel CreatorFolder
         {
-            get { return NewCreator(SampleKeycuts.DownloadsDestination, SampleKeycuts.DownloadsName, 2, KeycutKind.Folder); }
+            get { return NewCreator(SampleKeycuts.DownloadsTarget, SampleKeycuts.DownloadsName, 2, KeycutKind.Folder); }
         }
 
-        /// <summary>Destination chosen, name not typed yet (Create disabled).</summary>
+        /// <summary>Target chosen, name not typed yet (Create disabled).</summary>
         public static CreatorViewModel CreatorSelected
         {
-            get { return NewCreator(SampleKeycuts.VickiDestination, string.Empty, 2, KeycutKind.Url); }
+            get { return NewCreator(SampleKeycuts.VickiTarget, string.Empty, 2, KeycutKind.Url); }
         }
 
         public static CreatorViewModel CreatorDragHover
@@ -59,7 +59,7 @@ namespace keycuts.GUI.DesignData
         {
             get
             {
-                var creator = NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url);
+                var creator = NewCreator(SampleKeycuts.VickiTarget, SampleKeycuts.VickiName, 2, KeycutKind.Url);
                 creator.IsSaving = true;
                 return creator;
             }
@@ -69,24 +69,24 @@ namespace keycuts.GUI.DesignData
         {
             get
             {
-                var creator = NewCreator(SampleKeycuts.VickiDestination, SampleKeycuts.VickiName, 2, KeycutKind.Url);
-                var existing = new Keycut { Name = SampleKeycuts.VickiName, Destination = SampleKeycuts.VickiDestination };
+                var creator = NewCreator(SampleKeycuts.VickiTarget, SampleKeycuts.VickiName, 2, KeycutKind.Url);
+                var existing = new Keycut { Name = SampleKeycuts.VickiName, Target = SampleKeycuts.VickiTarget };
                 creator.SetNameWarning(new NameCheck(SampleKeycuts.VickiName, existing, null));
                 return creator;
             }
         }
 
-        public static CreatorViewModel CreatorInvalidDestination
+        public static CreatorViewModel CreatorInvalidTarget
         {
             get
             {
                 var creator = NewCreator(@"C:\does\not\exist\report.pdf", SampleKeycuts.VickiName, 2);
-                creator.DestinationError = DestinationError.NotFound;
+                creator.TargetError = TargetError.NotFound;
                 return creator;
             }
         }
 
-        public static CreatorViewModel CreatorLongDestination
+        public static CreatorViewModel CreatorLongTarget
         {
             get { return NewCreator(@"C:\Users\sample\" + new string('a', 220) + ".txt", "long", 2, KeycutKind.File); }
         }
@@ -126,13 +126,13 @@ namespace keycuts.GUI.DesignData
             }
         }
 
-        private static CreatorViewModel NewCreator(string destination, string name, int count, KeycutKind? kind = null)
+        private static CreatorViewModel NewCreator(string target, string name, int count, KeycutKind? kind = null)
         {
             return new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }))
             {
-                Destination = destination,
+                Target = target,
                 ShortcutName = name,
-                DestinationKind = kind,
+                TargetKind = kind,
                 KeycutCount = count
             };
         }

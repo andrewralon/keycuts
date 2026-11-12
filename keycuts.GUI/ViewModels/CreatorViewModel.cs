@@ -15,20 +15,20 @@ namespace keycuts.GUI.ViewModels
     public enum CreatorState
     {
         Empty,
-        DestinationSelected,
+        TargetSelected,
         Saving,
         /// <summary>The name is invalid (characters Windows doesn't allow, or a keycuts command's name).</summary>
         NameError,
         /// <summary>The name would replace a keycut or clash with another command (#153); Create asks first.</summary>
         NameWarning,
-        InvalidDestination,
+        InvalidTarget,
         Success
     }
 
     /// <summary>Where the view should move keyboard focus after a create attempt.</summary>
     public enum CreatorFocusTarget
     {
-        Destination,
+        Target,
         Name,
         NameSelectAll
     }
@@ -63,7 +63,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>An existing keycut the new one would replace, and what it opens now (#153).</summary>
         public const string ReplaceMessage = "\u201c{0}\u201d already exists and opens {1}.";
 
-        /// <summary>An existing keycut whose destination couldn't be read.</summary>
+        /// <summary>An existing keycut whose target couldn't be read.</summary>
         public const string ReplaceUnknownMessage = "\u201c{0}\u201d already exists.";
 
         /// <summary>Something found before the keycut, so it would never run from Win+R.</summary>
@@ -91,9 +91,9 @@ namespace keycuts.GUI.ViewModels
 
             if (check.Existing != null)
             {
-                lines.Add(string.IsNullOrEmpty(check.Existing.Destination)
+                lines.Add(string.IsNullOrEmpty(check.Existing.Target)
                     ? string.Format(ReplaceUnknownMessage, check.Name)
-                    : string.Format(ReplaceMessage, check.Name, check.Existing.Destination));
+                    : string.Format(ReplaceMessage, check.Name, check.Existing.Target));
             }
 
             if (check.MainConflict is NameConflict conflict)
@@ -104,15 +104,15 @@ namespace keycuts.GUI.ViewModels
             return string.Join(Environment.NewLine, lines);
         }
 
-        private string destination = string.Empty;
+        private string target = string.Empty;
 
         private string shortcutName = string.Empty;
 
         private int keycutCount;
 
-        private KeycutKind? destinationKind;
+        private KeycutKind? targetKind;
 
-        private DestinationError destinationError;
+        private TargetError targetError;
 
         private bool isDragHover;
 
@@ -142,10 +142,10 @@ namespace keycuts.GUI.ViewModels
         // Null until the app has read them (in the background, since a custom folder on a network share can be slow)
         private IReadOnlyList<PathVariable>? pathVariables;
 
-        // What the typed destination resolved to (a shortcut's target, a normalized path), while the text keeps what was typed
-        private string? resolvedDestination;
+        // What the typed target resolved to (a shortcut's target, a normalized path), while the text keeps what was typed
+        private string? resolvedTarget;
 
-        /// <param name="createAsync">Creates the keycut (destination, name, use environment variables, replace an existing
+        /// <param name="createAsync">Creates the keycut (target, name, use environment variables, replace an existing
         /// one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
         /// <param name="checkName">What a name runs into (#153), checked while typing and before each create; defaults to
         /// <see cref="NameCheck.Run"/> on this machine. Tests pass a fake.</param>
@@ -177,7 +177,7 @@ namespace keycuts.GUI.ViewModels
         public event EventHandler<CreatorFocusTarget>? FocusRequested;
 
         /// <summary>
-        /// Asks the user to go ahead despite a name warning (#153): the check and the new destination in, true to create.
+        /// Asks the user to go ahead despite a name warning (#153): the check and the new target in, true to create.
         /// The view shows the confirmation dialog; tests pass a fake. Without one nothing with a warning is created.
         /// </summary>
         public Func<NameCheck, string, bool>? ConfirmName { get; set; }
@@ -236,15 +236,15 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// What the destination resolved to while being typed (a shortcut's target, a normalized path), which is what is
-        /// saved; the text itself isn't rewritten until it's pasted, dropped or left. Set it after <see cref="Destination"/>, which clears it.
+        /// What the target resolved to while being typed (a shortcut's target, a normalized path), which is what is
+        /// saved; the text itself isn't rewritten until it's pasted, dropped or left. Set it after <see cref="Target"/>, which clears it.
         /// </summary>
-        public string? ResolvedDestination
+        public string? ResolvedTarget
         {
-            get { return resolvedDestination; }
+            get { return resolvedTarget; }
             set
             {
-                resolvedDestination = value;
+                resolvedTarget = value;
                 RaiseSavedAsChanged();
             }
         }
@@ -256,19 +256,19 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// The path as it will be saved, shown under the destination: with variables or without, following
+        /// The path as it will be saved, shown under the target: with variables or without, following
         /// <see cref="UseEnvironmentVariables"/>. Empty when there is nothing to choose (not a file or folder, or no variable fits).
         /// </summary>
         public string SavedAsPath
         {
             get
             {
-                if (!HasValidDestination || (destinationKind != KeycutKind.File && destinationKind != KeycutKind.Folder))
+                if (!HasValidTarget || (targetKind != KeycutKind.File && targetKind != KeycutKind.Folder))
                 {
                     return string.Empty;
                 }
 
-                var path = string.IsNullOrEmpty(resolvedDestination) ? destination.Trim() : resolvedDestination;
+                var path = string.IsNullOrEmpty(resolvedTarget) ? target.Trim() : resolvedTarget;
                 var withVariables = Common.PathVariables.Substitute(path, PathVariables);
 
                 if (string.Equals(withVariables, path, StringComparison.Ordinal))
@@ -291,21 +291,21 @@ namespace keycuts.GUI.ViewModels
         /// <summary>The "new version is out" line in the footer (#171), or null without one (tests, design data).</summary>
         public UpdateNoticeViewModel? UpdateNotice { get; init; }
 
-        /// <summary>Changing the text invalidates the resolved kind, any destination error, and the success message.</summary>
-        public string Destination
+        /// <summary>Changing the text invalidates the resolved kind, any target error, and the success message.</summary>
+        public string Target
         {
-            get { return destination; }
+            get { return target; }
             set
             {
-                if (SetProperty(ref destination, value ?? string.Empty))
+                if (SetProperty(ref target, value ?? string.Empty))
                 {
-                    destinationKind = null;
-                    resolvedDestination = null;
-                    destinationError = DestinationError.None;
+                    targetKind = null;
+                    resolvedTarget = null;
+                    targetError = TargetError.None;
                     successName = null;
                     submitError = null;
-                    OnPropertyChanged(nameof(DestinationKind));
-                    OnPropertyChanged(nameof(DestinationError));
+                    OnPropertyChanged(nameof(TargetKind));
+                    OnPropertyChanged(nameof(TargetError));
                     RaiseStateChanged();
                 }
             }
@@ -334,26 +334,26 @@ namespace keycuts.GUI.ViewModels
             set { SetProperty(ref keycutCount, value); }
         }
 
-        /// <summary>The kind the destination resolved to. Set it after <see cref="Destination"/>, which clears it.</summary>
-        public KeycutKind? DestinationKind
+        /// <summary>The kind the target resolved to. Set it after <see cref="Target"/>, which clears it.</summary>
+        public KeycutKind? TargetKind
         {
-            get { return destinationKind; }
+            get { return targetKind; }
             set
             {
-                if (SetProperty(ref destinationKind, value))
+                if (SetProperty(ref targetKind, value))
                 {
                     RaiseStateChanged();
                 }
             }
         }
 
-        /// <summary>The reason the destination was rejected. Set it after <see cref="Destination"/>, which clears it.</summary>
-        public DestinationError DestinationError
+        /// <summary>The reason the target was rejected. Set it after <see cref="Target"/>, which clears it.</summary>
+        public TargetError TargetError
         {
-            get { return destinationError; }
+            get { return targetError; }
             set
             {
-                if (SetProperty(ref destinationError, value))
+                if (SetProperty(ref targetError, value))
                 {
                     RaiseStateChanged();
                 }
@@ -417,9 +417,9 @@ namespace keycuts.GUI.ViewModels
                     return CreatorState.Success;
                 }
 
-                if (HasDestinationError)
+                if (HasTargetError)
                 {
-                    return CreatorState.InvalidDestination;
+                    return CreatorState.InvalidTarget;
                 }
 
                 if (isInvalidName)
@@ -432,24 +432,24 @@ namespace keycuts.GUI.ViewModels
                     return CreatorState.NameWarning;
                 }
 
-                return HasDestination ? CreatorState.DestinationSelected : CreatorState.Empty;
+                return HasTarget ? CreatorState.TargetSelected : CreatorState.Empty;
             }
         }
 
-        public bool HasDestination
+        public bool HasTarget
         {
-            get { return !string.IsNullOrWhiteSpace(destination); }
+            get { return !string.IsNullOrWhiteSpace(target); }
         }
 
-        public bool HasDestinationError
+        public bool HasTargetError
         {
-            get { return destinationError != DestinationError.None && destinationError != DestinationError.Empty; }
+            get { return targetError != TargetError.None && targetError != TargetError.Empty; }
         }
 
-        /// <summary>A destination that has text and was not rejected. KC-10 refines this by resolving the text.</summary>
-        public bool HasValidDestination
+        /// <summary>A target that has text and was not rejected. KC-10 refines this by resolving the text.</summary>
+        public bool HasValidTarget
         {
-            get { return HasDestination && !HasDestinationError; }
+            get { return HasTarget && !HasTargetError; }
         }
 
         /// <summary>The name field shows its error look: characters Windows doesn't allow, or a keycuts command's name.</summary>
@@ -469,13 +469,13 @@ namespace keycuts.GUI.ViewModels
             get { return successName != null && !isSaving; }
         }
 
-        /// <summary>Create needs a valid destination and a non-empty name, and is off while saving or showing the success message.</summary>
+        /// <summary>Create needs a valid target and a non-empty name, and is off while saving or showing the success message.</summary>
         public bool CanCreate
         {
-            get { return !isSaving && successName == null && HasValidDestination && !string.IsNullOrWhiteSpace(shortcutName); }
+            get { return !isSaving && successName == null && HasValidTarget && !string.IsNullOrWhiteSpace(shortcutName); }
         }
 
-        /// <summary>The destination field, Browse, and the name field are off while saving; the drop area ignores drops too.</summary>
+        /// <summary>The target field, Browse, and the name field are off while saving; the drop area ignores drops too.</summary>
         public bool IsInputEnabled
         {
             get { return !isSaving; }
@@ -487,15 +487,15 @@ namespace keycuts.GUI.ViewModels
             get { return isDragHover && !isSaving; }
         }
 
-        /// <summary>Only destination errors turn the drop area red; name errors style just the name field.</summary>
-        public bool ShowDestinationError
+        /// <summary>Only target errors turn the drop area red; name errors style just the name field.</summary>
+        public bool ShowTargetError
         {
-            get { return HasDestinationError; }
+            get { return HasTargetError; }
         }
 
-        public IconKind DestinationIcon
+        public IconKind TargetIcon
         {
-            get { return GetDestinationIcon(destinationKind); }
+            get { return GetTargetIcon(targetKind); }
         }
 
         public string HelperText
@@ -507,9 +507,9 @@ namespace keycuts.GUI.ViewModels
                     return SavingHelperText;
                 }
 
-                if (HasDestinationError)
+                if (HasTargetError)
                 {
-                    return GetDestinationErrorMessage(destinationError);
+                    return GetTargetErrorMessage(targetError);
                 }
 
                 if (isInvalidName)
@@ -536,16 +536,16 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>The destination field's current error for screen readers, or empty when there is none.</summary>
-        public string DestinationHelpText
+        /// <summary>The target field's current error for screen readers, or empty when there is none.</summary>
+        public string TargetHelpText
         {
-            get { return HasDestinationError ? GetDestinationErrorMessage(destinationError) : string.Empty; }
+            get { return HasTargetError ? GetTargetErrorMessage(targetError) : string.Empty; }
         }
 
         /// <summary>The name field's current error or warning for screen readers, or empty when there is none.</summary>
         public string NameHelpText
         {
-            get { return !isSaving && !HasDestinationError && (HelperIsError || HelperIsWarning) ? HelperText : string.Empty; }
+            get { return !isSaving && !HasTargetError && (HelperIsError || HelperIsWarning) ? HelperText : string.Empty; }
         }
 
         /// <summary>Accessible name of the Create button; it reads "Saving" while the keycut is being written.</summary>
@@ -556,7 +556,7 @@ namespace keycuts.GUI.ViewModels
 
         public bool HelperIsError
         {
-            get { return HasDestinationError || isInvalidName || submitError != null; }
+            get { return HasTargetError || isInvalidName || submitError != null; }
         }
 
         /// <summary>The helper line shows a name warning (amber), and no error outranks it.</summary>
@@ -565,13 +565,13 @@ namespace keycuts.GUI.ViewModels
             get { return !isSaving && !HelperIsError && !IsSuccess && nameWarning != null; }
         }
 
-        /// <summary>The destination field is focused unless one is already set, in which case the name field is.</summary>
+        /// <summary>The target field is focused unless one is already set, in which case the name field is.</summary>
         public bool FocusNameFieldOnShow
         {
-            get { return !string.IsNullOrWhiteSpace(destination); }
+            get { return !string.IsNullOrWhiteSpace(target); }
         }
 
-        public static IconKind GetDestinationIcon(KeycutKind? kind)
+        public static IconKind GetTargetIcon(KeycutKind? kind)
         {
             switch (kind)
             {
@@ -588,28 +588,28 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        public static string GetDestinationErrorMessage(DestinationError error)
+        public static string GetTargetErrorMessage(TargetError error)
         {
             switch (error)
             {
-                case DestinationError.NotFound:
-                    return "That destination wasn\u2019t found.";
-                case DestinationError.AccessDenied:
-                    return "Access to that destination was denied.";
-                case DestinationError.Unsupported:
-                    return "That destination type isn\u2019t supported.";
-                case DestinationError.Timeout:
-                    return "That destination didn\u2019t respond in time.";
+                case TargetError.NotFound:
+                    return "That target wasn\u2019t found.";
+                case TargetError.AccessDenied:
+                    return "Access to that target was denied.";
+                case TargetError.Unsupported:
+                    return "That target type isn\u2019t supported.";
+                case TargetError.Timeout:
+                    return "That target didn\u2019t respond in time.";
                 default:
                     return DefaultHelperText;
             }
         }
 
         /// <summary>
-        /// Applies a resolver result. A valid result replaces the text with the normalized destination and sets the kind.
+        /// Applies a resolver result. A valid result replaces the text with the normalized target and sets the kind.
         /// An invalid result is shown as an error only when <paramref name="showError"/> is true (not while the user is typing).
         /// </summary>
-        public void ApplyResolved(DestinationResult result, bool showError)
+        public void ApplyResolved(TargetResult result, bool showError)
         {
             if (result == null)
             {
@@ -618,13 +618,13 @@ namespace keycuts.GUI.ViewModels
 
             if (result.IsValid)
             {
-                Destination = result.Destination;
-                DestinationKind = result.Kind;
-                DestinationError = DestinationError.None;
+                Target = result.Target;
+                TargetKind = result.Kind;
+                TargetError = TargetError.None;
             }
-            else if (showError && result.Error != DestinationError.Empty)
+            else if (showError && result.Error != TargetError.Empty)
             {
-                DestinationError = result.Error;
+                TargetError = result.Error;
             }
         }
 
@@ -649,19 +649,19 @@ namespace keycuts.GUI.ViewModels
 
         public void Clear()
         {
-            destination = string.Empty;
+            target = string.Empty;
             shortcutName = string.Empty;
-            destinationKind = null;
-            resolvedDestination = null;
-            destinationError = DestinationError.None;
+            targetKind = null;
+            resolvedTarget = null;
+            targetError = TargetError.None;
             nameWarning = null;
             isInvalidName = false;
             submitError = null;
             successName = null;
-            OnPropertyChanged(nameof(Destination));
+            OnPropertyChanged(nameof(Target));
             OnPropertyChanged(nameof(ShortcutName));
-            OnPropertyChanged(nameof(DestinationKind));
-            OnPropertyChanged(nameof(DestinationError));
+            OnPropertyChanged(nameof(TargetKind));
+            OnPropertyChanged(nameof(TargetError));
             RaiseStateChanged();
         }
 
@@ -697,9 +697,9 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         private async Task CreateAsync()
         {
-            // The command's CanExecute is rechecked here; the destination text may be unresolved, so KeycutCreator validates it again
+            // The command's CanExecute is rechecked here; the target text may be unresolved, so KeycutCreator validates it again
             var name = shortcutName.Trim();
-            var target = destination.Trim();
+            var trimmedTarget = target.Trim();
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;
@@ -719,7 +719,7 @@ namespace keycuts.GUI.ViewModels
 
                     if (check.HasWarnings)
                     {
-                        if (!Confirm(check, target))
+                        if (!Confirm(check, trimmedTarget))
                         {
                             return;
                         }
@@ -732,20 +732,20 @@ namespace keycuts.GUI.ViewModels
                     }
                 }
 
-                result = await createAsync(target, name, useEnvironmentVariables, replace, CancellationToken.None);
+                result = await createAsync(trimmedTarget, name, useEnvironmentVariables, replace, CancellationToken.None);
 
                 if (result.Outcome == CreateOutcome.DuplicateName && !replace)
                 {
                     // The keycut appeared after the check (or the check failed): ask before replacing it
                     var again = await RunCheckAsync(name);
-                    var existing = again.Existing ?? new Keycut { Name = name, Destination = string.Empty };
+                    var existing = again.Existing ?? new Keycut { Name = name, Target = string.Empty };
 
-                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), target))
+                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), trimmedTarget))
                     {
                         return;
                     }
 
-                    result = await createAsync(target, name, useEnvironmentVariables, true, CancellationToken.None);
+                    result = await createAsync(trimmedTarget, name, useEnvironmentVariables, true, CancellationToken.None);
                 }
             }
             catch (Exception ex)
@@ -807,12 +807,12 @@ namespace keycuts.GUI.ViewModels
                     RaiseStateChanged();
                     FocusRequested?.Invoke(this, CreatorFocusTarget.NameSelectAll);
                     return;
-                case CreateOutcome.DestinationInvalid:
-                    var error = result.DestinationError == DestinationError.None || result.DestinationError == DestinationError.Empty
-                        ? DestinationError.NotFound
-                        : result.DestinationError;
-                    DestinationError = error;
-                    FocusRequested?.Invoke(this, CreatorFocusTarget.Destination);
+                case CreateOutcome.TargetInvalid:
+                    var error = result.TargetError == TargetError.None || result.TargetError == TargetError.Empty
+                        ? TargetError.NotFound
+                        : result.TargetError;
+                    TargetError = error;
+                    FocusRequested?.Invoke(this, CreatorFocusTarget.Target);
                     return;
                 case CreateOutcome.OutputFolderError:
                     ShowSubmitError(OutputFolderErrorMessage);
@@ -842,11 +842,11 @@ namespace keycuts.GUI.ViewModels
             if (version == successVersion && successName != null && !isSaving)
             {
                 Clear();
-                FocusRequested?.Invoke(this, CreatorFocusTarget.Destination);
+                FocusRequested?.Invoke(this, CreatorFocusTarget.Target);
             }
         }
 
-        private async Task<CreateResult> DefaultCreateAsync(string destination, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
+        private async Task<CreateResult> DefaultCreateAsync(string target, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
         {
 #if DEBUG
             // Debug builds can slow creation down to see the Saving state
@@ -864,7 +864,7 @@ namespace keycuts.GUI.ViewModels
                 PathVariables = pathVariables,
                 Overwrite = replace ? true : null
             };
-            return await KeycutCreator.CreateAsync(destination, name, options, ct);
+            return await KeycutCreator.CreateAsync(target, name, options, ct);
         }
 
         private static NameCheck DefaultCheckName(string name)
@@ -878,9 +878,9 @@ namespace keycuts.GUI.ViewModels
         {
             CreateCommand.RaiseCanExecuteChanged();
             OnPropertyChanged(nameof(State));
-            OnPropertyChanged(nameof(HasDestination));
-            OnPropertyChanged(nameof(HasDestinationError));
-            OnPropertyChanged(nameof(HasValidDestination));
+            OnPropertyChanged(nameof(HasTarget));
+            OnPropertyChanged(nameof(HasTargetError));
+            OnPropertyChanged(nameof(HasValidTarget));
             OnPropertyChanged(nameof(IsNameError));
             OnPropertyChanged(nameof(IsNameWarning));
             OnPropertyChanged(nameof(NameWarning));
@@ -889,12 +889,12 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(CanCreate));
             OnPropertyChanged(nameof(IsInputEnabled));
             OnPropertyChanged(nameof(ShowDragHover));
-            OnPropertyChanged(nameof(ShowDestinationError));
-            OnPropertyChanged(nameof(DestinationIcon));
+            OnPropertyChanged(nameof(ShowTargetError));
+            OnPropertyChanged(nameof(TargetIcon));
             OnPropertyChanged(nameof(HelperText));
             OnPropertyChanged(nameof(HelperIsError));
             OnPropertyChanged(nameof(HelperIsWarning));
-            OnPropertyChanged(nameof(DestinationHelpText));
+            OnPropertyChanged(nameof(TargetHelpText));
             OnPropertyChanged(nameof(NameHelpText));
             OnPropertyChanged(nameof(CreateButtonName));
             RaiseSavedAsChanged();

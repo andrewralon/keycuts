@@ -22,7 +22,7 @@
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
 
-        <Style x:Key="DestinationText" TargetType="TextBlock">
+        <Style x:Key="TargetText" TargetType="TextBlock">
             <Setter Property="TextWrapping" Value="Wrap" />
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         </Style>
@@ -64,14 +64,14 @@
                 <!-- A replace: what the keycut opens now, and what it will open -->
                 <Border Padding="14,12" Margin="0,0,0,14" CornerRadius="{StaticResource RadiusLg}"
                         Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                        Visibility="{Binding ShowDestinations, Converter={StaticResource BoolToVisibility}}">
+                        Visibility="{Binding ShowTargets, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
                         <TextBlock Text="OPENS NOW" Style="{StaticResource SectionLabel}" />
-                        <TextBlock x:Name="CurrentDestinationText" Text="{Binding CurrentDestination}" Style="{StaticResource DestinationText}"
-                                   AutomationProperties.Name="{Binding CurrentDestination, StringFormat='Opens now: {0}'}" />
+                        <TextBlock x:Name="CurrentTargetText" Text="{Binding CurrentTarget}" Style="{StaticResource TargetText}"
+                                   AutomationProperties.Name="{Binding CurrentTarget, StringFormat='Opens now: {0}'}" />
                         <TextBlock Text="WILL OPEN" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
-                        <TextBlock x:Name="NewDestinationText" Text="{Binding NewDestination}" Style="{StaticResource DestinationText}"
-                                   AutomationProperties.Name="{Binding NewDestination, StringFormat='Will open: {0}'}" />
+                        <TextBlock x:Name="NewTargetText" Text="{Binding NewTarget}" Style="{StaticResource TargetText}"
+                                   AutomationProperties.Name="{Binding NewTarget, StringFormat='Will open: {0}'}" />
                     </StackPanel>
                 </Border>
 

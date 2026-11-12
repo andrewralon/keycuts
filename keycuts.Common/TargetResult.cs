@@ -2,7 +2,7 @@ using System;
 
 namespace keycuts.Common
 {
-    public enum DestinationError
+    public enum TargetError
     {
         None,
         Empty,
@@ -12,7 +12,7 @@ namespace keycuts.Common
         Timeout
     }
 
-    public class DestinationResult
+    public class TargetResult
     {
         public bool IsValid { get; private set; }
 
@@ -20,33 +20,33 @@ namespace keycuts.Common
 
         public ShortcutType RawType { get; private set; }
 
-        public string Destination { get; private set; }
+        public string Target { get; private set; }
 
         public string DisplayText { get; private set; }
 
-        public DestinationError Error { get; private set; }
+        public TargetError Error { get; private set; }
 
-        public static DestinationResult Valid(ShortcutType type, string destination)
+        public static TargetResult Valid(ShortcutType type, string target)
         {
-            return new DestinationResult
+            return new TargetResult
             {
                 IsValid = true,
                 Kind = KeycutKinds.FromShortcutType(type),
                 RawType = type,
-                Destination = destination,
-                DisplayText = destination,
-                Error = DestinationError.None
+                Target = target,
+                DisplayText = target,
+                Error = TargetError.None
             };
         }
 
-        public static DestinationResult Invalid(DestinationError error, string rawText)
+        public static TargetResult Invalid(TargetError error, string rawText)
         {
-            return new DestinationResult
+            return new TargetResult
             {
                 IsValid = false,
                 Kind = KeycutKinds.FromShortcutType(ShortcutType.Unknown),
                 RawType = ShortcutType.Unknown,
-                Destination = rawText ?? string.Empty,
+                Target = rawText ?? string.Empty,
                 DisplayText = rawText ?? string.Empty,
                 Error = error
             };

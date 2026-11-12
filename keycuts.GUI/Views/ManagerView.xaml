@@ -273,7 +273,7 @@
         <TextBox x:Name="SearchBox" Style="{StaticResource AppTextBox}" Padding="34,0,10,0"
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
-                 themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or destinations"
+                 themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
                  AutomationProperties.Name="Search shortcuts" />
         <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
@@ -347,10 +347,10 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="Destination" Width="2.8*" MinWidth="120">
+            <DataGridTemplateColumn Header="Target" Width="2.8*" MinWidth="120">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Destination}" />
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
@@ -380,7 +380,7 @@
                             <controls:Icon Kind="Folder" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Copy destination" Command="{Binding CopyDestinationCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Copy target" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Copy" Size="16" />
                           </MenuItem.Icon>

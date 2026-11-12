@@ -14,7 +14,7 @@ using Microsoft.Win32;
 namespace keycuts.GUI.Views
 {
     /// <summary>
-    /// Creator view: drop, paste, type and Browse feed the destination; Enter in the name field or the Create button submits.
+    /// Creator view: drop, paste, type and Browse feed the target; Enter in the name field or the Create button submits.
     /// </summary>
     public partial class CreatorView : UserControl
     {
@@ -41,7 +41,7 @@ namespace keycuts.GUI.Views
             typingTimer.Tick += TypingTimer_Tick;
             nameTimer = new DispatcherTimer { Interval = NameCheckDelay };
             nameTimer.Tick += NameTimer_Tick;
-            DataObject.AddPastingHandler(TextboxDestination, TextboxDestination_Pasting);
+            DataObject.AddPastingHandler(TextboxTarget, TextboxTarget_Pasting);
             DataContextChanged += CreatorView_DataContextChanged;
         }
 
@@ -135,9 +135,9 @@ namespace keycuts.GUI.Views
         }
 
         // A name that would replace a keycut or clash with another command asks first, in the app's own dialog (#153)
-        private bool ConfirmName(NameCheck check, string destination)
+        private bool ConfirmName(NameCheck check, string target)
         {
-            return ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForCreate(check, destination));
+            return ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForCreate(check, target));
         }
 
         private void ViewModel_KeycutCreated(object? sender, EventArgs e)
@@ -147,10 +147,10 @@ namespace keycuts.GUI.Views
 
         private void ViewModel_FocusRequested(object? sender, CreatorFocusTarget target)
         {
-            // The name and destination fields are disabled while saving; wait for the layout to re-enable them
+            // The name and target fields are disabled while saving; wait for the layout to re-enable them
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
             {
-                var field = target == CreatorFocusTarget.Destination ? TextboxDestination : TextboxShortcut;
+                var field = target == CreatorFocusTarget.Target ? TextboxTarget : TextboxShortcut;
                 field.Focus();
                 Keyboard.Focus(field);
                 if (target == CreatorFocusTarget.NameSelectAll)
@@ -185,7 +185,7 @@ namespace keycuts.GUI.Views
         private void CreatorView_Loaded(object sender, RoutedEventArgs e)
         {
             var nameFirst = ViewModel?.FocusNameFieldOnShow == true;
-            var target = nameFirst ? TextboxShortcut : TextboxDestination;
+            var target = nameFirst ? TextboxShortcut : TextboxTarget;
             target.Focus();
             Keyboard.Focus(target);
         }
@@ -214,7 +214,7 @@ namespace keycuts.GUI.Views
             return Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
         }
 
-        /// <summary>Ctrl+V anywhere except the two text fields pastes into the destination.</summary>
+        /// <summary>Ctrl+V anywhere except the two text fields pastes into the target.</summary>
         private void CreatorView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
@@ -243,7 +243,7 @@ namespace keycuts.GUI.Views
                 // The clipboard is busy; treat it as empty
             }
 
-            if (DragDrop.TryGetDestination(data, out var text))
+            if (DragDrop.TryGetTarget(data, out var text))
             {
                 e.Handled = true;
                 ApplyInput(text);
@@ -361,9 +361,9 @@ namespace keycuts.GUI.Views
 
         #endregion Browse
 
-        #region Destination input
+        #region Target input
 
-        private void TextboxDestination_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void TextboxTarget_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
@@ -373,7 +373,7 @@ namespace keycuts.GUI.Views
             }
         }
 
-        private void TextboxDestination_TextChanged(object sender, TextChangedEventArgs e)
+        private void TextboxTarget_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (suppressTextChanged)
             {
@@ -381,7 +381,7 @@ namespace keycuts.GUI.Views
             }
 
             typingTimer.Stop();
-            if (!string.IsNullOrWhiteSpace(TextboxDestination.Text))
+            if (!string.IsNullOrWhiteSpace(TextboxTarget.Text))
             {
                 typingTimer.Start();
             }
@@ -393,27 +393,27 @@ namespace keycuts.GUI.Views
             _ = ResolveCurrentAsync(showError: false, normalize: false, focusName: false);
         }
 
-        private void TextboxDestination_LostFocus(object sender, RoutedEventArgs e)
+        private void TextboxTarget_LostFocus(object sender, RoutedEventArgs e)
         {
             typingTimer.Stop();
             var viewModel = ViewModel;
-            if (viewModel != null && viewModel.HasDestination && viewModel.DestinationKind == null)
+            if (viewModel != null && viewModel.HasTarget && viewModel.TargetKind == null)
             {
                 _ = ResolveCurrentAsync(showError: true, normalize: true, focusName: false);
             }
         }
 
-        private void TextboxDestination_Pasting(object sender, DataObjectPastingEventArgs e)
+        private void TextboxTarget_Pasting(object sender, DataObjectPastingEventArgs e)
         {
             // A plain text box can't paste files, so a copied file replaces the whole field with its path.
             // Text replacing the whole field resolves right away; a partial paste is left to the box and the typing delay.
-            var wholeField = TextboxDestination.Text.Length == 0 || TextboxDestination.SelectionLength == TextboxDestination.Text.Length;
+            var wholeField = TextboxTarget.Text.Length == 0 || TextboxTarget.SelectionLength == TextboxTarget.Text.Length;
             string? raw = null;
             if (DragDrop.TryGetFirstFile(e.DataObject, out var path))
             {
                 raw = path;
             }
-            else if (wholeField && DragDrop.TryGetDestination(e.DataObject, out var text))
+            else if (wholeField && DragDrop.TryGetTarget(e.DataObject, out var text))
             {
                 raw = text;
             }
@@ -425,7 +425,7 @@ namespace keycuts.GUI.Views
             }
         }
 
-        /// <summary>Replaces the destination with the value, resolves it, and on success moves focus to the name field.</summary>
+        /// <summary>Replaces the target with the value, resolves it, and on success moves focus to the name field.</summary>
         private void ApplyInput(string raw)
         {
             var viewModel = ViewModel;
@@ -435,16 +435,16 @@ namespace keycuts.GUI.Views
             }
 
             typingTimer.Stop();
-            SetDestinationText(viewModel, raw);
+            SetTargetText(viewModel, raw);
             _ = ResolveCurrentAsync(showError: true, normalize: true, focusName: true);
         }
 
-        private void SetDestinationText(CreatorViewModel viewModel, string text)
+        private void SetTargetText(CreatorViewModel viewModel, string text)
         {
             suppressTextChanged = true;
             try
             {
-                viewModel.Destination = text;
+                viewModel.Target = text;
             }
             finally
             {
@@ -455,17 +455,17 @@ namespace keycuts.GUI.Views
         private async Task ResolveCurrentAsync(bool showError, bool normalize, bool focusName)
         {
             var viewModel = ViewModel;
-            if (viewModel == null || !viewModel.HasDestination)
+            if (viewModel == null || !viewModel.HasTarget)
             {
                 return;
             }
 
-            var text = viewModel.Destination;
+            var text = viewModel.Target;
             var version = ++resolveVersion;
-            var result = await DestinationResolver.ResolveAsync(text);
+            var result = await TargetResolver.ResolveAsync(text);
 
             // The text changed or a newer resolve started while this one ran
-            if (version != resolveVersion || viewModel.Destination != text || viewModel.IsSaving)
+            if (version != resolveVersion || viewModel.Target != text || viewModel.IsSaving)
             {
                 return;
             }
@@ -476,8 +476,8 @@ namespace keycuts.GUI.Views
                 if (result.IsValid && !normalize)
                 {
                     // Keep what was typed, but preview what will be saved (a shortcut's target, a normalized path)
-                    viewModel.DestinationKind = result.Kind;
-                    viewModel.ResolvedDestination = result.Destination;
+                    viewModel.TargetKind = result.Kind;
+                    viewModel.ResolvedTarget = result.Target;
                 }
                 else
                 {
@@ -491,8 +491,8 @@ namespace keycuts.GUI.Views
 
             if (result.IsValid && normalize)
             {
-                TextboxDestination.CaretIndex = TextboxDestination.Text.Length;
-                TextboxDestination.ScrollToEnd();
+                TextboxTarget.CaretIndex = TextboxTarget.Text.Length;
+                TextboxTarget.ScrollToEnd();
             }
 
             if (result.IsValid && focusName)
@@ -503,7 +503,7 @@ namespace keycuts.GUI.Views
             }
         }
 
-        #endregion Destination input
+        #endregion Target input
 
         #region DragAndDrop Handlers
 
@@ -560,7 +560,7 @@ namespace keycuts.GUI.Views
             e.Handled = true;
             SetDragHover(false);
 
-            if (ViewModel?.IsInputEnabled != true || !DragDrop.TryGetDestination(e.Data, out var text))
+            if (ViewModel?.IsInputEnabled != true || !DragDrop.TryGetTarget(e.Data, out var text))
             {
                 return;
             }

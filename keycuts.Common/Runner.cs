@@ -150,6 +150,11 @@ namespace keycuts.Common
             return RegistryStuff.GetUseEnvironmentVariables();
         }
 
+        public bool GetCheckForUpdates()
+        {
+            return RegistryStuff.GetCheckForUpdates();
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -205,6 +210,14 @@ namespace keycuts.Common
             if (RegistryStuff.GetUseEnvironmentVariables() != useEnvironmentVariables)
             {
                 RegistryStuff.SetUseEnvironmentVariables(useEnvironmentVariables);
+            }
+        }
+
+        public void SetCheckForUpdates(bool checkForUpdates)
+        {
+            if (RegistryStuff.GetCheckForUpdates() != checkForUpdates)
+            {
+                RegistryStuff.SetCheckForUpdates(checkForUpdates);
             }
         }
 

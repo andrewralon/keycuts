@@ -164,6 +164,8 @@ Issue: #171
 
 Users on old versions never learn there's a new one. Options: a lightweight check against GitHub Releases at startup (opt-out in Settings), or let winget handle updates (Features 2).
 
+Decided (#171): the startup check, notify only. The app never downloads or installs; Download opens the release page. The last release a check saw is stored with the check time, so the footer line shows on every start rather than only on the day a request is made. Dismissing hides the line until a newer release. An MSI property to turn the check off for managed installs is left until someone asks.
+
 ## Features that fit where the app is going
 
 Ordered by fit and value.

@@ -50,6 +50,9 @@ namespace keycuts.GUI
                 usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
                 usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
+            // #171: the GUI only; the CLI never checks
+            var updateNotice = new ViewModels.UpdateNoticeViewModel(Common.UpdateChecker.CreateDefault());
+
             var shell = new ViewModels.ShellViewModel(
                 async () =>
                 {
@@ -63,7 +66,8 @@ namespace keycuts.GUI
                 },
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
-                welcome);
+                welcome,
+                updateNotice);
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
             shell.Manager.CheckRename = name => new Common.NameCheck(name, null,
                 Common.NameConflicts.Find(name, new Common.Runner().GetOutputFolder(), Common.NameConflictEnvironment.GetDefault()));
@@ -83,6 +87,20 @@ namespace keycuts.GUI
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell.Creator);
             _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
+            _ = CheckForUpdatesAsync(updateNotice);
+        }
+
+        /// <summary>After the window is up, so startup never waits on the network. Any failure just leaves the footer line hidden.</summary>
+        private static async Task CheckForUpdatesAsync(ViewModels.UpdateNoticeViewModel updateNotice)
+        {
+            try
+            {
+                await updateNotice.CheckOnStartupAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't check for updates: " + ex.Message);
+            }
         }
 
         /// <summary>Says what <see cref="MoveAsideCommandNames"/> renamed, once it's done, unless the window is already closed.</summary>

@@ -34,7 +34,9 @@ namespace keycuts.Tests
         static CreatorViewModel Create(FakeCreator fake, Func<string, NameCheck>? checkName = null)
         {
             var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, checkName ?? TestNameChecks.NoWarnings);
-            creator.SuccessDuration = TimeSpan.FromMilliseconds(20);
+            // Longer than any test runs, so a test that asserts Success never races the reset to Empty (a slow CI runner
+            // can pause a test past a short duration). The tests about the reset set their own.
+            creator.SuccessDuration = TimeSpan.FromMinutes(1);
             return creator;
         }
 
@@ -211,8 +213,8 @@ namespace keycuts.Tests
         {
             var fake = new FakeCreator();
             var creator = Ready(fake);
-            // Long enough that the state is still Success when the test resumes: the name check runs on the thread
-            // pool, so under a parallel test run the continuation can arrive later than the default 20 ms
+            // Short enough to wait for the reset, and long enough that the state is still Success when the test resumes:
+            // the name check runs on the thread pool, so under a parallel test run the continuation can arrive late
             creator.SuccessDuration = TimeSpan.FromMilliseconds(500);
             var created = 0;
             var focus = new List<CreatorFocusTarget>();

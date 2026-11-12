@@ -31,8 +31,8 @@ namespace keycuts.Tests
             data.SetData(DragDrop.UrlFormatUnicode, UrlStream("https://x.test/", Encoding.Unicode));
             data.SetText("some text");
 
-            Assert.True(DragDrop.TryGetDestination(data, out var destination));
-            Assert.Equal(@"C:\a.txt", destination);
+            Assert.True(DragDrop.TryGetTarget(data, out var target));
+            Assert.Equal(@"C:\a.txt", target);
         }
 
         [Fact]
@@ -42,8 +42,8 @@ namespace keycuts.Tests
             data.SetData(DragDrop.UrlFormatUnicode, UrlStream("https://x.test/page", Encoding.Unicode));
             data.SetText("Page title");
 
-            Assert.True(DragDrop.TryGetDestination(data, out var destination));
-            Assert.Equal("https://x.test/page", destination);
+            Assert.True(DragDrop.TryGetTarget(data, out var target));
+            Assert.Equal("https://x.test/page", target);
         }
 
         [Fact]
@@ -52,8 +52,8 @@ namespace keycuts.Tests
             var data = new DataObject();
             data.SetData(DragDrop.UrlFormatAnsi, UrlStream("https://ansi.test/", Encoding.UTF8));
 
-            Assert.True(DragDrop.TryGetDestination(data, out var destination));
-            Assert.Equal("https://ansi.test/", destination);
+            Assert.True(DragDrop.TryGetTarget(data, out var target));
+            Assert.Equal("https://ansi.test/", target);
         }
 
         [Fact]
@@ -62,8 +62,8 @@ namespace keycuts.Tests
             var data = new DataObject();
             data.SetText("amazon.com");
 
-            Assert.True(DragDrop.TryGetDestination(data, out var destination));
-            Assert.Equal("amazon.com", destination);
+            Assert.True(DragDrop.TryGetTarget(data, out var target));
+            Assert.Equal("amazon.com", target);
         }
 
         [Fact]
@@ -110,9 +110,9 @@ namespace keycuts.Tests
             var bytes = new DataObject();
             bytes.SetData(ShellIdList.Format, RecycleBinCida);
 
-            Assert.True(DragDrop.TryGetDestination(stream, out var fromStream, id => NameAs(RecycleBinKey, id)));
+            Assert.True(DragDrop.TryGetTarget(stream, out var fromStream, id => NameAs(RecycleBinKey, id)));
             Assert.Equal(RecycleBinKey, fromStream);
-            Assert.True(DragDrop.TryGetDestination(bytes, out var fromBytes, id => NameAs(RecycleBinKey, id)));
+            Assert.True(DragDrop.TryGetTarget(bytes, out var fromBytes, id => NameAs(RecycleBinKey, id)));
             Assert.Equal(RecycleBinKey, fromBytes);
         }
 
@@ -127,9 +127,9 @@ namespace keycuts.Tests
             links.SetData(DragDrop.UrlFormatUnicode, UrlStream("https://x.test/", Encoding.Unicode));
             links.SetText("Recycle Bin");
 
-            Assert.True(DragDrop.TryGetDestination(files, out var file, id => NameAs(RecycleBinKey, id)));
+            Assert.True(DragDrop.TryGetTarget(files, out var file, id => NameAs(RecycleBinKey, id)));
             Assert.Equal(@"C:\a.txt", file);
-            Assert.True(DragDrop.TryGetDestination(links, out var item, id => NameAs(RecycleBinKey, id)));
+            Assert.True(DragDrop.TryGetTarget(links, out var item, id => NameAs(RecycleBinKey, id)));
             Assert.Equal(RecycleBinKey, item);
         }
 
@@ -150,11 +150,11 @@ namespace keycuts.Tests
             var alone = new DataObject();
             alone.SetData(ShellIdList.Format, RecycleBinCida);
 
-            Assert.True(DragDrop.TryGetDestination(link, out var fromLink, id => NameAs(name, id)));
+            Assert.True(DragDrop.TryGetTarget(link, out var fromLink, id => NameAs(name, id)));
             Assert.Equal("https://x.test/", fromLink);
-            Assert.True(DragDrop.TryGetDestination(text, out var fromText, id => NameAs(name, id)));
+            Assert.True(DragDrop.TryGetTarget(text, out var fromText, id => NameAs(name, id)));
             Assert.Equal("amazon.com", fromText);
-            Assert.False(DragDrop.TryGetDestination(alone, out _, id => NameAs(name, id)));
+            Assert.False(DragDrop.TryGetTarget(alone, out _, id => NameAs(name, id)));
         }
 
         [Fact]
@@ -174,9 +174,9 @@ namespace keycuts.Tests
             unsupported.SetData(ShellIdList.Format, "not bytes");
             unsupported.SetText("amazon.com");
 
-            Assert.True(DragDrop.TryGetDestination(malformed, out var fromMalformed, Lookup));
+            Assert.True(DragDrop.TryGetTarget(malformed, out var fromMalformed, Lookup));
             Assert.Equal("amazon.com", fromMalformed);
-            Assert.True(DragDrop.TryGetDestination(unsupported, out var fromUnsupported, Lookup));
+            Assert.True(DragDrop.TryGetTarget(unsupported, out var fromUnsupported, Lookup));
             Assert.Equal("amazon.com", fromUnsupported);
             Assert.False(asked);
         }
@@ -191,34 +191,34 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void ApplyResolved_Valid_ShowsNormalizedDestinationAndKind()
+        public void ApplyResolved_Valid_ShowsNormalizedTargetAndKind()
         {
             var creator = CreateViewModel();
-            creator.Destination = "amazon.com";
-            creator.DestinationError = DestinationError.NotFound;
+            creator.Target = "amazon.com";
+            creator.TargetError = TargetError.NotFound;
 
-            creator.ApplyResolved(DestinationResult.Valid(ShortcutType.Url, "https://amazon.com/"), showError: false);
+            creator.ApplyResolved(TargetResult.Valid(ShortcutType.Url, "https://amazon.com/"), showError: false);
 
-            Assert.Equal("https://amazon.com/", creator.Destination);
-            Assert.Equal(KeycutKind.Url, creator.DestinationKind);
-            Assert.Equal(DestinationError.None, creator.DestinationError);
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            Assert.Equal("https://amazon.com/", creator.Target);
+            Assert.Equal(KeycutKind.Url, creator.TargetKind);
+            Assert.Equal(TargetError.None, creator.TargetError);
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
         }
 
         [Fact]
         public void ApplyResolved_Invalid_HidesErrorWhileTyping_AndShowsItOtherwise()
         {
             var creator = CreateViewModel();
-            creator.Destination = @"C:\missing";
-            var invalid = DestinationResult.Invalid(DestinationError.NotFound, @"C:\missing");
+            creator.Target = @"C:\missing";
+            var invalid = TargetResult.Invalid(TargetError.NotFound, @"C:\missing");
 
             creator.ApplyResolved(invalid, showError: false);
-            Assert.Equal(CreatorState.DestinationSelected, creator.State);
+            Assert.Equal(CreatorState.TargetSelected, creator.State);
 
             creator.ApplyResolved(invalid, showError: true);
-            Assert.Equal(CreatorState.InvalidDestination, creator.State);
-            Assert.Equal(DestinationError.NotFound, creator.DestinationError);
-            Assert.Equal(@"C:\missing", creator.Destination);
+            Assert.Equal(CreatorState.InvalidTarget, creator.State);
+            Assert.Equal(TargetError.NotFound, creator.TargetError);
+            Assert.Equal(@"C:\missing", creator.Target);
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace keycuts.Tests
         {
             var creator = CreateViewModel();
 
-            creator.ApplyResolved(DestinationResult.Invalid(DestinationError.Empty, string.Empty), showError: true);
+            creator.ApplyResolved(TargetResult.Invalid(TargetError.Empty, string.Empty), showError: true);
 
             Assert.Equal(CreatorState.Empty, creator.State);
         }
@@ -235,12 +235,12 @@ namespace keycuts.Tests
         public void EditingAfterAnError_ClearsIt()
         {
             var creator = CreateViewModel();
-            creator.Destination = "x";
-            creator.ApplyResolved(DestinationResult.Invalid(DestinationError.NotFound, "x"), showError: true);
+            creator.Target = "x";
+            creator.ApplyResolved(TargetResult.Invalid(TargetError.NotFound, "x"), showError: true);
 
-            creator.Destination = "xy";
+            creator.Target = "xy";
 
-            Assert.Equal(DestinationError.None, creator.DestinationError);
+            Assert.Equal(TargetError.None, creator.TargetError);
         }
 
         [Fact]

@@ -12,13 +12,13 @@ These files are the behavioral specification for the emitter/parser port (#87, #
 
 ## `new-format/` — 12 files, keycuts 1.0.0.0 header
 
-The header format the *current* `Runner.cs` emits: `REM <shortcut>...</shortcut>`, `REM <type>...</type>`, `REM <destination>...</destination>`.
+The header format `Runner.cs` emitted up to 1.2: `REM <shortcut>...</shortcut>`, `REM <type>...</type>`, `REM <destination>...</destination>`. From 1.3 (#195) the same line is `REM <target>...</target>`, and the parser reads both; `target-tag/` below has the new form. The `<destination>` files here stay as they are: they are what every existing user's folder holds.
 
 | File | Type | Notes |
 |---|---|---|
 | `d.bat` | folder | Desktop |
 | `gdig.bat`, `gdriveweb.bat`, `inception.bat` | url | plain URLs |
-| `gdrive.bat` | folder | destination contains a space (`Google Drive`) |
+| `gdrive.bat` | folder | target contains a space (`Google Drive`) |
 | `kc.bat`, `keycuts.bat`, `keypaste.bat`, `kp.bat` | file | point at `Program Files (x86)\...` — same working-directory hazard as issue #25 |
 | `programs.bat`, `rb.bat`, `recyclebin.bat` | clsidkey | `rb.bat`/`recyclebin.bat` are the simple Recycle Bin CLSID; `programs.bat` is a **nested** CLSID path (`::{...}\0\::{...}`) for "Programs and Features" — meaningfully more complex than the simple case |
 
@@ -33,12 +33,12 @@ START https://mail.google.com/mail/u/0/#inbox
 EXIT
 ```
 
-Instead of a separate `<type>` tag, the type *is* the tag name (`<url>`, `<folder>`, `<file>`), and its content is the shortcut's own path rather than the destination — the destination lives only in the `START`/`explorer.exe` line, same as the new format's fallback path. Confirms that `ShortcutFile.cs`'s parser was already dealing with format drift before any of this modernization work started; whatever parses the header now needs a `v0` mapping in addition to the `v1`→`v2` mapping already planned in #91.
+Instead of a separate `<type>` tag, the type *is* the tag name (`<url>`, `<folder>`, `<file>`), and its content is the shortcut's own path rather than the target — the target lives only in the `START`/`explorer.exe` line, same as the new format's fallback path. Confirms that `ShortcutFile.cs`'s parser was already dealing with format drift before any of this modernization work started; whatever parses the header now needs a `v0` mapping in addition to the `v1`→`v2` mapping already planned in #91.
 
 | File | Type | Notes |
 |---|---|---|
 | `gcal.bat`, `gg.bat`, `gm.bat` | url | **`gg.bat`** is the standout: header claims `<url>`, but the command line is `START "" /D "" "chrome" "? %*"` — a malformed/hand-edited Google-search launcher where header and content disagree. This is the real-world case for #91's "drift between header and managed content" handling — found in the wild, not hypothesized. |
-| `db.bat`, `dl.bat`, `docs.bat`, `shortcuts.bat` | folder | **`db.bat`** has a `REM SET DROPBOX=%USERPROFILE%\Dropbox` line that keycuts never wrote and the script never executes (it's a comment) — the destination `%DROPBOX%` only resolves because the user separately defined that variable elsewhere. Real precedent for issue #31 (substitute environment variables), done by hand as a workaround. **`shortcuts.bat`** is self-referential (a keycut pointing at the keycuts folder itself) and also carries a commented-out prior version of its own command. |
+| `db.bat`, `dl.bat`, `docs.bat`, `shortcuts.bat` | folder | **`db.bat`** has a `REM SET DROPBOX=%USERPROFILE%\Dropbox` line that keycuts never wrote and the script never executes (it's a comment) — the target `%DROPBOX%` only resolves because the user separately defined that variable elsewhere. Real precedent for issue #31 (substitute environment variables), done by hand as a workaround. **`shortcuts.bat`** is self-referential (a keycut pointing at the keycuts folder itself) and also carries a commented-out prior version of its own command. |
 | `ff.bat`, `ghd.bat`, `ie.bat`, `iis.bat`, `npp.bat`, `pdn.bat`, `pm.bat` | file | `ghd.bat` embeds a Windows user ID in the path (`C:\Users\000000000\...`); `iis.bat` points at a `.lnk` inside Start Menu, not an `.exe` directly |
 
 No `hostsfile` or `command` examples exist in either real-format group — consistent with the dead-code and parse-only bugs found during the survey (neither type could plausibly have been produced by the tool as shipped).
@@ -63,12 +63,21 @@ Type/situation combinations the real corpus doesn't happen to contain, crafted t
 | `hostsfile-type.bat` | `ShortcutType.HostsFile` — never seen in the wild; exists here purely so the dead `%windir%` comparison bug and its fix have a fixture |
 | `command-type.bat` | `ShortcutType.Command` — the parse-only/emit-hole bug (#93) needs a fixture that round-trips once fixed |
 | `openwithapp.bat` | the two-argument `START "" /B "app" "dest"` form — never seen in the real corpus |
-| `unc-path.bat` | `\\fileserver\share\...` destination |
-| `embedded-quote.bat` | a destination containing a literal `"` — stresses `ShortcutFile.MatchesRegex`'s hand-rolled quote-splitting |
+| `unc-path.bat` | `\\fileserver\share\...` target |
+| `embedded-quote.bat` | a target containing a literal `"` — stresses `ShortcutFile.MatchesRegex`'s hand-rolled quote-splitting |
 | `header-content-drift.bat` | header says `url`/`https://example.com`; managed command is unrelated — synthetic twin of the real `gg.bat` drift case, deliberately minimal |
 | `lf-line-endings.bat` | LF only, vs. every real file being CRLF |
-| `trailing-whitespace.bat` | trailing spaces after the destination on both the header and command lines |
-| `unicode-destination.bat` | non-ASCII characters (`résumé.docx`) in the destination |
+| `trailing-whitespace.bat` | trailing spaces after the target on both the header and command lines |
+| `unicode-destination.bat` | non-ASCII characters (`résumé.docx`) in the target |
+
+## `target-tag/` — 2 files, keycuts 1.3.0.0 header, hand-crafted
+
+What the emitter writes from 1.3 on (#195): `REM <target>...</target>` instead of `REM <destination>...</destination>`, and the `REM <description>` line. Written to match `Runner.BuildShortcutLines`; `Emitter.verified.txt` is the reference.
+
+| File | Covers |
+|---|---|
+| `url.bat` | a URL, with a description |
+| `folder.bat` | a folder saved with an environment variable (`%USERPROFILE%`, #31), no description |
 
 ## What's still missing
 

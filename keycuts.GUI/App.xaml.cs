@@ -46,7 +46,7 @@ namespace keycuts.GUI
                 appPath,
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
-                (destination, name, ct) => Common.KeycutCreator.CreateAsync(destination, name, null, ct),
+                (target, name, ct) => Common.KeycutCreator.CreateAsync(target, name, null, ct),
                 usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
                 usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
@@ -64,7 +64,7 @@ namespace keycuts.GUI
                     await moveAside.WaitAsync(ct);
                     return await Common.KeycutRepository.CreateDefault().LoadAllAsync(ct);
                 },
-                (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckDestinationsAsync(keycuts, ct),
+                (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckTargetsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome,
                 updateNotice);
@@ -79,9 +79,9 @@ namespace keycuts.GUI
 
             if (args.Any())
             {
-                // Explorer "keycut this!": pre-fill the destination; the creator view focuses the name field on load
+                // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load
                 MainFormLogic mainFormLogic = new MainFormLogic();
-                mainFormLogic.HandleNewDestination(shell.Creator, args[0]);
+                mainFormLogic.HandleNewTarget(shell.Creator, args[0]);
             }
 
             mainWindow.Show();

@@ -23,7 +23,7 @@ namespace keycuts.GUI.ViewModels
             OpenCommand = new RelayCommand(() => owner?.OpenKeycut(this));
             EditCommand = new RelayCommand(() => owner?.EditKeycut(this));
             OpenFileLocationCommand = new RelayCommand(() => owner?.OpenFileLocation(this));
-            CopyDestinationCommand = new RelayCommand(() => owner?.CopyDestination(this));
+            CopyTargetCommand = new RelayCommand(() => owner?.CopyTarget(this));
             DeleteCommand = new RelayCommand(() => _ = owner?.DeleteKeycutAsync(this));
             RenameCommand = new RelayCommand(() => owner?.BeginRename(this));
         }
@@ -46,7 +46,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>The Missing marker under the name; hidden while renaming, since the name box alone fills the row.</summary>
         public bool ShowMissingIndicator
         {
-            get { return IsDestinationMissing && !isRenaming; }
+            get { return IsTargetMissing && !isRenaming; }
         }
 
         /// <summary>The name being typed while renaming.</summary>
@@ -81,7 +81,7 @@ namespace keycuts.GUI.ViewModels
 
         public ICommand OpenFileLocationCommand { get; }
 
-        public ICommand CopyDestinationCommand { get; }
+        public ICommand CopyTargetCommand { get; }
 
         public ICommand DeleteCommand { get; }
 
@@ -112,19 +112,19 @@ namespace keycuts.GUI.ViewModels
             get { return Keycut.Description ?? string.Empty; }
         }
 
-        public string Destination
+        public string Target
         {
-            get { return Keycut.Destination ?? string.Empty; }
+            get { return Keycut.Target ?? string.Empty; }
         }
 
-        public bool IsDestinationMissing
+        public bool IsTargetMissing
         {
-            get { return Keycut.DestinationStatus == DestinationStatus.Missing; }
+            get { return Keycut.TargetStatus == TargetStatus.Missing; }
         }
 
         public string MissingTooltip
         {
-            get { return "Destination not found: " + Destination; }
+            get { return "Target not found: " + Target; }
         }
 
         /// <summary>True while this row's actions menu is open; the row keeps its hover tint.</summary>
@@ -135,7 +135,7 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Case-insensitive substring match over name, type label, description and destination.
+        /// Case-insensitive substring match over name, type label, description and target.
         /// Blank search text matches everything.
         /// </summary>
         public bool Matches(string search)
@@ -146,7 +146,7 @@ namespace keycuts.GUI.ViewModels
             }
 
             var term = search.Trim();
-            return Contains(Name, term) || Contains(TypeLabel, term) || Contains(Description, term) || Contains(Destination, term);
+            return Contains(Name, term) || Contains(TypeLabel, term) || Contains(Description, term) || Contains(Target, term);
         }
 
         private static bool Contains(string value, string term)
@@ -154,10 +154,10 @@ namespace keycuts.GUI.ViewModels
             return value.Contains(term, System.StringComparison.CurrentCultureIgnoreCase);
         }
 
-        /// <summary>Call after the background destination check has updated the keycut.</summary>
-        public void RefreshDestinationStatus()
+        /// <summary>Call after the background target check has updated the keycut.</summary>
+        public void RefreshTargetStatus()
         {
-            OnPropertyChanged(nameof(IsDestinationMissing));
+            OnPropertyChanged(nameof(IsTargetMissing));
             OnPropertyChanged(nameof(ShowMissingIndicator));
             OnPropertyChanged(nameof(MissingTooltip));
         }

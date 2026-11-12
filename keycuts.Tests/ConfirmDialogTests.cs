@@ -23,7 +23,7 @@ namespace keycuts.Tests
         #region Text
 
         [Fact]
-        public void ForCreate_AReplace_ShowsBothDestinations_AndOffersReplace()
+        public void ForCreate_AReplace_ShowsBothTargets_AndOffersReplace()
         {
             var vm = ConfirmViewModel.ForCreate(TestNameChecks.Existing("gmail", "https://old.example.com"), "https://new.example.com");
 
@@ -31,18 +31,18 @@ namespace keycuts.Tests
             Assert.Equal("Replace \u201cgmail\u201d?", vm.Heading);
             Assert.Equal(ConfirmViewModel.ReplaceIntro, vm.Intro);
             Assert.Equal("Replace", vm.ConfirmText);
-            Assert.True(vm.ShowDestinations);
-            Assert.Equal("https://old.example.com", vm.CurrentDestination);
-            Assert.Equal("https://new.example.com", vm.NewDestination);
+            Assert.True(vm.ShowTargets);
+            Assert.Equal("https://old.example.com", vm.CurrentTarget);
+            Assert.Equal("https://new.example.com", vm.NewTarget);
             Assert.False(vm.ShowWarnings);
         }
 
         [Fact]
-        public void ForCreate_AnExistingKeycutWithAnUnreadableDestination_SaysSo()
+        public void ForCreate_AnExistingKeycutWithAnUnreadableTarget_SaysSo()
         {
             var vm = ConfirmViewModel.ForCreate(TestNameChecks.Existing("junk", string.Empty), "https://new.example.com");
 
-            Assert.Equal("(unknown)", vm.CurrentDestination);
+            Assert.Equal("(unknown)", vm.CurrentTarget);
         }
 
         [Fact]
@@ -52,7 +52,7 @@ namespace keycuts.Tests
 
             Assert.Equal("Use \u201cex\u201d anyway?", vm.Heading);
             Assert.Equal("Create anyway", vm.ConfirmText);
-            Assert.False(vm.ShowDestinations);
+            Assert.False(vm.ShowTargets);
             Assert.Equal(new[] { CreatorViewModel.GetConflictMessage("ex", TestNameChecks.Conflict("ex").Conflicts[0]) }, vm.Warnings);
         }
 
@@ -63,7 +63,7 @@ namespace keycuts.Tests
 
             Assert.Equal("Rename to \u201cex\u201d anyway?", vm.Heading);
             Assert.Equal("Rename anyway", vm.ConfirmText);
-            Assert.False(vm.ShowDestinations);
+            Assert.False(vm.ShowTargets);
             Assert.True(vm.ShowWarnings);
         }
 
@@ -84,7 +84,7 @@ namespace keycuts.Tests
         [Fact]
         public void Summary_ReadsEverythingInOrder_ForScreenReaders()
         {
-            var check = new NameCheck("gmail", new Keycut { Name = "gmail", Destination = "https://old" }, TestNameChecks.Conflict("gmail").Conflicts);
+            var check = new NameCheck("gmail", new Keycut { Name = "gmail", Target = "https://old" }, TestNameChecks.Conflict("gmail").Conflicts);
             var vm = ConfirmViewModel.ForCreate(check, "https://new");
 
             Assert.Equal("Replace \u201cgmail\u201d? " + ConfirmViewModel.ReplaceIntro + " Opens now: https://old. Will open: https://new. " + vm.Warnings[0], vm.Summary);
@@ -132,7 +132,7 @@ namespace keycuts.Tests
 
                     var heading = (TextBlock)window.FindName("HeadingText");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
-                    Assert.True(((TextBlock)window.FindName("CurrentDestinationText")).IsVisible);
+                    Assert.True(((TextBlock)window.FindName("CurrentTargetText")).IsVisible);
                     Assert.False(((ItemsControl)window.FindName("WarningList")).IsVisible);
                 }
                 finally
@@ -144,7 +144,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheDialog_ForAConflict_ShowsTheWarnings_AndNoDestinations()
+        public void TheDialog_ForAConflict_ShowsTheWarnings_AndNoTargets()
         {
             RunSta(() =>
             {
@@ -152,7 +152,7 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(ConfirmViewModel.ForCreate(TestNameChecks.Conflict("ex"), "https://new.example.com"));
                 try
                 {
-                    Assert.False(((TextBlock)window.FindName("CurrentDestinationText")).IsVisible);
+                    Assert.False(((TextBlock)window.FindName("CurrentTargetText")).IsVisible);
                     Assert.True(((ItemsControl)window.FindName("WarningList")).IsVisible);
                     Assert.Equal("Create anyway", AutomationProperties.GetName((Button)window.FindName("BtnConfirm")));
                 }

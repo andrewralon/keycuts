@@ -15,8 +15,8 @@ Examples:
 * "ss" to open screenshots folder
 
 Create keycuts several ways:
-* GUI -- open the app, give it a destination, name it, and press Enter
-* Right click menu -- opens the app with the destination filled in
+* GUI -- open the app, give it a target, name it, and press Enter
+* Right click menu -- opens the app with the target filled in
 * CLI -- for all the hard-core nerds and brogrammers
 * Common -- for forking your own implementation
 
@@ -50,7 +50,7 @@ The app is one compact window with two views.
 **Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), browser link, or a shell item like the Recycle Bin or This PC
 (saved as its `::{CLSID}` key) onto the window, paste a path or URL
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
-The type icon updates as you go, and invalid destinations and names are shown inline. A name that's already taken, by a
+The type icon updates as you go, and invalid targets and names are shown inline. A name that's already taken, by a
 keycut or by another program, shows an amber warning and asks before creating (see [Name warnings](#name-warnings)).
 For a file or folder under a known folder, a "Saved as" line shows the path exactly as it will be saved: with
 environment variables (`%USERPROFILE%\Desktop\notes.txt`) if **Use environment variables in paths** is on in Settings,
@@ -66,15 +66,15 @@ offers **Add to PATH**.
 
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).
-* Search by name, type, description, or destination. Escape clears the search.
+* Search by name, type, description, or target. Escape clears the search.
 * Up and Down select a row, even while you're typing in the search box, and Enter opens the selected keycut. Clicking a row selects it too.
 * F2 (or **Rename** in the row menu) renames the selected keycut in place: Enter or clicking away saves, Escape cancels.
   A name that's already taken by another keycut is refused, a name another program uses asks first, and anything you
   added to the `.bat` by hand is kept.
 * Sort by Shortcut, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
-  **Open file location** (shows the `.bat` in Explorer), **Copy destination**, and **Delete**. Delete has no confirmation.
-* Missing destinations are flagged. The list refreshes when the window is activated and on F5.
+  **Open file location** (shows the `.bat` in Explorer), **Copy target**, and **Delete**. Delete has no confirmation.
+* Missing targets are flagged. The list refreshes when the window is activated and on F5.
 
 Settings (the gear button) holds the output folder (the folder button picks one, and the button beside it opens it in Explorer; hover
 either to see what it does), **Ask before replacing a keycut**, **Right-click context menus**, **Use environment variables in paths**, the
@@ -122,7 +122,7 @@ still refused.
 without asking. It replaced the old **Force overwrite** toggle, and that setting carries over (Force overwrite on means
 "don't ask"). Name warnings always show, whatever this setting says, because they affect other programs.
 
-The command line asks the same questions: `keycuts -d <destination> -s <name>` prints the warnings and asks `y / n`.
+The command line asks the same questions: `keycuts -t <target> -s <name>` prints the warnings and asks `y / n`.
 `-f` skips both questions. With redirected input (a script), nothing is created and it exits with code 14
 (`ConfirmationNeeded`) instead of waiting for an answer.
 
@@ -142,9 +142,9 @@ $env:KEYCUTS_OUTPUT_FOLDER = "$env:TEMP\keycuts-fixtures-100"
 
 The script refuses to write into `C:\Shortcuts`, `%USERPROFILE%\Shortcuts`, or your configured output folder. The override is ignored in Release builds.
 
-## Copying a destination: `keypaste`
+## Copying a target: `keypaste`
 
-`keypaste db` (or `keycuts paste db`), typed in Win+R or a terminal, copies the `db` keycut's destination to the
+`keypaste db` (or `keycuts paste db`), typed in Win+R or a terminal, copies the `db` keycut's target to the
 clipboard and prints it. A file or folder saved with an environment variable (`%USERPROFILE%\Desktop`) is copied as the
 real path, so it works when pasted into Explorer or a terminal; a URL is copied as written. Given a text file's name
 instead, it copies the file's contents, as written. It looks in the current

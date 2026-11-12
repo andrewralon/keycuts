@@ -110,7 +110,7 @@ namespace keycuts.Tests
             }
         }
 
-        static Keycut NewKeycut(string name, string destination = @"C:\temp\a.txt")
+        static Keycut NewKeycut(string name, string target = @"C:\temp\a.txt")
         {
             return new Keycut
             {
@@ -118,7 +118,7 @@ namespace keycuts.Tests
                 Kind = KeycutKind.File,
                 RawType = ShortcutType.File,
                 Description = string.Empty,
-                Destination = destination,
+                Target = target,
                 FilePath = @"C:\fixture\" + name + ".bat"
             };
         }
@@ -612,7 +612,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task Rename_RetryWorksRightAway_EvenWhileDestinationChecksAreSlow()
+        public async Task Rename_RetryWorksRightAway_EvenWhileTargetChecksAreSlow()
         {
             var noop = new RelayCommand(() => { });
             var checks = 0;
@@ -629,7 +629,7 @@ namespace keycuts.Tests
             manager.BeginRename(manager.Rows[0]);
             manager.Rows[0].EditName = "bad/name";
 
-            await manager.CommitRenameAsync();   // the reload after it hangs in the destination check
+            await manager.CommitRenameAsync();   // the reload after it hangs in the target check
 
             manager.BeginRename(manager.Rows[0]);
             Assert.True(manager.IsRenaming);
@@ -733,7 +733,7 @@ namespace keycuts.Tests
         public void MissingIndicator_IsHiddenWhileRenaming()
         {
             var keycut = NewKeycut("a");
-            keycut.DestinationStatus = DestinationStatus.Missing;
+            keycut.TargetStatus = TargetStatus.Missing;
             var manager = new ManagerViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), null, null, new FakeActions());
             var row = new KeycutRowViewModel(keycut, manager);
             var changed = new List<string?>();
@@ -774,7 +774,7 @@ namespace keycuts.Tests
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.File,
                     Description = description,
-                    Destination = @"C:\temp\a.txt",
+                    Target = @"C:\temp\a.txt",
                     FilePath = @"C:\fixture\a.bat"
                 };
                 return Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { keycut });
@@ -796,12 +796,12 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task CopyDestination_CopiesAndConfirms()
+        public async Task CopyTarget_CopiesAndConfirms()
         {
             var actions = new FakeActions();
             var manager = await LoadedAsync(actions, "a");
 
-            manager.Rows[0].CopyDestinationCommand.Execute(null);
+            manager.Rows[0].CopyTargetCommand.Execute(null);
 
             Assert.Equal(new[] { @"C:\temp\a.txt" }, actions.Copied);
             Assert.Equal("Copied", manager.StatusMessage);
@@ -809,12 +809,12 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task CopyDestination_ClipboardLocked_ShowsError()
+        public async Task CopyTarget_ClipboardLocked_ShowsError()
         {
             var actions = new FakeActions { CopyError = new InvalidOperationException("clipboard busy") };
             var manager = await LoadedAsync(actions, "a");
 
-            manager.Rows[0].CopyDestinationCommand.Execute(null);
+            manager.Rows[0].CopyTargetCommand.Execute(null);
 
             Assert.True(manager.StatusIsError);
             Assert.Contains("clipboard busy", manager.StatusMessage);
@@ -940,7 +940,7 @@ namespace keycuts.Tests
             var manager = await LoadedAsync(actions, "a");
             manager.StatusMessageDuration = TimeSpan.FromMilliseconds(30);
 
-            manager.Rows[0].CopyDestinationCommand.Execute(null);
+            manager.Rows[0].CopyTargetCommand.Execute(null);
             Assert.Equal("Copied", manager.StatusMessage);
 
             for (var i = 0; i < 100 && manager.StatusMessage.Length > 0; i++)

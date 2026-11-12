@@ -14,7 +14,7 @@ namespace keycuts.Tests
 {
     public class ManagerViewModelTests
     {
-        static Keycut NewKeycut(string name, KeycutKind kind = KeycutKind.File, string destination = @"C:\temp\a.txt", string description = "")
+        static Keycut NewKeycut(string name, KeycutKind kind = KeycutKind.File, string target = @"C:\temp\a.txt", string description = "")
         {
             return new Keycut
             {
@@ -22,7 +22,7 @@ namespace keycuts.Tests
                 Kind = kind,
                 RawType = ShortcutType.File,
                 Description = description,
-                Destination = destination,
+                Target = target,
                 FilePath = @"C:\Shortcuts\" + name + ".bat"
             };
         }
@@ -207,13 +207,13 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task LoadAsync_DestinationCheck_FlagsMissingRowsAndRaisesChange()
+        public async Task LoadAsync_TargetCheck_FlagsMissingRowsAndRaisesChange()
         {
             var manager = NewManager(
                 Returning(NewKeycut("gone"), NewKeycut("here")),
                 (keycuts, ct) =>
                 {
-                    keycuts.Single(k => k.Name == "gone").DestinationStatus = DestinationStatus.Missing;
+                    keycuts.Single(k => k.Name == "gone").TargetStatus = TargetStatus.Missing;
                     return Task.CompletedTask;
                 });
             var raised = new List<string?>();
@@ -223,15 +223,15 @@ namespace keycuts.Tests
             await manager.LoadAsync();
 
             var gone = manager.Rows.Single(r => r.Name == "gone");
-            Assert.True(gone.IsDestinationMissing);
+            Assert.True(gone.IsTargetMissing);
             Assert.Contains("gone", gone.Keycut.Name);
             Assert.Contains(@"C:\temp\a.txt", gone.MissingTooltip);
-            Assert.False(manager.Rows.Single(r => r.Name == "here").IsDestinationMissing);
-            Assert.Contains(nameof(KeycutRowViewModel.IsDestinationMissing), raised);
+            Assert.False(manager.Rows.Single(r => r.Name == "here").IsTargetMissing);
+            Assert.Contains(nameof(KeycutRowViewModel.IsTargetMissing), raised);
         }
 
         [Fact]
-        public async Task LoadAsync_DestinationCheckFailure_IsIgnored()
+        public async Task LoadAsync_TargetCheckFailure_IsIgnored()
         {
             var manager = NewManager(Returning(NewKeycut("a")), (keycuts, ct) => throw new IOException("slow disk"));
 
@@ -281,8 +281,8 @@ namespace keycuts.Tests
             Assert.Equal("n", row.Name);
             Assert.Equal(KeycutKind.Url, row.Kind);
             Assert.Equal("desc", row.Description);
-            Assert.Equal("https://example.com", row.Destination);
-            Assert.False(row.IsDestinationMissing);
+            Assert.Equal("https://example.com", row.Target);
+            Assert.False(row.IsTargetMissing);
             Assert.False(row.IsMenuOpen);
         }
 
@@ -291,7 +291,7 @@ namespace keycuts.Tests
         {
             var folder = Path.Combine(Path.GetTempPath(), "keycuts-mgr-tests-" + Guid.NewGuid().ToString("N"));
             var repository = new KeycutRepository(folder);
-            var manager = NewManager(repository.LoadAllAsync, repository.CheckDestinationsAsync);
+            var manager = NewManager(repository.LoadAllAsync, repository.CheckTargetsAsync);
 
             await manager.LoadAsync();
 

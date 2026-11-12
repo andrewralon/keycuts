@@ -5,44 +5,44 @@ namespace keycuts.Tests
 {
     public class ShortcutFileRemTests
     {
-        private static bool Parse(string[] lines, out ShortcutType type, out string destination)
+        private static bool Parse(string[] lines, out ShortcutType type, out string target)
         {
-            return ShortcutFile.TryParseRemTypeAndDestination(lines, out type, out destination);
+            return ShortcutFile.TryParseRemTypeAndTarget(lines, out type, out target);
         }
 
         [Fact]
         public void BothTags_AreRead()
         {
-            var ok = Parse(new[] { "REM <type>file</type>", @"REM <destination>C:\a b\c.txt</destination>" }, out var type, out var destination);
+            var ok = Parse(new[] { "REM <type>file</type>", @"REM <destination>C:\a b\c.txt</destination>" }, out var type, out var target);
 
             Assert.True(ok);
             Assert.Equal(ShortcutType.File, type);
-            Assert.Equal(@"C:\a b\c.txt", destination);
+            Assert.Equal(@"C:\a b\c.txt", target);
         }
 
         [Fact]
-        public void Destination_KeepsQuotesAndColonsInside()
+        public void Target_KeepsQuotesAndColonsInside()
         {
-            var ok = Parse(new[] { "REM <type>clsidkey</type>", "REM <destination>::{645FF040-5081-101B-9F08-00AA002F954E}</destination>" }, out var type, out var destination);
+            var ok = Parse(new[] { "REM <type>clsidkey</type>", "REM <destination>::{645FF040-5081-101B-9F08-00AA002F954E}</destination>" }, out var type, out var target);
 
             Assert.True(ok);
             Assert.Equal(ShortcutType.CLSIDKey, type);
-            Assert.Equal("::{645FF040-5081-101B-9F08-00AA002F954E}", destination);
+            Assert.Equal("::{645FF040-5081-101B-9F08-00AA002F954E}", target);
 
-            ok = Parse(new[] { "REM <type>file</type>", "REM <destination>C:\\Say \"Hi\".txt</destination>" }, out _, out destination);
+            ok = Parse(new[] { "REM <type>file</type>", "REM <destination>C:\\Say \"Hi\".txt</destination>" }, out _, out target);
 
             Assert.True(ok);
-            Assert.Equal("C:\\Say \"Hi\".txt", destination);
+            Assert.Equal("C:\\Say \"Hi\".txt", target);
         }
 
         [Fact]
         public void SurroundingWhitespace_IsTrimmed()
         {
-            var ok = Parse(new[] { "  REM   <type> Folder </type>  ", @"REM <destination>  C:\Shortcuts   </destination>" }, out var type, out var destination);
+            var ok = Parse(new[] { "  REM   <type> Folder </type>  ", @"REM <destination>  C:\Shortcuts   </destination>" }, out var type, out var target);
 
             Assert.True(ok);
             Assert.Equal(ShortcutType.Folder, type);
-            Assert.Equal(@"C:\Shortcuts", destination);
+            Assert.Equal(@"C:\Shortcuts", target);
         }
 
         [Theory]
@@ -63,21 +63,21 @@ namespace keycuts.Tests
         [Fact]
         public void MissingType_IsRejected()
         {
-            Assert.False(Parse(new[] { "REM <destination>C:\\a</destination>" }, out var type, out var destination));
+            Assert.False(Parse(new[] { "REM <destination>C:\\a</destination>" }, out var type, out var target));
             Assert.Equal(ShortcutType.Unknown, type);
-            Assert.Null(destination);
+            Assert.Null(target);
         }
 
         [Fact]
-        public void MissingDestination_IsRejected()
+        public void MissingTarget_IsRejected()
         {
-            Assert.False(Parse(new[] { "REM <type>file</type>" }, out var type, out var destination));
+            Assert.False(Parse(new[] { "REM <type>file</type>" }, out var type, out var target));
             Assert.Equal(ShortcutType.Unknown, type);
-            Assert.Null(destination);
+            Assert.Null(target);
         }
 
         [Fact]
-        public void EmptyDestination_IsRejected()
+        public void EmptyTarget_IsRejected()
         {
             Assert.False(Parse(new[] { "REM <type>file</type>", "REM <destination></destination>" }, out _, out _));
             Assert.False(Parse(new[] { "REM <type>file</type>", "REM <destination>   </destination>" }, out _, out _));
@@ -93,9 +93,9 @@ namespace keycuts.Tests
         [InlineData("file,folder")]
         public void UnknownOrInvalidType_IsRejected(string name)
         {
-            Assert.False(Parse(new[] { $"REM <type>{name}</type>", "REM <destination>x</destination>" }, out var type, out var destination));
+            Assert.False(Parse(new[] { $"REM <type>{name}</type>", "REM <destination>x</destination>" }, out var type, out var target));
             Assert.Equal(ShortcutType.Unknown, type);
-            Assert.Null(destination);
+            Assert.Null(target);
         }
 
         [Fact]
@@ -112,11 +112,105 @@ namespace keycuts.Tests
             {
                 "REM <type>file</type>", "REM <type>folder</type>",
                 "REM <destination>first</destination>", "REM <destination>second</destination>",
-            }, out var type, out var destination);
+            }, out var type, out var target);
 
             Assert.True(ok);
             Assert.Equal(ShortcutType.File, type);
-            Assert.Equal("first", destination);
+            Assert.Equal("first", target);
+        }
+
+        // #195: the emitter writes <target>. Files written before that carry <destination> for the same thing, and the
+        // tests above use that tag on purpose. Both are read, and neither is deprecated in the parser.
+
+        [Theory]
+        [InlineData("target")]
+        [InlineData("destination")]
+        public void EitherTag_IsRead(string tag)
+        {
+            var ok = Parse(new[] { "REM <type>file</type>", $@"REM <{tag}>C:\a b\c.txt</{tag}>" }, out var type, out var target);
+
+            Assert.True(ok);
+            Assert.Equal(ShortcutType.File, type);
+            Assert.Equal(@"C:\a b\c.txt", target);
+        }
+
+        [Theory]
+        [InlineData("target")]
+        [InlineData("destination")]
+        public void EitherTag_IsTrimmed_AndIgnoresCase(string tag)
+        {
+            var ok = Parse(new[] { "  REM   <type> Folder </type>  ", $@"REM <{tag.ToUpperInvariant()}>  C:\Shortcuts   </{tag.ToUpperInvariant()}>" }, out var type, out var target);
+
+            Assert.True(ok);
+            Assert.Equal(ShortcutType.Folder, type);
+            Assert.Equal(@"C:\Shortcuts", target);
+        }
+
+        [Theory]
+        [InlineData("target")]
+        [InlineData("destination")]
+        public void EitherTag_IsRejectedWhenEmpty(string tag)
+        {
+            Assert.False(Parse(new[] { "REM <type>file</type>", $"REM <{tag}></{tag}>" }, out _, out _));
+            Assert.False(Parse(new[] { "REM <type>file</type>", $"REM <{tag}>   </{tag}>" }, out _, out _));
+        }
+
+        [Theory]
+        [InlineData("target")]
+        [InlineData("destination")]
+        public void EitherTag_OnALineThatIsNotARemComment_IsIgnored(string tag)
+        {
+            Assert.False(Parse(new[] { "REM <type>file</type>", $"<{tag}>x</{tag}>" }, out _, out _));
+            Assert.False(Parse(new[] { "REM <type>file</type>", $"ECHO <{tag}>x</{tag}>" }, out _, out _));
+        }
+
+        [Fact]
+        public void TargetAndDestination_TheFirstWellFormedLineInTheFileWins()
+        {
+            Assert.True(Parse(new[] { "REM <type>file</type>", "REM <target>new</target>", "REM <destination>old</destination>" }, out _, out var target));
+            Assert.Equal("new", target);
+
+            Assert.True(Parse(new[] { "REM <type>file</type>", "REM <destination>old</destination>", "REM <target>new</target>" }, out _, out target));
+            Assert.Equal("old", target);
+        }
+
+        [Theory]
+        [InlineData("<target>x</destination>")]
+        [InlineData("<destination>x</target>")]
+        [InlineData("<target>x")]
+        [InlineData("<target>x</targets>")]
+        public void ATagThatIsNotClosedByItself_IsNotWellFormed(string text)
+        {
+            Assert.False(Parse(new[] { "REM <type>file</type>", "REM " + text }, out var type, out var target));
+            Assert.Equal(ShortcutType.Unknown, type);
+            Assert.Null(target);
+        }
+
+        [Fact]
+        public void AMalformedTargetLine_DoesNotHideALaterWellFormedDestinationLine()
+        {
+            Assert.True(Parse(new[] { "REM <type>file</type>", "REM <target>x</destination>", "REM <destination>y</destination>" }, out _, out var target));
+            Assert.Equal("y", target);
+        }
+
+        [Theory]
+        [InlineData("target")]
+        [InlineData("destination")]
+        public void Constructor_ReadsEitherTag_ForTypeAndTarget(string tag)
+        {
+            var lines = new[]
+            {
+                "@ECHO OFF",
+                "REM <type>folder</type>",
+                $@"REM <{tag}>%USERPROFILE%\Desktop</{tag}>",
+                "\"%SystemRoot%\\explorer.exe\" \"%USERPROFILE%\\Desktop\"",
+                "EXIT",
+            };
+
+            var file = new ShortcutFile(@"C:\Shortcuts\d.bat", lines);
+
+            Assert.Equal(ShortcutType.Folder, file.Type);
+            Assert.Equal(@"%USERPROFILE%\Desktop", file.Target);
         }
 
         [Fact]
@@ -134,7 +228,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\app.bat", lines);
 
             Assert.Equal(ShortcutType.File, file.Type);
-            Assert.Equal(@"C:\tools\app.exe", file.Destination);
+            Assert.Equal(@"C:\tools\app.exe", file.Target);
             Assert.Equal("START \"\" /B \"C:\\tools\\app.exe\" %*", file.Command);
         }
 
@@ -151,7 +245,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\site.bat", lines);
 
             Assert.Equal(ShortcutType.Url, file.Type);
-            Assert.Equal("https://example.com", file.Destination);
+            Assert.Equal("https://example.com", file.Target);
         }
 
         [Fact]
@@ -169,7 +263,7 @@ namespace keycuts.Tests
             var file = new ShortcutFile(@"C:\Shortcuts\site.bat", lines);
 
             Assert.Equal(ShortcutType.Url, file.Type);
-            Assert.Equal("https://example.com", file.Destination);
+            Assert.Equal("https://example.com", file.Target);
         }
     }
 }

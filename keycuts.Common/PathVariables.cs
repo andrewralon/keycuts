@@ -42,7 +42,7 @@ namespace keycuts.Common
             "SystemRoot",
         };
 
-        // Never used: temp folders aren't keycut destinations, and these duplicate a known name or aren't full folders
+        // Never used: temp folders aren't keycut targets, and these duplicate a known name or aren't full folders
         private static readonly HashSet<string> Excluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "TEMP", "TMP", "windir", "ALLUSERSPROFILE", "HOMEDRIVE", "HOMEPATH", "SystemDrive", "Path", "PSModulePath"
@@ -157,7 +157,7 @@ namespace keycuts.Common
                 return;
             }
 
-            // Destinations use backslashes, so "C:/Users/me/Dropbox" would never match one, and matching it anyway would
+            // Targets use backslashes, so "C:/Users/me/Dropbox" would never match one, and matching it anyway would
             // save a mixed "C:/Users/me/Dropbox\file", which Explorer doesn't reliably open. Skipped; the path is saved as is.
             if (value.IndexOf(Path.AltDirectorySeparatorChar) >= 0)
             {

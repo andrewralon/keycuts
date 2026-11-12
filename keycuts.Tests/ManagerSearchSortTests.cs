@@ -10,7 +10,7 @@ namespace keycuts.Tests
 {
     public class ManagerSearchSortTests
     {
-        static Keycut NewKeycut(string name, KeycutKind kind = KeycutKind.File, string destination = @"C:\temp\a.txt", string description = "")
+        static Keycut NewKeycut(string name, KeycutKind kind = KeycutKind.File, string target = @"C:\temp\a.txt", string description = "")
         {
             return new Keycut
             {
@@ -18,7 +18,7 @@ namespace keycuts.Tests
                 Kind = kind,
                 RawType = ShortcutType.File,
                 Description = description,
-                Destination = destination,
+                Target = target,
                 FilePath = @"C:\Shortcuts\" + name + ".bat"
             };
         }
@@ -58,7 +58,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Search_MatchesNameAndDestination_CaseInsensitively()
+        public void Search_MatchesNameAndTarget_CaseInsensitively()
         {
             var manager = NewManager(Sample());
 
@@ -70,7 +70,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Search_MatchesDestinationOnly()
+        public void Search_MatchesTargetOnly()
         {
             var manager = NewManager(Sample());
 

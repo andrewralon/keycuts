@@ -3,7 +3,7 @@
     <!-- The one place the version lives. It stamps the exes and the MSI, and a merge into main that raises it
          publishes a GitHub release tagged v<Version> (.github/workflows/release.yml). Three parts: MSI upgrades
          ignore a fourth. -->
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
 
     <!-- Shared assembly metadata, so every exe shows the same company, product and copyright in Explorer. -->
     <Company>TeamRalon</Company>

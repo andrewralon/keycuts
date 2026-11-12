@@ -52,14 +52,14 @@ namespace keycuts.Common
 
         public ExitCode Run(KeycutArgs args)
         {
-            return Run(args.Destination, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description,
+            return Run(args.Target, args.Shortcut, args.OutputFolder, args.OpenWithApp, args.Force, args.Description,
                 args.UseEnvironmentVariables, args.PathVariables);
         }
 
-        /// <param name="useEnvironmentVariables">Save a file or folder destination with environment variables (#31). This
-        /// happens after the destination is classified, which needs the real path.</param>
+        /// <param name="useEnvironmentVariables">Save a file or folder target with environment variables (#31). This
+        /// happens after the target is classified, which needs the real path.</param>
         /// <param name="pathVariables">The variables to use; null reads them from this machine.</param>
-        public ExitCode Run(string destination, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "",
+        public ExitCode Run(string target, string shortcutPath, string outputFolder, string openWithAppPath = null, bool force = false, string description = "",
             bool useEnvironmentVariables = false, IReadOnlyList<PathVariable> pathVariables = null)
         {
             var result = ExitCode.NotStarted;
@@ -85,11 +85,11 @@ namespace keycuts.Common
             }
             else
             {
-                var shortcut = new Shortcut(destination, shortcutPath, outputFolder, openWithAppPath);
+                var shortcut = new Shortcut(target, shortcutPath, outputFolder, openWithAppPath);
 
                 if (useEnvironmentVariables && PathVariables.AppliesTo(shortcut.Type))
                 {
-                    shortcut.SetDestination(PathVariables.Substitute(shortcut.Destination, pathVariables ?? PathVariables.GetDefault()));
+                    shortcut.SetTarget(PathVariables.Substitute(shortcut.Target, pathVariables ?? PathVariables.GetDefault()));
                 }
 
                 if (shortcut.Type != ShortcutType.Unknown)
@@ -292,7 +292,7 @@ namespace keycuts.Common
                 $"REM {AppName} {Version}",
                 $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                 $"REM <type>{shortcutTypeLower}</type>",
-                $"REM <destination>{shortcut.Destination}</destination>",
+                $"REM <target>{shortcut.Target}</target>",
                 $"REM <description>{SanitizeDescription(description)}</description>",
             };
 
@@ -314,7 +314,7 @@ namespace keycuts.Common
 
             if (shortcut.OpenWithApp)
             {
-                return string.Format(startWithArgument, shortcut.OpenWithAppPath, shortcut.Destination);
+                return string.Format(startWithArgument, shortcut.OpenWithAppPath, shortcut.Target);
             }
 
             // No discard arm, so a ShortcutType added later without a case here is a build error (CS8509). CS8524
@@ -322,12 +322,12 @@ namespace keycuts.Common
 #pragma warning disable CS8524
             return shortcut.Type switch
             {
-                ShortcutType.Url => $"START {Shortcut.SanitizeBatEscapeCharacters(shortcut.Destination)}",
-                ShortcutType.File => string.Format(start, shortcut.Destination),
-                ShortcutType.HostsFile => string.Format(startWithArgument, @"%windir%\system32\notepad.exe", shortcut.Destination),
-                ShortcutType.Folder or ShortcutType.CLSIDKey => $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Destination}\"",
+                ShortcutType.Url => $"START {Shortcut.SanitizeBatEscapeCharacters(shortcut.Target)}",
+                ShortcutType.File => string.Format(start, shortcut.Target),
+                ShortcutType.HostsFile => string.Format(startWithArgument, @"%windir%\system32\notepad.exe", shortcut.Target),
+                ShortcutType.Folder or ShortcutType.CLSIDKey => $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Target}\"",
                 // cmd /C runs the whole line, arguments included, which START "" /B "<line>" would treat as one program name
-                ShortcutType.Command => $"START \"\" /B cmd /C \"{shortcut.Destination}\"",
+                ShortcutType.Command => $"START \"\" /B cmd /C \"{shortcut.Target}\"",
                 ShortcutType.Unknown => throw new InvalidOperationException($"Can't write a keycut of type {shortcut.Type}."),
             };
 #pragma warning restore CS8524

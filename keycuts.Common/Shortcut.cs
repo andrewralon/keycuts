@@ -11,12 +11,12 @@ namespace keycuts.Common
     {
         #region Properties
 
-        public string Destination { get; private set; }
+        public string Target { get; private set; }
 
-        /// <summary>Replaces the classified destination with an equivalent spelling (environment variables, #31).</summary>
-        internal void SetDestination(string destination)
+        /// <summary>Replaces the classified target with an equivalent spelling (environment variables, #31).</summary>
+        internal void SetTarget(string target)
         {
-            Destination = destination;
+            Target = target;
         }
 
         public string Extension { get; private set; } = ".bat";
@@ -41,10 +41,10 @@ namespace keycuts.Common
 
         #region Constructors
 
-        public Shortcut(string destination, string shortcut, string defaultFolder, string openWithAppPath = null)
+        public Shortcut(string target, string shortcut, string defaultFolder, string openWithAppPath = null)
         {
-            Type = GetShortcutTypeFromDestination(destination, out string newDestination);
-            Destination = newDestination;
+            Type = GetShortcutTypeFromTarget(target, out string newTarget);
+            Target = newTarget;
             Extension = ".bat";
             Filename = GetFilename(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
@@ -94,10 +94,10 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// A shortcut whose type and destination are already known, so nothing on disk is checked. Lets tests emit
+        /// A shortcut whose type and target are already known, so nothing on disk is checked. Lets tests emit
         /// any type, including ones the classifier never returns.
         /// </summary>
-        public static Shortcut FromParts(ShortcutType type, string destination, string fullPath, string openWithAppPath = null)
+        public static Shortcut FromParts(ShortcutType type, string target, string fullPath, string openWithAppPath = null)
         {
             var folder = Path.GetDirectoryName(fullPath);
             var filename = Path.GetFileNameWithoutExtension(fullPath);
@@ -105,7 +105,7 @@ namespace keycuts.Common
             return new Shortcut
             {
                 Type = type,
-                Destination = destination,
+                Target = target,
                 Filename = filename,
                 FilenameWithExtension = $"{filename}.bat",
                 Folder = folder,
@@ -123,31 +123,31 @@ namespace keycuts.Common
 
         #region Public Methods
 
-        public static ShortcutType GetShortcutTypeFromDestination(string destination, out string newDestination)
+        public static ShortcutType GetShortcutTypeFromTarget(string target, out string newTarget)
         {
-            newDestination = destination;
+            newTarget = target;
             var type = new ShortcutType();
 
-            if (IsCLSIDKey(destination))
+            if (IsCLSIDKey(target))
             {
                 type = ShortcutType.CLSIDKey;
             }
-            else if (IsValidUrl(destination, out string url1))
+            else if (IsValidUrl(target, out string url1))
             {
-                newDestination = url1;
+                newTarget = url1;
                 type = ShortcutType.Url;
             }
-            else if (IsValidUrlFile(destination, out string url2))
+            else if (IsValidUrlFile(target, out string url2))
             {
-                newDestination = url2;
+                newTarget = url2;
                 type = ShortcutType.Url;
             }
             else
             {
-                destination = Path.GetFullPath(destination);
-                newDestination = destination;
+                target = Path.GetFullPath(target);
+                newTarget = target;
 
-                if (!TryGetAttributes(destination, out var attributes))
+                if (!TryGetAttributes(target, out var attributes))
                 {
                     // Missing, or not readable by this user: report Unknown rather than crash (#68)
                     type = ShortcutType.Unknown;
@@ -156,15 +156,15 @@ namespace keycuts.Common
                 {
                     type = ShortcutType.Folder;
                 }
-                else if (File.Exists(destination))
+                else if (File.Exists(target))
                 {
-                    if (IsHostsFile(destination))
+                    if (IsHostsFile(target))
                     {
                         type = ShortcutType.HostsFile;
                     }
                     else
                     {
-                        IsLink(destination, out newDestination);
+                        IsLink(target, out newTarget);
                         type = ShortcutType.File;
                     }
                 }
@@ -212,14 +212,14 @@ namespace keycuts.Common
             }
         }
 
-        public static bool IsValidUrl(string destination, out string url)
+        public static bool IsValidUrl(string target, out string url)
         {
-            url = destination;
+            url = target;
             var result = false;
 
             try
             {
-                result = Uri.TryCreate(destination, UriKind.Absolute, out Uri uriResult)
+                result = Uri.TryCreate(target, UriKind.Absolute, out Uri uriResult)
                     && !uriResult.IsFile;
 
                 // Check for an incomplete Uri without the scheme
@@ -227,7 +227,7 @@ namespace keycuts.Common
                 //  Incomplete: amazon.com
                 if (!result)
                 {
-                    var newUri = new UriBuilder(destination);
+                    var newUri = new UriBuilder(target);
                     if (uriResult != null && !uriResult.IsFile)
                     {
                         // Fix the incomplete Uri
@@ -244,25 +244,25 @@ namespace keycuts.Common
             return result;
         }
 
-        public static bool IsValidUrlFile(string destination, out string url)
+        public static bool IsValidUrlFile(string target, out string url)
         {
             var result = false;
-            url = destination;
+            url = target;
 
-            if (Path.GetExtension(destination).EndsWith(".url", StringComparison.InvariantCultureIgnoreCase))
+            if (Path.GetExtension(target).EndsWith(".url", StringComparison.InvariantCultureIgnoreCase))
             {
                 // Check for a line starting with "URL="
-                var line = File.ReadAllLines(destination)
+                var line = File.ReadAllLines(target)
                     .ToList()
                     .FirstOrDefault(a => a.StartsWith("URL=", StringComparison.InvariantCultureIgnoreCase));
 
-                // Update the destination to use the URL from the link
+                // Update the target to use the URL from the link
                 if (line != null)
                 {
                     url = line.Substring(4);
                     if (url != null)
                     {
-                        destination = url;
+                        target = url;
                         result = true;
                     }
                 }
@@ -281,17 +281,17 @@ namespace keycuts.Common
             return result;
         }
 
-        public static bool IsLink(string destination, out string link)
+        public static bool IsLink(string target, out string link)
         {
-            link = destination;
+            link = target;
 
             try
             {
-                destination = Path.GetFullPath(Environment.ExpandEnvironmentVariables(destination));
-                link = destination;
+                target = Path.GetFullPath(Environment.ExpandEnvironmentVariables(target));
+                link = target;
 
-                if (!string.Equals(Path.GetExtension(destination), ".lnk", StringComparison.OrdinalIgnoreCase) ||
-                    !File.Exists(destination))
+                if (!string.Equals(Path.GetExtension(target), ".lnk", StringComparison.OrdinalIgnoreCase) ||
+                    !File.Exists(target))
                 {
                     return false;
                 }
@@ -304,14 +304,14 @@ namespace keycuts.Common
                 }
 
                 dynamic shell = Activator.CreateInstance(shellType)!;
-                dynamic shortcut = shell.CreateShortcut(destination);
-                string target = shortcut.TargetPath;
-                if (string.IsNullOrEmpty(target))
+                dynamic shortcut = shell.CreateShortcut(target);
+                string linkTarget = shortcut.TargetPath;
+                if (string.IsNullOrEmpty(linkTarget))
                 {
                     return false;
                 }
 
-                link = target;
+                link = linkTarget;
                 return true;
             }
             catch (Exception)

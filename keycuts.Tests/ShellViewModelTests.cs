@@ -47,7 +47,7 @@ namespace keycuts.Tests
         public void ShowCreator_ReturnsToCreator_AndKeepsCreatorInput()
         {
             var shell = CreateShell();
-            shell.Creator.Destination = @"C:\temp";
+            shell.Creator.Target = @"C:\temp";
             shell.Creator.ShortcutName = "tmp";
 
             shell.ShowManager();
@@ -55,7 +55,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ShellMode.Creator, shell.Mode);
             Assert.Same(shell.Creator, shell.CurrentView);
-            Assert.Equal(@"C:\temp", shell.Creator.Destination);
+            Assert.Equal(@"C:\temp", shell.Creator.Target);
             Assert.Equal("tmp", shell.Creator.ShortcutName);
         }
 
@@ -220,10 +220,10 @@ namespace keycuts.Tests
         [InlineData("", false)]
         [InlineData("  ", false)]
         [InlineData(@"C:\temp", true)]
-        public void Creator_FocusesNameFieldOnlyWhenDestinationIsSet(string destination, bool expected)
+        public void Creator_FocusesNameFieldOnlyWhenTargetIsSet(string target, bool expected)
         {
             var shell = CreateShell();
-            shell.Creator.Destination = destination;
+            shell.Creator.Target = target;
 
             Assert.Equal(expected, shell.Creator.FocusNameFieldOnShow);
         }

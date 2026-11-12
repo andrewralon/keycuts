@@ -97,7 +97,8 @@ Batmanager app, which has been removed).
   you added is lost; **Edit in Notepad** opens the raw `.bat` for those edits (a description added there shows in the
   table). Saving also brings a keycut from an older version up to the current format (`REM <target>`, the version header).
   An unchanged target is saved exactly as it was, so a path saved with `%USERPROFILE%` keeps it. A file that isn't valid
-  UTF-8 (an ANSI "é" from an old Notepad save) isn't offered the form, since saving would lose those characters. If the
+  UTF-8 (an ANSI "é" from an old Notepad save, or one saved as UTF-16) isn't offered the form, since saving would lose
+  those characters or change the encoding. If the
   file changed (in another window or in Notepad) after you opened the form, saving is refused with a message rather than
   putting the old values back. A rename keeps the file's permissions and its "downloaded from the internet" mark.
 

@@ -222,7 +222,13 @@ namespace keycuts.Common
         /// </summary>
         private static string[] ReadLinesStrict(string path)
         {
-            var text = File.ReadAllText(path, new System.Text.UTF8Encoding(false, true));
+            // The bytes are decoded here, not by File.ReadAllText: that honours a byte-order mark, and then swaps the strict
+            // decoder for one that replaces what it can't read (and reads UTF-16 and UTF-32 files, which a save would turn
+            // into UTF-8). Only a UTF-8 BOM is stripped; any other BOM is bytes that aren't valid UTF-8, so it throws.
+            var bytes = File.ReadAllBytes(path);
+            var preamble = System.Text.Encoding.UTF8.GetPreamble();
+            var start = bytes.AsSpan().StartsWith(preamble) ? preamble.Length : 0;
+            var text = new System.Text.UTF8Encoding(false, true).GetString(bytes, start, bytes.Length - start);
             var lines = new List<string>();
 
             using (var reader = new StringReader(text))

@@ -645,6 +645,40 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task AFileWithABomAndABadByte_IsNotOfferedEither()
+        {
+            // A BOM must not turn the strict decoder into one that replaces what it can't read
+            var path = Path.Combine(_folder, "bom-ansi.bat");
+            var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(AnsiKeycut("résumé")).ToArray();
+            File.WriteAllBytes(path, bytes);
+
+            Assert.False(KeycutRepository.CanEditInForm(path));
+
+            var keycut = new Keycut { Name = "bom-ansi", FilePath = path, Target = "https://example.com" };
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(
+                () => Repo().UpdateAsync(keycut, new KeycutEdit("https://example.com", "bom-ansi", "new")));
+
+            Assert.Equal(KeycutRepositoryError.NotEditable, ex.Error);
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+        }
+
+        [Theory]
+        [InlineData("utf-16")]
+        [InlineData("utf-16BE")]
+        [InlineData("utf-32")]
+        public void AFileInAnotherUnicodeEncoding_IsNotOffered_BecauseSavingWouldChangeItsEncoding(string encoding)
+        {
+            // cmd can't run these as scripts anyway, and a save would write UTF-8 over them
+            var path = Path.Combine(_folder, "wide.bat");
+            var text = "@ECHO OFF\r\nREM keycuts 1.3.0.0\r\nREM <shortcut>" + path + "</shortcut>\r\nREM <type>url</type>\r\n" +
+                "REM <target>https://example.com</target>\r\nREM <description></description>\r\nSTART https://example.com\r\nEXIT\r\n";
+            var enc = System.Text.Encoding.GetEncoding(encoding);
+            File.WriteAllBytes(path, enc.GetPreamble().Concat(enc.GetBytes(text)).ToArray());
+
+            Assert.False(KeycutRepository.CanEditInForm(path));
+        }
+
+        [Fact]
         public async Task AUtf8FileWithAccentsAndABom_IsOffered_AndKeepsItsAccents()
         {
             var path = Path.Combine(_folder, "accents.bat");

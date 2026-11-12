@@ -79,6 +79,7 @@ The newer code wraps the legacy code rather than replacing it. Every create ends
 - `README.md`: user-facing behavior of the Creator and Manager views.
 - `docs/tickets/` (`README.md`, `HANDOFF.md`, `KC-*.md`): the UI redesign breakdown (KC-01 to KC-20, plus KC-21 for the Settings window) and its recorded decisions.
 - `docs/design-reference/`: the React/Figma prototype used as the visual spec. Port look and behavior, not code; don't add React/WebView to the app.
+- `docs/ux-review.md`: the 2026-11-11 UX review, an index of the issues it produced (#160–#184), and notes and decisions about them (such as the group keycut format, #184). Add related notes there.
 - `gameplan.md`: phased roadmap (installer and context menu, backlog, then macOS/Avalonia). The target layout (`src/Keycuts.Core` plus per-platform projects behind interfaces like `IPathService`/`IFileSystem`) is future work, not current.
 
 ## Sequencing rule

@@ -17,8 +17,20 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Runs the keycut's .bat file.</summary>
         void Launch(string path);
 
-        /// <summary>Opens the keycut's .bat file in Notepad. Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
+        /// <summary>Opens the keycut's .bat file in Notepad ("Edit in Notepad"). Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
         void Edit(string path);
+
+        /// <summary>
+        /// Whether the Edit form can save this keycut without losing anything (#180): the emitter would write its file
+        /// identically. Throws <see cref="KeycutRepositoryException"/> (<see cref="KeycutRepositoryError.NotFound"/>) if the file is gone.
+        /// </summary>
+        Task<bool> CanEditInFormAsync(Keycut keycut);
+
+        /// <summary>
+        /// Saves the Edit form: writes the keycut again and returns it as saved. Fills in the "use environment variables"
+        /// setting for a changed target. Throws <see cref="KeycutRepositoryException"/> for what the form can explain.
+        /// </summary>
+        Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit);
 
         /// <summary>Opens Explorer with the keycut's .bat file selected. Throws <see cref="System.IO.FileNotFoundException"/> if the file is gone.</summary>
         void OpenFileLocation(string path);
@@ -100,6 +112,17 @@ namespace keycuts.GUI.ViewModels
         public Task RestoreAsync(DeletedKeycut deleted)
         {
             return KeycutRepository.CreateDefault().RestoreAsync(deleted);
+        }
+
+        public Task<bool> CanEditInFormAsync(Keycut keycut)
+        {
+            return KeycutRepository.CreateDefault().CanEditInFormAsync(keycut);
+        }
+
+        public Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit)
+        {
+            // A changed target is saved with environment variables if the setting says so, as a new keycut is
+            return KeycutRepository.CreateDefault().UpdateAsync(keycut, edit with { UseEnvironmentVariables = new Runner().GetUseEnvironmentVariables() });
         }
 
         public Task<string> RenameAsync(Keycut keycut, string newName)

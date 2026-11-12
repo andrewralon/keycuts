@@ -95,6 +95,13 @@ Issues: #162 (description field), #180 (Edit form)
 - add an optional description field to the Creator, and a `--description` option to the CLI;
 - add an **Edit** form for the destination, either limited to files the emitter wrote unchanged, or with a warning that hand edits will be overwritten. (Rename deliberately never re-emits a file; an Edit form would, so the hand-edit case needs a decision.)
 
+Done (#162, #180), with the first option for the hand-edit case: the form is offered only when the emitter would write the file identically from its parse, and otherwise says "This keycut can't be edited here. Edit it in Notepad." Notes for whoever extends it:
+
+- The comparison (`KeycutRepository.CanEditInForm`) ignores the version in the `REM keycuts` header, the old `<destination>` tag name (#195) and the path in `REM <shortcut>` (a copied or moved file's is stale and changes nothing). It also treats a missing `REM <description>` line as an empty one: keycuts 1.0 wrote none, and refusing them would have made the form useless for most existing folders. Everything else must match, so a trailing space, a `%*` or an extra line makes a file uneditable. `KeycutEditTests` pins the answer for every file in the corpus.
+- Saving writes a temp file and swaps it in (`File.Replace`), or, for a new name, moves it into place without overwriting and then deletes the old file, taking the new one back out if that fails. A target whose text wasn't changed is written from the parse as it was (type, target, open-with), never resolved again; a changed one is resolved like a new keycut's, with environment variables if the setting is on.
+- It is a dialog (`EditWindow`), not a mode of the Creator, which keeps the Creator's state machine out of it. The target is checked when you save, not while you type.
+- Saving also rewrites an older keycut in the current format. That overlaps with #196 (migrating `<destination>` for every file), which it doesn't replace: only the keycuts someone edits are touched.
+
 #### 4. Suggest a name from the destination
 
 Issue: #178

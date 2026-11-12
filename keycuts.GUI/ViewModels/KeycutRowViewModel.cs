@@ -21,7 +21,8 @@ namespace keycuts.GUI.ViewModels
             Keycut = keycut ?? throw new System.ArgumentNullException(nameof(keycut));
 
             OpenCommand = new RelayCommand(() => owner?.OpenKeycut(this));
-            EditCommand = new RelayCommand(() => owner?.EditKeycut(this));
+            EditCommand = new RelayCommand(() => _ = owner?.EditKeycutAsync(this));
+            EditInNotepadCommand = new RelayCommand(() => owner?.EditInNotepad(this));
             OpenFileLocationCommand = new RelayCommand(() => owner?.OpenFileLocation(this));
             CopyTargetCommand = new RelayCommand(() => owner?.CopyTarget(this));
             DeleteCommand = new RelayCommand(() => _ = owner?.DeleteKeycutAsync(this));
@@ -77,7 +78,11 @@ namespace keycuts.GUI.ViewModels
 
         public ICommand OpenCommand { get; }
 
+        /// <summary>Edit: the form with target, name and description (#180).</summary>
         public ICommand EditCommand { get; }
+
+        /// <summary>Edit in Notepad: the raw .bat, for hand edits.</summary>
+        public ICommand EditInNotepadCommand { get; }
 
         public ICommand OpenFileLocationCommand { get; }
 

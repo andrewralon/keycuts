@@ -153,6 +153,12 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public Func<NameCheck, bool>? ConfirmRename { get; set; }
 
+        /// <summary>
+        /// Shows the Edit form (#180) as a dialog and returns when it closes. The view sets it; the form saves itself, so
+        /// the result is on <see cref="EditKeycutViewModel.Saved"/>. Without one (tests) Edit does nothing.
+        /// </summary>
+        public Func<EditKeycutViewModel, bool>? ShowEditForm { get; set; }
+
         /// <summary>True while a row's name is being edited (F2 or Rename…). Reloads wait until it ends.</summary>
         public bool IsRenaming
         {
@@ -359,7 +365,8 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        public void EditKeycut(KeycutRowViewModel row)
+        /// <summary>"Edit in Notepad": opens the raw .bat for hand edits. A file that is gone reloads the list.</summary>
+        public void EditInNotepad(KeycutRowViewModel row)
         {
             var keycut = KeycutOf(row);
 
@@ -383,7 +390,91 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit does.</summary>
+        /// <summary>
+        /// Edit (#180): opens the form for the keycut's target, name and description. Only a file the emitter would write
+        /// identically is offered the form, since saving writes the whole file again; any other says so and points to
+        /// Edit in Notepad. A saved keycut's row is replaced and selected, wherever the sort puts it.
+        /// </summary>
+        public async Task EditKeycutAsync(KeycutRowViewModel row)
+        {
+            var show = ShowEditForm;
+            var keycut = KeycutOf(row);
+
+            if (actions == null || show == null || keycut == null)
+            {
+                return;
+            }
+
+            bool editable;
+
+            try
+            {
+                editable = await actions.CanEditInFormAsync(keycut);
+            }
+            catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
+            {
+                ShowStatusMessage("This keycut no longer exists", true);
+                _ = LoadAsync();
+                return;
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage("Couldn’t edit “" + row.Name + "”: " + ReasonOf(ex), true);
+                return;
+            }
+
+            if (!editable)
+            {
+                ShowStatusMessage(EditKeycutViewModel.NotEditableMessage, true);
+                return;
+            }
+
+            IsMenuOpen = false;
+            var form = new EditKeycutViewModel(keycut, edit => actions.UpdateAsync(keycut, edit), CheckRename, ConfirmRename);
+            show(form);
+
+            if (form.Saved != null)
+            {
+                ReplaceEditedRow(keycut, form.Saved);
+                ShowStatusMessage("Saved “" + form.Saved.Name + "”", false);
+            }
+
+            // Whatever the form found out (a keycut that is gone, a name taken), the list catches up with the folder
+            _ = LoadAsync();
+        }
+
+        /// <summary>
+        /// Puts the loaded rows in the order the repository loads them (by path), so the reload that follows an edit or an
+        /// undo finds the same content and keeps these rows, instead of rebuilding them under the focus and selection.
+        /// </summary>
+        private void SortLikeTheFolder()
+        {
+            allRows.Sort((x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.Keycut.FilePath, y.Keycut.FilePath));
+        }
+
+        /// <summary>Shows the saved keycut in place of the edited one, selected and focused. A reload that got there first leaves one row.</summary>
+        private void ReplaceEditedRow(Keycut before, Keycut saved)
+        {
+            allRows.RemoveAll(r => string.Equals(r.Keycut.FilePath, before.FilePath, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r.Keycut.FilePath, saved.FilePath, StringComparison.OrdinalIgnoreCase));
+
+            var row = new KeycutRowViewModel(saved, this);
+            allRows.Add(row);
+            SortLikeTheFolder();
+            KeycutCount = allRows.Count;
+
+            // A search that no longer matches would hide what was just saved
+            if (!row.Matches(searchText))
+            {
+                SearchText = string.Empty;
+            }
+
+            ApplyFilter();
+            SelectedRow = row;
+            FocusRowRequested?.Invoke(this, row);
+        }
+
+        /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit in Notepad does.</summary>
         public void OpenFileLocation(KeycutRowViewModel row)
         {
             var keycut = KeycutOf(row);
@@ -516,6 +607,7 @@ namespace keycuts.GUI.ViewModels
                 var keycut = deleted.Modified == default ? deleted.Keycut : deleted.Keycut with { Modified = deleted.Modified };
                 row = new KeycutRowViewModel(keycut, this);
                 allRows.Add(row);
+                SortLikeTheFolder();
             }
 
             KeycutCount = allRows.Count;

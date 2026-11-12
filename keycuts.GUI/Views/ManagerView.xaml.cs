@@ -220,12 +220,15 @@ namespace keycuts.GUI.Views
             {
                 oldViewModel.FocusRowRequested -= ViewModel_FocusRowRequested;
                 oldViewModel.ConfirmRename = null;
+                oldViewModel.ShowEditForm = null;
             }
 
             if (e.NewValue is ManagerViewModel newViewModel)
             {
                 newViewModel.FocusRowRequested += ViewModel_FocusRowRequested;
                 newViewModel.ConfirmRename = check => ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForRename(check));
+                // The Edit form (#180) is a dialog over the window; the form saves itself, and its name checks use the same dialog
+                newViewModel.ShowEditForm = form => EditWindow.Show(Window.GetWindow(this), form);
             }
         }
 

@@ -411,6 +411,11 @@
                             <controls:Icon Kind="File" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
+                        <MenuItem Header="Edit in Notepad" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="External" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
                         <MenuItem Header="Open file location" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Folder" Size="16" />

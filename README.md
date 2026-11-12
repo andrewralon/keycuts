@@ -75,8 +75,15 @@ Batmanager app, which has been removed).
 * Sort by Name, Type, Description, Target, or Modified by clicking a header; click it again to reverse. **Modified** is when
   the `.bat` was last written ("3 days ago", with the exact time in a tooltip), and its first click puts the newest first.
   Renaming a keycut rewrites its file, so it counts as modified. The column hides itself when the window is narrow.
-* The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
-  **Open file location** (shows the `.bat` in Explorer), **Copy target**, and **Delete**.
+* The row menu (the `...` button) offers **Open**, **Edit**, **Edit in Notepad**, **Open file location** (shows the `.bat`
+  in Explorer), **Copy target**, and **Delete**.
+* **Edit** opens a form with the keycut's target, name and description, and **Save** writes the `.bat` again. The target is
+  checked as in the creator, a name another program uses asks first, and a name that's taken is refused. Because saving
+  writes the whole file, the form is offered only for a keycut the app would have written identically itself. One you've
+  changed by hand (an added `%*`, an extra line) says "This keycut can't be edited here. Edit it in Notepad.", so nothing
+  you added is lost; **Edit in Notepad** opens the raw `.bat` for those edits (a description added there shows in the
+  table). Saving also brings a keycut from an older version up to the current format (`REM <target>`, the version header).
+  An unchanged target is saved exactly as it was, so a path saved with `%USERPROFILE%` keeps it.
 * **Delete** has no confirmation: it moves the `.bat` to the Recycle Bin, and the status bar offers **Undo** for a few
   seconds (Ctrl+Z does the same, even from the search box while it shows). Undo puts the file back exactly as it was,
   hand edits and modified date included, and refuses, saying so, if you've made another keycut with that name since. A

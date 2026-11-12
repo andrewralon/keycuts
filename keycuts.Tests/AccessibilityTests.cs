@@ -537,6 +537,16 @@ namespace keycuts.Tests
                 Renamed.Add(newName);
                 return Task.FromResult(keycut.FilePath);
             }
+
+            public Task<bool> CanEditInFormAsync(Keycut keycut)
+            {
+                return Task.FromResult(true);
+            }
+
+            public Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit)
+            {
+                return Task.FromResult(keycut with { Name = edit.Name, Target = edit.Target, Description = edit.Description });
+            }
         }
 
         static ManagerViewModel LoadedManager(IKeycutActions actions, params string[] names)

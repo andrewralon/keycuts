@@ -11,7 +11,7 @@
         WindowStartupLocation="CenterOwner" UseLayoutRounding="True"
         Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}"
         FontFamily="{StaticResource AppFontFamily}" FontSize="{StaticResource FontSizeBody}"
-        Loaded="Edit_Loaded" Closed="Edit_Closed">
+        Loaded="Edit_Loaded" Closing="Edit_Closing" Closed="Edit_Closed">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 

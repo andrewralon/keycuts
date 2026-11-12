@@ -224,7 +224,7 @@ namespace keycuts.Tests
                 var parsed = new ShortcutFile(file, File.ReadAllLines(file));
                 var copy = Path.Combine(_folder, "copy.bat");
                 File.Copy(file, copy, true);
-                var keycut = new Keycut { Name = "copy", FilePath = copy, Target = parsed.Target };
+                var keycut = new Keycut { Name = "copy", FilePath = copy, Target = parsed.Target, Description = parsed.Description };
 
                 var saved = await Repo().UpdateAsync(keycut, new KeycutEdit(parsed.Target, "copy", parsed.Description));
 
@@ -504,14 +504,15 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task ANewNameWhoseOldFileCantBeRemoved_LeavesTheOldKeycutAndNoCopy()
+        public async Task ANewNameForAFileThatCantBeRenamed_LeavesTheOldKeycutAndNoCopy()
         {
             var old = Emit("old", ShortcutType.Url, "https://example.com");
+            var bytes = File.ReadAllBytes(old);
             var keycut = await LoadOne("old");
 
             using (new FileStream(old, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                // Open for reading without FileShare.Delete: the copy is written, then the old file can't go
+                // Open for reading without FileShare.Delete, which a rename needs too
                 var ex = await Assert.ThrowsAnyAsync<KeycutRepositoryException>(
                     () => Repo().UpdateAsync(keycut, new KeycutEdit("https://example.com", "fresh", "")));
 
@@ -519,8 +520,148 @@ namespace keycuts.Tests
             }
 
             Assert.Equal(new[] { "old.bat" }, Everything());
+            Assert.Equal(bytes, File.ReadAllBytes(old));
+        }
+
+        [Fact]
+        public async Task ARenameWhoseContentCantBeWritten_PutsTheNameBack()
+        {
+            // A read-only file can be moved but not replaced: the rename happens first, so the failure has to undo it
+            var old = Emit("old", ShortcutType.Url, "https://example.com");
+            var bytes = File.ReadAllBytes(old);
+            var keycut = await LoadOne("old");
+            File.SetAttributes(old, FileAttributes.ReadOnly);
+
+            var ex = await Assert.ThrowsAnyAsync<KeycutRepositoryException>(
+                () => Repo().UpdateAsync(keycut, new KeycutEdit("https://example.com", "fresh", "not saved")));
+
+            Assert.True(ex.Error == KeycutRepositoryError.AccessDenied || ex.Error == KeycutRepositoryError.InUse);
+            Assert.Equal(new[] { "old.bat" }, Everything());
+            Assert.Equal(bytes, File.ReadAllBytes(old));
+        }
+
+        [Fact]
+        public async Task AnEdit_KeepsTheFilesAlternateStreams_WithOrWithoutARename()
+        {
+            // The "downloaded from the internet" mark: a copy and a delete would have lost it
+            var path = Emit("marked", ShortcutType.Url, "https://example.com");
+            const string mark = "[ZoneTransfer]\r\nZoneId=3\r\n";
+
+            try
+            {
+                File.WriteAllText(path + ":Zone.Identifier", mark);
+            }
+            catch (Exception ex) when (ex is NotSupportedException || ex is IOException || ex is ArgumentException)
+            {
+                // Not an NTFS volume, so there is nothing to keep
+                return;
+            }
+
+            var first = await Repo().UpdateAsync(await LoadOne("marked"), new KeycutEdit("https://example.com", "marked", "one"));
+            Assert.Equal(mark, File.ReadAllText(first.FilePath + ":Zone.Identifier"));
+
+            var second = await Repo().UpdateAsync(first, new KeycutEdit("https://example.com", "renamed", "two"));
+
+            Assert.Equal(new[] { "renamed.bat" }, Everything());
+            Assert.Equal(mark, File.ReadAllText(second.FilePath + ":Zone.Identifier"));
         }
 
         #endregion Saving
+
+        #region Files that changed, and files that aren't UTF-8
+
+        [Fact]
+        public async Task AFileChangedSinceTheFormOpened_IsRefused_RatherThanPuttingTheOldTargetBack()
+        {
+            var path = Emit("moved", ShortcutType.Url, "https://example.com/original");
+            var opened = await LoadOne("moved");
+
+            // Another window saves a new target while the form is open
+            Emit("moved", ShortcutType.Url, "https://example.com/changed-elsewhere");
+            var elsewhere = File.ReadAllBytes(path);
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(
+                () => Repo().UpdateAsync(opened, new KeycutEdit("https://example.com/original", "moved", "only the description changed")));
+
+            Assert.Equal(KeycutRepositoryError.Changed, ex.Error);
+            Assert.Equal(elsewhere, File.ReadAllBytes(path));
+        }
+
+        [Fact]
+        public async Task ADescriptionChangedSinceTheFormOpened_IsRefusedToo()
+        {
+            var path = Emit("noted", ShortcutType.Url, "https://example.com", "first");
+            var opened = await LoadOne("noted");
+            Emit("noted", ShortcutType.Url, "https://example.com", "second, written elsewhere");
+            var elsewhere = File.ReadAllBytes(path);
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(
+                () => Repo().UpdateAsync(opened, new KeycutEdit("https://example.com/new", "noted", "first")));
+
+            Assert.Equal(KeycutRepositoryError.Changed, ex.Error);
+            Assert.Equal(elsewhere, File.ReadAllBytes(path));
+        }
+
+        [Fact]
+        public async Task AFileThatHasNotChanged_IsSavedAsUsual_EvenAfterAnotherSaveOfTheSameValues()
+        {
+            Emit("same", ShortcutType.Url, "https://example.com", "note");
+            var opened = await LoadOne("same");
+            // Rewritten with the very same target and description: nothing a save could put back
+            Emit("same", ShortcutType.Url, "https://example.com", "note");
+
+            var saved = await Repo().UpdateAsync(opened, new KeycutEdit("https://example.com", "same", "changed"));
+
+            Assert.Equal("changed", saved.Description);
+        }
+
+        // 0xE9 is "é" in ANSI, which is how an older Notepad saved a file: not UTF-8, so it would read as U+FFFD and be lost
+        private static byte[] AnsiKeycut(string description)
+        {
+            var head = System.Text.Encoding.ASCII.GetBytes(
+                "@ECHO OFF\r\nREM keycuts 1.3.0.0\r\nREM <shortcut>C:\\Shortcuts\\ansi.bat</shortcut>\r\nREM <type>url</type>\r\n" +
+                "REM <target>https://example.com</target>\r\nREM <description>");
+            var tail = System.Text.Encoding.ASCII.GetBytes("</description>\r\nSTART https://example.com\r\nEXIT\r\n");
+
+            return head.Concat(System.Text.Encoding.GetEncoding(28591).GetBytes(description)).Concat(tail).ToArray();
+        }
+
+        [Fact]
+        public async Task AFileThatIsNotUtf8_IsNotOffered_AndIsLeftByteForByteIfSaved()
+        {
+            var path = Path.Combine(_folder, "ansi.bat");
+            File.WriteAllBytes(path, AnsiKeycut("r\u00E9sum\u00E9"));
+            var bytes = File.ReadAllBytes(path);
+
+            Assert.False(KeycutRepository.CanEditInForm(path));
+
+            var keycut = new Keycut { Name = "ansi", FilePath = path, Target = "https://example.com" };
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(
+                () => Repo().UpdateAsync(keycut, new KeycutEdit("https://example.com", "ansi", "new")));
+
+            Assert.Equal(KeycutRepositoryError.NotEditable, ex.Error);
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+            Assert.False(await Repo().CanEditInFormAsync(keycut));
+        }
+
+        [Fact]
+        public async Task AUtf8FileWithAccentsAndABom_IsOffered_AndKeepsItsAccents()
+        {
+            var path = Path.Combine(_folder, "accents.bat");
+            var text = "@ECHO OFF\r\nREM keycuts 1.3.0.0\r\nREM <shortcut>" + path + "</shortcut>\r\nREM <type>url</type>\r\n" +
+                "REM <target>https://example.com/caf\u00E9</target>\r\nREM <description>r\u00E9sum\u00E9</description>\r\n" +
+                "START https://example.com/caf\u00E9\r\nEXIT\r\n";
+            File.WriteAllText(path, text, new System.Text.UTF8Encoding(true));
+
+            Assert.True(KeycutRepository.CanEditInForm(path));
+
+            var saved = await Repo().UpdateAsync(await LoadOne("accents"), new KeycutEdit("https://example.com/caf\u00E9", "accents", "r\u00E9sum\u00E9 2"));
+
+            Assert.Equal("r\u00E9sum\u00E9 2", saved.Description);
+            Assert.Equal("https://example.com/caf\u00E9", saved.Target);
+            Assert.Contains("REM <description>r\u00E9sum\u00E9 2</description>", File.ReadAllLines(path));
+        }
+
+        #endregion Files that changed, and files that aren't UTF-8
     }
 }

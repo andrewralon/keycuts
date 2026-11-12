@@ -21,6 +21,9 @@ namespace keycuts.Common
         /// <summary>The file isn't one the Edit form can rewrite without losing something (#180).</summary>
         NotEditable,
 
+        /// <summary>The keycut's file no longer holds the target and description the Edit form was opened with (#180).</summary>
+        Changed,
+
         /// <summary>The new target of an edit was rejected; <see cref="KeycutRepositoryException.TargetError"/> says why.</summary>
         InvalidTarget
     }
@@ -195,17 +198,44 @@ namespace keycuts.Common
             }, ct);
         }
 
-        /// <summary><see cref="CanEditInFormAsync"/> for a file path. False when the file can't be read.</summary>
+        /// <summary>
+        /// <see cref="CanEditInFormAsync"/> for a file path. False when the file can't be read, or isn't valid UTF-8: saving
+        /// writes the lines again, so a byte that decodes to a replacement character (an ANSI "é" a Notepad save left) would
+        /// be lost for good.
+        /// </summary>
         public static bool CanEditInForm(string path)
         {
             try
             {
-                return CanEditInForm(path, File.ReadAllLines(path));
+                return CanEditInForm(path, ReadLinesStrict(path));
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
             {
+                // DecoderFallbackException is an ArgumentException
                 return false;
             }
+        }
+
+        /// <summary>
+        /// The file's lines, as <see cref="File.ReadAllLines(string)"/> reads them, except that bytes that aren't valid UTF-8
+        /// throw a <see cref="System.Text.DecoderFallbackException"/> instead of becoming U+FFFD, as <see cref="TryRewriteShortcutLine"/> also insists.
+        /// </summary>
+        private static string[] ReadLinesStrict(string path)
+        {
+            var text = File.ReadAllText(path, new System.Text.UTF8Encoding(false, true));
+            var lines = new List<string>();
+
+            using (var reader = new StringReader(text))
+            {
+                string line;
+
+                while ((line = reader.ReadLine()) != null)
+                {
+                    lines.Add(line);
+                }
+            }
+
+            return lines.ToArray();
         }
 
         /// <summary>
@@ -283,13 +313,16 @@ namespace keycuts.Common
         /// <see cref="CanEditInFormAsync"/> accepts is touched, since the file is re-emitted whole. The target is written
         /// exactly as it was when its text is unchanged (no re-reading of the type, so nothing about it can drift);
         /// otherwise it is resolved like a new keycut's, with environment variables if <see cref="KeycutEdit.UseEnvironmentVariables"/>.
-        /// A new name is a rename and an edit in one: the new file is complete before the old one goes, and a name that is
-        /// taken is refused, never overwritten. The content goes through a temp file, so a failed write leaves the keycut as it was.
-        /// Returns the keycut as read back from the file.
+        /// A new name is a rename and an edit in one: the file is moved to its new name first (which keeps its permissions and
+        /// alternate streams, and never overwrites, so a name that is taken is refused before anything changes), then its
+        /// content is swapped in from a temp file. If that fails the name is put back, so a failed write leaves the keycut as it
+        /// was. The file must still hold the target and description of the <paramref name="keycut"/> the form was opened for,
+        /// or saving would quietly put old values back. Returns the keycut as read back from the file.
         /// </summary>
         /// <exception cref="KeycutRepositoryException">The name or target is invalid (<see cref="KeycutRepositoryError.InvalidName"/>,
         /// <see cref="KeycutRepositoryError.InvalidTarget"/>), the name is taken, the file is gone, can't be edited here
-        /// (<see cref="KeycutRepositoryError.NotEditable"/>), or can't be written.</exception>
+        /// (<see cref="KeycutRepositoryError.NotEditable"/>: not valid UTF-8 included), has changed
+        /// (<see cref="KeycutRepositoryError.Changed"/>), or can't be written.</exception>
         public Task<Keycut> UpdateAsync(Keycut keycut, KeycutEdit edit, CancellationToken ct = default)
         {
             return Task.Run(() => Update(keycut, edit), ct);
@@ -531,9 +564,26 @@ namespace keycuts.Common
                     throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{oldPath}\" no longer exists.");
                 }
 
-                if (!TryReadEditable(oldPath, File.ReadAllLines(oldPath), out var parsed))
+                ShortcutFile parsed;
+
+                try
                 {
-                    throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{oldPath}\" can't be edited here.");
+                    if (!TryReadEditable(oldPath, ReadLinesStrict(oldPath), out parsed))
+                    {
+                        throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{oldPath}\" can't be edited here.");
+                    }
+                }
+                catch (System.Text.DecoderFallbackException ex)
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{oldPath}\" isn't valid UTF-8, so it can't be edited here.", ex);
+                }
+
+                // The form was opened for the keycut as it was loaded. If its file has changed since (another window, Notepad),
+                // saving would quietly put the old target or description back
+                if (!string.Equals(parsed.Target, keycut.Target ?? string.Empty, StringComparison.Ordinal) ||
+                    !string.Equals(parsed.Description, keycut.Description ?? string.Empty, StringComparison.Ordinal))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.Changed, $"\"{oldPath}\" changed since it was loaded.");
                 }
 
                 // Another keycut with that name, unless it's this file under a different case
@@ -563,17 +613,19 @@ namespace keycuts.Common
                     }
                     else
                     {
-                        // Move never overwrites, so a keycut made under that name since the check above is kept (it throws)
-                        File.Move(temp, newPath);
+                        // Rename first. Move keeps the file's identity (its permissions and alternate streams such as the
+                        // "downloaded" mark), which a copy and a delete would not, and it never overwrites: a name taken since
+                        // the check above throws here, before anything has changed
+                        File.Move(oldPath, newPath);
 
                         try
                         {
-                            File.Delete(oldPath);
+                            File.Replace(temp, newPath, null);
                         }
                         catch (Exception)
                         {
-                            // Two keycuts is worse than a failed save: take the new one back out
-                            File.Delete(newPath);
+                            // The content couldn't be written: put the name back, so a failed save changes nothing
+                            TryMoveBack(newPath, oldPath);
                             throw;
                         }
                     }
@@ -608,6 +660,19 @@ namespace keycuts.Common
             catch (Exception ex)
             {
                 throw Translate(ex, $"Can't save \"{oldPath}\".");
+            }
+        }
+
+        /// <summary>Best effort: undoes a rename after a failed save. If that fails too, the keycut keeps its new name and the old content.</summary>
+        private static void TryMoveBack(string from, string to)
+        {
+            try
+            {
+                File.Move(from, to);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                Debug.WriteLine($"keycuts: couldn't put \"{from}\" back as \"{to}\": {ex.Message}");
             }
         }
 

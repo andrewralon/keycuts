@@ -50,7 +50,8 @@ namespace keycuts.GUI.ViewModels
         // The keycut the "Deleted" message in the status bar can put back (#179), while that message shows
         private DeletedKeycut? pendingUndo;
 
-        private bool undoing;
+        // The name of the keycut a restore is putting back, while it runs; null otherwise
+        private string? restoringName;
 
         private string statusMessage = string.Empty;
 
@@ -519,6 +520,13 @@ namespace keycuts.GUI.ViewModels
                 return;
             }
 
+            // A restore is under way and the Undo it came from is gone: a delete now would give the status bar two stories
+            if (restoringName != null)
+            {
+                ShowStatusMessage("Still restoring “" + restoringName + "”", false);
+                return;
+            }
+
             var keycut = KeycutOf(row);
 
             if (keycut == null)
@@ -555,19 +563,22 @@ namespace keycuts.GUI.ViewModels
         /// <summary>
         /// Puts the last deleted keycut back, byte for byte, while the status bar still offers it (#179). The row reappears
         /// where the current sort puts it, selected and focused (a search that hides it is cleared). A name that was taken
-        /// again is refused and said so: nothing is overwritten. Does nothing when there is nothing to undo.
+        /// again is refused and said so: nothing is overwritten. A restore that fails keeps the Undo on offer, so it can be
+        /// tried again once the name is free or the disk is fixed: on a drive without a Recycle Bin the kept bytes are the
+        /// only copy. Does nothing when there is nothing to undo, or while a delete or another restore is still running (a
+        /// newer delete would otherwise be overwritten by this one's message when it finishes).
         /// </summary>
         public async Task UndoDeleteAsync()
         {
             var deleted = pendingUndo;
 
-            if (deleted == null || actions == null || undoing)
+            if (deleted == null || actions == null || restoringName != null || deleting.Count > 0)
             {
                 return;
             }
 
             var name = deleted.Keycut.Name;
-            undoing = true;
+            restoringName = name;
             SetPendingUndo(null);
 
             try
@@ -576,19 +587,23 @@ namespace keycuts.GUI.ViewModels
             }
             catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.AlreadyExists)
             {
-                ShowStatusMessage("Can’t undo: “" + name + "” already exists.", true);
+                ShowStatusMessage("Can’t undo: “" + name + "” already exists.", true, deleted);
                 return;
             }
             catch (Exception ex)
             {
                 var binHint = deleted.Recycled ? " It’s still in the Recycle Bin." : string.Empty;
-                ShowStatusMessage("Couldn’t restore “" + name + "”: " + ReasonOf(ex) + binHint, true);
+                ShowStatusMessage("Couldn’t restore “" + name + "”: " + ReasonOf(ex) + binHint, true, deleted);
                 return;
             }
             finally
             {
-                undoing = false;
+                restoringName = null;
             }
+
+            // A reload that started before the file was back would read the folder without it and, finishing now, would
+            // replace the rows and drop this one: cancel it, as starting a rename does
+            Interlocked.Exchange(ref loadSource, null)?.Cancel();
 
             var row = AddRestoredRow(deleted);
             ShowStatusMessage("Restored “" + name + "”", false);

@@ -125,6 +125,17 @@ namespace keycuts.GUI
             TextboxTarget.SelectAll();
         }
 
+        // The title-bar close button and Alt+F4 would hand control back to the manager while the save is still running, so the
+        // file could change after the dialog is gone and nobody would see the result. Cancel stays off while saving too.
+        // A save that works closes the window after IsSaving is back to false, so this never blocks that.
+        private void Edit_Closing(object? sender, CancelEventArgs e)
+        {
+            if (viewModel.IsSaving)
+            {
+                e.Cancel = true;
+            }
+        }
+
         private void Edit_Closed(object? sender, EventArgs e)
         {
             viewModel.CloseRequested -= ViewModel_CloseRequested;

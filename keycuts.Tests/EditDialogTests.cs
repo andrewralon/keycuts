@@ -305,6 +305,49 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void TheWindowCantBeClosedWhileSaving_ButClosesOnceTheSaveIsDone()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var gate = new TaskCompletionSource<Keycut>();
+                var form = NewForm(edit => gate.Task);
+                var window = ShowOffscreen(form);
+                var closed = false;
+                window.Closed += (s, e) => closed = true;
+                try
+                {
+                    form.Description = "changed";
+                    var saving = form.SaveAsync();
+                    Pump();
+
+                    // The title-bar close button and Alt+F4 are a Close() as far as the window can tell
+                    window.Close();
+                    Pump();
+
+                    Assert.False(closed);
+                    Assert.True(window.IsVisible);
+
+                    gate.SetResult(NewKeycut());
+                    saving.GetAwaiter().GetResult();
+                    Pump();
+
+                    Assert.True(closed);
+                    Assert.Equal("gmail", form.Saved!.Name);
+                }
+                finally
+                {
+                    gate.TrySetResult(NewKeycut());
+
+                    if (!closed)
+                    {
+                        window.Close();
+                    }
+                }
+            });
+        }
+
         #region Helpers
 
         private sealed class NoStore : ISettingsStore

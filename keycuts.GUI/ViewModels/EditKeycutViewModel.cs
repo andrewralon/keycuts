@@ -24,6 +24,9 @@ namespace keycuts.GUI.ViewModels
 
         public const string MissingMessage = "This keycut no longer exists.";
 
+        /// <summary>The file changed (another window, Notepad) after the form was opened; saving would put the old values back.</summary>
+        public const string ChangedMessage = "This keycut was changed since you opened this form. Close it and choose Edit again.";
+
         private readonly Keycut original;
 
         private readonly Func<KeycutEdit, Task<Keycut>> saveAsync;
@@ -311,6 +314,9 @@ namespace keycuts.GUI.ViewModels
                     break;
                 case KeycutRepositoryError.NotFound:
                     SetErrors(string.Empty, string.Empty, MissingMessage);
+                    break;
+                case KeycutRepositoryError.Changed:
+                    SetErrors(string.Empty, string.Empty, ChangedMessage);
                     break;
                 default:
                     var reason = ex.InnerException != null ? ex.InnerException.Message : ex.Message;

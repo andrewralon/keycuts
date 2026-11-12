@@ -194,6 +194,53 @@ namespace keycuts.Tests
             Assert.Equal(UpdateStatus.Available, result.Status);
         }
 
+        // The startup check and Settings' Check now share the checker: an older answer must not overwrite a newer one
+        [Fact]
+        public async Task CheckNow_OverlappingChecks_RunOneAtATime_AndTheLaterOneIsStored()
+        {
+            var firstAnswer = new TaskCompletionSource<LatestRelease>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var answers = 0;
+            var source = new FakeReleaseSource
+            {
+                NextAsync = () => ++answers == 1 ? firstAnswer.Task : Task.FromResult(FakeReleaseSource.Release("v1.3.0"))
+            };
+            var state = new FakeUpdateState();
+            var checker = UpdateFakes.Checker(source, state);
+
+            var first = checker.CheckNowAsync();
+            var second = checker.CheckNowAsync();
+            // The second check waits for the first; without the gate it would ask (and store) straight away
+            await Task.Delay(50);
+            Assert.Equal(1, source.Calls);
+
+            firstAnswer.SetResult(FakeReleaseSource.Release("v1.2.0"));
+            var results = await Task.WhenAll(first, second);
+
+            Assert.Equal(1, source.MaxConcurrent);
+            Assert.Equal(new Version(1, 2, 0), results[0].Latest);
+            Assert.Equal(new Version(1, 3, 0), results[1].Latest);
+            Assert.Equal("1.3.0", state.LatestVersion);
+            Assert.Equal("https://github.com/andrewralon/keycuts/releases/tag/v1.3.0", state.LatestReleaseUrl);
+        }
+
+        [Fact]
+        public async Task CheckNow_CancelledWhileWaitingForAnotherCheck_ReportsAFailure()
+        {
+            var firstAnswer = new TaskCompletionSource<LatestRelease>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var source = new FakeReleaseSource { NextAsync = () => firstAnswer.Task };
+            var checker = UpdateFakes.Checker(source, new FakeUpdateState());
+            var first = checker.CheckNowAsync();
+            using var cancel = new CancellationTokenSource();
+
+            var waiting = checker.CheckNowAsync(cancel.Token);
+            cancel.Cancel();
+
+            Assert.Equal(UpdateStatus.Failed, (await waiting).Status);
+            firstAnswer.SetResult(FakeReleaseSource.Release("v1.2.0"));
+            Assert.Equal(UpdateStatus.Available, (await first).Status);
+            Assert.Equal(1, source.Calls);
+        }
+
         [Fact]
         public async Task CheckNow_IgnoresTheToggleAndTheOnceADayLimit()
         {
@@ -506,6 +553,39 @@ namespace keycuts.Tests
         public void Parse_MalformedJson_Throws(string json)
         {
             Assert.ThrowsAny<JsonException>(() => GitHubReleaseSource.Parse(json));
+        }
+
+        [Fact]
+        public void Parse_AUtf8Bom_IsSkipped()
+        {
+            var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(ReleaseJson("v1.2.0"))).ToArray();
+
+            Assert.Equal("v1.2.0", GitHubReleaseSource.Parse(bytes).Tag);
+        }
+
+        // JsonDocument throws InvalidOperationException from GetString for this, which the checker wouldn't catch; it must
+        // be an InvalidDataException (a failed check), not an exception that escapes Check now
+        [Fact]
+        public void Parse_InvalidUtf8InTheTag_IsAnUnreadableResponse()
+        {
+            var bytes = Encoding.UTF8.GetBytes("{\"tag_name\":\"v1.2.0").Concat(new byte[] { 0xC3, 0x28 }).Concat(Encoding.UTF8.GetBytes("\"}")).ToArray();
+
+            Assert.Throws<InvalidDataException>(() => GitHubReleaseSource.Parse(bytes));
+        }
+
+        [Fact]
+        public async Task CheckNow_InvalidUtf8FromGitHub_ReportsAFailure()
+        {
+            var handler = new FakeHandler
+            {
+                Respond = (request, ct) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("{\"tag_name\":\"v").Concat(new byte[] { 0xFF }).Concat(Encoding.UTF8.GetBytes("\"}")).ToArray())
+                })
+            };
+            var checker = new UpdateChecker(new GitHubReleaseSource(handler, "1.1.1"), new FakeUpdateState(), new Version(1, 1, 1));
+
+            Assert.Equal(UpdateStatus.Failed, (await checker.CheckNowAsync()).Status);
         }
 
         [Theory]

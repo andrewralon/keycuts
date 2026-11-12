@@ -463,22 +463,28 @@
     <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,1,0,0" Padding="20,10">
       <StackPanel>
-        <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing. -->
-        <DockPanel x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" Margin="0,0,0,6"
-                   Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
-          <Button x:Name="BtnDismissUpdate" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="8,0,0,0"
-                  Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
-            <controls:Icon Kind="Close" Size="14" />
-          </Button>
-          <controls:Icon DockPanel.Dock="Left" Kind="Spark" Size="15" Margin="0,0,8,0" VerticalAlignment="Center"
+        <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing.
+             Declared in reading order so Tab reaches Download before the dismiss button. -->
+        <Grid x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" Margin="0,0,0,6"
+              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <controls:Icon Grid.Column="0" Kind="Spark" Size="15" Margin="0,0,8,0" VerticalAlignment="Center"
                          Foreground="{DynamicResource AccentBrush}" />
-          <TextBlock x:Name="UpdateNoticeText" VerticalAlignment="Center" TextWrapping="Wrap"
+          <TextBlock x:Name="UpdateNoticeText" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
                      Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
             <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
                 Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentBrush}"
                 AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">Download</Hyperlink>
           </TextBlock>
-        </DockPanel>
+          <Button x:Name="BtnDismissUpdate" Grid.Column="2" Style="{StaticResource IconButton}" Margin="8,0,0,0"
+                  Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
+            <controls:Icon Kind="Close" Size="14" />
+          </Button>
+        </Grid>
         <Button Style="{StaticResource FooterLinkButton}" Command="{Binding ShowManagerCommand}"
                 AutomationProperties.Name="{Binding KeycutCount, StringFormat='View all keycuts ({0})'}">
           <Grid>

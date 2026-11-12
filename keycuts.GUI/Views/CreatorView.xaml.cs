@@ -120,12 +120,14 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // The LiveSetting on the text block alone doesn't raise the event; the peer has to
+        // The LiveSetting on the text block alone doesn't raise the event; the peer has to. CreatePeerForElement, not
+        // FromElement: a line that was collapsed until now (the update line) may have no peer yet, and FromElement
+        // returns only an existing one. It returns the existing peer when there is one.
         private void AnnounceLiveRegion(UIElement element)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                if (UIElementAutomationPeer.FromElement(element) is AutomationPeer peer)
+                if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
                 {
                     peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
                 }

@@ -99,6 +99,13 @@ namespace keycuts.Common
 
         private readonly Func<DateTimeOffset> now;
 
+        // The startup check and Settings' Check now share one checker. One request at a time, so the later check always
+        // stores last and an older answer can't overwrite a newer one
+        private readonly SemaphoreSlim checkGate = new SemaphoreSlim(1, 1);
+
+        // The cached version and URL are separate values; they're written and read together so they always match
+        private readonly object stateLock = new object();
+
         /// <param name="currentVersion">The running version; compared by its first three parts.</param>
         /// <param name="now">The clock; tests pass their own.</param>
         public UpdateChecker(IReleaseSource source, IUpdateStateStore store, Version currentVersion, Func<DateTimeOffset> now = null)
@@ -146,8 +153,29 @@ namespace keycuts.Common
             return true;
         }
 
-        /// <summary>Asks GitHub now, whatever the setting and the last check. Stores what it read.</summary>
+        /// <summary>Asks GitHub now, whatever the setting and the last check. Stores what it read. Waits for a check already running.</summary>
         public async Task<UpdateCheckResult> CheckNowAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await checkGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return UpdateCheckResult.Failed;
+            }
+
+            try
+            {
+                return await CheckCoreAsync(cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                checkGate.Release();
+            }
+        }
+
+        private async Task<UpdateCheckResult> CheckCoreAsync(CancellationToken cancellationToken)
         {
             LatestRelease release;
             try
@@ -167,12 +195,15 @@ namespace keycuts.Common
 
             var url = GitHubReleaseSource.IsReleasePage(release.Url) ? release.Url : GitHubReleaseSource.ReleasesPageUrl;
 
-            Write(() =>
+            lock (stateLock)
             {
-                store.LatestVersion = latest.ToString(3);
-                store.LatestReleaseUrl = url;
-                store.LastCheck = now();
-            });
+                Write(() =>
+                {
+                    store.LatestVersion = latest.ToString(3);
+                    store.LatestReleaseUrl = url;
+                    store.LastCheck = now();
+                });
+            }
 
             return Describe(latest, url);
         }
@@ -180,12 +211,20 @@ namespace keycuts.Common
         /// <summary>The newest release a check has seen, whether or not it's newer. Null before the first check.</summary>
         public UpdateCheckResult GetLatestKnown()
         {
-            if (!TryParseVersion(Read(() => store.LatestVersion, null), out var latest))
+            string version;
+            string url;
+            lock (stateLock)
+            {
+                version = Read(() => store.LatestVersion, null);
+                url = Read(() => store.LatestReleaseUrl, null);
+            }
+
+            if (!TryParseVersion(version, out var latest))
             {
                 return null;
             }
 
-            return Describe(latest, ReadUrl());
+            return Describe(latest, GitHubReleaseSource.IsReleasePage(url) ? url : GitHubReleaseSource.ReleasesPageUrl);
         }
 
         /// <summary>
@@ -264,12 +303,6 @@ namespace keycuts.Common
         private UpdateCheckResult Describe(Version latest, string url)
         {
             return new UpdateCheckResult(IsNewer(latest, CurrentVersion) ? UpdateStatus.Available : UpdateStatus.UpToDate, latest, url);
-        }
-
-        private string ReadUrl()
-        {
-            var url = Read(() => store.LatestReleaseUrl, null);
-            return GitHubReleaseSource.IsReleasePage(url) ? url : GitHubReleaseSource.ReleasesPageUrl;
         }
 
         private static bool IsCheckFailure(Exception e)

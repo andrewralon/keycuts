@@ -11,17 +11,33 @@ namespace keycuts.Tests
     {
         public Func<LatestRelease> Next { get; set; } = () => Release("v1.1.1");
 
+        /// <summary>When set, answers instead of <see cref="Next"/>, so a test can hold a request open.</summary>
+        public Func<Task<LatestRelease>>? NextAsync { get; set; }
+
         public int Calls { get; private set; }
+
+        /// <summary>The most requests that were open at once.</summary>
+        public int MaxConcurrent { get; private set; }
+
+        private int open;
 
         public static LatestRelease Release(string tag, string? url = null)
         {
             return new LatestRelease(tag, url ?? "https://github.com/andrewralon/keycuts/releases/tag/" + tag);
         }
 
-        public Task<LatestRelease> GetLatestAsync(CancellationToken cancellationToken)
+        public async Task<LatestRelease> GetLatestAsync(CancellationToken cancellationToken)
         {
             Calls++;
-            return Task.FromResult(Next());
+            MaxConcurrent = Math.Max(MaxConcurrent, Interlocked.Increment(ref open));
+            try
+            {
+                return NextAsync != null ? await NextAsync() : Next();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref open);
+            }
         }
     }
 

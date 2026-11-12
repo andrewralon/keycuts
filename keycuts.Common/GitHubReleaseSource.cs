@@ -99,14 +99,43 @@ namespace keycuts.Common
                 throw new HttpRequestException($"GitHub answered {(int)response.StatusCode}.", null, response.StatusCode);
             }
 
-            // Decode the bytes as UTF-8 (JSON's encoding) ourselves: ReadAsStringAsync throws InvalidOperationException
-            // for a Content-Type with a bogus charset, which isn't a failure the checker would expect
+            // Parse the bytes as UTF-8 (JSON's encoding) ourselves: ReadAsStringAsync throws InvalidOperationException
+            // for a Content-Type with a bogus charset, which isn't a failure the checker would expect. Bytes also skip a
+            // BOM, and invalid UTF-8 is a JsonException rather than replacement characters.
             var bytes = await response.Content.ReadAsByteArrayAsync(timeoutSource.Token).ConfigureAwait(false);
-            return Parse(Encoding.UTF8.GetString(bytes));
+            return Parse(bytes);
         }
 
         /// <summary>Reads <c>tag_name</c> and <c>html_url</c>. Throws <see cref="JsonException"/> or <see cref="InvalidDataException"/>.</summary>
         public static LatestRelease Parse(string json)
+        {
+            return Parse(Encoding.UTF8.GetBytes(json ?? string.Empty));
+        }
+
+        /// <summary>
+        /// The same, from the UTF-8 bytes of a response. A leading BOM is skipped (JsonDocument skips one only when reading a
+        /// stream), and invalid UTF-8 inside a string, which JsonDocument reports only from GetString as an
+        /// InvalidOperationException, becomes an <see cref="InvalidDataException"/> like any other unreadable response.
+        /// </summary>
+        public static LatestRelease Parse(byte[] utf8Json)
+        {
+            var json = new ReadOnlyMemory<byte>(utf8Json ?? Array.Empty<byte>());
+            if (json.Span.StartsWith(Encoding.UTF8.Preamble))
+            {
+                json = json.Slice(Encoding.UTF8.Preamble.Length);
+            }
+
+            try
+            {
+                return ParseDocument(json);
+            }
+            catch (InvalidOperationException e)
+            {
+                throw new InvalidDataException("The release isn't valid UTF-8.", e);
+            }
+        }
+
+        private static LatestRelease ParseDocument(ReadOnlyMemory<byte> json)
         {
             using var document = JsonDocument.Parse(json);
             var root = document.RootElement;

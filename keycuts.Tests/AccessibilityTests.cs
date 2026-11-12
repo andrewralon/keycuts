@@ -513,8 +513,20 @@ namespace keycuts.Tests
             {
             }
 
-            public Task DeleteAsync(Keycut keycut)
+            public List<DeletedKeycut> Deleted { get; } = new List<DeletedKeycut>();
+
+            public List<DeletedKeycut> Restored { get; } = new List<DeletedKeycut>();
+
+            public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
             {
+                var deleted = new DeletedKeycut(keycut, new byte[] { 1 }, default, true);
+                Deleted.Add(deleted);
+                return Task.FromResult(deleted);
+            }
+
+            public Task RestoreAsync(DeletedKeycut deleted)
+            {
+                Restored.Add(deleted);
                 return Task.CompletedTask;
             }
 
@@ -554,6 +566,106 @@ namespace keycuts.Tests
             target.RaiseEvent(args);
             Pump();
             return args.Handled;
+        }
+
+        // #179: the Undo button shows with the "Deleted" message, and Ctrl+Z does the same, even from the search box
+        [Fact]
+        public void Manager_Undo_ShowsAButton_AndCtrlZWorksFromTheSearchBoxWhileItShows()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
+                    Assert.False(undo.IsVisible);
+                    Assert.Equal("Undo delete", AutomationProperties.GetName(undo));
+
+                    // Nothing to undo: Ctrl+Z is left to the search box's own undo
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control));
+
+                    manager.DeleteKeycutAsync(manager.Rows[0]).GetAwaiter().GetResult();
+                    Pump();
+
+                    Assert.True(undo.IsVisible);
+                    Assert.Contains(undo, Descendants<Button>(window).Where(b => b.IsTabStop && b.IsEnabled && b.IsVisible));
+
+                    // Z alone (typing) and Ctrl+Z with another modifier aren't an undo
+                    Assert.False(Press(search, Key.Z));
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control | ModifierKeys.Shift));
+                    Assert.Empty(actions.Restored);
+
+                    Assert.True(Press(search, Key.Z, ModifierKeys.Control));
+
+                    Assert.Single(actions.Restored);
+                    Assert.Equal(2, manager.Rows.Count);
+                    Assert.False(undo.IsVisible);
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_Undo_TheButtonRestoresTheKeycut()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    manager.DeleteKeycutAsync(manager.Rows[1]).GetAwaiter().GetResult();
+                    Pump();
+                    var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
+
+                    undo.Command.Execute(null);
+                    Pump();
+
+                    Assert.Single(actions.Restored);
+                    Assert.Equal(new[] { "alpha", "bravo" }, manager.Rows.Select(r => r.Name));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_CtrlZ_IsLeftToTheNameBoxWhileRenaming()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var actions = new RecordingActions();
+                var manager = LoadedManager(actions, "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    manager.DeleteKeycutAsync(manager.Rows[1]).GetAwaiter().GetResult();
+                    manager.BeginRename(manager.Rows[0]);
+                    Pump();
+
+                    Assert.False(Press(search, Key.Z, ModifierKeys.Control));
+                    Assert.Empty(actions.Restored);
+                    Assert.True(manager.CanUndoDelete);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
         }
 
         // Also proves the handler reads the event's keyboard: no modifier is held on this machine, yet Ctrl on the event is respected

@@ -84,6 +84,8 @@ Issue: #179
 
 Delete calls `File.Delete` ([KeycutRepository.cs](../keycuts.Common/KeycutRepository.cs), `DeleteAsync`). Current practice prefers undo over a confirmation dialog: move the file to the Recycle Bin and put **Undo** in the Manager's status bar for a few seconds. It's cheap, and it's the only action in the app that loses data.
 
+Done (#179). Notes for whoever extends it: `KeycutRepository.CreateDefault()` recycles (`RecycleBinRecycler`, `Microsoft.VisualBasic.FileIO`) and the plain constructor deletes for good (`PermanentDeleter`), so tests can't fill the real bin. The Undo keeps the file's bytes and write time in memory and writes them back through a temp file and a no-overwrite move, so a hand edit and an old `REM <destination>` tag survive. It is one level (the latest delete), tied to the "Deleted" message, and 8 seconds long. That leaves a copy in the Recycle Bin after an Undo, which Windows can't be asked to drop from code. The shell shows its own error dialog if a delete fails (a file open elsewhere); `UIOption` has no "no UI" value. #161 (multi-select) should make the pending undo a list, so one Undo covers a batch, and `keycuts rm` (#173) should use `RecycleBinRecycler`.
+
 #### 3. There's no way to edit a keycut in the app
 
 Issues: #162 (description field), #180 (Edit form)

@@ -75,15 +75,40 @@ namespace keycuts.Tests
                 Copied.Add(text);
             }
 
-            public Task DeleteAsync(Keycut keycut)
+            /// <summary>What the fake reports for a delete: false is a drive without a Recycle Bin.</summary>
+            public bool Recycled { get; set; } = true;
+
+            public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
             {
                 if (DeleteError != null)
                 {
-                    return Task.FromException(DeleteError);
+                    return Task.FromException<DeletedKeycut>(DeleteError);
                 }
 
                 Deleted.Add(keycut.FilePath);
-                return Task.CompletedTask;
+                return Task.FromResult(new DeletedKeycut(keycut, new byte[] { 1, 2, 3 }, new DateTime(2026, 1, 2, 3, 4, 5), Recycled));
+            }
+
+            public List<DeletedKeycut> Restored { get; } = new List<DeletedKeycut>();
+
+            public Exception? RestoreError { get; set; }
+
+            /// <summary>When set, a restore waits for this before it finishes.</summary>
+            public Task? RestoreGate { get; set; }
+
+            public async Task RestoreAsync(DeletedKeycut deleted)
+            {
+                if (RestoreGate != null)
+                {
+                    await RestoreGate;
+                }
+
+                if (RestoreError != null)
+                {
+                    throw RestoreError;
+                }
+
+                Restored.Add(deleted);
             }
 
             public List<(string Path, string NewName)> Renamed { get; } = new List<(string, string)>();
@@ -839,6 +864,268 @@ namespace keycuts.Tests
             Assert.False(manager.StatusIsError);
             Assert.Equal(1, deletedEvents);
         }
+
+        #region Undo (#179)
+
+        [Fact]
+        public async Task Delete_OffersUndo_WhileTheMessageShows()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            var changed = new List<string?>();
+            manager.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+            Assert.False(manager.CanUndoDelete);
+
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            Assert.True(manager.CanUndoDelete);
+            Assert.Contains(nameof(ManagerViewModel.CanUndoDelete), changed);
+            Assert.Equal("Deleted \u201Cb\u201D", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Undo_PutsTheKeycutBackWhereTheSortPutsIt_SelectedAndFocused()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            var restored = 0;
+            var requests = new List<KeycutRowViewModel?>();
+            manager.KeycutRestored += (s, e) => restored++;
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Restored.Select(d => d.Keycut.FilePath));
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(3, manager.KeycutCount);
+            Assert.Equal("3 items", manager.StatusText);
+            Assert.Equal("b", manager.SelectedRow!.Name);
+            Assert.Equal("b", requests.Single()!.Name);
+            Assert.Equal("Restored \u201Cb\u201D", manager.StatusMessage);
+            Assert.False(manager.StatusIsError);
+            Assert.False(manager.CanUndoDelete);
+            Assert.Equal(1, restored);
+        }
+
+        [Fact]
+        public async Task Undo_RestoresTheLastKeycutOutOfTheEmptyState_WithItsOldDate()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "only");
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+            Assert.Equal(ManagerState.Empty, manager.State);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(ManagerState.Populated, manager.State);
+            Assert.Equal("only", manager.Rows.Single().Name);
+            Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), manager.Rows[0].Modified);
+        }
+
+        [Fact]
+        public async Task Undo_ASearchThatHidesTheKeycut_IsCleared()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "alpha", "beta");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            manager.SearchText = "alpha";
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(string.Empty, manager.SearchText);
+            Assert.Equal(new[] { "alpha", "beta" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal("beta", manager.SelectedRow!.Name);
+        }
+
+        [Fact]
+        public async Task Undo_ANameTakenAgain_IsRefusedAndSaidSo_AndNothingIsAdded()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            actions.RestoreError = new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, "\"b\" already exists.");
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { "a" }, manager.Rows.Select(r => r.Name));
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("Can\u2019t undo: \u201Cb\u201D already exists.", manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Theory]
+        [InlineData(true, " It\u2019s still in the Recycle Bin.")]
+        [InlineData(false, "")]
+        public async Task Undo_AnotherFailure_SaysWhy_AndPointsToTheRecycleBinWhenItIsThere(bool recycled, string hint)
+        {
+            var actions = new FakeActions { Recycled = recycled };
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            actions.RestoreError = new System.IO.IOException("disk is full");
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { "a" }, manager.Rows.Select(r => r.Name));
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("Couldn\u2019t restore \u201Cb\u201D: disk is full" + hint, manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Undo_WithNothingToUndo_DoesNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a");
+
+            await manager.UndoDeleteAsync();
+            manager.UndoDeleteCommand.Execute(null);
+
+            Assert.Empty(actions.Restored);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Undo_IsUsedOnce()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            await manager.UndoDeleteAsync();
+            await manager.UndoDeleteAsync();
+
+            Assert.Single(actions.Restored);
+            Assert.Equal(2, manager.Rows.Count);
+        }
+
+        [Fact]
+        public async Task Undo_TheCommandDoesItToo()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            manager.UndoDeleteCommand.Execute(null);
+            await WaitFor(() => manager.Rows.Count == 2);
+
+            Assert.Single(actions.Restored);
+        }
+
+        [Fact]
+        public async Task Undo_ExpiresWithTheMessage()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.UndoDuration = TimeSpan.FromMilliseconds(50);
+
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            Assert.True(manager.CanUndoDelete);
+            await WaitFor(() => !manager.CanUndoDelete);
+
+            Assert.Equal(string.Empty, manager.StatusMessage);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Empty(actions.Restored);
+        }
+
+        [Fact]
+        public async Task Undo_IsGoneOnceAnotherMessageReplacesTheDeletedOne()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            manager.CopyTarget(manager.Rows[0]);
+
+            Assert.Equal("Copied", manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task ASecondDelete_ReplacesTheUndo_SoOnlyTheLatestComesBack()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Restored.Select(d => d.Keycut.FilePath));
+            Assert.Equal(new[] { "b", "c" }, manager.Rows.Select(r => r.Name));
+        }
+
+        [Fact]
+        public async Task Delete_OnADriveWithoutARecycleBin_SaysSo_AndStillOffersUndo()
+        {
+            var actions = new FakeActions { Recycled = false };
+            var manager = await LoadedAsync(actions, "a", "b");
+
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            Assert.Equal("Deleted \u201Cb\u201D (this drive has no Recycle Bin)", manager.StatusMessage);
+            Assert.True(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Delete_AFailureOrAnAlreadyGoneFile_OffersNoUndo()
+        {
+            var actions = new FakeActions { DeleteError = new KeycutRepositoryException(KeycutRepositoryError.NotFound, "gone") };
+            var manager = await LoadedAsync(actions, "a", "b");
+
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.False(manager.CanUndoDelete);
+
+            actions.DeleteError = new KeycutRepositoryException(KeycutRepositoryError.InUse, "in use");
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.False(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Undo_AReloadThatFindsTheFileBeforeTheRestoreFinishes_DoesNotMakeASecondRow()
+        {
+            var gate = new TaskCompletionSource<bool>();
+            var actions = new FakeActions { RestoreGate = gate.Task };
+            var onDisk = new List<Keycut> { NewKeycut("a"), NewKeycut("b"), NewKeycut("c") };
+            var noop = new RelayCommand(() => { });
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(onDisk.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            onDisk.RemoveAt(1);
+
+            var undo = manager.UndoDeleteAsync();
+
+            // The file is back on disk and the window was activated: a reload reads it before the undo reports
+            onDisk.Insert(1, NewKeycut("b"));
+            await manager.LoadAsync();
+            Assert.Equal(3, manager.Rows.Count);
+
+            gate.SetResult(true);
+            await undo;
+
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(3, manager.KeycutCount);
+            Assert.Equal("b", manager.SelectedRow!.Name);
+        }
+
+        static async Task WaitFor(Func<bool> condition)
+        {
+            for (var i = 0; i < 100 && !condition(); i++)
+            {
+                await Task.Delay(20);
+            }
+
+            Assert.True(condition());
+        }
+
+        #endregion Undo (#179)
 
         [Fact]
         public async Task Delete_RequestsFocusOnTheNextRow()

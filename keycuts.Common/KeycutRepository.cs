@@ -39,17 +39,29 @@ namespace keycuts.Common
 
         private readonly string _outputFolder;
 
+        private readonly IFileRecycler _recycler;
+
+        /// <summary>
+        /// A repository that deletes files for good. Use <see cref="CreateDefault"/> (or pass a
+        /// <see cref="RecycleBinRecycler"/>) for the app, which sends them to the Recycle Bin.
+        /// </summary>
         public KeycutRepository(string outputFolder)
+            : this(outputFolder, new PermanentDeleter())
+        {
+        }
+
+        public KeycutRepository(string outputFolder, IFileRecycler recycler)
         {
             _outputFolder = outputFolder;
+            _recycler = recycler ?? throw new ArgumentNullException(nameof(recycler));
         }
 
         public string OutputFolder => _outputFolder;
 
-        /// <summary>Production repository for the configured output folder.</summary>
+        /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179).</summary>
         public static KeycutRepository CreateDefault()
         {
-            return new KeycutRepository(new Runner().GetOutputFolder());
+            return new KeycutRepository(new Runner().GetOutputFolder(), new RecycleBinRecycler());
         }
 
         /// <summary>
@@ -133,10 +145,25 @@ namespace keycuts.Common
             return all.Count;
         }
 
+        /// <summary>
+        /// Removes the keycut's file (to the Recycle Bin, with <see cref="CreateDefault"/>) and returns what
+        /// <see cref="RestoreAsync"/> needs to put it back: the file's exact bytes and write time, read first.
+        /// </summary>
         /// <exception cref="KeycutRepositoryException">The file is already gone, locked, or can't be deleted.</exception>
-        public Task DeleteAsync(Keycut keycut, CancellationToken ct = default)
+        public Task<DeletedKeycut> DeleteAsync(Keycut keycut, CancellationToken ct = default)
         {
             return Task.Run(() => Delete(keycut), ct);
+        }
+
+        /// <summary>
+        /// Writes a deleted keycut back exactly as it was, bytes and last write time, and never over a file: if its name
+        /// was taken again in the meantime that's refused. The bytes go to a temp file first and are moved into place, so
+        /// a failure can't leave a half-written keycut, and a keycut created at that moment is never replaced.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The name is taken (<see cref="KeycutRepositoryError.AlreadyExists"/>), or the folder is gone or can't be written.</exception>
+        public Task RestoreAsync(DeletedKeycut deleted, CancellationToken ct = default)
+        {
+            return Task.Run(() => Restore(deleted), ct);
         }
 
         /// <summary>
@@ -324,7 +351,7 @@ namespace keycuts.Common
             }
         }
 
-        private static void Delete(Keycut keycut)
+        private DeletedKeycut Delete(Keycut keycut)
         {
             var path = keycut.FilePath;
 
@@ -335,7 +362,14 @@ namespace keycuts.Common
                     throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{path}\" no longer exists.");
                 }
 
-                File.Delete(path);
+                // Read before removing: a file that can't be read can't be undone, and isn't deleted
+                var contents = File.ReadAllBytes(path);
+                var modified = File.GetLastWriteTime(path);
+                var recycled = _recycler.UsesRecycleBin(path);
+
+                _recycler.Remove(path);
+
+                return new DeletedKeycut(keycut, contents, modified, recycled);
             }
             catch (KeycutRepositoryException)
             {
@@ -344,6 +378,55 @@ namespace keycuts.Common
             catch (Exception ex)
             {
                 throw Translate(ex, $"Can't delete \"{path}\".");
+            }
+        }
+
+        private static void Restore(DeletedKeycut deleted)
+        {
+            var path = deleted.Keycut.FilePath;
+            var name = Path.GetFileNameWithoutExtension(path);
+
+            try
+            {
+                // Never overwrite: the name may have been used again since (a new keycut with the same name)
+                if (File.Exists(path))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+                }
+
+                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+                try
+                {
+                    File.WriteAllBytes(temp, deleted.Contents);
+
+                    if (deleted.Modified != default)
+                    {
+                        File.SetLastWriteTime(temp, deleted.Modified);
+                    }
+
+                    // Move without overwriting, so a file created between the check and here is kept (it throws)
+                    File.Move(temp, path);
+                }
+                finally
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't restore \"{path}\".");
             }
         }
 

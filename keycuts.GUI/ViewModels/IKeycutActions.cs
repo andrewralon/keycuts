@@ -26,8 +26,17 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Puts the text on the clipboard. Throws if the clipboard can't be used.</summary>
         void CopyText(string text);
 
-        /// <summary>Deletes the keycut file. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
-        Task DeleteAsync(Keycut keycut);
+        /// <summary>
+        /// Deletes the keycut file, to the Recycle Bin, and returns what <see cref="RestoreAsync"/> needs to put it back.
+        /// Throws <see cref="KeycutRepositoryException"/> if that fails.
+        /// </summary>
+        Task<DeletedKeycut> DeleteAsync(Keycut keycut);
+
+        /// <summary>
+        /// Puts a deleted keycut back exactly as it was (#179). Throws <see cref="KeycutRepositoryException"/> if its name
+        /// was taken again (<see cref="KeycutRepositoryError.AlreadyExists"/>: it is never overwritten) or it can't be written.
+        /// </summary>
+        Task RestoreAsync(DeletedKeycut deleted);
 
         /// <summary>Renames the keycut file and returns its new path. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
         Task<string> RenameAsync(Keycut keycut, string newName);
@@ -83,9 +92,14 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        public Task DeleteAsync(Keycut keycut)
+        public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
         {
             return KeycutRepository.CreateDefault().DeleteAsync(keycut);
+        }
+
+        public Task RestoreAsync(DeletedKeycut deleted)
+        {
+            return KeycutRepository.CreateDefault().RestoreAsync(deleted);
         }
 
         public Task<string> RenameAsync(Keycut keycut, string newName)

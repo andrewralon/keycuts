@@ -55,7 +55,21 @@ namespace keycuts.GUI.Views
         {
             // While renaming, the name box owns the keys (this handler runs before it). Modifiers come from the event's own device:
             // in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give the event its own.
-            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming || e.KeyboardDevice.Modifiers != ModifierKeys.None)
+            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming)
+            {
+                return;
+            }
+
+            // Ctrl+Z undoes a delete while the status bar offers it, even from the search box, where it would otherwise be
+            // the box's own undo. Any other time the box keeps it.
+            if (e.Key == Key.Z && e.KeyboardDevice.Modifiers == ModifierKeys.Control && ViewModel.CanUndoDelete)
+            {
+                e.Handled = true;
+                _ = ViewModel.UndoDeleteAsync();
+                return;
+            }
+
+            if (e.KeyboardDevice.Modifiers != ModifierKeys.None)
             {
                 return;
             }

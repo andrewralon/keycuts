@@ -325,6 +325,194 @@ namespace keycuts.Tests
             Assert.True(File.Exists(path));
         }
 
+        #region Recycle and restore (#179)
+
+        private sealed class FakeRecycler : IFileRecycler
+        {
+            public List<string> Removed { get; } = new List<string>();
+
+            public bool InBin { get; set; } = true;
+
+            public Exception Error { get; set; }
+
+            public void Remove(string path)
+            {
+                if (Error != null)
+                {
+                    throw Error;
+                }
+
+                Removed.Add(path);
+                File.Delete(path);
+            }
+
+            public bool UsesRecycleBin(string path)
+            {
+                return InBin;
+            }
+        }
+
+        // Hand-edited and odd on purpose: an old <destination> tag, an added %*, CRLF and LF mixed, a BOM and a byte that isn't UTF-8
+        private static readonly byte[] AwkwardBytes =
+            new byte[] { 0xEF, 0xBB, 0xBF }
+                .Concat(System.Text.Encoding.UTF8.GetBytes("@ECHO OFF\r\nREM keycuts 1.2.0\r\nREM <destination>C:\\old tags\\a.exe</destination>\nREM <type>file</type>\r\nSTART \"\" /B \"C:\\old tags\\a.exe\" %*\r\nEXIT\r\n"))
+                .Concat(new byte[] { 0xFF, 0xFE })
+                .ToArray();
+
+        [Fact]
+        public async Task Delete_ReturnsWhatARestoreNeeds_AndRemovesTheFile()
+        {
+            var path = Path.Combine(_folder, "awkward.bat");
+            File.WriteAllBytes(path, AwkwardBytes);
+            var time = new DateTime(2024, 5, 6, 7, 8, 9, DateTimeKind.Local);
+            File.SetLastWriteTime(path, time);
+            var keycut = new Keycut { Name = "awkward", FilePath = path, Target = @"C:\old tags\a.exe" };
+
+            var deleted = await new KeycutRepository(_folder, new FakeRecycler()).DeleteAsync(keycut);
+
+            Assert.False(File.Exists(path));
+            Assert.Same(keycut, deleted.Keycut);
+            Assert.Equal(AwkwardBytes, deleted.Contents);
+            Assert.Equal(time, deleted.Modified);
+            Assert.True(deleted.Recycled);
+        }
+
+        [Fact]
+        public async Task Delete_GoesThroughTheRecycler_AndSaysWhenThereIsNoBin()
+        {
+            var path = WriteUrl("viabin");
+            var recycler = new FakeRecycler { InBin = false };
+            var repository = new KeycutRepository(_folder, recycler);
+            var keycut = (await repository.LoadAllAsync()).Single();
+
+            var deleted = await repository.DeleteAsync(keycut);
+
+            Assert.Equal(new[] { path }, recycler.Removed);
+            Assert.False(deleted.Recycled);
+        }
+
+        [Fact]
+        public async Task Delete_ARecyclerThatFails_LeavesTheFileAndThrowsATypedError()
+        {
+            var path = WriteUrl("stays");
+            var recycler = new FakeRecycler { Error = new UnauthorizedAccessException("denied") };
+            var repository = new KeycutRepository(_folder, recycler);
+            var keycut = (await repository.LoadAllAsync()).Single();
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => repository.DeleteAsync(keycut));
+
+            Assert.Equal(KeycutRepositoryError.AccessDenied, ex.Error);
+            Assert.True(File.Exists(path));
+        }
+
+        [Fact]
+        public async Task Restore_PutsTheExactBytesAndTheWriteTimeBack_WithoutLeavingATempFile()
+        {
+            var path = Path.Combine(_folder, "awkward.bat");
+            File.WriteAllBytes(path, AwkwardBytes);
+            var time = new DateTime(2024, 5, 6, 7, 8, 9, DateTimeKind.Local);
+            File.SetLastWriteTime(path, time);
+            var repository = new KeycutRepository(_folder, new FakeRecycler());
+            var deleted = await repository.DeleteAsync(new Keycut { Name = "awkward", FilePath = path });
+            Assert.False(File.Exists(path));
+
+            await repository.RestoreAsync(deleted);
+
+            Assert.Equal(AwkwardBytes, File.ReadAllBytes(path));
+            Assert.Equal(time, File.GetLastWriteTime(path));
+            Assert.Equal(new[] { path }, Directory.GetFileSystemEntries(_folder));
+        }
+
+        [Fact]
+        public async Task Restore_ADeletedKeycutLoadsAgainAsItWas()
+        {
+            CreateWithRunner("kept", "https://example.com/kept", "Team wiki");
+            var repository = new KeycutRepository(_folder, new FakeRecycler());
+            var before = (await repository.LoadAllAsync()).Single();
+
+            var deleted = await repository.DeleteAsync(before);
+            Assert.Empty(await repository.LoadAllAsync());
+            await repository.RestoreAsync(deleted);
+
+            var after = (await repository.LoadAllAsync()).Single();
+            Assert.Equal(before.Name, after.Name);
+            Assert.Equal(before.Target, after.Target);
+            Assert.Equal(before.Description, after.Description);
+            Assert.Equal(before.Modified, after.Modified);
+        }
+
+        [Fact]
+        public async Task Restore_ANameTakenAgain_IsRefused_AndTheNewFileIsKeptByteForByte()
+        {
+            var path = WriteUrl("taken", "https://example.com/original");
+            var repository = new KeycutRepository(_folder, new FakeRecycler());
+            var deleted = await repository.DeleteAsync((await repository.LoadAllAsync()).Single());
+
+            // A new keycut with the same name, made before the undo
+            var replacement = WriteUrl("taken", "https://example.com/replacement");
+            var replacementBytes = File.ReadAllBytes(replacement);
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => repository.RestoreAsync(deleted));
+
+            Assert.Equal(KeycutRepositoryError.AlreadyExists, ex.Error);
+            Assert.Equal(replacementBytes, File.ReadAllBytes(path));
+            Assert.Equal(new[] { path }, Directory.GetFileSystemEntries(_folder));
+        }
+
+        [Fact]
+        public async Task Restore_ANameTakenInADifferentCase_IsRefusedToo()
+        {
+            WriteUrl("Mixed");
+            var repository = new KeycutRepository(_folder, new FakeRecycler());
+            var deleted = await repository.DeleteAsync((await repository.LoadAllAsync()).Single());
+            var newer = Path.Combine(_folder, "mixed.bat");
+            File.WriteAllText(newer, "@ECHO OFF\r\n");
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => repository.RestoreAsync(deleted));
+
+            Assert.Equal(KeycutRepositoryError.AlreadyExists, ex.Error);
+            Assert.Equal("@ECHO OFF\r\n", File.ReadAllText(newer));
+            Assert.Single(Directory.GetFileSystemEntries(_folder));
+        }
+
+        [Fact]
+        public async Task Restore_AFolderThatIsGone_ThrowsNotFound()
+        {
+            var path = WriteUrl("lost");
+            var repository = new KeycutRepository(_folder, new FakeRecycler());
+            var deleted = await repository.DeleteAsync((await repository.LoadAllAsync()).Single());
+            Directory.Delete(_folder, true);
+
+            var ex = await Assert.ThrowsAsync<KeycutRepositoryException>(() => repository.RestoreAsync(deleted));
+
+            Assert.Equal(KeycutRepositoryError.NotFound, ex.Error);
+            Assert.False(File.Exists(path));
+        }
+
+        [Fact]
+        public void TheRecycleBin_IsOnlyUsedOnALocalDrive()
+        {
+            // A UNC path is never a drive with a bin, and this one needs no network to know it
+            Assert.False(RecycleBinRecycler.HasRecycleBin(@"\\fileserver\share\keycuts\gmail.bat"));
+            Assert.False(new RecycleBinRecycler().UsesRecycleBin(@"\\fileserver\share\keycuts\gmail.bat"));
+            Assert.False(new PermanentDeleter().UsesRecycleBin(Path.Combine(_folder, "x.bat")));
+        }
+
+        [Fact]
+        public async Task ThePlainConstructorDeletesForGood_AndOnlyCreateDefaultUsesTheBin()
+        {
+            // So a test that deletes can't put files in the user's Recycle Bin
+            var path = WriteUrl("plain");
+            var keycut = new Keycut { Name = "plain", FilePath = path };
+
+            var deleted = await new KeycutRepository(_folder).DeleteAsync(keycut);
+
+            Assert.False(deleted.Recycled);
+            Assert.False(File.Exists(path));
+        }
+
+        #endregion Recycle and restore (#179)
+
         [Fact]
         public async Task Rename_MovesTheFile_AndRewritesOnlyTheShortcutLine()
         {

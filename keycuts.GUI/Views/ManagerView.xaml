@@ -108,6 +108,33 @@
       </Setter>
     </Style>
 
+    <!-- Small accent link for the status bar (Undo). -->
+    <Style x:Key="StatusLinkButton" TargetType="Button">
+      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Padding" Value="6,2" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+                    CornerRadius="{StaticResource RadiusSm}">
+              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" RecognizesAccessKey="False" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
     <!-- Rows take no keyboard focus: Up and Down move the selection while focus stays in the search box.
          The bar keeps the selection visible in high contrast, where the tint disappears. -->
     <Style x:Key="ManagerRow" TargetType="DataGridRow">
@@ -477,6 +504,7 @@
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <TextBlock VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
                    Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding StatusText}" />
@@ -494,6 +522,11 @@
             </Style>
           </TextBlock.Style>
         </TextBlock>
+        <!-- #179: shown while the "Deleted" message is; Ctrl+Z does the same -->
+        <Button x:Name="UndoButton" Grid.Column="2" Style="{StaticResource StatusLinkButton}" Margin="12,0,0,0"
+                VerticalAlignment="Center" Content="Undo" Command="{Binding UndoDeleteCommand}"
+                ToolTip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="Undo delete"
+                Visibility="{Binding CanUndoDelete, Converter={StaticResource BoolToVisibility}}" />
       </Grid>
     </Border>
 

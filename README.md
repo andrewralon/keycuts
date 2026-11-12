@@ -76,7 +76,11 @@ Batmanager app, which has been removed).
   the `.bat` was last written ("3 days ago", with the exact time in a tooltip), and its first click puts the newest first.
   Renaming a keycut rewrites its file, so it counts as modified. The column hides itself when the window is narrow.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
-  **Open file location** (shows the `.bat` in Explorer), **Copy target**, and **Delete**. Delete has no confirmation.
+  **Open file location** (shows the `.bat` in Explorer), **Copy target**, and **Delete**.
+* **Delete** has no confirmation: it moves the `.bat` to the Recycle Bin, and the status bar offers **Undo** for a few
+  seconds (Ctrl+Z does the same, even from the search box while it shows). Undo puts the file back exactly as it was,
+  hand edits and modified date included, and refuses, saying so, if you've made another keycut with that name since. A
+  drive without a Recycle Bin (a network share, a USB stick) deletes for good; the message says so, and Undo still works.
 * Missing targets are flagged. The list refreshes when the window is activated and on F5.
 
 Settings (the gear button) holds the output folder (the folder button picks one, and the button beside it opens it in Explorer; hover

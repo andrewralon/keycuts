@@ -888,7 +888,10 @@ namespace keycuts.Tests
                     Assert.Contains("Save", texts);
                     Assert.Contains(@"Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.", texts);
 
-                    // The visible notes went, not the help text: it is all a screen reader has for "Ask before replacing a keycut" now
+                    // A switch whose note is still shown has the same help text; the one whose note went keeps its help text,
+                    // which is all a screen reader has for "Ask before replacing a keycut" now
+                    Assert.Equal("Once a day, ask GitHub whether a newer version is out.",
+                        AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleCheckForUpdates")));
                     Assert.Equal("Confirm before a new keycut replaces one with the same name.",
                         AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleAskBeforeReplacing")));
 

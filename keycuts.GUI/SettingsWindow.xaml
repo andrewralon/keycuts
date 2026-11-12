@@ -215,7 +215,7 @@
                     </StackPanel>
                     <ToggleButton x:Name="ToggleCheckForUpdates" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="20,0,0,0"
                                   IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates"
-                                  AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out. Nothing about you or your keycuts is sent." />
+                                  AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out." />
                 </Grid>
 
                 <Grid>

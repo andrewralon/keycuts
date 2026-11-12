@@ -22,6 +22,10 @@ namespace keycuts.CLI
         [Option('o', "outputfolder", Required = false, MetaValue = "<folder>", HelpText = "Where to put the keycut when --shortcut isn't a full path.")]
         public string OutputFolder { get; set; }
 
+        // Long form only: -d was the old --destination until #195, and reusing it would turn an old script's "-d <path>" into a description
+        [Option("description", Required = false, MetaValue = "<text>", HelpText = "A note about the keycut, shown in the manager. Optional.")]
+        public string Description { get; set; }
+
         [Option('f', "force", HelpText = "Don't ask: replace a keycut with the same name, and create it even if another command has the name.")]
         public bool Force { get; set; }
     }

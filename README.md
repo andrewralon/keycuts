@@ -50,6 +50,7 @@ The app is one compact window with two views.
 **Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), browser link, or a shell item like the Recycle Bin or This PC
 (saved as its `::{CLSID}` key) onto the window, paste a path or URL
 (Ctrl+V, including a file copied in Explorer), or use **Browse ▾** (File… / Folder…). Then type a name and press **Enter**.
+**Add a description** under the name if you want one: it's optional, and the manager shows and searches it.
 The type icon updates as you go, and invalid targets and names are shown inline. A name that's already taken, by a
 keycut or by another program, shows an amber warning and asks before creating (see [Name warnings](#name-warnings)).
 For a file or folder under a known folder, a "Saved as" line shows the path exactly as it will be saved: with
@@ -155,6 +156,10 @@ with `.bat`. `keypaste` used to be a separate program; it's now a small `keypast
 `keycuts` on its own, typed in Win+R or a terminal, opens the app (`kc` does too once you've made its keycut from the welcome
 panel). Give it any argument, even `--help`, and it's the command line. `keycuts -h` (or `--help`) lists the commands and options and exits 0; a
 mistake in the arguments prints a short message to stderr and exits 1.
+
+`keycuts -t <target> -s <name> --description "text"` stores a description, as the creator's field does. It has no short
+letter: `-d` was the old `--destination` (now `--target`), and a script that still passes it should fail rather than
+quietly get a description.
 
 A keycut can't be named `keycuts` or `keypaste`: Windows would find it instead of the command, or the other way round.
 If your keycuts folder already has one (a `keypaste.bat` made for the old `keypaste.exe`, say), keycuts renames it to

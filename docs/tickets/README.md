@@ -58,7 +58,7 @@ Implementing agents: start with [HANDOFF.md](HANDOFF.md). The orchestrator promp
 
 | # | Topic | Decision | Tickets |
 | --- | --- | --- | --- |
-| 1 | Description | Stored as an optional `REM <description>…</description>` comment line in the keycut `.bat` file. Existing files without it show an empty cell. | KC-03, KC-12 |
+| 1 | Description | Stored as an optional `REM <description>…</description>` comment line in the keycut `.bat` file. Existing files without it show an empty cell. Since #162 the Creator has an optional description field (collapsed to "Add a description" until asked for) and `keycuts` has `--description` (long form only). Every `%` in it is written doubled, because cmd expands `%` before it reads `REM`, and a `%~` stops the whole script. | KC-03, KC-12 |
 | 2 | Edit | Opens the keycut `.bat` in Notepad, the same as Batmanager today. No in-app edit form. Editing the description comment in Notepad is how users set a description. | KC-15 |
 | 3 | Browse: file vs folder | **Browse ▾** opens a menu: **File…** (*Choose a single file*) / **Folder…** (*Choose a directory*). Per UI2. | KC-09, KC-10 |
 | 4 | Paste | The destination line is an inline, borderless text field (placeholder "Drop or paste a file, folder, or URL here"). Users can paste or type into it. Per UI2. | KC-09, KC-10 |

@@ -195,16 +195,51 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Button:Add a description", "View all keycuts (0)", "Settings" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
                     Assert.Equal(new[] { "View all keycuts (0)", "Settings" }, TabStops(window));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // #162: the description is a link until asked for; then it's a named field that follows Create, and Enter there creates
+        [Fact]
+        public void Creator_AddADescription_ShowsANamedField_AfterCreateInTheTabOrder()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var creator = NewCreator();
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    var link = Descendants<Button>(window).Single(b => b.Name == "BtnAddDescription");
+                    var form = (FrameworkElement)((FrameworkElement)window.Content).FindName("DescriptionForm");
+                    Assert.True(link.IsVisible);
+                    Assert.False(form.IsVisible);
+
+                    link.Command.Execute(null);
+                    Pump();
+
+                    Assert.False(link.IsVisible);
+                    Assert.True(form.IsVisible);
+                    Assert.Equal(
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Description", "View all keycuts (0)", "Settings" },
+                        TabStops(window));
+
+                    var box = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Description");
+                    Assert.Contains(box.InputBindings.OfType<KeyBinding>(), b => b.Key == Key.Return && ReferenceEquals(b.Command, creator.CreateCommand));
                 }
                 finally
                 {
@@ -231,12 +266,12 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" },
+                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -267,14 +302,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Target", "Browse", "Keycut name", "Create", "Dismiss update notice", "View all keycuts (0)", "Settings" },
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "Dismiss update notice", "View all keycuts (0)", "Settings" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)((FrameworkElement)window.Content).FindName("UpdateDownloadLink");
                     Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, TabStops(window));
                 }
                 finally
                 {

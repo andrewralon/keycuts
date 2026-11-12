@@ -150,7 +150,12 @@ namespace keycuts.GUI.Views
             // The name and target fields are disabled while saving; wait for the layout to re-enable them
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
             {
-                var field = target == CreatorFocusTarget.Target ? TextboxTarget : TextboxShortcut;
+                var field = target switch
+                {
+                    CreatorFocusTarget.Target => TextboxTarget,
+                    CreatorFocusTarget.Description => TextboxDescription,
+                    _ => TextboxShortcut
+                };
                 field.Focus();
                 Keyboard.Focus(field);
                 if (target == CreatorFocusTarget.NameSelectAll)

@@ -30,7 +30,8 @@ namespace keycuts.GUI.ViewModels
     {
         Target,
         Name,
-        NameSelectAll
+        NameSelectAll,
+        Description
     }
 
     /// <summary>
@@ -108,6 +109,10 @@ namespace keycuts.GUI.ViewModels
 
         private string shortcutName = string.Empty;
 
+        private string description = string.Empty;
+
+        private bool isDescriptionVisible;
+
         private int keycutCount;
 
         private KeycutKind? targetKind;
@@ -131,7 +136,7 @@ namespace keycuts.GUI.ViewModels
 
         private int successVersion;
 
-        private readonly Func<string, string, bool, bool, CancellationToken, Task<CreateResult>> createAsync;
+        private readonly Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>> createAsync;
 
         private readonly Func<string, NameCheck> checkName;
 
@@ -145,14 +150,14 @@ namespace keycuts.GUI.ViewModels
         // What the typed target resolved to (a shortcut's target, a normalized path), while the text keeps what was typed
         private string? resolvedTarget;
 
-        /// <param name="createAsync">Creates the keycut (target, name, use environment variables, replace an existing
-        /// one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
+        /// <param name="createAsync">Creates the keycut (target, name, description, use environment variables, replace an
+        /// existing one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
         /// <param name="checkName">What a name runs into (#153), checked while typing and before each create; defaults to
         /// <see cref="NameCheck.Run"/> on this machine. Tests pass a fake.</param>
         public CreatorViewModel(
             ICommand showManagerCommand,
             ICommand openSettingsCommand,
-            Func<string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
+            Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
             Func<string, NameCheck>? checkName = null)
         {
             ShowManagerCommand = showManagerCommand;
@@ -160,6 +165,7 @@ namespace keycuts.GUI.ViewModels
             this.createAsync = createAsync ?? DefaultCreateAsync;
             this.checkName = checkName ?? DefaultCheckName;
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
+            ShowDescriptionCommand = new RelayCommand(ShowDescription, () => IsInputEnabled);
             BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
             BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
         }
@@ -186,6 +192,9 @@ namespace keycuts.GUI.ViewModels
         public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(2);
 
         public AsyncRelayCommand CreateCommand { get; }
+
+        /// <summary>Shows the description field and moves the focus into it ("Add a description").</summary>
+        public ICommand ShowDescriptionCommand { get; }
 
         public ICommand BrowseFileCommand { get; }
 
@@ -326,6 +335,56 @@ namespace keycuts.GUI.ViewModels
                     RaiseStateChanged();
                 }
             }
+        }
+
+        /// <summary>
+        /// The optional note stored in the keycut (#162). Text is never hidden: setting one shows the field. Changing it
+        /// clears the success message and any submit error, as typing in the other fields does.
+        /// </summary>
+        public string Description
+        {
+            get { return description; }
+            set
+            {
+                if (SetProperty(ref description, value ?? string.Empty))
+                {
+                    successName = null;
+                    submitError = null;
+
+                    if (description.Length > 0 && !isDescriptionVisible)
+                    {
+                        isDescriptionVisible = true;
+                        OnPropertyChanged(nameof(IsDescriptionVisible));
+                        OnPropertyChanged(nameof(ShowAddDescription));
+                    }
+
+                    RaiseStateChanged();
+                }
+            }
+        }
+
+        /// <summary>The description field is shown: after "Add a description", or while it holds text. Collapsed by default.</summary>
+        public bool IsDescriptionVisible
+        {
+            get { return isDescriptionVisible; }
+        }
+
+        /// <summary>The "Add a description" link is shown, in place of the field.</summary>
+        public bool ShowAddDescription
+        {
+            get { return !isDescriptionVisible; }
+        }
+
+        private void ShowDescription()
+        {
+            if (!isDescriptionVisible)
+            {
+                isDescriptionVisible = true;
+                OnPropertyChanged(nameof(IsDescriptionVisible));
+                OnPropertyChanged(nameof(ShowAddDescription));
+            }
+
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Description);
         }
 
         public int KeycutCount
@@ -651,6 +710,8 @@ namespace keycuts.GUI.ViewModels
         {
             target = string.Empty;
             shortcutName = string.Empty;
+            description = string.Empty;
+            isDescriptionVisible = false;
             targetKind = null;
             resolvedTarget = null;
             targetError = TargetError.None;
@@ -660,6 +721,9 @@ namespace keycuts.GUI.ViewModels
             successName = null;
             OnPropertyChanged(nameof(Target));
             OnPropertyChanged(nameof(ShortcutName));
+            OnPropertyChanged(nameof(Description));
+            OnPropertyChanged(nameof(IsDescriptionVisible));
+            OnPropertyChanged(nameof(ShowAddDescription));
             OnPropertyChanged(nameof(TargetKind));
             OnPropertyChanged(nameof(TargetError));
             RaiseStateChanged();
@@ -700,6 +764,7 @@ namespace keycuts.GUI.ViewModels
             // The command's CanExecute is rechecked here; the target text may be unresolved, so KeycutCreator validates it again
             var name = shortcutName.Trim();
             var trimmedTarget = target.Trim();
+            var trimmedDescription = description.Trim();
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;
@@ -732,7 +797,7 @@ namespace keycuts.GUI.ViewModels
                     }
                 }
 
-                result = await createAsync(trimmedTarget, name, useEnvironmentVariables, replace, CancellationToken.None);
+                result = await createAsync(trimmedTarget, name, trimmedDescription, useEnvironmentVariables, replace, CancellationToken.None);
 
                 if (result.Outcome == CreateOutcome.DuplicateName && !replace)
                 {
@@ -745,7 +810,7 @@ namespace keycuts.GUI.ViewModels
                         return;
                     }
 
-                    result = await createAsync(trimmedTarget, name, useEnvironmentVariables, true, CancellationToken.None);
+                    result = await createAsync(trimmedTarget, name, trimmedDescription, useEnvironmentVariables, true, CancellationToken.None);
                 }
             }
             catch (Exception ex)
@@ -846,7 +911,7 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        private async Task<CreateResult> DefaultCreateAsync(string target, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
+        private async Task<CreateResult> DefaultCreateAsync(string target, string name, string description, bool useEnvironmentVariables, bool replace, CancellationToken ct)
         {
 #if DEBUG
             // Debug builds can slow creation down to see the Saving state
@@ -860,6 +925,7 @@ namespace keycuts.GUI.ViewModels
             // keycut" off a keycut is replaced without asking, and with it on one that appeared since the check is refused
             var options = new CreateOptions
             {
+                Description = description,
                 UseEnvironmentVariables = useEnvironmentVariables,
                 PathVariables = pathVariables,
                 Overwrite = replace ? true : null

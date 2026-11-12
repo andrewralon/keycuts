@@ -20,11 +20,14 @@ namespace keycuts.Tests
 
             public readonly List<bool> Replaced = new List<bool>();
 
+            public readonly List<string> Descriptions = new List<string>();
+
             public Func<Task<CreateResult>> Result = () => Task.FromResult(CreateResult.Success(null!));
 
-            public Task<CreateResult> Create(string target, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
+            public Task<CreateResult> Create(string target, string name, string description, bool useEnvironmentVariables, bool replace, CancellationToken ct)
             {
                 Calls.Add((target, name));
+                Descriptions.Add(description);
                 UsedEnvironmentVariables.Add(useEnvironmentVariables);
                 Replaced.Add(replace);
                 return Result();
@@ -207,6 +210,114 @@ namespace keycuts.Tests
 
             Assert.Equal(("https://example.com", "ex"), fake.Calls[0]);
         }
+
+        #region Description (#162)
+
+        [Fact]
+        public void Description_IsCollapsedByDefault()
+        {
+            var creator = Ready(new FakeCreator());
+
+            Assert.False(creator.IsDescriptionVisible);
+            Assert.True(creator.ShowAddDescription);
+            Assert.Equal(string.Empty, creator.Description);
+        }
+
+        [Fact]
+        public void AddADescription_ShowsTheFieldAndFocusesIt()
+        {
+            var creator = Ready(new FakeCreator());
+            var focus = new List<CreatorFocusTarget>();
+            var changed = new List<string?>();
+            creator.FocusRequested += (sender, e) => focus.Add(e);
+            creator.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            creator.ShowDescriptionCommand.Execute(null);
+
+            Assert.True(creator.IsDescriptionVisible);
+            Assert.False(creator.ShowAddDescription);
+            Assert.Equal(new[] { CreatorFocusTarget.Description }, focus);
+            Assert.Contains(nameof(CreatorViewModel.IsDescriptionVisible), changed);
+            Assert.Contains(nameof(CreatorViewModel.ShowAddDescription), changed);
+        }
+
+        [Fact]
+        public void ADescriptionWithText_IsNeverHidden()
+        {
+            var creator = Ready(new FakeCreator());
+
+            creator.Description = "Team wiki";
+
+            Assert.True(creator.IsDescriptionVisible);
+            Assert.False(creator.ShowAddDescription);
+        }
+
+        [Fact]
+        public async Task Description_IsPassedToCreate_Trimmed()
+        {
+            var fake = new FakeCreator();
+            var creator = Ready(fake);
+            creator.Description = "  Team wiki  ";
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new[] { "Team wiki" }, fake.Descriptions);
+        }
+
+        [Fact]
+        public async Task WithoutADescription_CreateGetsAnEmptyOne()
+        {
+            var fake = new FakeCreator();
+            var creator = Ready(fake);
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new[] { string.Empty }, fake.Descriptions);
+        }
+
+        [Fact]
+        public async Task Description_IsKeptWhenTheCreateFails()
+        {
+            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.Unexpected)) };
+            var creator = Ready(fake);
+            creator.Description = "Team wiki";
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal("Team wiki", creator.Description);
+            Assert.True(creator.IsDescriptionVisible);
+        }
+
+        [Fact]
+        public async Task Description_IsClearedAndCollapsedAfterTheReset()
+        {
+            var creator = Ready(new FakeCreator());
+            creator.SuccessDuration = TimeSpan.FromMilliseconds(500);
+            creator.Description = "Team wiki";
+
+            await creator.CreateCommand.ExecuteAsync();
+            await WaitFor(() => creator.State == CreatorState.Empty);
+
+            Assert.Equal(string.Empty, creator.Description);
+            Assert.False(creator.IsDescriptionVisible);
+            Assert.True(creator.ShowAddDescription);
+        }
+
+        [Fact]
+        public async Task TypingADescription_DuringTheSuccessMessage_SkipsTheReset()
+        {
+            var creator = Ready(new FakeCreator());
+            creator.SuccessDuration = TimeSpan.FromMilliseconds(50);
+
+            await creator.CreateCommand.ExecuteAsync();
+            creator.Description = "next";
+            await Task.Delay(150);
+
+            Assert.Equal("next", creator.Description);
+            Assert.Equal("https://example.com", creator.Target);
+        }
+
+        #endregion Description (#162)
 
         [Fact]
         public async Task Success_ShowsSuccessRaisesCreatedThenResetsToEmpty()

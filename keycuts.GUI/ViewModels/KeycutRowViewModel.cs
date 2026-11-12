@@ -117,6 +117,24 @@ namespace keycuts.GUI.ViewModels
             get { return Keycut.Target ?? string.Empty; }
         }
 
+        /// <summary>When the .bat was last written; sorted by. <c>default</c> when unknown.</summary>
+        public System.DateTime Modified
+        {
+            get { return Keycut.Modified; }
+        }
+
+        /// <summary>"3 days ago", as of now; empty when the time isn't known. See <see cref="RefreshModified"/>.</summary>
+        public string ModifiedText
+        {
+            get { return RelativeTime.Format(Keycut.Modified, System.DateTime.Now); }
+        }
+
+        /// <summary>The full date and time, shown in a tooltip over <see cref="ModifiedText"/>.</summary>
+        public string ModifiedTooltip
+        {
+            get { return RelativeTime.FormatFull(Keycut.Modified); }
+        }
+
         public bool IsTargetMissing
         {
             get { return Keycut.TargetStatus == TargetStatus.Missing; }
@@ -152,6 +170,12 @@ namespace keycuts.GUI.ViewModels
         private static bool Contains(string value, string term)
         {
             return value.Contains(term, System.StringComparison.CurrentCultureIgnoreCase);
+        }
+
+        /// <summary>Call on a reload that kept the row, so "3 days ago" doesn't go stale while the window stays open.</summary>
+        public void RefreshModified()
+        {
+            OnPropertyChanged(nameof(ModifiedText));
         }
 
         /// <summary>Call after the background target check has updated the keycut.</summary>

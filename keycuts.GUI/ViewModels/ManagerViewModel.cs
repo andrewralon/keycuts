@@ -21,9 +21,12 @@ namespace keycuts.GUI.ViewModels
 
     public enum SortColumn
     {
+        /// <summary>The Name column. The member keeps its old name, as other internal names do (#168).</summary>
         Shortcut,
         Type,
-        Description
+        Description,
+        Target,
+        Modified
     }
 
     /// <summary>
@@ -768,6 +771,12 @@ namespace keycuts.GUI.ViewModels
             if (IsSameContent(keycuts))
             {
                 keycuts = allRows.Select(row => row.Keycut).ToList();
+
+                foreach (var row in allRows)
+                {
+                    row.RefreshModified();
+                }
+
                 ForgetStaleRow();
                 SelectPendingRename();
             }
@@ -838,7 +847,10 @@ namespace keycuts.GUI.ViewModels
             ApplyFilter();
         }
 
-        /// <summary>Default is ascending; selecting the active column again toggles the direction.</summary>
+        /// <summary>
+        /// Default is ascending, except Modified, which starts with the newest first (what a click on it is for);
+        /// selecting the active column again toggles the direction.
+        /// </summary>
         public void SortBy(SortColumn column)
         {
             if (column == sortColumn)
@@ -848,7 +860,7 @@ namespace keycuts.GUI.ViewModels
             else
             {
                 sortColumn = column;
-                sortDescending = false;
+                sortDescending = column == SortColumn.Modified;
             }
 
             OnPropertyChanged(nameof(SortColumn));
@@ -873,6 +885,12 @@ namespace keycuts.GUI.ViewModels
                         break;
                     case SortColumn.Description:
                         result = CompareText(x.Description, y.Description);
+                        break;
+                    case SortColumn.Target:
+                        result = CompareText(x.Target, y.Target);
+                        break;
+                    case SortColumn.Modified:
+                        result = x.Modified.CompareTo(y.Modified);
                         break;
                 }
 
@@ -960,7 +978,7 @@ namespace keycuts.GUI.ViewModels
                 var next = keycuts[i];
 
                 if (old.FilePath != next.FilePath || old.Name != next.Name || old.Kind != next.Kind ||
-                    old.Description != next.Description || old.Target != next.Target)
+                    old.Description != next.Description || old.Target != next.Target || old.Modified != next.Modified)
                 {
                     return false;
                 }

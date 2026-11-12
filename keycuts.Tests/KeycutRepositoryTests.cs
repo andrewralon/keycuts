@@ -103,6 +103,38 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task LoadAll_SetsModifiedFromTheFilesLastWriteTime()
+        {
+            var older = WriteUrl("older");
+            var newer = WriteUrl("newer");
+            var olderTime = new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Local);
+            var newerTime = new DateTime(2026, 11, 10, 12, 30, 0, DateTimeKind.Local);
+            File.SetLastWriteTime(older, olderTime);
+            File.SetLastWriteTime(newer, newerTime);
+
+            var all = (await Repo().LoadAllAsync()).ToDictionary(k => k.Name);
+
+            Assert.Equal(olderTime, all["older"].Modified);
+            Assert.Equal(newerTime, all["newer"].Modified);
+        }
+
+        [Fact]
+        public async Task Rename_UpdatesModified_BecauseItRewritesTheFile()
+        {
+            // Known and accepted (#167): the date shown is the file's, and a rename rewrites the shortcut line
+            var path = CreateWithRunner("before", "https://example.com");
+            var old = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Local);
+            File.SetLastWriteTime(path, old);
+            var keycut = (await Repo().LoadAllAsync()).Single();
+            Assert.Equal(old, keycut.Modified);
+
+            var newPath = await Repo().RenameAsync(keycut, "after");
+
+            Assert.True(File.GetLastWriteTime(newPath) > old);
+            Assert.True((await Repo().LoadAllAsync()).Single().Modified > old);
+        }
+
+        [Fact]
         public async Task LoadAll_ReadsTheTargetTag_AndTheOlderDestinationTag()
         {
             // #195: a keycut made now carries REM <target>, one made before carries REM <destination>, and both load the

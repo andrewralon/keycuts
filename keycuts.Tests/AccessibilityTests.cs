@@ -835,6 +835,7 @@ namespace keycuts.Tests
                             "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
+                            "SortHeaderButton:Target",
                             "Actions for alpha",
                             "Actions for bravo",
                             "Open settings"
@@ -846,6 +847,67 @@ namespace keycuts.Tests
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     Assert.Equal(2, Descendants<TypeBadge>(window).Count());
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // #167: the Modified column is sortable and shows how long ago with the exact time in a tooltip, but it makes way for
+        // the other columns when the table is narrow
+        [Fact]
+        public void Manager_ModifiedColumn_ShowsWhenWide_AndMakesWayWhenNarrow()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var noop = new RelayCommand(() => { });
+                var modified = DateTime.Now.AddDays(-3);
+                var keycuts = new[]
+                {
+                    new Keycut
+                    {
+                        Name = "alpha",
+                        Kind = KeycutKind.File,
+                        RawType = ShortcutType.File,
+                        Target = @"C:\temp\alpha.txt",
+                        FilePath = @"C:\Shortcuts\alpha.bat",
+                        Modified = modified
+                    }
+                };
+                var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null);
+                manager.LoadAsync().GetAwaiter().GetResult();
+
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var column = (DataGridColumn)((FrameworkElement)window.Content).FindName("ModifiedColumn");
+
+                    // Host is 700 wide: its table is under the threshold
+                    Assert.Equal(Visibility.Collapsed, column.Visibility);
+                    Assert.DoesNotContain("SortHeaderButton:Modified", TabStops(window));
+
+                    window.Width = 1000;
+                    Pump();
+                    window.UpdateLayout();
+                    Pump();
+
+                    Assert.Equal(Visibility.Visible, column.Visibility);
+                    Assert.Equal(
+                        new[] { "Button:", "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha", "Open settings" },
+                        TabStops(window));
+
+                    var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");
+                    Assert.Equal(modified.ToString("f"), text.ToolTip);
+
+                    window.Width = 700;
+                    Pump();
+                    window.UpdateLayout();
+                    Pump();
+
+                    Assert.Equal(Visibility.Collapsed, column.Visibility);
                 }
                 finally
                 {

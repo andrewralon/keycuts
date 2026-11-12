@@ -1,3 +1,5 @@
+using System;
+
 namespace keycuts.Common
 {
     public enum TargetStatus
@@ -23,6 +25,12 @@ namespace keycuts.Common
         public string Target { get; init; }
 
         public string FilePath { get; init; }
+
+        /// <summary>
+        /// When the .bat file was last written (local time), read when the keycut is loaded. Renaming rewrites the file,
+        /// so it updates this. <c>default</c> when unknown (a keycut built by hand, not read from a file).
+        /// </summary>
+        public DateTime Modified { get; init; }
 
         /// <summary>Set in the background by <see cref="KeycutRepository.CheckTargetsAsync"/>.</summary>
         public TargetStatus TargetStatus { get; set; } = TargetStatus.Unknown;

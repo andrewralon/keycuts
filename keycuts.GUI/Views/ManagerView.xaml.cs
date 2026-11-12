@@ -37,11 +37,17 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Round the table's corners so the pinned header doesn't poke out of the border.
+        /// <summary>The table width below which the Modified column is hidden: the other columns need their room more.</summary>
+        internal const double ModifiedColumnMinTableWidth = 780;
+
+        // Round the table's corners so the pinned header doesn't poke out of the border, and drop the Modified column
+        // when the window is narrow (at its minimum width the other columns' minimum widths already fill the table).
         private void TableHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var radius = TableHost.CornerRadius.TopLeft;
             TableHost.Clip = new RectangleGeometry(new Rect(0, 0, TableHost.ActualWidth, TableHost.ActualHeight), radius, radius);
+
+            ModifiedColumn.Visibility = TableHost.ActualWidth < ModifiedColumnMinTableWidth ? Visibility.Collapsed : Visibility.Visible;
         }
 
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.

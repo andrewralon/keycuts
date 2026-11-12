@@ -116,7 +116,8 @@ namespace keycuts.Common
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.Unknown,
                     Target = "",
-                    FilePath = file
+                    FilePath = file,
+                    Modified = File.GetLastWriteTime(file)
                 };
             }
             catch (Exception)
@@ -312,7 +313,8 @@ namespace keycuts.Common
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
                     Target = shortcut.Target ?? "",
-                    FilePath = file
+                    FilePath = file,
+                    Modified = File.GetLastWriteTime(file)
                 };
             }
             catch (Exception ex)

@@ -341,10 +341,25 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="Target" Width="2.8*" MinWidth="120">
+            <DataGridTemplateColumn Width="2.8*" MinWidth="120">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Target" Content="Target" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="110">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <!-- The text is how long ago; the tooltip is the exact date and time -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding ModifiedText}" ToolTip="{Binding ModifiedTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>

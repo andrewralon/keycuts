@@ -104,7 +104,7 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(ConfirmViewModel.ForCreate(TestNameChecks.Existing("gmail"), "https://new.example.com"));
                 try
                 {
-                    Assert.Equal(settings.Width, window.Width);
+                    // Not the width: Settings is wider since #192, for its label-and-control rows, and this dialog has none
                     Assert.Equal(SizeToContent.Height, window.SizeToContent);
                     Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
                     Assert.Equal(settings.FontFamily, window.FontFamily);
@@ -118,7 +118,8 @@ namespace keycuts.Tests
                     Assert.True(confirm.IsDefault);
                     Assert.True(cancel.IsCancel);
                     Assert.Same(((Button)settings.FindName("BtnSave")).Style, confirm.Style);
-                    Assert.Same(((Button)settings.FindName("BtnCancel")).Style, cancel.Style);
+                    // Settings has no Cancel button since #192; the footer's secondary button there is Show welcome
+                    Assert.Same(((Button)settings.FindName("BtnShowWelcome")).Style, cancel.Style);
                     Assert.Equal("Replace", AutomationProperties.GetName(confirm));
                     Assert.Contains("Opens now", AutomationProperties.GetHelpText(confirm));
 

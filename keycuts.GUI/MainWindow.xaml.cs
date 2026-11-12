@@ -55,7 +55,7 @@ namespace keycuts.GUI
             var settingsWindow = new SettingsWindow(null, shell.Creator.UpdateNotice?.Checker) { Owner = this };
             // Check now can answer after the window closed; the creator's line follows whenever it does
             settingsWindow.ViewModel.UpdateChecked += (_, _) => shell.Creator.UpdateNotice?.Refresh();
-            // A save that reported a problem (for example PATH) may still have stored the folder, so a later Cancel refreshes too
+            // A save that reported a problem (for example PATH) may still have stored the folder, so closing without a successful save refreshes too
             var saved = settingsWindow.ShowDialog() == true || settingsWindow.ViewModel.StoreChanged;
 
             if (saved)

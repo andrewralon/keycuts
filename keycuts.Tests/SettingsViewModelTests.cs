@@ -479,6 +479,8 @@ namespace keycuts.Tests
 
             public string? SaveMessage { get; set; }
 
+            public int Saves { get; private set; }
+
             public Settings Load()
             {
                 return Stored;
@@ -486,6 +488,7 @@ namespace keycuts.Tests
 
             public string? Save(Settings settings)
             {
+                Saves++;
                 return SaveMessage;
             }
         }
@@ -634,11 +637,12 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
                 try
                 {
-                    Assert.Equal(440, window.Width);
+                    Assert.Equal(500, window.Width);
                     Assert.Equal(SizeToContent.Height, window.SizeToContent);
                     Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
                     Assert.True(((Button)window.FindName("BtnSave")).IsDefault);
-                    Assert.True(((Button)window.FindName("BtnCancel")).IsCancel);
+                    // Escape and the close button leave without saving (#192); see Window_Escape_ClosesWithoutSaving
+                    Assert.Null(window.FindName("BtnCancel"));
                     Assert.NotEqual(18, window.FontSize);
                 }
                 finally
@@ -671,7 +675,7 @@ namespace keycuts.Tests
                         {
                             "Output folder", "Choose", "Launch", "Ask before replacing a keycut", "Right-click context menus",
                             "Use environment variables in paths", "System theme", "Light theme", "Dark theme",
-                            "Check for updates", "Show the welcome panel", "Cancel", "Save changes"
+                            "Check for updates", "Show the welcome panel", "Save"
                         },
                         stops);
                 }
@@ -681,6 +685,226 @@ namespace keycuts.Tests
                 }
             });
         }
+
+        #region Shorter layout (#192)
+
+        static Rect BoundsIn(FrameworkElement element, FrameworkElement root)
+        {
+            return new Rect(element.TranslatePoint(new Point(0, 0), root), new Size(element.ActualWidth, element.ActualHeight));
+        }
+
+        static KeyEventArgs KeyDown(UIElement target, Key key)
+        {
+            return new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(target), 0, key)
+            {
+                RoutedEvent = Keyboard.KeyDownEvent
+            };
+        }
+
+        // The Cancel button's IsCancel used to do this. The key starts in a control and bubbles up to the window, as a typed one does,
+        // so it has to work from wherever the focus is: the folder box, a switch, and the footer buttons
+        [Theory]
+        [InlineData("TextboxOutputFolder")]
+        [InlineData("ToggleAskBeforeReplacing")]
+        [InlineData("BtnShowWelcome")]
+        [InlineData("BtnSave")]
+        public void Window_Escape_ClosesWithoutSaving(string focusedControl)
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
+                var window = ShowOffscreen(new SettingsViewModel(store));
+                var closed = false;
+                window.Closed += (_, _) => closed = true;
+                try
+                {
+                    // A change that Save would have stored
+                    window.ViewModel.OutputFolder = Path.Combine(Path.GetTempPath(), "changed");
+                    var control = (UIElement)window.FindName(focusedControl);
+
+                    control.RaiseEvent(KeyDown(control, Key.A));
+                    Assert.False(closed);
+
+                    var escape = KeyDown(control, Key.Escape);
+                    control.RaiseEvent(escape);
+                    Pump();
+
+                    Assert.True(closed);
+                    Assert.True(escape.Handled);
+                    Assert.Equal(0, store.Saves);
+                    Assert.False(window.ViewModel.StoreChanged);
+                }
+                finally
+                {
+                    if (!closed)
+                    {
+                        window.Close();
+                    }
+                }
+            });
+        }
+
+        [Fact]
+        public void Window_IconOnlyButtons_HaveTooltips_AndKeepTheirAutomationNames()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
+                try
+                {
+                    var choose = (Button)window.FindName("BtnChoose");
+                    var launch = (Button)window.FindName("BtnLaunch");
+
+                    Assert.Equal("Choose a folder", choose.ToolTip);
+                    Assert.Equal("Open the output folder", launch.ToolTip);
+                    Assert.Equal("Choose", AutomationProperties.GetName(choose));
+                    Assert.Equal("Launch", AutomationProperties.GetName(launch));
+                    // Launch is disabled for a missing folder, and a bare icon should still say what it is
+                    Assert.True(ToolTipService.GetShowOnDisabled(launch));
+
+                    // Icon only: no visible text is left in either
+                    Assert.Empty(Descendants<TextBlock>(choose));
+                    Assert.Empty(Descendants<TextBlock>(launch));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Window_FolderMessage_SitsOnTheLabelsLine_AndALongErrorWrapsWithoutLeavingTheWindow()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var longError = "Choose a folder you have permission to write to. Ask your administrator if this folder is on a shared drive.";
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
+                var window = ShowOffscreen(new SettingsViewModel(store, checkFolder: _ => longError));
+                try
+                {
+                    var root = (FrameworkElement)window.Content;
+                    var label = Descendants<TextBlock>(window).Single(t => t.Text == "Output folder");
+                    var message = (TextBlock)window.FindName("OutputFolderMessage");
+                    var box = (TextBox)window.FindName("TextboxOutputFolder");
+                    var launch = (Button)window.FindName("BtnLaunch");
+
+                    Assert.Equal("New keycuts files are saved here.", message.Text);
+                    var oneLine = BoundsIn(message, root);
+                    Assert.True(Math.Abs(oneLine.Top - BoundsIn(label, root).Top) < 4, "The message is on the label's line");
+                    Assert.True(oneLine.Bottom <= BoundsIn(box, root).Top, "...and above the box, not beside it");
+                    Assert.Equal(BoundsIn(launch, root).Right, oneLine.Right, 1);
+
+                    // The same text block shows the validation error, in the danger color, and wraps it to the right of the label
+                    window.ViewModel.OutputFolder = Path.GetTempPath();
+                    Assert.False(window.ViewModel.Save());
+                    Pump();
+                    window.UpdateLayout();
+
+                    var wrapped = BoundsIn(message, root);
+                    Assert.Equal(longError, message.Text);
+                    Assert.True(wrapped.Height > oneLine.Height * 1.5, "A long error takes more than one line");
+                    Assert.True(wrapped.Left >= BoundsIn(label, root).Right, "...beside the label, not over it");
+                    Assert.Equal(BoundsIn(launch, root).Right, wrapped.Right, 1);
+                    Assert.True(wrapped.Bottom <= BoundsIn(box, root).Top, "...and still above the box");
+                    Assert.Equal(TextAlignment.Right, message.TextAlignment);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Window_ThemeChoices_ShareTheLabelsLine_AtTheRightEdge()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
+                try
+                {
+                    var root = (FrameworkElement)window.Content;
+                    var label = BoundsIn(Descendants<TextBlock>(window).Single(t => t.Text == "Theme"), root);
+                    var choices = (StackPanel)window.FindName("ThemeChoices");
+                    var bounds = BoundsIn(choices, root);
+                    var toggle = BoundsIn((ToggleButton)window.FindName("ToggleAskBeforeReplacing"), root);
+
+                    Assert.Equal(new[] { ThemePreference.System, ThemePreference.Light, ThemePreference.Dark },
+                        choices.Children.OfType<RadioButton>().Select(r => (ThemePreference)r.Tag));
+                    Assert.True(Math.Abs((label.Top + label.Height / 2) - (bounds.Top + bounds.Height / 2)) < 2, "Same line");
+                    Assert.True(bounds.Left >= label.Right);
+                    Assert.Equal(toggle.Right, bounds.Right, 1);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Window_SectionsHaveNoDividers_ButTheFooterKeepsItsBorder()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
+                try
+                {
+                    var body = (StackPanel)((ScrollViewer)window.FindName("BodyScroller")).Content;
+
+                    Assert.DoesNotContain(body.Children.Cast<UIElement>(), child => child is Border);
+                    Assert.Contains(Descendants<Border>(window), border => border.BorderThickness == new Thickness(0, 1, 0, 0));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Window_ShowsOnlyTheShortenedText_ButKeepsTheHelpTextForScreenReaders()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
+                try
+                {
+                    var texts = Descendants<TextBlock>(window).Where(t => t.IsVisible).Select(t => t.Text).ToList();
+
+                    Assert.Contains("Settings", texts);
+                    Assert.DoesNotContain(texts, t => t.Contains("Choose how keycuts creates"));
+                    Assert.DoesNotContain(texts, t => t.Contains("Nothing about you"));
+                    Assert.DoesNotContain(texts, t => t.StartsWith("Confirm before a new keycut", StringComparison.Ordinal));
+                    Assert.DoesNotContain(texts, t => t is "Cancel" or "Choose" or "Launch" or "Save changes");
+                    Assert.Contains("Once a day, ask GitHub whether a newer version is out.", texts);
+                    Assert.Contains("Save", texts);
+                    Assert.Contains(@"Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.", texts);
+
+                    // The visible notes went, not the help text: it is all a screen reader has for "Ask before replacing a keycut" now
+                    Assert.Equal("Confirm before a new keycut replaces one with the same name.",
+                        AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleAskBeforeReplacing")));
+
+                    // "Flip" is right whichever way the setting is: Shift turns it on for one keycut, or off
+                    var variables = AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleEnvironmentVariables"));
+                    Assert.Contains("Hold Shift while creating to flip it for one keycut", variables);
+                    Assert.Equal("Save", AutomationProperties.GetName((DependencyObject)window.FindName("BtnSave")));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        #endregion
 
         [Fact]
         public void Window_DisablesLaunch_ForAFolderThatDoesNotExist()
@@ -798,7 +1022,7 @@ namespace keycuts.Tests
         [Fact]
         public void Window_CappedBelowItsContent_ScrollsTheBody_AndKeepsTheFooterVisible()
         {
-            // What a 1080p screen at 200% scaling (540 DIPs high) does to the ~655 DIP window
+            // What a 1080p screen at 200% scaling (540 DIPs high) does to the ~670 DIP window
             RunSta(() =>
             {
                 EnsureApplication();

@@ -234,6 +234,20 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task AKeycutChangedSinceTheFormOpened_SaysToOpenTheFormAgain_AndStaysOpen()
+        {
+            var harness = new Harness { Behavior = edit => Task.FromException<Keycut>(new KeycutRepositoryException(KeycutRepositoryError.Changed, "changed")) };
+            harness.Form.Description = "x";
+
+            await harness.Form.SaveAsync();
+
+            Assert.Equal(EditKeycutViewModel.ChangedMessage, harness.Form.SaveError);
+            Assert.Contains("Close it and choose Edit again", harness.Form.SaveError);
+            Assert.Empty(harness.Closed);
+            Assert.Null(harness.Form.Saved);
+        }
+
+        [Fact]
         public async Task AnotherFailure_SaysWhy_UsingTheFileSystemsReason()
         {
             var inner = new System.IO.IOException("The disk is full.");

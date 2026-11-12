@@ -111,8 +111,9 @@ namespace keycuts.Tests
             // The reason for the doubling: a raw %~ on a REM line is a cmd syntax error, so nothing after it runs
             var output = RunScript("REM <description>path %~ here</description>");
 
+            // cmd's message is localized, so only that it says something is checked, not what
             Assert.DoesNotContain("ran", output);
-            Assert.Contains("invalid", output);
+            Assert.False(string.IsNullOrWhiteSpace(output));
         }
 
         /// <summary>Runs a .bat holding just <paramref name="line"/> and an ECHO, with the real cmd; returns what it printed.</summary>

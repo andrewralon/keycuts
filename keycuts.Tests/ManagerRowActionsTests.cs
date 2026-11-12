@@ -122,15 +122,23 @@ namespace keycuts.Tests
             /// <summary>What the fake reports for a delete: false is a drive without a Recycle Bin.</summary>
             public bool Recycled { get; set; } = true;
 
-            public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
+            /// <summary>When set, a delete waits for this before it finishes.</summary>
+            public Task? DeleteGate { get; set; }
+
+            public async Task<DeletedKeycut> DeleteAsync(Keycut keycut)
             {
+                if (DeleteGate != null)
+                {
+                    await DeleteGate;
+                }
+
                 if (DeleteError != null)
                 {
-                    return Task.FromException<DeletedKeycut>(DeleteError);
+                    throw DeleteError;
                 }
 
                 Deleted.Add(keycut.FilePath);
-                return Task.FromResult(new DeletedKeycut(keycut, new byte[] { 1, 2, 3 }, new DateTime(2026, 1, 2, 3, 4, 5), Recycled));
+                return new DeletedKeycut(keycut, new byte[] { 1, 2, 3 }, new DateTime(2026, 1, 2, 3, 4, 5), Recycled);
             }
 
             public List<DeletedKeycut> Restored { get; } = new List<DeletedKeycut>();
@@ -1285,7 +1293,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task Undo_ANameTakenAgain_IsRefusedAndSaidSo_AndNothingIsAdded()
+        public async Task Undo_ANameTakenAgain_IsRefusedAndSaidSo_NothingIsAdded_AndItCanBeRetried()
         {
             var actions = new FakeActions();
             var manager = await LoadedAsync(actions, "a", "b");
@@ -1297,6 +1305,15 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "a" }, manager.Rows.Select(r => r.Name));
             Assert.True(manager.StatusIsError);
             Assert.Equal("Can\u2019t undo: \u201Cb\u201D already exists.", manager.StatusMessage);
+
+            // The other keycut is renamed or deleted, and the Undo is still there: on a drive without a bin it's the only copy
+            Assert.True(manager.CanUndoDelete);
+            actions.RestoreError = null;
+
+            await manager.UndoDeleteAsync();
+
+            Assert.Equal(new[] { "a", "b" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal("Restored \u201Cb\u201D", manager.StatusMessage);
             Assert.False(manager.CanUndoDelete);
         }
 
@@ -1315,7 +1332,68 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "a" }, manager.Rows.Select(r => r.Name));
             Assert.True(manager.StatusIsError);
             Assert.Equal("Couldn\u2019t restore \u201Cb\u201D: disk is full" + hint, manager.StatusMessage);
-            Assert.False(manager.CanUndoDelete);
+
+            // Kept for another try, so the disk can be fixed first
+            Assert.True(manager.CanUndoDelete);
+        }
+
+        [Fact]
+        public async Task Undo_AFailedRestoreStaysOnOffer_ForAsLongAsUndoDoes_ThenGoes()
+        {
+            var actions = new FakeActions { Recycled = false };
+            var manager = await LoadedAsync(actions, "a", "b");
+            manager.UndoDuration = TimeSpan.FromMilliseconds(80);
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            actions.RestoreError = new System.IO.IOException("disk is full");
+
+            await manager.UndoDeleteAsync();
+            Assert.True(manager.CanUndoDelete);
+
+            await WaitFor(() => !manager.CanUndoDelete);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Undo_ADeleteWhileARestoreRuns_IsRefused_SoTheNewerDeleteIsNotLost()
+        {
+            var gate = new TaskCompletionSource<bool>();
+            var actions = new FakeActions { RestoreGate = gate.Task };
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            var restoring = manager.UndoDeleteAsync();
+            await manager.DeleteKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Deleted);
+            Assert.Equal("Still restoring \u201Cb\u201D", manager.StatusMessage);
+            Assert.Equal(new[] { "a", "c" }, manager.Rows.Select(r => r.Name));
+
+            gate.SetResult(true);
+            await restoring;
+
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal("Restored \u201Cb\u201D", manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Undo_WhileADeleteIsStillRunning_DoesNothing_AndTheNewerDeleteIsTheOneOffered()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedAsync(actions, "a", "b", "c");
+            await manager.DeleteKeycutAsync(manager.Rows[2]);
+
+            var gate = new TaskCompletionSource<bool>();
+            actions.DeleteGate = gate.Task;
+            var deleting = manager.DeleteKeycutAsync(manager.Rows[1]);
+
+            await manager.UndoDeleteAsync();
+            Assert.Empty(actions.Restored);
+
+            gate.SetResult(true);
+            await deleting;
+
+            Assert.True(manager.CanUndoDelete);
+            Assert.Equal("Deleted \u201Cb\u201D", manager.StatusMessage);
         }
 
         [Fact]
@@ -1455,6 +1533,47 @@ namespace keycuts.Tests
 
             gate.SetResult(true);
             await undo;
+
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            Assert.Equal(3, manager.KeycutCount);
+            Assert.Equal("b", manager.SelectedRow!.Name);
+        }
+
+        [Fact]
+        public async Task Undo_AReloadThatStartedBeforeTheRestore_CannotDropTheRestoredRow()
+        {
+            var actions = new FakeActions();
+            var onDisk = new List<Keycut> { NewKeycut("a"), NewKeycut("b"), NewKeycut("c") };
+            var noop = new RelayCommand(() => { });
+            TaskCompletionSource<bool>? loadGate = null;
+            var manager = new ManagerViewModel(noop, noop, async ct =>
+            {
+                // What the folder holds when the load starts; a gate can then hold the result back
+                var snapshot = onDisk.ToList();
+
+                if (loadGate != null)
+                {
+                    await loadGate.Task;
+                }
+
+                return (IReadOnlyList<Keycut>)snapshot;
+            }, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            await manager.DeleteKeycutAsync(manager.Rows[1]);
+            onDisk.RemoveAt(1);
+
+            // The window is activated: a reload reads the folder without b, then stalls
+            loadGate = new TaskCompletionSource<bool>();
+            var reload = manager.LoadAsync();
+
+            // The restore puts the file back, and the stalled reload finishes after it
+            onDisk.Insert(1, NewKeycut("b"));
+            await manager.UndoDeleteAsync();
+            loadGate.SetResult(true);
+            await reload;
 
             Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
             Assert.Equal(3, manager.KeycutCount);

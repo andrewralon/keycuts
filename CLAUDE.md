@@ -31,7 +31,7 @@ Gotchas:
 
 ## Versioning and releases
 
-`<Version>` in `Directory.Build.props` is the only version. It stamps every exe (`Runner.Version`, which goes into each `.bat` header) and the MSI. Every push to `main` runs `.github/workflows/release.yml`: if tag `v<Version>` doesn't exist yet it tests, builds both MSIs, and publishes a GitHub release with `keycuts-setup-x64.msi`, `keycuts-setup-arm64.msi`, `keycuts-portable-win-x64.zip`, `keycuts-portable-win-arm64.zip` and `SHA256SUMS.txt`; otherwise it does nothing. To release, raise the version on `develop` (three parts; MSI upgrades ignore a fourth), then merge `develop` into `main`. Don't create release tags by hand.
+`<Version>` in `Directory.Build.props` is the only version. It stamps every exe (`Runner.Version`, which goes into each `.bat` header) and the MSI. Every push to `main` runs `.github/workflows/release.yml`: if tag `v<Version>` doesn't exist yet it tests, builds both MSIs, and publishes a GitHub release with `keycuts-setup-x64.msi`, `keycuts-setup-arm64.msi`, `keycuts-portable-win-x64.zip`, `keycuts-portable-win-arm64.zip` and `SHA256SUMS.txt`; otherwise it does nothing. To release, raise the version on `develop` (three parts; MSI upgrades ignore a fourth), then merge `develop` into `main`. Don't create release tags by hand. After the merge, `.github/workflows/backmerge.yml` opens a `main` → `develop` PR with auto-merge so develop gets the merge commit (it needs the `BACKMERGE_TOKEN` secret for CI to run on that PR). CI skips `build` and `format` on a PR whose head is `develop`, because the push run already tested that commit.
 
 ## Architecture
 

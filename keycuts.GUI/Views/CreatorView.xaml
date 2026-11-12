@@ -243,12 +243,8 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel Margin="0,0,44,0">
-          <TextBlock Text="NEW KEYCUT" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="Bold"
-                     Foreground="{DynamicResource AccentBrush}" />
-          <TextBlock Text="Launch anything instantly" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                     Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
-        </StackPanel>
+        <TextBlock Margin="0,0,44,0" Text="New keycut" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
       </Grid>
 
       <!-- First-run welcome (#61, #11): shown once, while the keycuts folder is empty. Collapsed without a Welcome. -->

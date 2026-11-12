@@ -67,6 +67,7 @@ Implementing agents: start with [HANDOFF.md](HANDOFF.md). The orchestrator promp
 | 7 | Batmanager | Retire it. Remove the project, its launch code, and the GUI button once the new manager reaches parity. | KC-20 |
 | 8 | Delete | No confirmation. Delete from the row menu removes the keycut immediately. | KC-14 |
 | 9 | Name form | Always visible (UI2). Create is disabled until there's a valid destination and a name. | KC-09, KC-11 |
+| 10 | Words and headers (#168) | The user's items are **keycuts** in every visible string and automation name (the Manager's first column is **Name**, the search box is "Search keycuts"); "shortcut" stays only where it means a `.lnk`. Each view's header is one line, the heading alone: the Creator's is **New keycut**, the Manager's **Your keycuts**. This drops the prototype's eyebrows ("NEW KEYCUT", "KEYCUT MANAGER"), the Creator's "Launch anything instantly" and the Manager's subtitle, which took vertical space in a small window. Internal names (`ShortcutType`, `SortColumn.Shortcut`, `TextboxShortcut`), the REM `<shortcut>` tag and the default `Shortcuts` folder are unchanged. | KC-09, KC-12 |
 
 ## Global out of scope
 

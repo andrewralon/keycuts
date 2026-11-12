@@ -71,7 +71,7 @@ Batmanager app, which has been removed).
 * F2 (or **Rename** in the row menu) renames the selected keycut in place: Enter or clicking away saves, Escape cancels.
   A name that's already taken by another keycut is refused, a name another program uses asks first, and anything you
   added to the `.bat` by hand is kept.
-* Sort by Shortcut, Type, or Description by clicking a header.
+* Sort by Name, Type, or Description by clicking a header.
 * The row menu (the `...` button) offers **Open**, **Edit** (opens the `.bat` in Notepad; a description added there shows in the table),
   **Open file location** (shows the `.bat` in Explorer), **Copy target**, and **Delete**. Delete has no confirmation.
 * Missing targets are flagged. The list refreshes when the window is activated and on F5.

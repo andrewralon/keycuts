@@ -437,7 +437,7 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), creator);
                 try
                 {
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Launch anything instantly");
+                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "New keycut");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
@@ -535,7 +535,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
 
                     Assert.False(Press(search, Key.Down, modifiers));
                     Assert.Null(manager.SelectedRow);
@@ -566,7 +566,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     var table = Descendants<DataGrid>(window).Single();
 
                     Assert.False(Press(search, Key.Enter));
@@ -601,7 +601,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     Assert.True(Press(search, Key.Down));
                     Assert.True(Press(search, Key.Down));
 
@@ -755,7 +755,7 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search shortcuts");
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     manager.IsMenuOpen = true;
 
                     Assert.False(Press(search, Key.Down));
@@ -796,8 +796,8 @@ namespace keycuts.Tests
                         new[]
                         {
                             "Button:",
-                            "Search shortcuts",
-                            "SortHeaderButton:Shortcut",
+                            "Search keycuts",
+                            "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
                             "Actions for alpha",
@@ -805,7 +805,7 @@ namespace keycuts.Tests
                             "Open settings"
                         },
                         TabStops(window));
-                    Assert.Equal("Search shortcuts", FocusedName());
+                    Assert.Equal("Search keycuts", FocusedName());
 
                     var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Your keycuts");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));

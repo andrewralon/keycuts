@@ -246,16 +246,10 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <StackPanel>
-        <TextBlock Text="KEYCUT MANAGER" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource AccentBrush}" />
-        <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
-        <TextBlock Text="Scan, search, and manage every shortcut in one place." Margin="0,4,0,0"
-                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextTrimming="CharacterEllipsis" />
-      </StackPanel>
-      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top" Margin="12,0,40,0"
+      <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                 AutomationProperties.HeadingLevel="Level1" />
+      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Margin="12,0,40,0"
               Command="{Binding ShowCreatorCommand}">
         <StackPanel Orientation="Horizontal">
           <controls:Icon Kind="Spark" Size="15" />
@@ -274,7 +268,7 @@
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
                  themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
-                 AutomationProperties.Name="Search shortcuts" />
+                 AutomationProperties.Name="Search keycuts" />
         <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
@@ -294,7 +288,7 @@
           <DataGrid.Columns>
             <DataGridTemplateColumn Width="1.7*" MinWidth="190">
               <DataGridTemplateColumn.Header>
-                <controls:SortHeaderButton Column="Shortcut" Content="Shortcut" Style="{StaticResource SortHeaderButtonStyle}" />
+                <controls:SortHeaderButton Column="Shortcut" Content="Name" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>

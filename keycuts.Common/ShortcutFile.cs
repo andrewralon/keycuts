@@ -27,8 +27,10 @@ namespace keycuts.Common
 
         private static readonly Regex regexDescription = new Regex(@"^\s*REM\s+<description>(.*)</description>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex regexRemType = new Regex(@"^\s*REM\s+<type>(.*)</type>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex regexRemTarget = new Regex(@"^\s*REM\s+<destination>(.*)</destination>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex regexRemType = new Regex(@"^\s*REM\s+<type>(?<value>.*)</type>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // <target> is what the emitter writes (#195). Files written before that call the same thing <destination>, and users
+        // still have them, so both are read; the closing tag has to match the opening one.
+        private static readonly Regex regexRemTarget = new Regex(@"^\s*REM\s+<(?<tag>target|destination)>(?<value>.*)</\k<tag>>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static readonly string Extension = ".bat";
 
@@ -139,8 +141,10 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// Reads the first well-formed <c>REM &lt;type&gt;</c> and <c>REM &lt;destination&gt;</c> lines. Both must be present,
-        /// the type must be a known one other than Unknown, and the target must not be empty, or neither is used.
+        /// Reads the first well-formed <c>REM &lt;type&gt;</c> line and the first well-formed <c>REM &lt;target&gt;</c> line
+        /// (or <c>REM &lt;destination&gt;</c>, which files written before #195 have; whichever comes first in the file).
+        /// Both must be present, the type must be a known one other than Unknown, and the target must not be empty, or
+        /// neither is used.
         /// </summary>
         public static bool TryParseRemTypeAndTarget(string[] lines, out ShortcutType type, out string target)
         {
@@ -174,7 +178,7 @@ namespace keycuts.Common
 
                 if (match.Success)
                 {
-                    return match.Groups[1].Value.Trim();
+                    return match.Groups["value"].Value.Trim();
                 }
             }
 

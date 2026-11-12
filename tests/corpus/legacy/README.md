@@ -12,7 +12,7 @@ These files are the behavioral specification for the emitter/parser port (#87, #
 
 ## `new-format/` — 12 files, keycuts 1.0.0.0 header
 
-The header format the *current* `Runner.cs` emits: `REM <shortcut>...</shortcut>`, `REM <type>...</type>`, `REM <destination>...</destination>`.
+The header format `Runner.cs` emitted up to 1.2: `REM <shortcut>...</shortcut>`, `REM <type>...</type>`, `REM <destination>...</destination>`. From 1.3 (#195) the same line is `REM <target>...</target>`, and the parser reads both; `target-tag/` below has the new form. The `<destination>` files here stay as they are: they are what every existing user's folder holds.
 
 | File | Type | Notes |
 |---|---|---|
@@ -69,6 +69,15 @@ Type/situation combinations the real corpus doesn't happen to contain, crafted t
 | `lf-line-endings.bat` | LF only, vs. every real file being CRLF |
 | `trailing-whitespace.bat` | trailing spaces after the target on both the header and command lines |
 | `unicode-destination.bat` | non-ASCII characters (`résumé.docx`) in the target |
+
+## `target-tag/` — 2 files, keycuts 1.3.0.0 header, hand-crafted
+
+What the emitter writes from 1.3 on (#195): `REM <target>...</target>` instead of `REM <destination>...</destination>`, and the `REM <description>` line. Written to match `Runner.BuildShortcutLines`; `Emitter.verified.txt` is the reference.
+
+| File | Covers |
+|---|---|
+| `url.bat` | a URL, with a description |
+| `folder.bat` | a folder saved with an environment variable (`%USERPROFILE%`, #31), no description |
 
 ## What's still missing
 

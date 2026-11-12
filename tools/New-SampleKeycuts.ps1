@@ -130,7 +130,7 @@ function Write-Keycut(
         'REM keycuts sample',
         "REM <shortcut>$fullPath</shortcut>",
         "REM <type>$Type</type>",
-        "REM <destination>$Target</destination>",
+        "REM <target>$Target</target>",
         "REM <description>$Description</description>",
         $CommandLine,
         'EXIT'

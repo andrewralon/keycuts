@@ -59,7 +59,7 @@ namespace keycuts.Tests
 
             Assert.Equal(CreateOutcome.Success, result.Outcome);
             var lines = File.ReadAllLines(Path.Combine(_out, "mine.bat"));
-            Assert.Contains(@"REM <destination>%KC_TEST_ROOT%\target.txt</destination>", lines);
+            Assert.Contains(@"REM <target>%KC_TEST_ROOT%\target.txt</target>", lines);
             Assert.Contains(@"START """" /B ""%KC_TEST_ROOT%\target.txt""", lines);
             Assert.Equal(@"%KC_TEST_ROOT%\target.txt", result.Keycut.Target);
             Assert.Equal(KeycutKind.File, result.Keycut.Kind);

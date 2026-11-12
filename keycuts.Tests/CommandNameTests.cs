@@ -40,7 +40,7 @@ namespace keycuts.Tests
                 "REM keycuts 1.1.1",
                 $"REM <shortcut>{path}</shortcut>",
                 "REM <type>file</type>",
-                $"REM <destination>{target}</destination>",
+                $"REM <target>{target}</target>",
                 $"START \"\" /B \"{target}\" %*",
                 "EXIT"
             });

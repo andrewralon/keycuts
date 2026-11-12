@@ -172,14 +172,14 @@ namespace keycuts.Tests.Characterization
 
         /// <summary>
         /// Same as <see cref="RenderRoundTrip(string)"/>, but the second parse doesn't see the emitted REM &lt;type&gt; and
-        /// REM &lt;destination&gt; lines. Those lines copy whatever the first parse returned, so with them the round trip
+        /// REM &lt;target&gt; lines. Those lines copy whatever the first parse returned, so with them the round trip
         /// passes even when the emitted launch line is broken. Without them, only the launch line carries the keycut.
         /// </summary>
         public static string RenderLaunchLineRoundTrip(string repoRoot)
         {
             var header =
                 "# Launch-line round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field, where the second\n" +
-                "# parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch\n" +
+                "# parse doesn't see the emitted REM <type> and REM <target> lines. This checks that the emitted launch\n" +
                 "# line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.\n" +
                 "# Files that parse as Unknown have nothing to emit and are listed as skipped.\n";
 
@@ -256,8 +256,9 @@ namespace keycuts.Tests.Characterization
             return builder.ToString();
         }
 
-        // The tag must come right after REM, so a description that mentions <type> is kept
-        private static readonly Regex TypeOrTargetRem = new Regex(@"^\s*REM\s+<(type|target)>", RegexOptions.IgnoreCase);
+        // The tag must come right after REM, so a description that mentions <type> is kept. <destination> is the tag older
+        // files carry; the emitter writes <target> now.
+        private static readonly Regex TypeOrTargetRem = new Regex(@"^\s*REM\s+<(type|target|destination)>", RegexOptions.IgnoreCase);
 
         private static bool IsTypeOrTargetRem(string line)
         {

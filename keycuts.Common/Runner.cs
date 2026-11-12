@@ -292,7 +292,7 @@ namespace keycuts.Common
                 $"REM {AppName} {Version}",
                 $"REM <shortcut>{shortcut.FullPath}</shortcut>",
                 $"REM <type>{shortcutTypeLower}</type>",
-                $"REM <destination>{shortcut.Target}</destination>",
+                $"REM <target>{shortcut.Target}</target>",
                 $"REM <description>{SanitizeDescription(description)}</description>",
             };
 

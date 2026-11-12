@@ -39,7 +39,7 @@ namespace keycuts.Tests
 
         private string WriteUrl(string name, string url = "https://example.com", string descriptionLine = null)
         {
-            var lines = new List<string> { "@ECHO OFF", "REM keycuts 1.0", $"REM <type>url</type>", $"REM <destination>{url}</destination>" };
+            var lines = new List<string> { "@ECHO OFF", "REM keycuts 1.0", $"REM <type>url</type>", $"REM <target>{url}</target>" };
             if (descriptionLine != null)
             {
                 lines.Add(descriptionLine);
@@ -100,6 +100,22 @@ namespace keycuts.Tests
             Assert.Equal(KeycutKind.Command, all["cmd"].Kind);
             Assert.Equal(Path.Combine(_folder, "site.bat"), all["site"].FilePath);
             Assert.All(all.Values, k => Assert.Equal(TargetStatus.Unknown, k.TargetStatus));
+        }
+
+        [Fact]
+        public async Task LoadAll_ReadsTheTargetTag_AndTheOlderDestinationTag()
+        {
+            // #195: a keycut made now carries REM <target>, one made before carries REM <destination>, and both load the
+            // same way. The launch lines differ from the REM values, so only the tag can be where the target came from.
+            WriteBat("fresh", "@ECHO OFF", "REM keycuts 1.3.0", "REM <type>url</type>", "REM <target>https://example.com/new</target>", "START https://example.com/launch", "EXIT");
+            WriteBat("older", "@ECHO OFF", "REM keycuts 1.2.0", "REM <type>url</type>", "REM <destination>https://example.com/old</destination>", "START https://example.com/launch", "EXIT");
+
+            var all = (await Repo().LoadAllAsync()).ToDictionary(k => k.Name);
+
+            Assert.Equal("https://example.com/new", all["fresh"].Target);
+            Assert.Equal("https://example.com/old", all["older"].Target);
+            Assert.Equal(KeycutKind.Url, all["fresh"].Kind);
+            Assert.Equal(KeycutKind.Url, all["older"].Kind);
         }
 
         [Fact]

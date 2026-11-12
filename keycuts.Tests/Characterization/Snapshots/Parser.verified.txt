@@ -355,3 +355,19 @@ Target:      |%SHORTCUTS%|
 OpenWithApp: <null>
 Command:     |"%SystemRoot%\explorer.exe" "%SHORTCUTS%"|
 Description: ||
+
+## target-tag/folder.bat
+Shortcut:    |folder|
+Type:        Folder
+Target:      |%USERPROFILE%\Desktop|
+OpenWithApp: <null>
+Command:     |"%SystemRoot%\explorer.exe" "%USERPROFILE%\Desktop"|
+Description: ||
+
+## target-tag/url.bat
+Shortcut:    |url|
+Type:        Url
+Target:      |https://mail.google.com/mail/u/0/#inbox|
+OpenWithApp: <null>
+Command:     |START https://mail.google.com/mail/u/0/#inbox|
+Description: |Gmail inbox|

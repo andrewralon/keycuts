@@ -1,8 +1,8 @@
 # Launch-line round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field, where the second
-# parse doesn't see the emitted REM <type> and REM <destination> lines. This checks that the emitted launch
+# parse doesn't see the emitted REM <type> and REM <target> lines. This checks that the emitted launch
 # line alone carries the keycut, which RoundTrip.verified.txt can't: there the REM lines win.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 36 ok, 3 fail (3 expected), 4 skipped
+# 38 ok, 3 fail (3 expected), 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
@@ -53,3 +53,5 @@ old-format/npp.bat: ok
 old-format/pdn.bat: ok
 old-format/pm.bat: skipped (parses as Unknown)
 old-format/shortcuts.bat: ok
+target-tag/folder.bat: ok
+target-tag/url.bat: ok

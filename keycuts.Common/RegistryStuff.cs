@@ -36,13 +36,21 @@ namespace keycuts.Common
         /// <summary>When the last update check read a release, as a round-trip UTC timestamp.</summary>
         public static readonly string LastUpdateCheckKeyName = "LastUpdateCheck";
 
-        /// <summary>The newest release that check saw (<c>1.2.0</c>) and its page.</summary>
-        public static readonly string LatestVersionKeyName = "LatestVersion";
+        /// <summary>
+        /// The newest release that check saw: its version (<c>1.2.0</c>) and its page, as one <c>REG_MULTI_SZ</c> value (line 1 the
+        /// version, line 2 the URL). One value, so a write can't pair one release's version with another's URL (#191). It says what
+        /// GitHub last <i>reported</i>, not what is installed.
+        /// </summary>
+        public static readonly string LatestReleaseSeenKeyName = "LatestReleaseSeen";
 
-        public static readonly string LatestReleaseUrlKeyName = "LatestReleaseUrl";
+        /// <summary>The release (<c>1.2.0</c>) whose update notice was dismissed.</summary>
+        public static readonly string DismissedReleaseKeyName = "DismissedRelease";
 
-        /// <summary>The release whose update notice was dismissed.</summary>
-        public static readonly string DismissedUpdateVersionKeyName = "DismissedUpdateVersion";
+        /// <summary>
+        /// The update cache's names before #191. They are never read: the first write of a new value deletes them, and the cost of
+        /// not migrating is one more daily check (or Check now) and, at worst, a dismissed notice showing once more.
+        /// </summary>
+        public static readonly string[] LegacyUpdateKeyNames = { "LatestVersion", "LatestReleaseUrl", "DismissedUpdateVersion" };
 
         #region Get Methods
 
@@ -146,6 +154,41 @@ namespace keycuts.Common
             return DateTimeOffset.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) ? parsed : null;
         }
 
+        public static (string Version, string Url)? GetLatestReleaseSeen()
+        {
+            return ParseLatestReleaseSeen(ReadValue(LatestReleaseSeenKeyName));
+        }
+
+        /// <summary>The stored form of <see cref="LatestReleaseSeenKeyName"/>: the version, then the URL. Both are required, since an empty entry would end the multi-string early.</summary>
+        public static string[] FormatLatestReleaseSeen(string version, string url)
+        {
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                throw new ArgumentException("A release needs a version.", nameof(version));
+            }
+
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                throw new ArgumentException("A release needs a page.", nameof(url));
+            }
+
+            return new[] { version, url };
+        }
+
+        /// <summary>
+        /// The inverse of <see cref="FormatLatestReleaseSeen"/>. Only a multi-string of exactly two non-empty entries counts;
+        /// anything else (missing, another kind of value, an edited value) is null, which means "never checked".
+        /// </summary>
+        public static (string Version, string Url)? ParseLatestReleaseSeen(object value)
+        {
+            if (value is string[] { Length: 2 } lines && !string.IsNullOrWhiteSpace(lines[0]) && !string.IsNullOrWhiteSpace(lines[1]))
+            {
+                return (lines[0], lines[1]);
+            }
+
+            return null;
+        }
+
         /// <summary>A string value, or null when it's missing, unreadable or not a string.</summary>
         public static string GetString(string keyName)
         {
@@ -192,6 +235,42 @@ namespace keycuts.Common
         public static void SetLastUpdateCheck(DateTimeOffset value)
         {
             SetRegistryValue(LastUpdateCheckKeyName, FormatUpdateCheckTime(value), RegistryValueKind.String);
+        }
+
+        /// <summary>One <c>SetValue</c>, so the version and URL are stored together or not at all. Removes the pre-#191 values afterwards.</summary>
+        public static void SetLatestReleaseSeen(string version, string url)
+        {
+            SetRegistryValue(LatestReleaseSeenKeyName, FormatLatestReleaseSeen(version, url), RegistryValueKind.MultiString);
+            RemoveLegacyUpdateValues();
+        }
+
+        public static void SetDismissedRelease(string version)
+        {
+            SetRegistryValue(DismissedReleaseKeyName, version ?? string.Empty, RegistryValueKind.String);
+            RemoveLegacyUpdateValues();
+        }
+
+        // Best effort and idempotent: it runs after the new value is stored, so a failure here leaves harmless leftovers, and the next write tries again
+        private static void RemoveLegacyUpdateValues()
+        {
+            try
+            {
+                using var appNameKey = CurrentUserContext.OpenSubKey(StartPath, true);
+
+                if (appNameKey == null)
+                {
+                    return;
+                }
+
+                foreach (var name in LegacyUpdateKeyNames)
+                {
+                    appNameKey.DeleteValue(name, false);
+                }
+            }
+            catch (Exception e) when (ContextMenuRegistrar.IsRegistryFailure(e))
+            {
+                // Left for the next write
+            }
         }
 
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>

@@ -42,13 +42,15 @@ namespace keycuts.Common
         /// <summary>When the last check that read a release finished, in UTC.</summary>
         DateTimeOffset? LastCheck { get; set; }
 
-        /// <summary>The newest release that check saw (<c>1.2.0</c>), so the notice shows on every start, not only after a check.</summary>
-        string LatestVersion { get; set; }
+        /// <summary>
+        /// The newest release that check saw: its version (<c>1.2.0</c>) and its page, so the notice shows on every start, not only
+        /// after a check. One value, so the two always come from the same release. Null before a check, or when the stored value
+        /// is missing or unreadable. It is what GitHub reported, not the installed version.
+        /// </summary>
+        (string Version, string Url)? LatestReleaseSeen { get; set; }
 
-        string LatestReleaseUrl { get; set; }
-
-        /// <summary>The release whose notice was dismissed; only a newer one shows again.</summary>
-        string DismissedVersion { get; set; }
+        /// <summary>The release (<c>1.2.0</c>) whose notice was dismissed; only a newer one shows again.</summary>
+        string DismissedRelease { get; set; }
     }
 
     public class RegistryUpdateStateStore : IUpdateStateStore
@@ -64,22 +66,20 @@ namespace keycuts.Common
             set { RegistryStuff.SetLastUpdateCheck(value ?? throw new ArgumentNullException(nameof(value))); }
         }
 
-        public string LatestVersion
+        public (string Version, string Url)? LatestReleaseSeen
         {
-            get { return RegistryStuff.GetString(RegistryStuff.LatestVersionKeyName); }
-            set { RegistryStuff.SetRegistryValue(RegistryStuff.LatestVersionKeyName, value ?? string.Empty); }
+            get { return RegistryStuff.GetLatestReleaseSeen(); }
+            set
+            {
+                var seen = value ?? throw new ArgumentNullException(nameof(value));
+                RegistryStuff.SetLatestReleaseSeen(seen.Version, seen.Url);
+            }
         }
 
-        public string LatestReleaseUrl
+        public string DismissedRelease
         {
-            get { return RegistryStuff.GetString(RegistryStuff.LatestReleaseUrlKeyName); }
-            set { RegistryStuff.SetRegistryValue(RegistryStuff.LatestReleaseUrlKeyName, value ?? string.Empty); }
-        }
-
-        public string DismissedVersion
-        {
-            get { return RegistryStuff.GetString(RegistryStuff.DismissedUpdateVersionKeyName); }
-            set { RegistryStuff.SetRegistryValue(RegistryStuff.DismissedUpdateVersionKeyName, value ?? string.Empty); }
+            get { return RegistryStuff.GetString(RegistryStuff.DismissedReleaseKeyName); }
+            set { RegistryStuff.SetDismissedRelease(value); }
         }
     }
 
@@ -102,9 +102,6 @@ namespace keycuts.Common
         // The startup check and Settings' Check now share one checker. One request at a time, so the later check always
         // stores last and an older answer can't overwrite a newer one
         private readonly SemaphoreSlim checkGate = new SemaphoreSlim(1, 1);
-
-        // The cached version and URL are separate values; they're written and read together so they always match
-        private readonly object stateLock = new object();
 
         /// <param name="currentVersion">The running version; compared by its first three parts.</param>
         /// <param name="now">The clock; tests pass their own.</param>
@@ -195,15 +192,11 @@ namespace keycuts.Common
 
             var url = GitHubReleaseSource.IsReleasePage(release.Url) ? release.Url : GitHubReleaseSource.ReleasesPageUrl;
 
-            lock (stateLock)
+            Write(() =>
             {
-                Write(() =>
-                {
-                    store.LatestVersion = latest.ToString(3);
-                    store.LatestReleaseUrl = url;
-                    store.LastCheck = now();
-                });
-            }
+                store.LatestReleaseSeen = (latest.ToString(3), url);
+                store.LastCheck = now();
+            });
 
             return Describe(latest, url);
         }
@@ -211,19 +204,14 @@ namespace keycuts.Common
         /// <summary>The newest release a check has seen, whether or not it's newer. Null before the first check.</summary>
         public UpdateCheckResult GetLatestKnown()
         {
-            string version;
-            string url;
-            lock (stateLock)
-            {
-                version = Read(() => store.LatestVersion, null);
-                url = Read(() => store.LatestReleaseUrl, null);
-            }
+            var seen = Read(() => store.LatestReleaseSeen, null);
 
-            if (!TryParseVersion(version, out var latest))
+            if (seen == null || !TryParseVersion(seen.Value.Version, out var latest))
             {
                 return null;
             }
 
+            var url = seen.Value.Url;
             return Describe(latest, GitHubReleaseSource.IsReleasePage(url) ? url : GitHubReleaseSource.ReleasesPageUrl);
         }
 
@@ -244,7 +232,7 @@ namespace keycuts.Common
                 return null;
             }
 
-            if (TryParseVersion(Read(() => store.DismissedVersion, null), out var dismissed) && !IsNewer(latest.Latest, dismissed))
+            if (TryParseVersion(Read(() => store.DismissedRelease, null), out var dismissed) && !IsNewer(latest.Latest, dismissed))
             {
                 return null;
             }
@@ -257,7 +245,7 @@ namespace keycuts.Common
         {
             if (version != null)
             {
-                Write(() => store.DismissedVersion = Normalize(version).ToString(3));
+                Write(() => store.DismissedRelease = Normalize(version).ToString(3));
             }
         }
 

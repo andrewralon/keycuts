@@ -96,6 +96,75 @@ namespace keycuts.Tests
             Assert.Null(RegistryStuff.ParseUpdateCheckTime(value!));
         }
 
+        // LatestReleaseSeen is one REG_MULTI_SZ value (#191), so a write can't pair one release's version with another's URL.
+        // A test can't touch HKCU, so the stored form and its reading are checked here
+        const string SeenUrl = "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0";
+
+        [Fact]
+        public void LatestReleaseSeen_IsTheVersionThenTheUrl_AndRoundTrips()
+        {
+            var lines = RegistryStuff.FormatLatestReleaseSeen("1.2.0", SeenUrl);
+
+            Assert.Equal(new[] { "1.2.0", SeenUrl }, lines);
+            Assert.Equal(("1.2.0", SeenUrl), RegistryStuff.ParseLatestReleaseSeen(lines));
+        }
+
+        public static TheoryData<object?> UnreadableLatestReleaseSeen => new TheoryData<object?>
+        {
+            null,
+            // Another kind of value, such as one typed into regedit as REG_SZ
+            "1.2.0",
+            "1.2.0\n" + SeenUrl,
+            42,
+            new byte[] { 1, 2 },
+            new object[] { "1.2.0", SeenUrl },
+            // Not exactly two entries
+            new string[0],
+            new[] { "1.2.0" },
+            new[] { "1.2.0", SeenUrl, "extra" },
+            // An empty entry
+            new[] { "", SeenUrl },
+            new[] { "1.2.0", " " }
+        };
+
+        [Theory]
+        [MemberData(nameof(UnreadableLatestReleaseSeen))]
+        public void LatestReleaseSeen_AnythingButTwoEntries_IsNeverChecked(object? value)
+        {
+            Assert.Null(RegistryStuff.ParseLatestReleaseSeen(value!));
+        }
+
+        // An empty entry would end the multi-string early and lose the URL
+        [Theory]
+        [InlineData(null, SeenUrl)]
+        [InlineData("", SeenUrl)]
+        [InlineData("1.2.0", null)]
+        [InlineData("1.2.0", " ")]
+        public void LatestReleaseSeen_RefusesToStoreAnEmptyEntry(string? version, string? url)
+        {
+            Assert.Throws<ArgumentException>(() => RegistryStuff.FormatLatestReleaseSeen(version!, url!));
+        }
+
+        // The first write of a new value deletes the legacy names, so none may be a name that is still in use
+        [Fact]
+        public void TheLegacyValueNames_AreNotInUse_AndTheCurrentOnesAreAsDocumented()
+        {
+            var inUse = new[]
+            {
+                RegistryStuff.LatestReleaseSeenKeyName, RegistryStuff.DismissedReleaseKeyName,
+                RegistryStuff.LastUpdateCheckKeyName, RegistryStuff.CheckForUpdatesKeyName
+            };
+
+            // Registry value names ignore case
+            Assert.Empty(RegistryStuff.LegacyUpdateKeyNames.Intersect(inUse, StringComparer.OrdinalIgnoreCase));
+            Assert.Equal(new[] { "LatestVersion", "LatestReleaseUrl", "DismissedUpdateVersion" }, RegistryStuff.LegacyUpdateKeyNames);
+
+            // These are what regedit shows, so renaming one is a change to stored data
+            Assert.Equal("LatestReleaseSeen", RegistryStuff.LatestReleaseSeenKeyName);
+            Assert.Equal("DismissedRelease", RegistryStuff.DismissedReleaseKeyName);
+            Assert.Equal("LastUpdateCheck", RegistryStuff.LastUpdateCheckKeyName);
+        }
+
         #endregion
 
         #region Check now
@@ -111,8 +180,7 @@ namespace keycuts.Tests
             Assert.Equal(UpdateStatus.Available, result.Status);
             Assert.Equal(new Version(1, 2, 0), result.Latest);
             Assert.Equal("https://github.com/andrewralon/keycuts/releases/tag/v1.2.0", result.ReleaseUrl);
-            Assert.Equal("1.2.0", state.LatestVersion);
-            Assert.Equal(result.ReleaseUrl, state.LatestReleaseUrl);
+            Assert.Equal(("1.2.0", result.ReleaseUrl), state.LatestReleaseSeen);
             Assert.Equal(UpdateFakes.Now, state.LastCheck);
         }
 
@@ -180,7 +248,7 @@ namespace keycuts.Tests
             var result = await UpdateFakes.Checker(source, state).CheckNowAsync();
 
             Assert.Equal(GitHubReleaseSource.ReleasesPageUrl, result.ReleaseUrl);
-            Assert.Equal(GitHubReleaseSource.ReleasesPageUrl, state.LatestReleaseUrl);
+            Assert.Equal(("1.2.0", GitHubReleaseSource.ReleasesPageUrl), state.LatestReleaseSeen);
         }
 
         [Fact]
@@ -219,8 +287,8 @@ namespace keycuts.Tests
             Assert.Equal(1, source.MaxConcurrent);
             Assert.Equal(new Version(1, 2, 0), results[0].Latest);
             Assert.Equal(new Version(1, 3, 0), results[1].Latest);
-            Assert.Equal("1.3.0", state.LatestVersion);
-            Assert.Equal("https://github.com/andrewralon/keycuts/releases/tag/v1.3.0", state.LatestReleaseUrl);
+            // The pair is one value, so the later check's version can only come with the later check's URL
+            Assert.Equal(("1.3.0", "https://github.com/andrewralon/keycuts/releases/tag/v1.3.0"), state.LatestReleaseSeen);
         }
 
         [Fact]
@@ -339,13 +407,12 @@ namespace keycuts.Tests
         {
             var state = new FakeUpdateState
             {
-                LatestVersion = latest,
-                LatestReleaseUrl = "https://github.com/andrewralon/keycuts/releases/tag/v" + latest
+                LatestReleaseSeen = (latest, "https://github.com/andrewralon/keycuts/releases/tag/v" + latest)
             };
 
             if (dismissed != null)
             {
-                state.DismissedVersion = dismissed;
+                state.DismissedRelease = dismissed;
             }
 
             return state;
@@ -401,7 +468,7 @@ namespace keycuts.Tests
         public void GetNotice_AStoredUrlOutsideThisRepository_IsReplacedWithTheReleasesPage()
         {
             var state = Known("1.2.0");
-            state.LatestReleaseUrl = "https://evil.example/";
+            state.LatestReleaseSeen = ("1.2.0", "https://evil.example/");
 
             Assert.Equal(GitHubReleaseSource.ReleasesPageUrl, UpdateFakes.Checker(new FakeReleaseSource(), state).GetNotice()!.ReleaseUrl);
         }
@@ -414,7 +481,7 @@ namespace keycuts.Tests
 
             checker.Dismiss(new Version(1, 2, 0, 0));
 
-            Assert.Equal("1.2.0", state.DismissedVersion);
+            Assert.Equal("1.2.0", state.DismissedRelease);
             Assert.Null(checker.GetNotice());
         }
 
@@ -425,6 +492,20 @@ namespace keycuts.Tests
             state.WriteFailure = new UnauthorizedAccessException();
 
             UpdateFakes.Checker(new FakeReleaseSource(), state).Dismiss(new Version(1, 2, 0));
+        }
+
+        // A stored pair whose version isn't a version behaves like a first run, not a crash
+        [Theory]
+        [InlineData("")]
+        [InlineData("soon")]
+        [InlineData("v1.2.0-beta")]
+        public void GetLatestKnown_AStoredVersionThatIsNotAVersion_IsNeverChecked(string version)
+        {
+            var state = new FakeUpdateState { LatestReleaseSeen = (version, "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0") };
+            var checker = UpdateFakes.Checker(new FakeReleaseSource(), state);
+
+            Assert.Null(checker.GetLatestKnown());
+            Assert.Null(checker.GetNotice());
         }
 
         [Fact]

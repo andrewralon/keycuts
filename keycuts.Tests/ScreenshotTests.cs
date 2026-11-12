@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -89,6 +91,7 @@ namespace keycuts.Tests
                     {
                         SetPalette(palette);
                         RenderAll(folder, suffix);
+                        RenderWalkthrough(folder, suffix);
                     }
                 }
                 finally
@@ -126,9 +129,239 @@ namespace keycuts.Tests
             Render(Show(new EditWindow(new EditKeycutViewModel(keycut, edit => Task.FromResult(keycut)))), folder, "edit-" + suffix);
 
             // Settings, with the update row the real app has (#171)
-            var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), Runner.Version);
-            Render(Show(new SettingsWindow(new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates))), folder, "settings-" + suffix);
+            // without its version line, so the screenshot doesn't go stale at every release
+            var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState());
+            var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersion = false };
+            Render(Show(new SettingsWindow(settings)), folder, "settings-" + suffix);
         }
+
+        #region Walkthrough
+
+        private const double CaptionHeight = 36;
+
+        /// <summary>
+        /// The README's animation: the real creator taken through its real states (a target filled in, a name typed letter by
+        /// letter, Created), each with a caption under it, then a card for the step that happens outside the app. It is not a
+        /// screen recording, so Win+R can't be shown: the card says it in words and key caps instead of drawing a Run dialog.
+        /// </summary>
+        private static void RenderWalkthrough(string folder, string suffix)
+        {
+            var noop = new RelayCommand(() => { });
+            var creator = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { KeycutCount = 7, SuccessDuration = TimeSpan.FromMinutes(1) };
+            var window = Host(new CreatorView(), creator, 440, null);
+            var captionBar = NewCaptionBar(window);
+            var frames = new List<GifFrame>();
+
+            try
+            {
+                var view = (FrameworkElement)window.Content;
+                var nameBox = (TextBox)view.FindName("TextboxShortcut");
+
+                void Add(string caption, int delayCentiseconds)
+                {
+                    Pump();
+                    window.UpdateLayout();
+                    Pump();
+                    frames.Add(Frame(Pixels(Capture(view)), Pixels(captionBar.Render(caption)), delayCentiseconds));
+                }
+
+                Add("Drop, paste or type what you want to open", 150);
+
+                creator.Target = "https://mail.google.com/mail/u/0/#inbox";
+                creator.TargetKind = KeycutKind.Url;
+                nameBox.Focus();
+                Keyboard.Focus(nameBox);
+                Add("keycuts works out what it is", 130);
+
+                const string name = "gmail";
+
+                for (var length = 1; length <= name.Length; length++)
+                {
+                    creator.ShortcutName = name.Substring(0, length);
+                    nameBox.CaretIndex = length;
+                    Add(length < name.Length ? "Give it a short name" : "Give it a short name, then press Enter", length < name.Length ? 18 : 100);
+                }
+
+                // What a successful create leaves on screen (the beep that goes with it is the view's, so it's not played here)
+                creator.SetSuccess(name);
+                Add("Created", 150);
+
+                var first = frames[0];
+                var card = NewCard(first.Width / Scale, first.Height / Scale);
+
+                try
+                {
+                    frames.Add(new GifFrame(first.Width, first.Height, Pixels(Capture((FrameworkElement)card.Content)), 380));
+                }
+                finally
+                {
+                    card.Close();
+                }
+            }
+            finally
+            {
+                captionBar.Close();
+                window.Close();
+            }
+
+            File.WriteAllBytes(Path.Combine(folder, "walkthrough-" + suffix + ".gif"), GifWriter.Write(frames));
+        }
+
+        /// <summary>The creator's rendering with its caption strip under it, as one frame.</summary>
+        private static GifFrame Frame(PixelBuffer view, PixelBuffer caption, int delayCentiseconds)
+        {
+            if (view.Width != caption.Width)
+            {
+                throw new InvalidOperationException("The caption strip is " + caption.Width + " px wide and the creator " + view.Width + ".");
+            }
+
+            return new GifFrame(view.Width, view.Height + caption.Height, view.Bgra.Concat(caption.Bgra).ToArray(), delayCentiseconds);
+        }
+
+        private sealed class PixelBuffer
+        {
+            public PixelBuffer(int width, int height, byte[] bgra)
+            {
+                Width = width;
+                Height = height;
+                Bgra = bgra;
+            }
+
+            public int Width { get; }
+
+            public int Height { get; }
+
+            public byte[] Bgra { get; }
+
+            public static implicit operator byte[](PixelBuffer buffer) => buffer.Bgra;
+        }
+
+        private static PixelBuffer Pixels(BitmapSource bitmap)
+        {
+            var stride = bitmap.PixelWidth * 4;
+            var pixels = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(pixels, stride, 0);
+            return new PixelBuffer(bitmap.PixelWidth, bitmap.PixelHeight, pixels);
+        }
+
+        /// <summary>A strip the width of the creator that says what is happening, drawn in the app's own colors and font.</summary>
+        private sealed class CaptionBar
+        {
+            private readonly Window window;
+
+            private readonly TextBlock text;
+
+            private readonly Border border;
+
+            public CaptionBar(Window window, TextBlock text, Border border)
+            {
+                this.window = window;
+                this.text = text;
+                this.border = border;
+            }
+
+            public BitmapSource Render(string caption)
+            {
+                text.Text = caption;
+                Pump();
+                window.UpdateLayout();
+                Pump();
+                return Capture(border);
+            }
+
+            public void Close()
+            {
+                window.Close();
+            }
+        }
+
+        private static CaptionBar NewCaptionBar(Window creatorWindow)
+        {
+            var text = new TextBlock
+            {
+                FontFamily = (FontFamily)Application.Current.FindResource("AppFontFamily"),
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)Application.Current.FindResource("TextSecondaryBrush"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var border = new Border
+            {
+                Width = ((FrameworkElement)creatorWindow.Content).ActualWidth,
+                Height = CaptionHeight,
+                Background = (Brush)Application.Current.FindResource("SurfaceSubtleBrush"),
+                BorderBrush = (Brush)Application.Current.FindResource("BorderBrush"),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                Child = text
+            };
+            var window = new Window { Content = border, SizeToContent = SizeToContent.WidthAndHeight };
+            Show(window);
+            return new CaptionBar(window, text, border);
+        }
+
+        /// <summary>The step outside the app, in words and key caps: press Win+R, type the name, press Enter.</summary>
+        private static Window NewCard(double width, double height)
+        {
+            Brush Resource(string key) => (Brush)Application.Current.FindResource(key);
+            var font = (FontFamily)Application.Current.FindResource("AppFontFamily");
+
+            TextBlock Words(string text, double size, string brush, FontWeight? weight = null)
+            {
+                return new TextBlock
+                {
+                    Text = text,
+                    FontFamily = font,
+                    FontSize = size,
+                    FontWeight = weight ?? FontWeights.Normal,
+                    Foreground = Resource(brush),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+
+            Border KeyCap(string label, bool accent = false)
+            {
+                return new Border
+                {
+                    Background = Resource("SurfaceSubtleBrush"),
+                    BorderBrush = Resource("BorderStrongBrush"),
+                    BorderThickness = new Thickness(1, 1, 1, 3),
+                    CornerRadius = new CornerRadius(7),
+                    Padding = new Thickness(16, 6, 16, 6),
+                    Margin = new Thickness(6, 0, 6, 0),
+                    Child = Words(label, 20, accent ? "AccentBrush" : "TextBrush", FontWeights.Bold)
+                };
+            }
+
+            StackPanel Row(params UIElement[] items)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };
+
+                foreach (var item in items)
+                {
+                    row.Children.Add(item);
+                }
+
+                return row;
+            }
+
+            var content = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            var heading = Words("Then, from anywhere in Windows", 17, "TextSecondaryBrush", FontWeights.SemiBold);
+            heading.HorizontalAlignment = HorizontalAlignment.Center;
+            content.Children.Add(heading);
+            content.Children.Add(Row(KeyCap("Win"), Words("+", 20, "TextSecondaryBrush", FontWeights.Bold), KeyCap("R")));
+            content.Children.Add(Row(Words("type", 17, "TextSecondaryBrush"), KeyCap("gmail", accent: true), Words("and press", 17, "TextSecondaryBrush"), KeyCap("Enter")));
+            var result = Words("and it opens", 17, "TextSecondaryBrush", FontWeights.SemiBold);
+            result.HorizontalAlignment = HorizontalAlignment.Center;
+            result.Margin = new Thickness(0, 22, 0, 0);
+            content.Children.Add(result);
+
+            var card = new Border { Width = width, Height = height, Background = Resource("SurfaceBrush"), Child = content };
+            var window = new Window { Content = card, SizeToContent = SizeToContent.WidthAndHeight };
+            return Show(window);
+        }
+
+        #endregion Walkthrough
 
         /// <summary>Settings as a user typically has them, kept in memory: nothing reads or writes the registry.</summary>
         private sealed class SampleStore : ISettingsStore
@@ -188,30 +421,8 @@ namespace keycuts.Tests
         {
             try
             {
-                var element = (FrameworkElement)window.Content;
-
-                // A dialog's surface is the window's own background, not part of its content: paint it under the content
-                if (element is Panel { Background: null } panel)
-                {
-                    panel.Background = (Brush)Application.Current.FindResource("SurfaceBrush");
-                }
-
-                element.UpdateLayout();
-                var width = element.ActualWidth;
-                var height = element.ActualHeight;
-                var bitmap = new RenderTargetBitmap((int)(width * Scale), (int)(height * Scale), 96 * Scale, 96 * Scale, PixelFormats.Pbgra32);
-                var visual = new DrawingVisual();
-
-                using (var context = visual.RenderOpen())
-                {
-                    // An absolute viewbox: left to itself the brush stretches to the descendants' bounds and clips the top
-                    var brush = new VisualBrush(element) { Viewbox = new Rect(0, 0, width, height), ViewboxUnits = BrushMappingMode.Absolute };
-                    context.DrawRectangle(brush, null, new Rect(0, 0, width, height));
-                }
-
-                bitmap.Render(visual);
                 var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                encoder.Frames.Add(BitmapFrame.Create(Capture((FrameworkElement)window.Content)));
 
                 using (var stream = File.Create(Path.Combine(folder, name + ".png")))
                 {
@@ -222,6 +433,32 @@ namespace keycuts.Tests
             {
                 window.Close();
             }
+        }
+
+        /// <summary>The element as pixels, <see cref="Scale"/> times its size.</summary>
+        private static BitmapSource Capture(FrameworkElement element)
+        {
+            // A dialog's surface is the window's own background, not part of its content: paint it under the content
+            if (element is Panel { Background: null } panel)
+            {
+                panel.Background = (Brush)Application.Current.FindResource("SurfaceBrush");
+            }
+
+            element.UpdateLayout();
+            var width = element.ActualWidth;
+            var height = element.ActualHeight;
+            var bitmap = new RenderTargetBitmap((int)(width * Scale), (int)(height * Scale), 96 * Scale, 96 * Scale, PixelFormats.Pbgra32);
+            var visual = new DrawingVisual();
+
+            using (var context = visual.RenderOpen())
+            {
+                // An absolute viewbox: left to itself the brush stretches to the descendants' bounds and clips the top
+                var brush = new VisualBrush(element) { Viewbox = new Rect(0, 0, width, height), ViewboxUnits = BrushMappingMode.Absolute };
+                context.DrawRectangle(brush, null, new Rect(0, 0, width, height));
+            }
+
+            bitmap.Render(visual);
+            return bitmap;
         }
 
         private static void SetPalette(string name)

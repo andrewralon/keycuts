@@ -1075,6 +1075,40 @@ namespace keycuts.Tests
             return keycuts.GUI.Themes.TextBoxChrome.GetHasError(box);
         }
 
+        // The README's screenshots leave the version out, so they don't go stale at each release (tools/New-Screenshots.ps1)
+        [Fact]
+        public void Window_ShowsTheVersionUnlessToldNotTo()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var checker = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "1.1.1.0");
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
+                var shown = new SettingsViewModel(store, updates: checker);
+                var hidden = new SettingsViewModel(store, updates: checker) { ShowVersion = false };
+                Assert.True(shown.ShowVersion);
+
+                var window = ShowOffscreen(shown);
+                var other = ShowOffscreen(hidden);
+                try
+                {
+                    Assert.True(((TextBlock)window.FindName("CurrentVersionText")).IsVisible);
+                    Assert.False(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
+                    Assert.True(((Button)other.FindName("BtnCheckNow")).IsVisible);
+
+                    // Turning it on later shows it
+                    hidden.ShowVersion = true;
+                    other.UpdateLayout();
+                    Assert.True(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
+                }
+                finally
+                {
+                    window.Close();
+                    other.Close();
+                }
+            });
+        }
+
         // #171: Check now and the version show with a checker; Download only while a newer release is known
         [Fact]
         public void Window_WithAnUpdateChecker_ShowsCheckNow_AndDownloadOnlyWhenAnUpdateIsKnown()

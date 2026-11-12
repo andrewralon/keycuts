@@ -71,6 +71,8 @@ namespace keycuts.GUI.ViewModels
 
         private bool storeChanged;
 
+        private bool showVersion = true;
+
         private string outputFolder = string.Empty;
 
         private string? outputFolderError;
@@ -244,6 +246,16 @@ namespace keycuts.GUI.ViewModels
         public string CurrentVersionText
         {
             get { return string.Format(VersionFormat, CurrentVersion.ToString(3)); }
+        }
+
+        /// <summary>
+        /// Whether Settings shows <see cref="CurrentVersionText"/>. On, except for the README's screenshots
+        /// (<c>tools/New-Screenshots.ps1</c>), which leave it out so they don't go stale at every release.
+        /// </summary>
+        public bool ShowVersion
+        {
+            get { return showVersion; }
+            set { SetProperty(ref showVersion, value); }
         }
 
         public bool CanCheckForUpdates

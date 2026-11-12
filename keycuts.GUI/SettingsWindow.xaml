@@ -224,7 +224,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock x:Name="CurrentVersionText" Text="{Binding CurrentVersionText}" Style="{StaticResource SettingLabel}" />
+                        <TextBlock x:Name="CurrentVersionText" Text="{Binding CurrentVersionText}" Style="{StaticResource SettingLabel}"
+                                   Visibility="{Binding ShowVersion, Converter={StaticResource BoolToVisibility}}" />
                         <WrapPanel Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Style="{StaticResource SettingNote}"
                                        AutomationProperties.LiveSetting="Polite" />

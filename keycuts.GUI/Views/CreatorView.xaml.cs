@@ -61,6 +61,11 @@ namespace keycuts.GUI.Views
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 oldViewModel.ConfirmName = null;
 
+                if (oldViewModel.UpdateNotice != null)
+                {
+                    oldViewModel.UpdateNotice.PropertyChanged -= UpdateNotice_PropertyChanged;
+                }
+
                 if (oldViewModel.Welcome != null)
                 {
                     oldViewModel.Welcome.PropertyChanged -= Welcome_PropertyChanged;
@@ -75,6 +80,11 @@ namespace keycuts.GUI.Views
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
                 newViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 newViewModel.ConfirmName = ConfirmName;
+
+                if (newViewModel.UpdateNotice != null)
+                {
+                    newViewModel.UpdateNotice.PropertyChanged += UpdateNotice_PropertyChanged;
+                }
 
                 if (newViewModel.Welcome != null)
                 {
@@ -98,6 +108,15 @@ namespace keycuts.GUI.Views
             if (e.PropertyName == nameof(WelcomeViewModel.HelperText))
             {
                 AnnounceLiveRegion(WelcomeHelperTextBlock);
+            }
+        }
+
+        // The update line (#171) appears after a background check, with focus elsewhere, so it has to be announced
+        private void UpdateNotice_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(UpdateNoticeViewModel.Message) && sender is UpdateNoticeViewModel { IsVisible: true })
+            {
+                AnnounceLiveRegion(UpdateNoticeText);
             }
         }
 

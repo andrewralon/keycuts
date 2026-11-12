@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,8 +99,10 @@ namespace keycuts.Common
                 throw new HttpRequestException($"GitHub answered {(int)response.StatusCode}.", null, response.StatusCode);
             }
 
-            var json = await response.Content.ReadAsStringAsync(timeoutSource.Token).ConfigureAwait(false);
-            return Parse(json);
+            // Decode the bytes as UTF-8 (JSON's encoding) ourselves: ReadAsStringAsync throws InvalidOperationException
+            // for a Content-Type with a bogus charset, which isn't a failure the checker would expect
+            var bytes = await response.Content.ReadAsByteArrayAsync(timeoutSource.Token).ConfigureAwait(false);
+            return Parse(Encoding.UTF8.GetString(bytes));
         }
 
         /// <summary>Reads <c>tag_name</c> and <c>html_url</c>. Throws <see cref="JsonException"/> or <see cref="InvalidDataException"/>.</summary>

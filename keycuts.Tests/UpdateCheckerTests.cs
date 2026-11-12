@@ -465,6 +465,25 @@ namespace keycuts.Tests
             Assert.Equal(status, e.StatusCode);
         }
 
+        // ReadAsStringAsync throws InvalidOperationException for a charset .NET doesn't know; that must read as a failed check
+        [Fact]
+        public async Task GetLatest_ABogusCharset_StillReadsTheRelease()
+        {
+            var handler = new FakeHandler
+            {
+                Respond = (request, ct) =>
+                {
+                    var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Encoding.UTF8.GetBytes(ReleaseJson("v1.2.0"))) };
+                    response.Content.Headers.TryAddWithoutValidation("Content-Type", "application/json; charset=not-a-charset");
+                    return Task.FromResult(response);
+                }
+            };
+
+            var release = await new GitHubReleaseSource(handler, "1.1.1").GetLatestAsync(CancellationToken.None);
+
+            Assert.Equal("v1.2.0", release.Tag);
+        }
+
         [Fact]
         public async Task GetLatest_ASlowAnswer_TimesOut()
         {

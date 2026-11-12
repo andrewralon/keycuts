@@ -189,6 +189,51 @@
                 </StackPanel>
             </Border>
 
+            <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,22,0,0">
+                <StackPanel>
+                    <TextBlock Text="UPDATES" Style="{StaticResource SectionLabel}" />
+
+                    <Grid Style="{StaticResource SettingRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Check for updates" Style="{StaticResource SettingLabel}" />
+                            <TextBlock Text="Once a day, ask GitHub whether a newer version is out. Nothing about you or your keycuts is sent."
+                                       Style="{StaticResource SettingNote}" />
+                        </StackPanel>
+                        <ToggleButton x:Name="ToggleCheckForUpdates" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="20,0,0,0"
+                                      IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates"
+                                      AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out. Nothing about you or your keycuts is sent." />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="CurrentVersionText" Text="{Binding CurrentVersionText}" Style="{StaticResource SettingLabel}" />
+                            <WrapPanel Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Style="{StaticResource SettingNote}"
+                                           AutomationProperties.LiveSetting="Polite" />
+                                <!-- Only while a newer release is known -->
+                                <TextBlock Style="{StaticResource SettingNote}"
+                                           Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibility}}">
+                                    <Run Text=" &#x00B7; " /><Hyperlink x:Name="SettingsDownloadLink" Command="{Binding DownloadUpdateCommand}"
+                                        Foreground="{DynamicResource AccentBrush}" AutomationProperties.Name="Download the new version">Download</Hyperlink>
+                                </TextBlock>
+                            </WrapPanel>
+                        </StackPanel>
+                        <Button x:Name="BtnCheckNow" Grid.Column="1" Margin="20,0,0,0" Content="Check now" Style="{StaticResource SecondaryButton}"
+                                Command="{Binding CheckNowCommand}" AutomationProperties.Name="Check for updates now"
+                                Visibility="{Binding CanCheckForUpdates, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Shown when a save partly failed (for example PATH could not be updated); the window stays open -->
             <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Margin="0,14,0,0" TextWrapping="Wrap"
                        Foreground="{DynamicResource DangerBrush}" AutomationProperties.LiveSetting="Assertive"

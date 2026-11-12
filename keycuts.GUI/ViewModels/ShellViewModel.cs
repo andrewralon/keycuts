@@ -41,7 +41,8 @@ namespace keycuts.GUI.ViewModels
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
             Func<IReadOnlyList<Keycut>, CancellationToken, Task>? destinationChecker = null,
             IKeycutActions? actions = null,
-            WelcomeViewModel? welcome = null)
+            WelcomeViewModel? welcome = null,
+            UpdateNoticeViewModel? updateNotice = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
 
@@ -49,7 +50,7 @@ namespace keycuts.GUI.ViewModels
             ShowCreatorCommand = new RelayCommand(ShowCreator);
             OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
 
-            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand) { Welcome = welcome };
+            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand) { Welcome = welcome, UpdateNotice = updateNotice };
             Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, destinationChecker, actions);
             currentView = Creator;
 

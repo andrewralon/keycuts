@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Security;
+using System.Threading.Tasks;
 using keycuts.Common;
 using keycuts.GUI.Mvvm;
 
@@ -42,6 +43,14 @@ namespace keycuts.GUI.ViewModels
 
         public const string UnwritableFolderMessage = "Choose a folder you have permission to write to.";
 
+        public const string VersionFormat = "Version {0}";
+
+        public const string CheckingForUpdatesMessage = "Checking for updates\u2026";
+
+        public const string UpToDateFormat = "You\u2019re up to date ({0}).";
+
+        public const string UpdateCheckFailedMessage = "Couldn\u2019t check for updates.";
+
         private readonly ISettingsStore store;
 
         private readonly Func<string, string?> pickFolder;
@@ -51,6 +60,14 @@ namespace keycuts.GUI.ViewModels
         private readonly Func<string, string?> checkFolder;
 
         private readonly Func<string, bool> directoryExists;
+
+        private readonly UpdateChecker? updates;
+
+        private readonly Action<string> openUrl;
+
+        private UpdateCheckResult? updateResult;
+
+        private string updateStatus = string.Empty;
 
         private bool storeChanged;
 
@@ -68,25 +85,35 @@ namespace keycuts.GUI.ViewModels
 
         private ThemePreference theme;
 
+        private bool checkForUpdates;
+
         /// <param name="pickFolder">Shows a folder picker seeded with the given folder; null when cancelled.</param>
         /// <param name="openFolder">Opens the folder in Explorer.</param>
         /// <param name="checkFolder">Creates the folder if needed and proves it is writable; returns an error message or null. Tests use temp folders.</param>
         /// <param name="directoryExists">Decides whether Launch is enabled.</param>
+        /// <param name="updates">The update check behind Check now (#171), shared with the creator's notice. Null hides Check now.</param>
+        /// <param name="openUrl">Opens a release page in the browser; tests pass a fake.</param>
         public SettingsViewModel(
             ISettingsStore store,
             Func<string, string?>? pickFolder = null,
             Action<string>? openFolder = null,
             Func<string, string?>? checkFolder = null,
-            Func<string, bool>? directoryExists = null)
+            Func<string, bool>? directoryExists = null,
+            UpdateChecker? updates = null,
+            Action<string>? openUrl = null)
         {
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.pickFolder = pickFolder ?? (_ => null);
             this.openFolder = openFolder ?? (_ => { });
             this.checkFolder = checkFolder ?? CheckFolder;
             this.directoryExists = directoryExists ?? Directory.Exists;
+            this.updates = updates;
+            this.openUrl = openUrl ?? UpdateNoticeViewModel.OpenInBrowser;
 
             ChooseCommand = new RelayCommand(Choose);
             LaunchCommand = new RelayCommand(Launch, () => CanLaunch);
+            CheckNowCommand = new AsyncRelayCommand(CheckNowAsync, () => updates != null);
+            DownloadUpdateCommand = new RelayCommand(DownloadUpdate, () => IsUpdateAvailable);
 
             var loaded = store.Load();
             outputFolder = loaded.OutputFolder ?? string.Empty;
@@ -94,6 +121,14 @@ namespace keycuts.GUI.ViewModels
             rightClickContextMenus = loaded.RightClickContextMenus;
             useEnvironmentVariables = loaded.UseEnvironmentVariables;
             theme = loaded.Theme;
+            checkForUpdates = loaded.CheckForUpdates;
+
+            // What an earlier check found, until Check now asks again
+            var known = updates?.GetLatestKnown();
+            if (known != null)
+            {
+                ShowUpdateResult(known);
+            }
         }
 
         /// <summary>Raised after a successful save; the window closes with a true result.</summary>
@@ -102,6 +137,17 @@ namespace keycuts.GUI.ViewModels
         public RelayCommand ChooseCommand { get; }
 
         public RelayCommand LaunchCommand { get; }
+
+        /// <summary>Asks GitHub now, whatever the toggle and the last check, and always shows a result.</summary>
+        public AsyncRelayCommand CheckNowCommand { get; }
+
+        public RelayCommand DownloadUpdateCommand { get; }
+
+        /// <summary>
+        /// Raised on the UI thread after Check now stored what it found, so the creator's line follows even when the window
+        /// closed before the answer came.
+        /// </summary>
+        public event EventHandler? UpdateChecked;
 
         public string OutputFolder
         {
@@ -187,6 +233,53 @@ namespace keycuts.GUI.ViewModels
             set { SetProperty(ref theme, value); }
         }
 
+        /// <summary>Check GitHub for a newer release once a day when the app starts (#171).</summary>
+        public bool CheckForUpdates
+        {
+            get { return checkForUpdates; }
+            set { SetProperty(ref checkForUpdates, value); }
+        }
+
+        /// <summary>"Version 1.1.1": the running version in three parts.</summary>
+        public string CurrentVersionText
+        {
+            get { return string.Format(VersionFormat, CurrentVersion.ToString(3)); }
+        }
+
+        public bool CanCheckForUpdates
+        {
+            get { return updates != null; }
+        }
+
+        /// <summary>The last check's result (stored or from Check now): up to date, available, checking, or couldn't check. Empty before any.</summary>
+        public string UpdateStatusText
+        {
+            get { return updateStatus; }
+            private set
+            {
+                if (SetProperty(ref updateStatus, value))
+                {
+                    OnPropertyChanged(nameof(HasUpdateStatus));
+                }
+            }
+        }
+
+        public bool HasUpdateStatus
+        {
+            get { return updateStatus.Length > 0; }
+        }
+
+        /// <summary>Shows Download beside the status.</summary>
+        public bool IsUpdateAvailable
+        {
+            get { return updateResult?.Status == UpdateStatus.Available; }
+        }
+
+        private Version CurrentVersion
+        {
+            get { return updates?.CurrentVersion ?? UpdateChecker.Normalize(Version.Parse(Runner.Version)); }
+        }
+
         /// <summary>
         /// Launch needs a folder that exists right now. This checks the disk on each edit; typing a network path can pause
         /// briefly while Windows looks up the server, which was judged acceptable for a rarely edited setting (PR #151).
@@ -229,7 +322,8 @@ namespace keycuts.GUI.ViewModels
                 AskBeforeReplacing = askBeforeReplacing,
                 RightClickContextMenus = rightClickContextMenus,
                 UseEnvironmentVariables = useEnvironmentVariables,
-                Theme = theme
+                Theme = theme,
+                CheckForUpdates = checkForUpdates
             };
 
             storeChanged = true;
@@ -258,6 +352,52 @@ namespace keycuts.GUI.ViewModels
             }
 
             return checkFolder(folder);
+        }
+
+        private async Task CheckNowAsync()
+        {
+            if (updates == null)
+            {
+                return;
+            }
+
+            ShowUpdateResult(null);
+            UpdateStatusText = CheckingForUpdatesMessage;
+            ShowUpdateResult(await updates.CheckNowAsync());
+            UpdateChecked?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ShowUpdateResult(UpdateCheckResult? result)
+        {
+            updateResult = result;
+            OnPropertyChanged(nameof(IsUpdateAvailable));
+            DownloadUpdateCommand.RaiseCanExecuteChanged();
+
+            if (result == null)
+            {
+                return;
+            }
+
+            switch (result.Status)
+            {
+                case UpdateStatus.Available:
+                    UpdateStatusText = UpdateNoticeViewModel.FormatAvailable(result.Latest);
+                    break;
+                case UpdateStatus.UpToDate:
+                    UpdateStatusText = string.Format(UpToDateFormat, CurrentVersion.ToString(3));
+                    break;
+                default:
+                    UpdateStatusText = UpdateCheckFailedMessage;
+                    break;
+            }
+        }
+
+        private void DownloadUpdate()
+        {
+            if (updateResult?.Status == UpdateStatus.Available)
+            {
+                openUrl(updateResult.ReleaseUrl);
+            }
         }
 
         private void Choose()

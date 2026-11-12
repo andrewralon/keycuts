@@ -245,6 +245,64 @@ namespace keycuts.Tests
             });
         }
 
+        // #171: the update line sits above the footer link; its dismiss button is named and takes the line away
+        [Fact]
+        public void Creator_UpdateNotice_HasANamedDismissButton_AndHidesOnDismiss()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var state = new FakeUpdateState
+                {
+                    LatestVersion = "1.2.0",
+                    LatestReleaseUrl = "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0"
+                };
+                var notice = new UpdateNoticeViewModel(UpdateFakes.Checker(new FakeReleaseSource(), state), _ => { });
+                notice.Refresh();
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { UpdateNotice = notice };
+                creator.Destination = "https://example.com";
+                creator.DestinationKind = KeycutKind.Url;
+                creator.ShortcutName = "ex";
+
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    Assert.Equal(
+                        new[] { "Destination", "Browse", "Keycut name", "Create", "Dismiss update notice", "View all keycuts (0)", "Settings" },
+                        TabStops(window));
+                    var link = (System.Windows.Documents.Hyperlink)((FrameworkElement)window.Content).FindName("UpdateDownloadLink");
+                    Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
+
+                    notice.DismissCommand.Execute(null);
+                    Pump();
+                    Assert.Equal(new[] { "Destination", "Browse", "Keycut name", "Create", "View all keycuts (0)", "Settings" }, TabStops(window));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Creator_WithoutAnUpdateNotice_ShowsNoUpdateLine()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var window = Host(new CreatorView(), NewCreator());
+                try
+                {
+                    var line = (FrameworkElement)((FrameworkElement)window.Content).FindName("UpdateNotice");
+                    Assert.False(line.IsVisible);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         // WPF's default Label and CheckBox styles set the system control-text color, so they don't inherit the window's Foreground.
         [Fact]
         public void LabelAndCheckBox_UseThePaletteTextColor()

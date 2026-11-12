@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Globalization;
 using System.IO;
 
 namespace keycuts.Common
@@ -28,6 +29,20 @@ namespace keycuts.Common
 
         /// <summary>Set once the first-run welcome panel was dismissed or used, so it never shows again.</summary>
         public static readonly string WelcomeDismissedKeyName = "WelcomeDismissed";
+
+        /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
+        public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
+
+        /// <summary>When the last update check read a release, as a round-trip UTC timestamp.</summary>
+        public static readonly string LastUpdateCheckKeyName = "LastUpdateCheck";
+
+        /// <summary>The newest release that check saw (<c>1.2.0</c>) and its page.</summary>
+        public static readonly string LatestVersionKeyName = "LatestVersion";
+
+        public static readonly string LatestReleaseUrlKeyName = "LatestReleaseUrl";
+
+        /// <summary>The release whose update notice was dismissed.</summary>
+        public static readonly string DismissedUpdateVersionKeyName = "DismissedUpdateVersion";
 
         #region Get Methods
 
@@ -109,6 +124,34 @@ namespace keycuts.Common
             return ReadValue(WelcomeDismissedKeyName) is int raw && raw != 0;
         }
 
+        public static bool GetCheckForUpdates()
+        {
+            return !(ReadValue(CheckForUpdatesKeyName) is int raw) || raw != 0;
+        }
+
+        public static DateTimeOffset? GetLastUpdateCheck()
+        {
+            return ParseUpdateCheckTime(ReadValue(LastUpdateCheckKeyName) as string);
+        }
+
+        /// <summary>The stored form of <see cref="LastUpdateCheckKeyName"/>: round-trip ("o") UTC, the same on every culture.</summary>
+        public static string FormatUpdateCheckTime(DateTimeOffset value)
+        {
+            return value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>The inverse of <see cref="FormatUpdateCheckTime"/>; null for a missing or unreadable value, which means "never checked".</summary>
+        public static DateTimeOffset? ParseUpdateCheckTime(string value)
+        {
+            return DateTimeOffset.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) ? parsed : null;
+        }
+
+        /// <summary>A string value, or null when it's missing, unreadable or not a string.</summary>
+        public static string GetString(string keyName)
+        {
+            return ReadValue(keyName) as string;
+        }
+
         #endregion Get Methods
 
         #region Set Methods
@@ -139,6 +182,16 @@ namespace keycuts.Common
         public static void SetWelcomeDismissed()
         {
             SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
+        }
+
+        public static void SetCheckForUpdates(bool checkForUpdates)
+        {
+            SetRegistryValue(CheckForUpdatesKeyName, checkForUpdates ? 1 : 0, RegistryValueKind.DWord);
+        }
+
+        public static void SetLastUpdateCheck(DateTimeOffset value)
+        {
+            SetRegistryValue(LastUpdateCheckKeyName, FormatUpdateCheckTime(value), RegistryValueKind.String);
         }
 
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>

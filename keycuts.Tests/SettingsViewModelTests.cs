@@ -13,6 +13,7 @@ using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -670,7 +671,7 @@ namespace keycuts.Tests
                         {
                             "Output folder", "Choose", "Launch", "Ask before replacing a keycut", "Right-click context menus",
                             "Use environment variables in paths", "System theme", "Light theme", "Dark theme",
-                            "Show the welcome panel", "Cancel", "Save changes"
+                            "Check for updates", "Show the welcome panel", "Cancel", "Save changes"
                         },
                         stops);
                 }
@@ -847,6 +848,65 @@ namespace keycuts.Tests
             return keycuts.GUI.Themes.TextBoxChrome.GetHasError(box);
         }
 
+        // #171: Check now and the version show with a checker; Download only while a newer release is known
+        [Fact]
+        public void Window_WithAnUpdateChecker_ShowsCheckNow_AndDownloadOnlyWhenAnUpdateIsKnown()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var state = new FakeUpdateState();
+                var checker = UpdateFakes.Checker(new FakeReleaseSource(), state, "1.1.1.0");
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
+                var window = ShowOffscreen(new SettingsViewModel(store, updates: checker));
+                try
+                {
+                    var checkNow = (Button)window.FindName("BtnCheckNow");
+                    Assert.True(checkNow.IsVisible);
+                    Assert.Equal("Check for updates now", AutomationProperties.GetName(checkNow));
+                    Assert.Equal("Version 1.1.1", ((TextBlock)window.FindName("CurrentVersionText")).Text);
+                    Assert.False(((TextBlock)window.FindName("UpdateStatusMessage")).IsVisible);
+                    Assert.False(((Hyperlink)window.FindName("SettingsDownloadLink")).IsEnabled);
+                }
+                finally
+                {
+                    window.Close();
+                }
+
+                state.LatestVersion = "1.2.0";
+                state.LatestReleaseUrl = "https://github.com/andrewralon/keycuts/releases/tag/v1.2.0";
+                window = ShowOffscreen(new SettingsViewModel(store, updates: checker));
+                try
+                {
+                    Assert.Equal("keycuts 1.2.0 is available", ((TextBlock)window.FindName("UpdateStatusMessage")).Text);
+                    Assert.True(((TextBlock)window.FindName("UpdateStatusMessage")).IsVisible);
+                    Assert.True(((Hyperlink)window.FindName("SettingsDownloadLink")).IsEnabled);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Window_WithoutAnUpdateChecker_HidesCheckNow()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
+                try
+                {
+                    Assert.False(((Button)window.FindName("BtnCheckNow")).IsVisible);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         [Fact]
         public void Window_TogglesAreNamedForScreenReaders()
         {
@@ -860,7 +920,7 @@ namespace keycuts.Tests
                     var toggles = Descendants<ToggleButton>(window).Where(t => t is not RadioButton).ToList();
 
                     Assert.Equal(
-                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths" },
+                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Check for updates" },
                         toggles.Select(AutomationProperties.GetName));
                     Assert.All(toggles, toggle => Assert.NotNull(UIElementAutomationPeer.CreatePeerForElement(toggle).GetPattern(PatternInterface.Toggle)));
                 }

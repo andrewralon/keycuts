@@ -3,6 +3,11 @@ keyboard shortcuts for nerds.... Open any file/folder/URL with Win+R and the sho
 
 keycuts is a tool for creating simple scripts to open **anything** on your computer using a nickname.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/creator-dark.png">
+  <img src="docs/images/creator-light.png" alt="The keycuts creator: a Gmail link is filled in as the target, the name gmail is typed, and Enter creates the keycut." width="424">
+</picture>
+
 How do you launch a keycut?
 * Type "Win+R", the shortcut name, and Enter.
 
@@ -45,7 +50,8 @@ and SHA-256 checksums. Merges that don't change the version don't release.
 
 ## The app
 
-The app is one compact window with two views.
+The app is one compact window with two views. The screenshots below follow your GitHub theme; the app follows Windows
+(or the choice in Settings), light or dark.
 
 **Creator:** drop a file, folder, shortcut (`.lnk`/`.url`), browser link, or a shell item like the Recycle Bin or This PC
 (saved as its `::{CLSID}` key) onto the window, paste a path or URL
@@ -67,6 +73,12 @@ offers **Add to PATH**.
 
 **Keycut manager:** **View all keycuts** switches the same window to a table of your keycuts (it replaces the old separate
 Batmanager app, which has been removed).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">
+  <img src="docs/images/manager-light.png" alt="The keycut manager: a table of keycuts with name, type, description, target and modified columns, a search box above it, and one keycut flagged as missing its target." width="830">
+</picture>
+
 * Search by name, type, description, or target. Escape clears the search.
 * Up and Down select a row, even while you're typing in the search box, and Enter opens the selected keycut. Clicking a row selects it too.
 * F2 (or **Rename** in the row menu) renames the selected keycut in place: Enter or clicking away saves, Escape cancels.
@@ -84,11 +96,22 @@ Batmanager app, which has been removed).
   you added is lost; **Edit in Notepad** opens the raw `.bat` for those edits (a description added there shows in the
   table). Saving also brings a keycut from an older version up to the current format (`REM <target>`, the version header).
   An unchanged target is saved exactly as it was, so a path saved with `%USERPROFILE%` keeps it.
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/edit-dark.png">
+    <img src="docs/images/edit-light.png" alt="The Edit form: the target, name and description of the gmail keycut, with Cancel and Save." width="464">
+  </picture>
+
 * **Delete** has no confirmation: it moves the `.bat` to the Recycle Bin, and the status bar offers **Undo** for a few
   seconds (Ctrl+Z does the same, even from the search box while it shows). Undo puts the file back exactly as it was,
   hand edits and modified date included, and refuses, saying so, if you've made another keycut with that name since. A
   drive without a Recycle Bin (a network share, a USB stick) deletes for good; the message says so, and Undo still works.
 * Missing targets are flagged. The list refreshes when the window is activated and on F5.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
+  <img src="docs/images/settings-light.png" alt="The Settings window: the output folder, the toggles for replacing, right-click menus and environment variables, the theme, and update checks." width="484">
+</picture>
 
 Settings (the gear button) holds the output folder (the folder button picks one, and the button beside it opens it in Explorer; hover
 either to see what it does), **Ask before replacing a keycut**, **Right-click context menus**, **Use environment variables in paths**, the
@@ -142,7 +165,10 @@ The command line asks the same questions: `keycuts -t <target> -s <name>` prints
 
 cmd built-ins (`dir`, `start`, `copy`) aren't checked: they only matter when a name is typed in a cmd prompt, not in Win+R.
 
-Screenshots aren't included: they couldn't be captured headlessly and should be added by hand.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/name-warning-dark.png">
+  <img src="docs/images/name-warning-light.png" alt="The creator with the name notepad typed: an amber line says notepad already opens C:\Windows\notepad.exe, so Win+R would never run this keycut." width="424">
+</picture>
 
 ### Debug-only sample data
 
@@ -183,10 +209,14 @@ under the new name; rename or delete it in the manager.
 
 Requires the .NET SDK 10. Run from the repository root:
 
-* Format check: `dotnet format keycuts.sln --verify-no-changes`
+* Format check: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep it clean; without `--severity error` it also reports baseline warnings and exits non-zero)
 * Build (also the type-check): `dotnet build keycuts.sln`
 * Test: `dotnet test keycuts.sln` (xUnit project `keycuts.Tests`; tests must use temp folders, never the real output folder or the registry)
 
-Known baselines: the build has 27 CA1416 (Windows-only API) warnings (count with `--no-incremental`), so `-warnaserror`
-isn't used. The format check is clean at error severity: `dotnet format keycuts.sln --verify-no-changes --severity error`
-(without `--severity error` it also reports the 27 baseline CA1416 warnings and exits non-zero). Keep it clean.
+The build has **0 warnings**, and it should stay that way. Each project's `AssemblyInfo.cs` declares
+`SupportedOSPlatform("windows")`, so a new project with its own `AssemblyInfo.cs` needs the same line or CA1416
+(Windows-only API) warnings come back. Count with `--no-incremental`: an incremental build skips compilation and reports 0.
+
+The screenshots in `docs/images/` show sample keycuts, not a real folder, and the window's contents without its frame. To
+take new ones from a Debug build, point it at a fixture folder as described above (`KEYCUTS_OUTPUT_FOLDER` and
+`tools/New-SampleKeycuts.ps1`).

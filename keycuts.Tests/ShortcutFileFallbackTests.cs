@@ -159,6 +159,39 @@ namespace keycuts.Tests
             Assert.Equal("", file.ProgramName);
         }
 
+        // Not programs, so not files for a check to look for: the line stays what it was before (a Command, which isn't checked)
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Tools\" notepad&echo ready")]
+        [InlineData("START \"\" /D \"C:\\Tools\" notepad|more")]
+        [InlineData("START \"\" /D \"C:\\Tools\" tool.exe>out.txt")]
+        [InlineData("START \"\" /D \"C:\\Windows\" echo hello")]
+        [InlineData("START \"\" /D \"C:\\Windows\" ECHO hello")]
+        [InlineData("START \"\" /D \"C:\\Windows\" dir")]
+        [InlineData("START \"\" /D \"C:\\Windows\" title Build")]
+        public void StartInFolder_ACommandThatIsNotAProgram_IsNotReadAsAFile(string line)
+        {
+            Assert.False(ShortcutFile.IsStartInFolder(line, out _));
+
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(ShortcutType.Command, file.Type);
+            Assert.Equal("", file.ProgramName);
+            Assert.Equal("", file.Program);
+        }
+
+        // A program that merely shares a built-in's name, with an extension, or a space before the &, is still one
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Tools\" echo.exe --x", "echo.exe")]
+        [InlineData("START \"\" /D \"C:\\Tools\" chrome.exe & exit", "chrome.exe")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"echo\" hi", "echo")]
+        public void StartInFolder_ARealProgram_IsStillReadAsOne(string line, string programName)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(ShortcutType.File, file.Type);
+            Assert.Equal(programName, file.ProgramName);
+        }
+
         // A program that says where it is isn't put in the start-in folder
         [Theory]
         [InlineData("START \"\" /D \"C:\\Work\" D:\\Apps\\tool.exe --flag", @"D:\Apps\tool.exe")]

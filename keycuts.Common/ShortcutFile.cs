@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -410,7 +411,10 @@ namespace keycuts.Common
                 name = end < 0 ? rest : rest.Substring(0, end);
                 tail = end < 0 ? "" : rest.Substring(end);
 
-                if (name.Contains('"'))
+                // Not a program name: an unescaped & | < > ^ is cmd's own syntax even with no blank around it
+                // (notepad&echo ready is two commands), and a cmd built-in is run by START itself, not found as a file.
+                // Both stay with the other patterns, as before (a Command).
+                if (name.Contains('"') || name.IndexOfAny(CmdMetacharacters) >= 0 || CmdBuiltIns.Contains(name))
                 {
                     return false;
                 }
@@ -434,6 +438,17 @@ namespace keycuts.Common
         /// a UNC path, or one that starts with an environment variable such as <c>%ProgramFiles%\...</c>) is left alone:
         /// the folder is only where it starts, and prefixing it would make a path that doesn't exist.
         /// </summary>
+        private static readonly char[] CmdMetacharacters = { '&', '|', '<', '>', '^' };
+
+        // cmd's internal commands: START runs these in a cmd of its own, so there is no file for a check to look for
+        private static readonly HashSet<string> CmdBuiltIns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "assoc", "break", "call", "cd", "chdir", "cls", "color", "copy", "date", "del", "dir", "echo", "endlocal", "erase",
+            "exit", "for", "ftype", "goto", "if", "md", "mkdir", "mklink", "move", "path", "pause", "popd", "prompt", "pushd",
+            "rd", "rem", "ren", "rename", "rmdir", "set", "setlocal", "shift", "start", "time", "title", "type", "ver",
+            "verify", "vol"
+        };
+
         private static string JoinFolder(string folder, string program)
         {
             if (folder.Length == 0 || program.StartsWith("%", StringComparison.Ordinal) || System.IO.Path.IsPathFullyQualified(program))

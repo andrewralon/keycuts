@@ -150,7 +150,7 @@ function Write-Url([string] $Name, [string] $Url, [string] $Description)
 
 function Write-Folder([string] $Name, [string] $Target, [string] $Description)
 {
-    Write-Keycut $Name 'folder' $Target $Description ('"%SystemRoot%\explorer.exe" "{0}"' -f $Target)
+    Write-Keycut $Name 'folder' $Target $Description ('START "" /B "%SystemRoot%\explorer.exe" "{0}"' -f $Target)
 }
 
 function Write-File([string] $Name, [string] $Target, [string] $Description)

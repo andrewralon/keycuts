@@ -85,6 +85,40 @@ namespace keycuts.Tests
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
+        [Theory]
+        [InlineData(ShortcutType.Folder, @"C:\Users\me\Downloads")]
+        [InlineData(ShortcutType.Folder, @"%USERPROFILE%\Google Drive")]
+        [InlineData(ShortcutType.CLSIDKey, "::{645FF040-5081-101B-9F08-00AA002F954E}")]
+        public async Task AFolderOrCLSIDKeycutWithoutStart_StaysEditable_AndSavingWritesTheStartForm(ShortcutType type, string target)
+        {
+            // Before #160 the emitter called explorer.exe directly. Those files run the same, so refusing them would lock
+            // out most existing folders; the first save moves them to START (cmd no longer waits for explorer.exe)
+            var path = Emit("old", type, target, "Kept");
+            var startLine = $"START \"\" /B \"%SystemRoot%\\explorer.exe\" \"{target}\"";
+            var oldLine = $"\"%SystemRoot%\\explorer.exe\" \"{target}\"";
+            var current = File.ReadAllLines(path);
+            Assert.Contains(startLine, current);
+            File.WriteAllLines(path, current.Select(l => l == startLine ? oldLine : l));
+
+            Assert.True(KeycutRepository.CanEditInForm(path));
+
+            await Repo().UpdateAsync(await LoadOne("old"), new KeycutEdit(target, "old", "Kept"));
+
+            Assert.Equal(current, File.ReadAllLines(path));
+        }
+
+        [Fact]
+        public void AnExplorerLineWithAnotherProgramOrArgument_IsStillNotEditable()
+        {
+            // Only the emitter's own old line is treated as the START form, not any call to explorer.exe
+            var path = WriteLines("odd",
+                "@ECHO OFF", "REM keycuts 1.3.0.0", @"REM <shortcut>C:\Shortcuts\odd.bat</shortcut>", "REM <type>folder</type>",
+                @"REM <target>C:\Dev</target>", "REM <description></description>",
+                "\"%SystemRoot%\\explorer.exe\" \"C:\\Dev\" /select", "EXIT");
+
+            Assert.False(KeycutRepository.CanEditInForm(path));
+        }
+
         [Fact]
         public void AKeycutFromBeforeDescriptions_HasNoDescriptionLine_AndCanStillBeEdited()
         {
@@ -367,7 +401,7 @@ namespace keycuts.Tests
             var lines = File.ReadAllLines(saved.FilePath);
             Assert.Contains($"REM <target>{folderTarget}</target>", lines);
             Assert.Contains("REM <type>folder</type>", lines);
-            Assert.Contains($"\"%SystemRoot%\\explorer.exe\" \"{folderTarget}\"", lines);
+            Assert.Contains($"START \"\" /B \"%SystemRoot%\\explorer.exe\" \"{folderTarget}\"", lines);
         }
 
         [Fact]

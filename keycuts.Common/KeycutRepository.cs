@@ -258,9 +258,10 @@ namespace keycuts.Common
 
         /// <summary>
         /// The test behind <see cref="CanEditInFormAsync"/>, on lines already read: <see cref="Runner.BuildShortcutLines"/>
-        /// of the parse must equal the file. Three things are ignored because they change nothing about what runs: the
-        /// version in the <c>REM keycuts</c> header, the old <c>&lt;destination&gt;</c> tag name (#195) and the path in
-        /// the <c>REM &lt;shortcut&gt;</c> line. A missing description line counts as an empty one, because keycuts written
+        /// of the parse must equal the file. Four things are ignored because they change nothing about what runs: the
+        /// version in the <c>REM keycuts</c> header, the old <c>&lt;destination&gt;</c> tag name (#195), the path in
+        /// the <c>REM &lt;shortcut&gt;</c> line, and a Folder or CLSID launch line that calls <c>explorer.exe</c> without
+        /// <c>START</c> (#160). A missing description line counts as an empty one, because keycuts written
         /// before descriptions existed (1.0) have none and nothing is lost by adding it. Touches no files.
         /// </summary>
         public static bool CanEditInForm(string path, string[] lines)
@@ -327,6 +328,15 @@ namespace keycuts.Common
             if (ShortcutRemPath.IsMatch(line))
             {
                 return "REM <shortcut></shortcut>";
+            }
+
+            // Folder and CLSID keycuts written before #160 call explorer.exe without START. They run the same, so they stay
+            // editable, and saving them writes the START form
+            const string oldExplorerLine = "\"" + Runner.ExplorerProgram + "\" ";
+
+            if (line.StartsWith(oldExplorerLine, StringComparison.Ordinal))
+            {
+                return "START \"\" /B " + line;
             }
 
             return DestinationRemTag.Replace(line, "REM <target>$1</target>");

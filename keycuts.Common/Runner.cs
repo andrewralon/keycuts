@@ -22,6 +22,9 @@ namespace keycuts.Common
 
         public static readonly string RightClickContextMenuText = "keycut this!";
 
+        /// <summary>The program a Folder or CLSID keycut's launch line starts. Keycuts written before #160 call it directly, without START.</summary>
+        internal const string ExplorerProgram = "%SystemRoot%\\explorer.exe";
+
         private readonly IPathUpdater _pathUpdater = new UserPathUpdater();
 
         private readonly string _fixedOutputFolder;
@@ -325,7 +328,9 @@ namespace keycuts.Common
                 ShortcutType.Url => $"START {Shortcut.SanitizeBatEscapeCharacters(shortcut.Target)}",
                 ShortcutType.File => string.Format(start, shortcut.Target),
                 ShortcutType.HostsFile => string.Format(startWithArgument, @"%windir%\system32\notepad.exe", shortcut.Target),
-                ShortcutType.Folder or ShortcutType.CLSIDKey => $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Target}\"",
+                // START, so cmd doesn't wait for explorer.exe to hand off to the running shell: called directly, the console
+                // stayed up for about 600 ms, and with START it is gone in about 70 ms, like an empty .bat (#160)
+                ShortcutType.Folder or ShortcutType.CLSIDKey => string.Format(startWithArgument, ExplorerProgram, shortcut.Target),
                 // cmd /C runs the whole line, arguments included, which START "" /B "<line>" would treat as one program name
                 ShortcutType.Command => $"START \"\" /B cmd /C \"{shortcut.Target}\"",
                 ShortcutType.Unknown => throw new InvalidOperationException($"Can't write a keycut of type {shortcut.Type}."),

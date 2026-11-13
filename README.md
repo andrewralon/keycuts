@@ -21,14 +21,14 @@ Download the MSI from the [latest release](https://github.com/andrewralon/keycut
 
 The screenshots follow your GitHub theme; the app follows Windows, or the choice in Settings.
 
-**Creator.** Drop a file, folder, `.lnk` or link on the window (or paste, or use the folder button to browse), type a name, press **Enter** or the rocket. The target wraps if it is long, and shows the `%VAR%` form of a path when it will be saved that way. Click **Add a description** if you like; the box stays shown or hidden the way you left it. **manager** opens the table of your keycuts. On the first run, and whenever your keycuts folder is empty, a welcome panel offers a keycut named `kc` that opens the app.
+**Creator.** Drop a file, folder, `.lnk` or link on the window (or paste, or use the folder button to browse), type a name, press **Enter** or the rocket. **Saving** and **Created** show at the right of the Name label, and the fields stay filled in afterwards, so a keycut made a little differently is a small edit away. The target wraps if it is long, and shows the `%VAR%` form of a path when it will be saved that way. Click **Add a description (optional)** if you like; the box stays shown or hidden the way you left it. **manager** opens the table of your keycuts. On the first run, and whenever your keycuts folder is empty, a welcome panel offers a keycut named `kc` that opens the app.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/creator-dark.png">
   <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="424">
 </picture>
 
-**Manager.** The **keycuts manager** shows a table you can search and sort by any column, including **Modified**. Up/Down, Home/End and Page Up/Page Down move the selection, Enter opens the row, and from the search box Ctrl+E edits it, Ctrl+Shift+E edits it in Notepad, Ctrl+Shift+O shows its file, Ctrl+C copies its target, F2 renames it, Delete deletes it and Ctrl+F searches. Delete and Home/End are the search box's while it holds text, and Ctrl+C while text is selected in it. The `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**, each with its key. Missing targets are flagged in red, and a hand-written launcher that still starts but names a start-in folder that doesn't exist gets a yellow warning.
+**Manager.** The **keycuts manager** shows a table you can search and sort by any column, including **Modified**; while a search hides some keycuts, **X of Y shown** appears at the right of the search box. Up/Down, Home/End and Page Up/Page Down move the selection, Enter opens the row, and from the search box Ctrl+E edits it, Ctrl+Shift+E edits it in Notepad, Ctrl+Shift+O shows its file, Ctrl+C copies its target, F2 renames it, Delete deletes it and Ctrl+F searches. Delete and Home/End are the search box's while it holds text, and Ctrl+C while text is selected in it. The `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**, each with its key. Missing targets are flagged in red, and a hand-written launcher that still starts but names a start-in folder that doesn't exist gets a yellow warning.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">

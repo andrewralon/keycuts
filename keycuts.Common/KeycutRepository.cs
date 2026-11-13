@@ -567,6 +567,8 @@ namespace keycuts.Common
                     Target = shortcut.Target ?? "",
                     Program = shortcut.Program ?? "",
                     Arguments = shortcut.Arguments ?? "",
+                    StartInFolder = shortcut.StartInFolder ?? "",
+                    ProgramName = shortcut.ProgramName ?? "",
                     FilePath = file,
                     CanEditInForm = strict && IsEditable(shortcut, file, lines),
                     Modified = File.GetLastWriteTime(file)

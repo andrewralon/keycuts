@@ -31,6 +31,12 @@ namespace keycuts.Common
         /// </summary>
         public string Program { get; init; } = "";
 
+        /// <summary>For a File read from a <c>START "" /D "&lt;folder&gt;" &lt;program&gt;</c> line: the folder (<see cref="ShortcutFile.StartInFolder"/>). Empty otherwise.</summary>
+        public string StartInFolder { get; init; } = "";
+
+        /// <summary>For the same: the program as the line wrote it, apart from the folder (<see cref="ShortcutFile.ProgramName"/>).</summary>
+        public string ProgramName { get; init; } = "";
+
         /// <summary>For a File keycut: what follows <see cref="Program"/> on its launch line (<see cref="ShortcutFile.Arguments"/>); often empty.</summary>
         public string Arguments { get; init; } = "";
 

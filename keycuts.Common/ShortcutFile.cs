@@ -51,6 +51,16 @@ namespace keycuts.Common
         /// </summary>
         public string Program { get; set; } = "";
 
+        /// <summary>
+        /// For a File read from a <c>START "" /D "&lt;folder&gt;" &lt;program&gt;</c> line (#203): the <c>/D</c> folder as written, which is
+        /// where the program starts and, when it exists, a place Windows looks for it. Empty for <c>/D ""</c>, for any other
+        /// form, and when the target came from the <c>REM</c> lines instead of the launch line.
+        /// </summary>
+        public string StartInFolder { get; set; } = "";
+
+        /// <summary>For a File read from a <c>START "" /D ...</c> line, with or without a folder: the program as the line wrote it (<c>chrome.exe</c>, <c>notepad++</c>, or a full path), not joined to the folder. Empty otherwise.</summary>
+        public string ProgramName { get; set; } = "";
+
         /// <summary>For a File: what follows <see cref="Program"/> on the launch line, as written (quotes included). Empty if nothing does, or it can't be told.</summary>
         public string Arguments { get; set; } = "";
 
@@ -80,6 +90,8 @@ namespace keycuts.Common
             string launchTarget = null;
             string launchProgram = null;
             string launchArguments = null;
+            string launchStartIn = null;
+            string launchName = null;
 
             foreach (var line in lines)
             {
@@ -110,13 +122,15 @@ namespace keycuts.Common
                     OpenWithApp = Unquote(openWithApp);
                     break;
                 }
-                else if (ShortcutFile.TryReadStartInFolder(line, out string fileInFolder, out string programInFolder, out string argumentsInFolder))
+                else if (ShortcutFile.TryReadStartInFolder(line, out string fileInFolder, out string programInFolder, out string argumentsInFolder, out string startInFolder, out string nameInFolder))
                 {
                     Target = fileInFolder;
                     Type = ShortcutType.File;
                     launchTarget = fileInFolder;
                     launchProgram = programInFolder;
                     launchArguments = argumentsInFolder;
+                    launchStartIn = startInFolder;
+                    launchName = nameInFolder;
                     break;
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
@@ -160,6 +174,8 @@ namespace keycuts.Common
                 {
                     Program = launchProgram;
                     Arguments = launchArguments;
+                    StartInFolder = launchStartIn;
+                    ProgramName = launchName;
                 }
                 else if (Target.IndexOf('"') < 0)
                 {
@@ -324,9 +340,23 @@ namespace keycuts.Common
         /// </summary>
         public static bool TryReadStartInFolder(string line, out string file, out string program, out string arguments)
         {
+            return TryReadStartInFolder(line, out file, out program, out arguments, out _, out _);
+        }
+
+        /// <summary>
+        /// The same, and also the two parts <paramref name="program"/> is joined from (#203): <paramref name="startIn"/>, the
+        /// <c>/D</c> folder as written (empty for <c>/D ""</c>), and <paramref name="programName"/>, the program as
+        /// written (<c>chrome.exe</c>, or a full path if the line gave one). What Windows does with the pair isn't a
+        /// join: it looks in the folder, then wherever it finds a program by name (the Windows folder, System32, PATH,
+        /// App Paths), so a check needs them apart.
+        /// </summary>
+        public static bool TryReadStartInFolder(string line, out string file, out string program, out string arguments, out string startIn, out string programName)
+        {
             file = "";
             program = "";
             arguments = "";
+            startIn = "";
+            programName = "";
             var match = regexStartInFolder.Match(line);
 
             if (!match.Success)
@@ -344,6 +374,8 @@ namespace keycuts.Common
                 program = JoinFolder(folder, quoted.Groups[1].Value);
                 arguments = quotedArguments.Trim();
                 file = Unquote("\"" + program + "\"" + quotedArguments);
+                startIn = folder;
+                programName = quoted.Groups[1].Value;
                 return true;
             }
 
@@ -392,6 +424,8 @@ namespace keycuts.Common
             program = JoinFolder(folder, name);
             arguments = tail.Trim();
             file = program;
+            startIn = folder;
+            programName = name;
             return true;
         }
 

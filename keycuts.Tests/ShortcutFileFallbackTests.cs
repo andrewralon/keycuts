@@ -133,6 +133,32 @@ namespace keycuts.Tests
             Assert.Equal(arguments, file.Arguments);
         }
 
+        // #203: the folder and the program as written are kept apart too, since Windows looks in the folder and then
+        // wherever it finds a program by name, which a joined path can't say
+        [Theory]
+        [InlineData("START \"\" /D \"%programfiles(x86)%\\Google\\Chrome\\Application\" chrome.exe --profile-directory=\"Default\"", @"%programfiles(x86)%\Google\Chrome\Application", "chrome.exe")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\"", @"C:\Tools", "app.exe")]
+        [InlineData("START \"\" /D \"\" \"chrome\" \"? %*\"", "", "chrome")]
+        [InlineData("START \"\" /D \"C:\\Work\" D:\\Apps\\tool.exe --flag", @"C:\Work", @"D:\Apps\tool.exe")]
+        public void StartInFolder_KeepsTheFolderAndTheProgramNameApart(string line, string startIn, string programName)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(startIn, file.StartInFolder);
+            Assert.Equal(programName, file.ProgramName);
+        }
+
+        [Theory]
+        [InlineData("START \"\" /B \"C:\\Program Files\\npp.exe\"")]
+        [InlineData("START \"\" /B \"C:\\a b\\app.exe\" \"C:\\c d\\file.txt\"")]
+        public void OtherLaunchLines_HaveNoStartInFolderOrProgramName(string line)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal("", file.StartInFolder);
+            Assert.Equal("", file.ProgramName);
+        }
+
         // A program that says where it is isn't put in the start-in folder
         [Theory]
         [InlineData("START \"\" /D \"C:\\Work\" D:\\Apps\\tool.exe --flag", @"D:\Apps\tool.exe")]

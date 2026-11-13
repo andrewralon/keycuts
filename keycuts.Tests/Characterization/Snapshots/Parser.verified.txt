@@ -204,6 +204,8 @@ Type:        File
 Target:      |%programfiles(x86)%\Google\Chrome\Application\chrome.exe|
 Program:     |%programfiles(x86)%\Google\Chrome\Application\chrome.exe|
 Arguments:   |--profile-directory="Default"|
+StartIn:     |%programfiles(x86)%\Google\Chrome\Application|
+ProgramName: |chrome.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default"|
 Description: ||
@@ -289,6 +291,8 @@ Type:        File
 Target:      |C:\Program Files (x86)\Mozilla Firefox\firefox.exe|
 Program:     |C:\Program Files (x86)\Mozilla Firefox\firefox.exe|
 Arguments:   ||
+StartIn:     |C:\Program Files (x86)\Mozilla Firefox|
+ProgramName: |firefox.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files (x86)\Mozilla Firefox" "firefox.exe"|
 Description: ||
@@ -307,6 +311,8 @@ Type:        File
 Target:      |chrome" "? %*|
 Program:     |chrome|
 Arguments:   |"? %*"|
+StartIn:     ||
+ProgramName: |chrome|
 OpenWithApp: <null>
 Command:     |START "" /D "" "chrome" "? %*"|
 Description: ||
@@ -318,6 +324,8 @@ Type:        File
 Target:      |C:\Users\000000000\AppData\Local\GitHubDesktop\GitHubDesktop.exe|
 Program:     |C:\Users\000000000\AppData\Local\GitHubDesktop\GitHubDesktop.exe|
 Arguments:   ||
+StartIn:     |C:\Users\000000000\AppData\Local\GitHubDesktop|
+ProgramName: |GitHubDesktop.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Users\000000000\AppData\Local\GitHubDesktop" "GitHubDesktop.exe"|
 Description: ||
@@ -336,6 +344,8 @@ Type:        File
 Target:      |C:\Program Files\Internet Explorer\iexplore.exe|
 Program:     |C:\Program Files\Internet Explorer\iexplore.exe|
 Arguments:   ||
+StartIn:     |C:\Program Files\Internet Explorer|
+ProgramName: |iexplore.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files\Internet Explorer" "iexplore.exe"|
 Description: ||
@@ -346,6 +356,8 @@ Type:        File
 Target:      |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\IIS Manager.lnk|
 Program:     |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\IIS Manager.lnk|
 Arguments:   ||
+StartIn:     |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools|
+ProgramName: |IIS Manager.lnk|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools" "IIS Manager.lnk"|
 Description: ||
@@ -356,6 +368,8 @@ Type:        File
 Target:      |C:\Program Files (x86)\Notepad++\notepad++.exe|
 Program:     |C:\Program Files (x86)\Notepad++\notepad++.exe|
 Arguments:   ||
+StartIn:     |C:\Program Files (x86)\Notepad++|
+ProgramName: |notepad++.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files (x86)\Notepad++" "notepad++.exe"|
 Description: ||
@@ -366,6 +380,8 @@ Type:        File
 Target:      |C:\Program Files\paint.net\PaintDotNet.exe|
 Program:     |C:\Program Files\paint.net\PaintDotNet.exe|
 Arguments:   ||
+StartIn:     |C:\Program Files\paint.net|
+ProgramName: |PaintDotNet.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files\paint.net" "PaintDotNet.exe"|
 Description: ||

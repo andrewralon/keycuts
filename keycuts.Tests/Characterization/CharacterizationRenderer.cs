@@ -82,6 +82,13 @@ namespace keycuts.Tests.Characterization
             {
                 builder.Append("Program:     ").Append(Show(parsed.Program)).Append('\n');
                 builder.Append("Arguments:   ").Append(Show(parsed.Arguments)).Append('\n');
+
+                // Only a START "" /D line has them (#203): the check looks in the folder, then wherever Windows finds the name
+                if (parsed.ProgramName.Length > 0)
+                {
+                    builder.Append("StartIn:     ").Append(Show(parsed.StartInFolder)).Append('\n');
+                    builder.Append("ProgramName: ").Append(Show(parsed.ProgramName)).Append('\n');
+                }
             }
 
             builder.Append("OpenWithApp: ").Append(Show(parsed.OpenWithApp)).Append('\n');

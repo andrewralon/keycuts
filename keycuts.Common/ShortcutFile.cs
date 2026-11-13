@@ -43,6 +43,17 @@ namespace keycuts.Common
 
         public string Description { get; set; } = "";
 
+        /// <summary>
+        /// For a File: the path of the program the launch line runs, without its arguments, as written (it may hold
+        /// <c>%VARS%</c> and may be a bare name such as <c>chrome</c>). Empty for other types, and for a File whose launch
+        /// line the parser can't take apart (a target with a quote in it that isn't one of the forms it knows): then
+        /// nothing is known about where the program is. <see cref="Target"/> is the same text for a plain File.
+        /// </summary>
+        public string Program { get; set; } = "";
+
+        /// <summary>For a File: what follows <see cref="Program"/> on the launch line, as written (quotes included). Empty if nothing does, or it can't be told.</summary>
+        public string Arguments { get; set; } = "";
+
         public ShortcutFile()
         {
         }
@@ -68,6 +79,11 @@ namespace keycuts.Common
 
             // Without this a file with no launch line would keep the enum's default, Command.
             Type = ShortcutType.Unknown;
+
+            // What the launch line says about the program, when the pattern that read it knows (see Program)
+            string launchTarget = null;
+            string launchProgram = null;
+            string launchArguments = null;
 
             foreach (var line in lines)
             {
@@ -98,10 +114,13 @@ namespace keycuts.Common
                     OpenWithApp = Unquote(openWithApp);
                     break;
                 }
-                else if (ShortcutFile.IsStartInFolder(line, out string fileInFolder))
+                else if (ShortcutFile.TryReadStartInFolder(line, out string fileInFolder, out string programInFolder, out string argumentsInFolder))
                 {
                     Target = fileInFolder;
                     Type = ShortcutType.File;
+                    launchTarget = fileInFolder;
+                    launchProgram = programInFolder;
+                    launchArguments = argumentsInFolder;
                     break;
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
@@ -137,6 +156,20 @@ namespace keycuts.Common
             {
                 Type = remType;
                 Target = remTarget;
+            }
+
+            if (Type == ShortcutType.File && Target != null)
+            {
+                if (launchProgram != null && string.Equals(Target, launchTarget, StringComparison.Ordinal))
+                {
+                    Program = launchProgram;
+                    Arguments = launchArguments;
+                }
+                else if (Target.IndexOf('"') < 0)
+                {
+                    // A path can't hold a quote, so this is the program alone
+                    Program = Target;
+                }
             }
         }
 
@@ -266,7 +299,20 @@ namespace keycuts.Common
         /// </summary>
         public static bool IsStartInFolder(string line, out string file)
         {
+            return TryReadStartInFolder(line, out file, out _, out _);
+        }
+
+        /// <summary>
+        /// <see cref="IsStartInFolder"/> that also says where the program ends: <paramref name="program"/> is the folder
+        /// and program joined (the path to look for), and <paramref name="arguments"/> is the quoted arguments after it,
+        /// trimmed (empty if there are none). <paramref name="file"/> is the same text as always, program and arguments
+        /// in one string.
+        /// </summary>
+        public static bool TryReadStartInFolder(string line, out string file, out string program, out string arguments)
+        {
             file = "";
+            program = "";
+            arguments = "";
             var match = regexStartInFolder.Match(line);
 
             if (!match.Success)
@@ -275,16 +321,17 @@ namespace keycuts.Common
             }
 
             var folder = match.Groups[1].Value;
-            var program = regexProgramAndArguments.Match(match.Groups[2].Value);
+            var parts = regexProgramAndArguments.Match(match.Groups[2].Value);
 
-            if (!program.Success)
+            if (!parts.Success)
             {
                 return false;
             }
 
-            var arguments = program.Groups[2].Value;
-            var path = folder.Length == 0 ? program.Groups[1].Value : folder + "\\" + program.Groups[1].Value;
-            file = Unquote("\"" + path + "\"" + arguments);
+            var quotedArguments = parts.Groups[2].Value;
+            program = folder.Length == 0 ? parts.Groups[1].Value : folder + "\\" + parts.Groups[1].Value;
+            arguments = quotedArguments.Trim();
+            file = Unquote("\"" + program + "\"" + quotedArguments);
             return true;
         }
 

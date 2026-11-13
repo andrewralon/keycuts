@@ -75,6 +75,14 @@ namespace keycuts.Tests.Characterization
             builder.Append("Shortcut:    ").Append(Show(parsed.Shortcut)).Append('\n');
             builder.Append("Type:        ").Append(parsed.Type).Append('\n');
             builder.Append("Target:      ").Append(Show(parsed.Target)).Append('\n');
+
+            // Only a File has a program apart from its arguments
+            if (parsed.Type == ShortcutType.File)
+            {
+                builder.Append("Program:     ").Append(Show(parsed.Program)).Append('\n');
+                builder.Append("Arguments:   ").Append(Show(parsed.Arguments)).Append('\n');
+            }
+
             builder.Append("OpenWithApp: ").Append(Show(parsed.OpenWithApp)).Append('\n');
             builder.Append("Command:     ").Append(Show(parsed.Command)).Append('\n');
             builder.Append("Description: ").Append(Show(parsed.Description)).Append('\n');

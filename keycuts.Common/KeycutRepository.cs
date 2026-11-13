@@ -430,7 +430,8 @@ namespace keycuts.Common
 
                     try
                     {
-                        var status = await CheckOneAsync(keycut.Target, timeout, ct).ConfigureAwait(false);
+                        // The program, not the whole target: arguments after it aren't part of any path
+                        var status = await CheckOneAsync(string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program, timeout, ct).ConfigureAwait(false);
 
                         if (status != TargetStatus.Unknown)
                         {
@@ -508,6 +509,8 @@ namespace keycuts.Common
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
                     Target = shortcut.Target ?? "",
+                    Program = shortcut.Program ?? "",
+                    Arguments = shortcut.Arguments ?? "",
                     FilePath = file,
                     Modified = File.GetLastWriteTime(file)
                 };

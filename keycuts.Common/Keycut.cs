@@ -24,6 +24,16 @@ namespace keycuts.Common
 
         public string Target { get; init; }
 
+        /// <summary>
+        /// For a File keycut: the path of the program, without its arguments (<see cref="ShortcutFile.Program"/>), which is what
+        /// the Missing check looks for. Empty when the parser couldn't tell it apart from the arguments; the check then has
+        /// nothing specific to look for. Folders and the rest have none.
+        /// </summary>
+        public string Program { get; init; } = "";
+
+        /// <summary>For a File keycut: what follows <see cref="Program"/> on its launch line (<see cref="ShortcutFile.Arguments"/>); often empty.</summary>
+        public string Arguments { get; init; } = "";
+
         public string FilePath { get; init; }
 
         /// <summary>

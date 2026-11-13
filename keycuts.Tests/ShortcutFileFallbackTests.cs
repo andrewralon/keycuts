@@ -53,6 +53,53 @@ namespace keycuts.Tests
             Assert.Equal(expected, file.Target);
         }
 
+        // #203: the program is kept apart from its arguments, so a check can look for the program alone
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Program Files (x86)\\Notepad++\" \"notepad++.exe\"", @"C:\Program Files (x86)\Notepad++\notepad++.exe", "")]
+        [InlineData("START \"\" /D \"\" \"chrome\" \"? %*\"", "chrome", "\"? %*\"")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\"", @"C:\Tools\app.exe", "\"arg\"")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"a b\" \"c\"", @"C:\Tools\app.exe", "\"a b\" \"c\"")]
+        public void File_StartInFolder_SplitsTheProgramFromItsArguments(string line, string program, string arguments)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(ShortcutType.File, file.Type);
+            Assert.Equal(program, file.Program);
+            Assert.Equal(arguments, file.Arguments);
+        }
+
+        [Theory]
+        [InlineData("START \"\" /B \"C:\\Program Files\\npp.exe\"", @"C:\Program Files\npp.exe")]
+        [InlineData("START \"\" /D \"\" \"notepad.exe\"", "notepad.exe")]
+        public void File_WithoutArguments_HasItsTargetAsItsProgram(string line, string program)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(program, file.Program);
+            Assert.Equal(program, file.Target);
+            Assert.Equal("", file.Arguments);
+        }
+
+        // A target with quotes in it that isn't a form the parser takes apart: it can't say where the program ends
+        [Fact]
+        public void File_WithAQuoteInItsTarget_HasNoProgram()
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { "START \"\" /B \"C:\\a b\\app.exe\" \"C:\\c d\\file.txt\"" });
+
+            Assert.Equal(ShortcutType.File, file.Type);
+            Assert.Equal("", file.Program);
+            Assert.Equal("", file.Arguments);
+        }
+
+        [Fact]
+        public void NotAFile_HasNoProgram()
+        {
+            var folder = new ShortcutFile(@"C:\Shortcuts\docs.bat", new[] { "\"%SystemRoot%\\explorer.exe\" \"%USERPROFILE%\\Documents\"" });
+
+            Assert.Equal("", folder.Program);
+            Assert.Equal("", folder.Arguments);
+        }
+
         [Fact]
         public void StartInFolder_WithQuotedArguments_ReEmitsALineThatRunsTheProgram()
         {

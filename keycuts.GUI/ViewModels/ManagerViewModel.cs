@@ -506,6 +506,13 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Shows the saved keycut in place of the edited one, selected and focused. A reload that got there first leaves one row.</summary>
         private void ReplaceEditedRow(Keycut before, Keycut saved, bool requestFocus = true)
         {
+            // A save that a click elsewhere started: while the file was written, that click may have selected another row,
+            // and the next Delete or Ctrl+E must act on it, not on the row that was just saved
+            var selectedPath = selectedRow?.Keycut.FilePath;
+            var selectionMovedOn = !requestFocus && selectedPath != null &&
+                !string.Equals(selectedPath, before.FilePath, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(selectedPath, saved.FilePath, StringComparison.OrdinalIgnoreCase);
+
             allRows.RemoveAll(r => string.Equals(r.Keycut.FilePath, before.FilePath, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(r.Keycut.FilePath, saved.FilePath, StringComparison.OrdinalIgnoreCase));
 
@@ -520,8 +527,13 @@ namespace keycuts.GUI.ViewModels
                 SearchText = string.Empty;
             }
 
+            // ApplyFilter keeps the selection of a row that is still there
             ApplyFilter();
-            SelectedRow = row;
+
+            if (!selectionMovedOn)
+            {
+                SelectedRow = row;
+            }
 
             if (requestFocus)
             {

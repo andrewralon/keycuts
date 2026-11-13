@@ -1444,6 +1444,39 @@ namespace keycuts.Tests
             Assert.Same(manager.Rows[0], manager.SelectedRow);
         }
 
+        // The click that saved alpha's description may have selected bravo while the file was being written: it stays selected
+        [Fact]
+        public async Task EditDescription_ClickAwaySave_LeavesTheRowTheClickSelected_Selected()
+        {
+            var gate = new TaskCompletionSource();
+            var actions = new FakeActions { DescribeGate = gate.Task };
+            var manager = await LoadedOnDiskAsync(actions, "alpha", "bravo", "charlie");
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "new";
+            var saving = manager.CommitDescriptionAsync(restoreFocus: false);
+            manager.SelectedRow = manager.Rows[1];   // the grid's own handling of the click
+            gate.SetResult();
+            await saving;
+
+            Assert.Equal("new", manager.Rows[0].Description);
+            Assert.Equal("bravo", manager.SelectedRow?.Name);
+        }
+
+        [Fact]
+        public async Task EditDescription_ClickAwaySave_WithNoOtherRowSelected_SelectsTheSavedRow()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "alpha", "bravo");
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "new";
+            await manager.CommitDescriptionAsync(restoreFocus: false);
+
+            Assert.Equal("alpha", manager.SelectedRow?.Name);
+            Assert.Same(manager.Rows[0], manager.SelectedRow);
+        }
+
         [Fact]
         public async Task EditDescription_Cancel_ChangesNothing_AndGivesTheFocusBack()
         {

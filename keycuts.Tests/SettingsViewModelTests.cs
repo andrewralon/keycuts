@@ -1075,9 +1075,10 @@ namespace keycuts.Tests
             return keycuts.GUI.Themes.TextBoxChrome.GetHasError(box);
         }
 
-        // The README's screenshots leave the version out, so they don't go stale at each release (tools/New-Screenshots.ps1)
+        // The README's screenshots leave the version row out (the version and Check now), so they don't go stale at each
+        // release (tools/New-Screenshots.ps1). The button never stays behind without its label.
         [Fact]
-        public void Window_ShowsTheVersionUnlessToldNotTo()
+        public void Window_ShowsTheVersionRowUnlessToldNotTo_AsAWhole()
         {
             RunSta(() =>
             {
@@ -1085,21 +1086,25 @@ namespace keycuts.Tests
                 var checker = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "1.1.1.0");
                 var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
                 var shown = new SettingsViewModel(store, updates: checker);
-                var hidden = new SettingsViewModel(store, updates: checker) { ShowVersion = false };
-                Assert.True(shown.ShowVersion);
+                var hidden = new SettingsViewModel(store, updates: checker) { ShowVersionRow = false };
+                Assert.True(shown.ShowVersionRow);
 
                 var window = ShowOffscreen(shown);
                 var other = ShowOffscreen(hidden);
                 try
                 {
                     Assert.True(((TextBlock)window.FindName("CurrentVersionText")).IsVisible);
-                    Assert.False(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
-                    Assert.True(((Button)other.FindName("BtnCheckNow")).IsVisible);
+                    Assert.True(((Button)window.FindName("BtnCheckNow")).IsVisible);
 
-                    // Turning it on later shows it
-                    hidden.ShowVersion = true;
+                    Assert.False(((FrameworkElement)other.FindName("VersionRow")).IsVisible);
+                    Assert.False(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
+                    Assert.False(((Button)other.FindName("BtnCheckNow")).IsVisible);
+
+                    // Turning it on later shows all of it
+                    hidden.ShowVersionRow = true;
                     other.UpdateLayout();
                     Assert.True(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
+                    Assert.True(((Button)other.FindName("BtnCheckNow")).IsVisible);
                 }
                 finally
                 {

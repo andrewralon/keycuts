@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -112,26 +111,14 @@ namespace keycuts.Tests
             creator.ShortcutName = "gmail";
             Render(Host(new CreatorView(), creator, 440, null), folder, "creator-" + suffix);
 
-            // The amber warning for a name something else answers to (#153)
-            var warned = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { KeycutCount = 7 };
-            warned.Target = @"C:\Program Files\Notepad++\notepad++.exe";
-            warned.TargetKind = KeycutKind.File;
-            warned.ShortcutName = "notepad";
-            warned.SetNameWarning(TestNameChecks.Conflict("notepad", NameConflictEffect.Hidden, @"C:\Windows\notepad.exe"));
-            Render(Host(new CreatorView(), warned, 440, null), folder, "name-warning-" + suffix);
-
             var manager = new ManagerViewModel(noop, noop);
             manager.ShowKeycuts(SampleKeycuts());
             Render(Host(new ManagerView(), manager, 960, 560), folder, "manager-" + suffix);
 
-            // The Edit form (#180)
-            var keycut = SampleKeycuts()[1];
-            Render(Show(new EditWindow(new EditKeycutViewModel(keycut, edit => Task.FromResult(keycut)))), folder, "edit-" + suffix);
-
             // Settings, with the update row the real app has (#171)
-            // without its version line, so the screenshot doesn't go stale at every release
+            // without the version row (the version and Check now), so the screenshot doesn't go stale at every release
             var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState());
-            var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersion = false };
+            var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersionRow = false };
             Render(Show(new SettingsWindow(settings)), folder, "settings-" + suffix);
         }
 

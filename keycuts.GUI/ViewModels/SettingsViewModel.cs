@@ -71,7 +71,7 @@ namespace keycuts.GUI.ViewModels
 
         private bool storeChanged;
 
-        private bool showVersion = true;
+        private bool showVersionRow = true;
 
         private string outputFolder = string.Empty;
 
@@ -249,13 +249,14 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Whether Settings shows <see cref="CurrentVersionText"/>. On, except for the README's screenshots
-        /// (<c>tools/New-Screenshots.ps1</c>), which leave it out so they don't go stale at every release.
+        /// Whether Settings shows the row with <see cref="CurrentVersionText"/>, the update status and Check now. On, except
+        /// for the README's screenshots (<c>tools/New-Screenshots.ps1</c>), which leave the whole row out so they don't go
+        /// stale at every release.
         /// </summary>
-        public bool ShowVersion
+        public bool ShowVersionRow
         {
-            get { return showVersion; }
-            set { SetProperty(ref showVersion, value); }
+            get { return showVersionRow; }
+            set { SetProperty(ref showVersionRow, value); }
         }
 
         public bool CanCheckForUpdates

@@ -23,18 +23,10 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
 
 **Creator.** Drop a file, folder, `.lnk` or link on the window (or paste, or **Browse**), type a name, press **Enter**. **Add a description** if you like. On the first run, and whenever your keycuts folder is empty, a welcome panel offers a keycut named `kc` that opens the app.
 
-**Name warnings.** keycuts checks a name the way Win+R looks it up (Windows and System32, your `PATH`, App Paths). It warns when something else would win over the keycut, or when the keycut would hide a program, and asks before replacing a keycut.
-
-<p>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/creator-dark.png">
-    <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="410">
-  </picture>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/name-warning-dark.png">
-    <img src="docs/images/name-warning-light.png" alt="The creator with an amber warning: notepad already opens C:\Windows\notepad.exe." width="410">
-  </picture>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/creator-dark.png">
+  <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="424">
+</picture>
 
 **Manager.** **View all keycuts** shows a table you can search and sort by any column, including **Modified**. Up/Down and Enter open a row, F2 renames it, and the `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**. Missing targets are flagged.
 
@@ -44,20 +36,14 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
 </picture>
 
 * **Edit** changes the target, name and description. It's offered only for a keycut the app would have written itself; one you've changed by hand says to use **Edit in Notepad**, so your edits are never lost.
-* **Delete** moves the file to the Recycle Bin. **Undo** (or Ctrl+Z) shows in the status bar for a few seconds and puts it back exactly as it was.
+* **Delete** moves the file to the Recycle Bin (drives without one, such as network shares, delete for good). **Undo** (or Ctrl+Z) shows in the status bar for a few seconds and restores the file's contents and modified date.
 
 **Settings.** The output folder, **Ask before replacing a keycut**, the right-click menu (on Windows 11 under **Show more options**), the theme and update checks. **Use environment variables in paths** (off by default) saves paths like `%USERPROFILE%\Desktop`, so a keycuts folder still works on another PC; hold Shift in the Creator to flip it for one keycut.
 
-<p>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/edit-dark.png">
-    <img src="docs/images/edit-light.png" alt="The Edit form: target, name and description." width="410">
-  </picture>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
-    <img src="docs/images/settings-light.png" alt="The Settings window." width="410">
-  </picture>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
+  <img src="docs/images/settings-light.png" alt="The Settings window." width="484">
+</picture>
 
 **Updates.** When a newer release exists, the Creator's footer says so and **Download** opens the release page. The app checks at most once a day, with one unauthenticated request to GitHub and no telemetry; the CLI never checks. Turn it off in Settings.
 

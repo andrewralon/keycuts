@@ -1,0 +1,93 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup v3</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e9ecf2;font-family:"Segoe UI",system-ui,sans-serif;color:#1a2233;display:flex;gap:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px}
+.cap{font-size:14px;font-weight:600;color:#556}
+.win{background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.18);overflow:hidden;display:flex;flex-direction:column}
+.creator{width:430px}
+.creator .body{padding-bottom:16px;flex:none}
+.manager{width:820px;height:440px}
+.body{padding:20px 22px;flex:1;display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:26px;font-weight:600}
+.btn{border:1px solid #8a93a6;border-radius:6px;background:#fff;height:36px;padding:0 14px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.ibtn{width:40px;height:40px;border:1px solid #8a93a6;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#fff;flex:none}
+.drop{margin-top:14px;border:1.5px dashed #b8bfd0;border-radius:10px;background:#f6f7fb;padding:14px;display:flex;gap:12px;align-items:center}
+.tbadge{width:36px;height:36px;border-radius:8px;background:#e6eefc;display:flex;align-items:center;justify-content:center;flex:none}
+.tl{font-weight:600;font-size:13px}
+.tv{font-size:13px;color:#556;word-break:break-all;margin-top:2px;line-height:1.35}
+.lbl{margin-top:16px;font-weight:600;font-size:13px}
+.row{display:flex;gap:8px;margin-top:6px}
+.inp{flex:1;height:40px;border:1.5px solid #2563eb;border-radius:6px;box-shadow:0 0 0 3px #cfdcfb;padding:0 10px;display:flex;align-items:center;font-size:15px}
+.go{width:40px;height:40px;border-radius:6px;background:#2563eb;display:flex;align-items:center;justify-content:center;flex:none}
+.desc2{margin-top:6px;border:1px solid #c5cad8;border-radius:6px;height:34px;padding:0 10px;display:flex;align-items:center;color:#8a93a6;font-size:13px}
+.foot{height:46px;border-top:1px solid #dde0ea;background:#f6f7fb;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:13px;color:#556}
+.fl{display:flex;align-items:center;gap:14px}
+.pill{border:1px solid #c5cad8;border-radius:999px;background:#fff;padding:1px 11px;font-weight:600;font-size:13px;color:#1a2233}
+.upd{display:flex;align-items:center;gap:6px}
+.upd a{color:#2563eb;font-weight:600}
+.x{margin-left:10px;color:#778}
+.srch{flex:1;height:36px;border:1.5px solid #2563eb;border-radius:6px;display:flex;align-items:center;padding:0 10px;color:#8a93a6;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th{text-align:left;color:#778;padding:8px 10px;background:#f6f7fb;border-bottom:1px solid #dde0ea}
+td{padding:7px 10px;border-bottom:1px solid #e6e8f0}
+.b{font-weight:700}
+.pillt{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
+.f{background:#fdf1d4;color:#7a5200}.u{background:#ece3fb;color:#5b2fa8}.fi{background:#e1eefb;color:#164f87}
+.note{font-size:12px;color:#556;max-width:430px;line-height:1.4}
+</style></head><body>
+
+<div class="col">
+<div class="cap">Creator (Shift held or env-var setting on: target shows %USERPROFILE%)</div>
+<div class="win creator">
+ <div class="body">
+  <div class="top"><h1>keycuts creator</h1>
+   <div class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a2233" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></svg>manager</div></div>
+  <div class="drop">
+   <div class="tbadge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/></svg></div>
+   <div style="flex:1;min-width:0"><div class="tl">Target</div>
+    <div class="tv">%USERPROFILE%\OneDrive - Contoso\Documents\Projects\2026\Paintings\Recent\Gallery Submissions\spring-collection-final-v3.xlsx</div></div>
+   <div class="ibtn" title="Browse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a2233" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg></div>
+  </div>
+  <div class="lbl">Name</div>
+  <div class="row"><div class="inp">art</div>
+   <div class="go" title="Create"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></svg></div></div>
+  <div class="lbl">Description (optional)</div>
+  <div class="desc2">e.g. Recent paintings</div>
+ </div>
+ <div class="foot"><div class="fl">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a2233" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  <span class="pill">355</span></div>
+  <span class="upd">keycuts 1.3.0 is available &middot; <a>Download</a><span class="x">&#10005;</span></span>
+ </div>
+</div>
+<div class="note">Description box shown expanded. Whether it is shown or hidden is remembered between launches.</div>
+</div>
+
+<div class="col">
+<div class="cap">Manager</div>
+<div class="win manager">
+ <div class="body">
+  <div class="top"><h1>keycuts manager</h1>
+   <div class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a2233" stroke-width="2"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>creator</div></div>
+  <div style="display:flex;margin-top:14px"><div class="srch">&#128269;&nbsp; Search names, types, descriptions, or targets</div></div>
+  <table>
+   <tr><th>Name</th><th>Type</th><th>Description</th><th>Target</th><th>Modified</th><th></th></tr>
+   <tr><td class="b">art</td><td><span class="pillt u">URL</span></td><td>Paintings gallery</td><td>https://gallery.example.com/art</td><td>12 minutes ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">db</td><td><span class="pillt f">Folder</span></td><td>Dropbox folder</td><td>%USERPROFILE%\Dropbox</td><td>1 month ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">gmail</td><td><span class="pillt u">URL</span></td><td>Work email</td><td>https://mail.google.com/mail/u/0/#inbox</td><td>5 hours ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">npp</td><td><span class="pillt fi">File</span></td><td>Notepad++</td><td>C:\Program Files\Notepad++\notepad++.exe</td><td>3 days ago</td><td>&middot;&middot;&middot;</td></tr>
+  </table>
+  <div style="flex:1"></div>
+ </div>
+ <div class="foot"><div class="fl">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a2233" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  <span class="pill">355</span></div>
+  <span class="upd">keycuts 1.3.0 is available &middot; <a>Download</a><span class="x">&#10005;</span></span>
+ </div>
+</div>
+<div class="note">The footer is the same on both screens. Only 4 of 355 rows shown.</div>
+</div>
+</body></html>

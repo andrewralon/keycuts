@@ -47,9 +47,28 @@ namespace keycuts.Tests
             File.WriteAllLines(Path.Combine(_folder, name + ".bat"), new[] { "@echo OFF", launchLine, "exit" });
         }
 
-        private async Task<Keycut> LoadAndCheck(string name)
+        /// <summary>
+        /// Where a bare program name is looked for: these folders as the whole PATH, and a System32 that is a temp folder,
+        /// so a check never reads this machine's PATH or registry. App Paths holds <paramref name="appPath"/> for every name.
+        /// </summary>
+        private NameConflictEnvironment Lookup(string pathFolders = "", string appPath = null)
         {
-            var repository = new KeycutRepository(_folder);
+            return new NameConflictEnvironment
+            {
+                WindowsFolder = Path.Combine(_root, "windows"),
+                SystemFolder = Path.Combine(_root, "system32"),
+                MachinePath = "",
+                UserPath = pathFolders,
+                PathExt = ".EXE;.BAT",
+                FileExists = File.Exists,
+                FindAppPath = _ => appPath
+            };
+        }
+
+        private async Task<Keycut> LoadAndCheck(string name, NameConflictEnvironment lookup = null)
+        {
+            var env = lookup ?? Lookup();
+            var repository = new KeycutRepository(_folder, new PermanentDeleter(), () => env);
             var all = await repository.LoadAllAsync();
             var keycut = all.Single(k => k.Name == name);
 
@@ -162,6 +181,106 @@ namespace keycuts.Tests
             WriteLaunch("launcher", string.Format(line, _programs));
 
             Assert.False(KeycutRepository.CanEditInForm(Path.Combine(_folder, "launcher.bat")));
+        }
+
+        // The last row of the issue's table: no folder, so Windows finds the program, File.Exists doesn't
+        [Fact]
+        public async Task BareProgramName_OnThePath_IsOk()
+        {
+            Program("tool.exe");
+            WriteLaunch("bare", "START \"\" /D \"\" \"tool.exe\"");
+
+            var keycut = await LoadAndCheck("bare", Lookup(_programs));
+
+            Assert.Equal("tool.exe", keycut.Target);
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        // PATHEXT supplies the extension, as it does for Win+R
+        [Fact]
+        public async Task BareProgramName_WithoutAnExtension_IsFoundThroughPathExt()
+        {
+            Program("tool.exe");
+            WriteLaunch("bare", "START \"\" /D \"\" \"tool\"");
+
+            var keycut = await LoadAndCheck("bare", Lookup(_programs));
+
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task BareProgramName_InTheSystemFolder_IsOk()
+        {
+            var system = Path.Combine(_root, "system32");
+            Directory.CreateDirectory(system);
+            File.WriteAllText(Path.Combine(system, "notepad.exe"), "x");
+            WriteLaunch("bare", "START \"\" /D \"\" \"notepad.exe\"");
+
+            var keycut = await LoadAndCheck("bare");
+
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task BareProgramName_InAppPaths_IsOk()
+        {
+            var registered = Program("registered.exe");
+            WriteLaunch("bare", "START \"\" /D \"\" \"registered\"");
+
+            var keycut = await LoadAndCheck("bare", Lookup(appPath: registered));
+
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task BareProgramName_FoundNowhere_IsMissing()
+        {
+            // It exists, but not in a folder Windows looks in
+            Program("tool.exe");
+            WriteLaunch("bare", "START \"\" /D \"\" \"tool.exe\"");
+
+            var keycut = await LoadAndCheck("bare");
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task BareProgramName_WithArguments_IsLookedUpWithoutThem()
+        {
+            Program("tool.exe");
+            WriteLaunch("bare", "START \"\" /D \"\" tool.exe --profile-directory=\"Profile 2\"");
+
+            var keycut = await LoadAndCheck("bare", Lookup(_programs));
+
+            Assert.Equal("tool.exe", keycut.Program);
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        // Only a keycut with a bare name needs the PATH and registry, so the others never read them
+        [Fact]
+        public async Task TheLookupEnvironment_IsOnlyReadForABareName()
+        {
+            var tool = Program("tool.exe");
+            WriteLaunch("full", $"START \"\" /B \"{tool}\"");
+            var repository = new KeycutRepository(_folder, new PermanentDeleter(), () => throw new InvalidOperationException("read the environment"));
+            var all = await repository.LoadAllAsync();
+
+            await repository.CheckTargetsAsync(all);
+
+            Assert.Equal(TargetStatus.Ok, all.Single().TargetStatus);
+        }
+
+        // If the environment can't be read, nothing is claimed
+        [Fact]
+        public async Task BareProgramName_WithAnUnreadableEnvironment_IsNotMarked()
+        {
+            WriteLaunch("bare", "START \"\" /D \"\" \"tool.exe\"");
+            var repository = new KeycutRepository(_folder, new PermanentDeleter(), () => throw new InvalidOperationException("no registry"));
+            var all = await repository.LoadAllAsync();
+
+            await repository.CheckTargetsAsync(all);
+
+            Assert.Equal(TargetStatus.Unknown, all.Single().TargetStatus);
         }
 
         [Fact]

@@ -54,6 +54,8 @@ namespace keycuts.Common
 
         private readonly IFileRecycler _recycler;
 
+        private readonly Func<NameConflictEnvironment> _programLookup;
+
         /// <summary>
         /// A repository that deletes files for good. Use <see cref="CreateDefault"/> (or pass a
         /// <see cref="RecycleBinRecycler"/>) for the app, which sends them to the Recycle Bin.
@@ -64,9 +66,18 @@ namespace keycuts.Common
         }
 
         public KeycutRepository(string outputFolder, IFileRecycler recycler)
+            : this(outputFolder, recycler, null)
+        {
+        }
+
+        /// <param name="programLookup">Where to look for a keycut's program when it is a bare name such as <c>chrome</c>
+        /// (#203): the folders, PATH and App Paths that Windows searches. Null reads this machine's, only when a check needs
+        /// it; tests pass their own so a check never reads the real PATH or registry.</param>
+        public KeycutRepository(string outputFolder, IFileRecycler recycler, Func<NameConflictEnvironment> programLookup)
         {
             _outputFolder = outputFolder;
             _recycler = recycler ?? throw new ArgumentNullException(nameof(recycler));
+            _programLookup = programLookup ?? NameConflictEnvironment.GetDefault;
         }
 
         public string OutputFolder => _outputFolder;
@@ -422,6 +433,9 @@ namespace keycuts.Common
         {
             var checkable = keycuts.Where(IsCheckable).ToList();
 
+            // Read once per run, and only if a keycut has a bare program name to look for
+            var lookup = new Lazy<NameConflictEnvironment>(_programLookup);
+
             using (var gate = new SemaphoreSlim(MaxParallelChecks))
             {
                 var tasks = checkable.Select(async keycut =>
@@ -431,7 +445,7 @@ namespace keycuts.Common
                     try
                     {
                         // The program, not the whole target: arguments after it aren't part of any path
-                        var status = await CheckOneAsync(string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program, timeout, ct).ConfigureAwait(false);
+                        var status = await CheckOneAsync(string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program, keycut.RawType, lookup, timeout, ct).ConfigureAwait(false);
 
                         if (status != TargetStatus.Unknown)
                         {
@@ -869,13 +883,22 @@ namespace keycuts.Common
                  keycut.RawType == ShortcutType.HostsFile);
         }
 
-        private static async Task<TargetStatus> CheckOneAsync(string target, TimeSpan timeout, CancellationToken ct)
+        private async Task<TargetStatus> CheckOneAsync(string target, ShortcutType type, Lazy<NameConflictEnvironment> lookup, TimeSpan timeout, CancellationToken ct)
         {
             var work = Task.Run(() =>
             {
                 try
                 {
                     var path = Environment.ExpandEnvironmentVariables(target);
+
+                    // A program with no folder (chrome, notepad.exe) is found where Windows finds it, not in this process's
+                    // current directory, which is all File.Exists looks at
+                    if (type == ShortcutType.File && IsBareName(path))
+                    {
+                        return NameConflicts.Find(path, _outputFolder, lookup.Value).Count > 0 ?
+                            TargetStatus.Ok :
+                            TargetStatus.Missing;
+                    }
 
                     return File.Exists(path) || Directory.Exists(path) ?
                         TargetStatus.Ok :
@@ -892,6 +915,12 @@ namespace keycuts.Common
             ct.ThrowIfCancellationRequested();
 
             return finished == work ? await work.ConfigureAwait(false) : TargetStatus.Unknown;
+        }
+
+        /// <summary>A program name with no folder in it, like <c>chrome</c> or <c>notepad.exe</c>: a file name, not a path.</summary>
+        private static bool IsBareName(string path)
+        {
+            return path.Trim('.').Length > 0 && path.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
         }
 
         private static KeycutRepositoryException Translate(Exception ex, string message)

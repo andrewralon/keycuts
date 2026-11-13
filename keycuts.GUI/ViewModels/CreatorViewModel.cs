@@ -42,6 +42,9 @@ namespace keycuts.GUI.ViewModels
     {
         public const string SavingHelperText = "Saving\u2026";
 
+        /// <summary>Just "Created": the name is in the Name box, which keeps its text after a create (#205), so the message never grows with it.</summary>
+        public const string CreatedText = "Created";
+
         public const string InvalidNameMessage = "Use letters, numbers, dashes, or dots \u2014 no \\ / : * ? \" < > |";
 
         /// <summary>A name taken by a keycuts command on PATH (keycuts, keypaste), which a keycut would clash with.</summary>
@@ -195,7 +198,7 @@ namespace keycuts.GUI.ViewModels
         public Func<NameCheck, string, bool>? ConfirmName { get; set; }
 
         /// <summary>How long "Created" shows before it goes away and Create works again. The fields keep their text.</summary>
-        public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(2);
+        public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(3);
 
         public AsyncRelayCommand CreateCommand { get; }
 
@@ -654,7 +657,7 @@ namespace keycuts.GUI.ViewModels
 
                 if (IsSuccess)
                 {
-                    return "Created " + successName;
+                    return CreatedText;
                 }
 
                 if (nameWarning != null)
@@ -679,7 +682,7 @@ namespace keycuts.GUI.ViewModels
                     return SavingHelperText;
                 }
 
-                return IsSuccess && !HelperIsError ? "Created " + successName : string.Empty;
+                return IsSuccess && !HelperIsError ? CreatedText : string.Empty;
             }
         }
 

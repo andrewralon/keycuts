@@ -52,6 +52,15 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void StatusMessages_ShowForThreeSeconds_ByDefault_AndDeletedWithItsUndoLongerSinceAButtonNeedsReaching()
+        {
+            var manager = NewManager(Returning());
+
+            Assert.Equal(TimeSpan.FromSeconds(3), manager.StatusMessageDuration);
+            Assert.Equal(TimeSpan.FromSeconds(8), manager.UndoDuration);
+        }
+
+        [Fact]
         public async Task LoadAsync_Populates_RowsCountsAndTexts()
         {
             var manager = NewManager(Returning(NewKeycut("a"), NewKeycut("b"), NewKeycut("c")));

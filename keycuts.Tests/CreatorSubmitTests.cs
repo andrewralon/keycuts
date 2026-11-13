@@ -466,9 +466,9 @@ namespace keycuts.Tests
 
             Assert.Equal(1, created);
             Assert.Equal(CreatorState.Success, creator.State);
-            Assert.Equal("Created ex", creator.HelperText);
+            Assert.Equal(CreatorViewModel.CreatedText, creator.HelperText);
             // "Created" sits by the Name label, not under the field, so the line under it stays out of the way
-            Assert.Equal("Created ex", creator.NameStatusText);
+            Assert.Equal(CreatorViewModel.CreatedText, creator.NameStatusText);
             Assert.True(creator.HasNameStatus);
             Assert.False(creator.ShowHelperLine);
             Assert.False(creator.CanCreate);
@@ -513,7 +513,7 @@ namespace keycuts.Tests
 
             release.SetResult(CreateResult.Success(null!));
             await create;
-            Assert.Equal("Created ex", creator.NameStatusText);
+            Assert.Equal(CreatorViewModel.CreatedText, creator.NameStatusText);
             Assert.False(creator.ShowHelperLine);
 
             // A warning is a sentence about a path: it keeps the line under the field
@@ -521,6 +521,19 @@ namespace keycuts.Tests
             creator.SetNameWarning(TestNameChecks.Existing("ex2"));
             Assert.Equal(string.Empty, creator.NameStatusText);
             Assert.True(creator.ShowHelperLine);
+        }
+
+        [Fact]
+        public async Task Created_NeverRepeatsTheName_SoALongNameCannotMakeItOverflow()
+        {
+            var creator = Ready(new FakeCreator());
+            creator.ShortcutName = new string('n', 200);
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal("Created", creator.NameStatusText);
+            Assert.Equal("Created", creator.HelperText);
+            Assert.Equal(new string('n', 200), creator.ShortcutName);   // the name is in the box, and stays there
         }
 
         [Fact]

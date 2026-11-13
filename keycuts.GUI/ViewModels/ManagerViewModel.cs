@@ -336,7 +336,7 @@ namespace keycuts.GUI.ViewModels
         public event EventHandler<KeycutRowViewModel?>? FocusRowRequested;
 
         /// <summary>How long a status message stays visible; errors stay twice as long.</summary>
-        public TimeSpan StatusMessageDuration { get; set; } = TimeSpan.FromSeconds(4);
+        public TimeSpan StatusMessageDuration { get; set; } = TimeSpan.FromSeconds(3);
 
         /// <summary>Brief confirmation or error shown in the status bar; empty when there is nothing to say.</summary>
         public string StatusMessage

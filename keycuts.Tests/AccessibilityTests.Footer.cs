@@ -212,13 +212,17 @@ namespace keycuts.Tests
                         nameLabel.TranslatePoint(new Point(0, 0), view).Y,
                         nameLabel.TranslatePoint(new Point(0, nameLabel.ActualHeight), view).Y);
 
+                    // A very long name changes nothing: the message is just "Created", and the name is in the box
                     creator.IsSaving = false;
-                    creator.SetSuccess("ex");
+                    creator.ShortcutName = new string('n', 200);
+                    creator.SetSuccess(creator.ShortcutName);
                     Pump();
                     window.UpdateLayout();
-                    Assert.Equal("Created ex", status.Text);
+                    Assert.Equal(CreatorViewModel.CreatedText, status.Text);
                     Assert.False(helper.IsVisible);
                     Assert.Equal(heightBefore, view.ActualHeight, 0.5);   // the window did not grow
+                    Assert.True(LeftIn(status, view) > RightIn(nameLabel, view), "Created runs over the Name label");
+                    Assert.True(RightIn(status, view) <= view.ActualWidth, "Created runs off the right edge");
                 }
                 finally
                 {

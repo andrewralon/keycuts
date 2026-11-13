@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using keycuts.Common;
 using keycuts.GUI.Controls;
 using keycuts.GUI.Mvvm;
@@ -21,6 +22,12 @@ namespace keycuts.Tests
             creator.TargetKind = KeycutKind.Url;
             creator.ShortcutName = "ex";
             return creator;
+        }
+
+        [Fact]
+        public void Created_ShowsForThreeSeconds_ByDefault()
+        {
+            Assert.Equal(TimeSpan.FromSeconds(3), Create().SuccessDuration);
         }
 
         [Fact]
@@ -239,7 +246,7 @@ namespace keycuts.Tests
             Assert.Equal(CreatorState.Success, creator.State);
             Assert.True(creator.IsSuccess);
             Assert.False(creator.HelperIsError);
-            Assert.Equal("Created l-vicki", creator.HelperText);
+            Assert.Equal(CreatorViewModel.CreatedText, creator.HelperText);
 
             creator.ShortcutName = "next";
             Assert.False(creator.IsSuccess);

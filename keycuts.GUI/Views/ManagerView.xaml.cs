@@ -69,28 +69,130 @@ namespace keycuts.GUI.Views
                 return;
             }
 
-            if (e.KeyboardDevice.Modifiers != ModifierKeys.None)
-            {
-                return;
-            }
+            var modifiers = e.KeyboardDevice.Modifiers;
 
-            if (e.Key == Key.F2 && ViewModel.SelectedRow != null)
+            if (modifiers == ModifierKeys.Control)
             {
-                e.Handled = true;
-                Table.ScrollIntoView(ViewModel.SelectedRow);
-                ViewModel.BeginRename(ViewModel.SelectedRow);
+                HandleControlKey(e);
             }
-            else if (e.Key == Key.Up || e.Key == Key.Down)
+            else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             {
-                MoveSelection(e, e.Key == Key.Down ? 1 : -1);
+                HandleControlShiftKey(e);
             }
-            else if (e.Key == Key.Enter && e.OriginalSource is not ButtonBase)
+            else if (modifiers == ModifierKeys.None)
             {
-                e.Handled = ViewModel.OpenSelected();
+                HandlePlainKey(e);
             }
         }
 
-        private void MoveSelection(KeyEventArgs e, int direction)
+        // The search box has the focus almost all the time, so a key that means something in a text box goes to the box
+        // when the box has something to act on: Delete and Home/End when it holds text, Ctrl+C when text is selected. A
+        // mistaken Delete costs little, since a delete has an Undo (#179).
+        private static bool SearchBoxHasText(KeyEventArgs e)
+        {
+            return e.OriginalSource is TextBox { Text.Length: > 0 };
+        }
+
+        private static bool SearchBoxHasSelection(KeyEventArgs e)
+        {
+            return e.OriginalSource is TextBox { SelectionLength: > 0 };
+        }
+
+        /// <summary>
+        /// The row a key acts on: the selected one. Tabbing to a row's menu button puts the user on that row, so a key
+        /// pressed there acts on it, and the selection follows. Null with nothing selected, and the key does nothing.
+        /// </summary>
+        private KeycutRowViewModel? ActionRow()
+        {
+            if ((Keyboard.FocusedElement as MenuButton)?.DataContext is KeycutRowViewModel focused)
+            {
+                ViewModel!.SelectedRow = focused;
+            }
+
+            return ViewModel!.SelectedRow;
+        }
+
+        private void HandleControlKey(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.F:
+                    // Search from anywhere, with what was typed selected, so the next letter starts a new search
+                    if (SearchBox.IsEnabled)
+                    {
+                        e.Handled = true;
+                        SearchBox.Focus();
+                        Keyboard.Focus(SearchBox);
+                        SearchBox.SelectAll();
+                    }
+
+                    break;
+                case Key.C when !SearchBoxHasSelection(e) && ActionRow() is { } copy:
+                    e.Handled = true;
+                    ViewModel!.CopyTarget(copy);
+                    break;
+                case Key.E when ActionRow() is { } edit:
+                    e.Handled = true;
+                    _ = ViewModel!.EditKeycutAsync(edit);
+                    break;
+            }
+        }
+
+        private void HandleControlShiftKey(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.E when ActionRow() is { } notepad:
+                    e.Handled = true;
+                    ViewModel!.EditInNotepad(notepad);
+                    break;
+                case Key.O when ActionRow() is { } location:
+                    e.Handled = true;
+                    ViewModel!.OpenFileLocation(location);
+                    break;
+            }
+        }
+
+        private void HandlePlainKey(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.F2 when ViewModel!.SelectedRow != null:
+                    e.Handled = true;
+                    Table.ScrollIntoView(ViewModel.SelectedRow);
+                    ViewModel.BeginRename(ViewModel.SelectedRow);
+                    break;
+                case Key.Up:
+                case Key.Down:
+                    MoveSelection(e, model => model.MoveSelection(e.Key == Key.Down ? 1 : -1));
+                    break;
+                case Key.PageUp:
+                case Key.PageDown:
+                    MoveSelection(e, model => model.MoveSelection(e.Key == Key.PageDown ? RowsPerPage() : -RowsPerPage()));
+                    break;
+                case Key.Home when !SearchBoxHasText(e):
+                    MoveSelection(e, model => model.SelectFirst());
+                    break;
+                case Key.End when !SearchBoxHasText(e):
+                    MoveSelection(e, model => model.SelectLast());
+                    break;
+                case Key.Enter when e.OriginalSource is not ButtonBase:
+                    e.Handled = ViewModel!.OpenSelected();
+                    break;
+                case Key.Delete when !SearchBoxHasText(e) && ActionRow() is { } doomed:
+                    e.Handled = true;
+                    _ = ViewModel!.DeleteKeycutAsync(doomed);
+                    break;
+            }
+        }
+
+        /// <summary>How far Page Up and Page Down move: the rows the table shows, less one so the last one stays in view.</summary>
+        private int RowsPerPage()
+        {
+            return Math.Max(1, (int)((Table.ActualHeight - Table.ColumnHeaderHeight) / Table.RowHeight) - 1);
+        }
+
+        private void MoveSelection(KeyEventArgs e, Func<ManagerViewModel, bool> move)
         {
             // Tabbing to a row's menu button puts the user on that row, so move from there and keep the focus with the selection
             var focusedRow = (Keyboard.FocusedElement as MenuButton)?.DataContext as KeycutRowViewModel;
@@ -100,14 +202,14 @@ namespace keycuts.GUI.Views
                 ViewModel!.SelectedRow = focusedRow;
             }
 
-            if (!ViewModel!.MoveSelection(direction))
+            if (!move(ViewModel!))
             {
                 return;
             }
 
             e.Handled = true;
 
-            var row = ViewModel.SelectedRow!;
+            var row = ViewModel!.SelectedRow!;
             Table.ScrollIntoView(row);
 
             if (focusedRow != null)

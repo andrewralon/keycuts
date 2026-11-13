@@ -28,7 +28,7 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
   <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="424">
 </picture>
 
-**Manager.** **View all keycuts** shows a table you can search and sort by any column, including **Modified**. Up/Down and Enter open a row, F2 renames it, and the `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**. Missing targets are flagged.
+**Manager.** **View all keycuts** shows a table you can search and sort by any column, including **Modified**. Up/Down, Home/End and Page Up/Page Down move the selection, Enter opens the row, and from the search box Ctrl+E edits it, Ctrl+Shift+E edits it in Notepad, Ctrl+Shift+O shows its file, Ctrl+C copies its target, F2 renames it, Delete deletes it and Ctrl+F searches. Delete and Home/End are the search box's while it holds text, and Ctrl+C while text is selected in it. The `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**, each with its key. Missing targets are flagged.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">

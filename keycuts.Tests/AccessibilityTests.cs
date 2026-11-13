@@ -21,7 +21,7 @@ using Xunit;
 namespace keycuts.Tests
 {
     [Collection(WpfCollection.Name)]
-    public class AccessibilityTests
+    public partial class AccessibilityTests
     {
         static CreatorViewModel NewCreator()
         {
@@ -501,16 +501,25 @@ namespace keycuts.Tests
                 Launched.Add(path);
             }
 
+            public List<string> Edited { get; } = new List<string>();
+
             public void Edit(string path)
             {
+                Edited.Add(path);
             }
+
+            public List<string> Located { get; } = new List<string>();
 
             public void OpenFileLocation(string path)
             {
+                Located.Add(path);
             }
+
+            public List<string> Copied { get; } = new List<string>();
 
             public void CopyText(string text)
             {
+                Copied.Add(text);
             }
 
             public List<DeletedKeycut> Deleted { get; } = new List<DeletedKeycut>();

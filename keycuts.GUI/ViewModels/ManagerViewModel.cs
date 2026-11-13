@@ -344,6 +344,29 @@ namespace keycuts.GUI.ViewModels
             return true;
         }
 
+        /// <summary>Selects the first row (Home). False when there are no rows.</summary>
+        public bool SelectFirst()
+        {
+            return SelectAt(0);
+        }
+
+        /// <summary>Selects the last row (End). False when there are no rows.</summary>
+        public bool SelectLast()
+        {
+            return SelectAt(Rows.Count - 1);
+        }
+
+        private bool SelectAt(int index)
+        {
+            if (Rows.Count == 0)
+            {
+                return false;
+            }
+
+            SelectedRow = Rows[Math.Clamp(index, 0, Rows.Count - 1)];
+            return true;
+        }
+
         /// <summary>Opens the selected row. False when nothing is selected.</summary>
         public bool OpenSelected()
         {

@@ -28,7 +28,7 @@ namespace keycuts.GUI.ViewModels
     {
         public const string CreatorTitle = "keycuts";
 
-        public const string ManagerTitle = "keycuts \u2014 Your keycuts";
+        public const string ManagerTitle = "keycuts";
 
         private readonly Func<Task<int>> countProvider;
 

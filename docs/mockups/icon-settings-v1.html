@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Icon settings</title>
+<!-- A sketch of the Settings window with the app icon setting (Light palette). Not a screenshot of the app. -->
+<style>
+  :root { --accent:#2563eb; --accent-soft:#eaf1ff; --canvas:#eef1f5; --surface:#fff; --subtle:#f6f8fb; --text:#172033;
+          --text2:#5d687b; --text3:#818b9d; --border:#d9dee8; --border-strong:#bdc5d2; --control:#818b9d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #c9ced8; font-family: "Segoe UI", sans-serif; color: var(--text); }
+  .stage { padding: 24px; display: flex; justify-content: center; }
+  .win { position: relative; width: 484px; background: var(--surface); border-radius: 8px; overflow: hidden;
+         box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 1px rgba(15,23,42,.10); }
+  .content { padding: 22px 24px 8px; }
+  h1 { margin: 0 0 18px; font-size: 26px; font-weight: 600; }
+  .section { margin-bottom: 22px; }
+  .slabel { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--accent); margin-bottom: 10px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
+  .row:last-child { margin-bottom: 0; }
+  .label { font-size: 14px; font-weight: 600; }
+  .note { font-size: 12.5px; color: var(--text2); margin-top: 2px; line-height: 1.35; }
+  .toggle { width: 40px; height: 20px; border-radius: 10px; background: var(--accent); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+  .field { display: flex; gap: 8px; margin-top: 6px; }
+  .input { flex: 1; height: 34px; border: 1px solid var(--control); border-radius: 5px; padding: 0 10px; font-size: 14px; display: flex; align-items: center; }
+  .sq { width: 40px; height: 34px; border: 1px solid var(--control); border-radius: 5px; }
+  .radios { display: flex; gap: 16px; font-size: 14px; }
+  .radio { display: flex; align-items: center; gap: 7px; }
+  .radio i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--control); display: inline-block; }
+  .radio.on i { border: 5px solid var(--accent); }
+  .btn2 { height: 32px; padding: 0 14px; border: 1px solid var(--control); border-radius: 5px; background: var(--surface);
+          font: 600 13.5px "Segoe UI"; color: var(--text); display: inline-flex; align-items: center; gap: 6px; flex: none; }
+  .btn1 { height: 32px; padding: 0 16px; border-radius: 5px; background: var(--accent); color: #fff; font: 600 13.5px "Segoe UI";
+          display: inline-flex; align-items: center; gap: 7px; border: 0; }
+  .footer { border-top: 1px solid var(--border); background: var(--subtle); padding: 14px 24px; display: flex; justify-content: space-between; }
+
+  /* The app icon row, collapsed: the current icon large, its name and what it does, and a button that opens the picker */
+  .iconrow { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+             background: var(--subtle); margin-bottom: 14px; }
+  .iconrow .text { flex: 1; min-width: 0; }
+  .iconrow .label .muted { font-weight: 400; color: var(--text2); }
+
+  .tile { flex: none; border-radius: 22%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .tile svg, .tile img { display: block; }
+  .pair { position: relative; flex: none; }
+  .pair .tile { box-shadow: 0 0 0 2px var(--surface); }
+
+  /* The picker: an overlay over the Settings window */
+  .scrim { position: absolute; inset: 0; background: rgba(15,23,42,.42); }
+  .sheet { position: absolute; left: 14px; right: 14px; top: 46px; background: var(--surface); border-radius: 10px;
+           box-shadow: 0 16px 40px rgba(15,23,42,.35); }
+  .sheet header { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 18px 6px; }
+  .sheet h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .sheet header .note { margin-top: 3px; }
+  .x { width: 28px; height: 28px; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: var(--text2); font-size: 18px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 18px 6px; }
+  .card { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--border);
+          border-radius: 8px; background: var(--surface); }
+  .card.on { border: 2px solid var(--accent); padding: 9px; background: var(--accent-soft); }
+  .card .name { font-size: 13.5px; font-weight: 600; }
+  .card .desc { font-size: 12px; color: var(--text2); line-height: 1.3; margin-top: 1px; }
+  .card .check { position: absolute; top: 7px; right: 7px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+                 color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+  .card.wide { grid-column: span 2; }
+  .grouplabel { grid-column: span 2; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--text3); margin: 4px 0 -2px; }
+  .sheet footer { display: flex; justify-content: flex-end; padding: 10px 18px 16px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="win" id="win"></div></div>
+<script>
+// A keycap as real geometry: a rounded rectangle base, a smaller rounded top, side facets lit
+// by one light, and the legend drawn on the top plane through its exact affine projection
+// (orthographic view, so a plane maps affinely).
+const rad = d => d * Math.PI / 180;
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb = c => `rgb(${c.map(v => Math.round(Math.max(0, Math.min(255, v)))).join(',')})`;
+const scale = (c, s) => c.map(v => v * s);
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+let uid = 0;
+
+function roundedRect(w, d, r, n, oy) {
+  const pts = [];
+  const corners = [[w/2 - r, d/2 - r, 0], [-w/2 + r, d/2 - r, 90], [-w/2 + r, -d/2 + r, 180], [w/2 - r, -d/2 + r, 270]];
+  for (const [cx, cy, start] of corners)
+    for (let i = 0; i <= n; i++) {
+      const a = rad(start + 90 * i / n);
+      pts.push([cx + r * Math.cos(a), cy + oy + r * Math.sin(a)]);
+    }
+  return pts;
+}
+
+function renderKey(o) {
+  const id = 'k' + (uid++);
+  const az = rad(o.azimuth), el = rad(o.elevation);
+  const H = o.height ?? 8.5, topW = o.topW ?? 12.6, topD = o.topD ?? 13.2, yo = o.topShift ?? 0.9;
+  const rot = ([x, y, z]) => [x * Math.cos(az) - y * Math.sin(az), x * Math.sin(az) + y * Math.cos(az), z];
+  const proj = p => { const [x, y, z] = rot(p); return [x, -(y * Math.sin(el) + z * Math.cos(el))]; };
+  const V = [0, -Math.cos(el), Math.sin(el)];
+  const Lr = (() => { const l = [-0.5, -0.45, 0.75]; const m = Math.hypot(...l); return l.map(v => v / m); })();
+  const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+  const sub = (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const norm = a => { const m = Math.hypot(...a); return a.map(v => v / m); };
+
+  const N = 22;
+  const base = roundedRect(18, 18, o.baseR ?? 2.2, N, 0).map(([x, y]) => [x, y, 0]);
+  const top = roundedRect(topW, topD, o.topR ?? 2.4, N, yo).map(([x, y]) => [x, y, H]);
+  const side = hex(o.side), topC = hex(o.top);
+  let defs = '', quads = '';
+
+  for (let i = 0; i < base.length; i++) {
+    const j = (i + 1) % base.length;
+    const b0 = rot(base[i]), b1 = rot(base[j]), t0 = rot(top[i]), t1 = rot(top[j]);
+    const n = norm(cross(sub(b1, b0), sub(t0, b0)));
+    if (dot(n, V) <= 0.0001) continue;
+    let lit = (o.ambient ?? 0.62) + (o.diffuse ?? 0.48) * Math.max(0, dot(n, Lr));
+    if (o.flat) lit = dot(n, Lr) > 0.12 ? 1.0 : 0.8;
+    const cTop = scale(side, lit), cBot = scale(side, lit * (o.flat ? 1 : 0.8));
+    const P = [base[i], base[j], top[j], top[i]].map(proj);
+    const pts = P.map(p => p.map(v => v.toFixed(3)).join(',')).join(' ');
+    if (o.flat) {
+      quads += `<polygon points="${pts}" fill="${rgb(cTop)}" stroke="${rgb(cTop)}" stroke-width="0.14"/>`;
+    } else {
+      const g = `${id}q${i}`;
+      const mt = [(P[2][0] + P[3][0]) / 2, (P[2][1] + P[3][1]) / 2], mb = [(P[0][0] + P[1][0]) / 2, (P[0][1] + P[1][1]) / 2];
+      defs += `<linearGradient id="${g}" gradientUnits="userSpaceOnUse" x1="${mt[0]}" y1="${mt[1]}" x2="${mb[0]}" y2="${mb[1]}"><stop offset="0" stop-color="${rgb(cTop)}"/><stop offset="1" stop-color="${rgb(cBot)}"/></linearGradient>`;
+      quads += `<polygon points="${pts}" fill="url(#${g})" stroke="url(#${g})" stroke-width="0.06"/>`;
+    }
+  }
+
+  // Affine map from the top plane (x right, y down toward the viewer) to the screen.
+  const tp = (x, y) => proj([x, yo - y, H]);
+  const p0 = tp(0, 0), px = tp(1, 0), py = tp(0, 1);
+  const M = `matrix(${px[0]-p0[0]} ${px[1]-p0[1]} ${py[0]-p0[0]} ${py[1]-p0[1]} ${p0[0]} ${p0[1]})`;
+
+  // Shadow on the table, pushed away from the light.
+  const sh = base.map(p => { const r = rot(p); return [r[0] + 1.6, r[1] + 1.9, 0]; })
+                 .map(([x, y, z]) => [x, -(y * Math.sin(el) + z * Math.cos(el))]);
+  const contact = base.map(proj);
+  const poly = P => P.map(p => p.map(v => v.toFixed(3)).join(',')).join(' ');
+
+  const tight = o.tight;
+  const all = tight ? [...contact, ...top.map(proj)] : [...sh, ...contact, ...top.map(proj)];
+  const pad = tight ? 0.5 : 2.6;
+  let minX = Math.min(...all.map(p => p[0])) - pad, maxX = Math.max(...all.map(p => p[0])) + pad;
+  let minY = Math.min(...all.map(p => p[1])) - pad, maxY = Math.max(...all.map(p => p[1])) + pad;
+  if (tight) { const w = maxX - minX, h = maxY - minY, m = Math.max(w, h); minX -= (m - w) / 2; maxX = minX + m; minY -= (m - h) / 2; maxY = minY + m; }
+
+  const tw = topW, td = topD;
+  const dishHi = rgb(mix(topC, [255,255,255], o.dishLight ?? 0.10)), dishLo = rgb(scale(topC, o.dishDark ?? 0.93));
+  let topFace;
+  if (o.flat) {
+    topFace = `<rect x="${-tw/2}" y="${-td/2}" width="${tw}" height="${td}" rx="${o.topR ?? 2.4}" fill="${o.top}"/>`;
+  } else {
+    defs += `<linearGradient id="${id}t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${dishHi}"/><stop offset="1" stop-color="${dishLo}"/></linearGradient>
+      <radialGradient id="${id}d" cx="0.5" cy="0.52" r="0.55"><stop offset="0" stop-color="#000" stop-opacity="${o.dishShade ?? 0.07}"/><stop offset="0.75" stop-color="#000" stop-opacity="0"/></radialGradient>`;
+    topFace = `<rect x="${-tw/2}" y="${-td/2}" width="${tw}" height="${td}" rx="${o.topR ?? 2.4}" fill="url(#${id}t)"/>
+      <rect x="${-tw/2}" y="${-td/2}" width="${tw}" height="${td}" rx="${o.topR ?? 2.4}" fill="url(#${id}d)"/>
+      <rect x="${-tw/2 + 0.2}" y="${-td/2 + 0.2}" width="${tw - 0.4}" height="${td - 0.4}" rx="${(o.topR ?? 2.4) - 0.2}" fill="none" stroke="#fff" stroke-opacity="${o.rim ?? 0.45}" stroke-width="0.35"/>`;
+  }
+
+  const shadow = o.flat || o.noShadow || o.tight ? '' :
+    `<filter id="${id}b1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.3"/></filter>
+     <filter id="${id}b2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.35"/></filter>
+     <polygon points="${poly(sh)}" fill="#0b1220" opacity="${o.shadowOpacity ?? 0.22}" filter="url(#${id}b1)"/>
+     <polygon points="${poly(contact)}" fill="#0b1220" opacity="0.35" filter="url(#${id}b2)"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}">
+    <defs>${defs}</defs>${shadow}${quads}<g transform="${M}">${topFace}${o.legend(tw, td)}</g></svg>`;
+}
+
+// v5: center the K by its ink (the glyph's measured bounds), not by the font's em box,
+// so it sits in the middle of the top face both ways.
+const inkBox = (() => {
+  const ctx = document.createElement('canvas').getContext('2d');
+  return weight => {
+    ctx.font = `${weight} 100px "Segoe UI"`;
+    const m = ctx.measureText('K');
+    return { l: m.actualBoundingBoxLeft, r: m.actualBoundingBoxRight, a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent };
+  };
+})();
+const K = (color, size = 8.2, weight = 600, x = 0, y = 0) => (tw, td) => {
+  const b = inkBox(weight), s = size / 100;
+  const tx = x + (b.l - b.r) / 2 * s, ty = y + (b.a - b.d) / 2 * s;
+  return `<text x="${tx}" y="${ty}" font-family="Segoe UI" font-weight="${weight}" font-size="${size}" fill="${color}">K</text>`;
+};
+
+const concepts = [
+  // v2: all three use D's view (azimuth 26, elevation 48, facing right); the arrow badge is gone.
+  { key: 'D', name: 'D. White', note: 'White keycap, blue K centered (v1’s arrow badge removed).',
+    side: '#dfe3ea', top: '#fbfcfd', azimuth: 26, elevation: 48, dishShade: 0.05,
+    legend: K('#2563eb', 8.4, 600) },
+  { key: 'B', name: 'B. Midnight', note: 'Charcoal keycap, the app’s blue K, now in D’s view.',
+    side: '#2a2f38', top: '#353b46', azimuth: 26, elevation: 48, ambient: 0.75, diffuse: 0.55, dishLight: 0.08, rim: 0.05, dishShade: 0.05,
+    legend: K('#4f8cff', 8.4, 600) },
+  { key: 'C', name: 'C. Accent', note: 'Accent-blue keycap, white K, now in D’s view.',
+    side: '#1f56d0', top: '#2f6df0', azimuth: 26, elevation: 48, ambient: 0.7, diffuse: 0.42, rim: 0.3, dishLight: 0.12,
+    legend: K('#ffffff', 8.4, 600) },
+];
+// v3: row 2 is the same keys on the app's dark surface, row 3 is D and B on the app's accent blue.
+const DARK = '#20242c', BLUE = '#2563eb';
+const base = Object.fromEntries(concepts.map(c => [c.key, c]));
+concepts.push(
+  { ...base.D, key: 'D2', name: 'D2. White on dark', note: 'D on the app’s dark background.', bg: DARK, shadowOpacity: 0.55 },
+  { ...base.B, key: 'B2', name: 'B2. Midnight on dark', note: 'B on the app’s dark background.', bg: DARK, shadowOpacity: 0.55 },
+  { ...base.C, key: 'C2', name: 'C2. Accent on dark', note: 'C on the app’s dark background.', bg: DARK, shadowOpacity: 0.55 },
+  { ...base.D, key: 'D3', name: 'D3. White on blue', note: 'D on the app’s accent blue.', bg: BLUE, shadowOpacity: 0.4 },
+  { ...base.B, key: 'B3', name: 'B3. Midnight on blue', note: 'B on the app’s accent blue.', bg: BLUE, shadowOpacity: 0.4 },
+);
+
+// v6: the finalists, relettered A-D with names in the style of Midnight. The keys are v5's, unchanged.
+const finalists = [
+  ['D2', 'A', 'A. Porcelain', 'White keycap, the app’s blue K, on a dark background.'],
+  ['B',  'B', 'B. Midnight',  'Charcoal keycap, the app’s blue K, on a light background.'],
+  ['C',  'C', 'C. Cobalt',    'Accent-blue keycap, white K, on a light background.'],
+  ['C2', 'D', 'D. Twilight',  'Accent-blue keycap, white K, on a dark background.'],
+].map(([from, key, name, note]) => ({ ...concepts.find(c => c.key === from), key, name, note }));
+
+
+// ---- The settings sketch ----
+const TR = 'data:image/png;base64,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';
+const LIGHT_TILE = '#e8ecf2', DARK_TILE = '#20242c';
+const F = Object.fromEntries(finalists.map(f => [f.key, f]));
+const icons = {
+  porcelain: { name: 'Porcelain', desc: 'White keycap on a dark background.', key: F.A, tile: DARK_TILE },
+  midnight:  { name: 'Midnight',  desc: 'Charcoal keycap on a light background.', key: F.B, tile: LIGHT_TILE },
+  cobalt:    { name: 'Cobalt',    desc: 'Blue keycap on a light background.', key: F.C, tile: LIGHT_TILE },
+  twilight:  { name: 'Twilight',  desc: 'Blue keycap on a dark background.', key: F.D, tile: DARK_TILE },
+  ralon:     { name: 'Team Ralon', desc: 'Team Ralon FTW!', tile: '#ffffff', img: TR },
+};
+const options = [
+  { id: 'auto',      name: 'Auto',       desc: 'Porcelain in light mode, Midnight in dark mode.', pair: ['porcelain', 'midnight'] },
+  { id: 'autoblue',  name: 'Auto blue',  desc: 'Twilight in light mode, Cobalt in dark mode.', pair: ['twilight', 'cobalt'] },
+  ...['porcelain', 'midnight', 'cobalt', 'twilight', 'ralon'].map(id => ({ id, ...icons[id], single: id })),
+];
+
+function tile(id, size) {
+  const i = icons[id];
+  const inner = i.img
+    ? `<img src="${i.img}" width="${Math.round(size * 0.62)}" height="${Math.round(size * 0.62)}">`
+    : renderKey({ ...i.key, tight: true }).replace('<svg ', `<svg width="${Math.round(size * 0.86)}" height="${Math.round(size * 0.86)}" `);
+  const ring = i.tile === '#ffffff' || i.tile === LIGHT_TILE ? 'box-shadow: inset 0 0 0 1px #d9dee8;' : '';
+  return `<div class="tile" style="width:${size}px;height:${size}px;background:${i.tile};${ring}">${inner}</div>`;
+}
+function preview(o, size) {
+  if (o.single) return tile(o.single, size);
+  // An auto option shows both icons, the light-mode one in front
+  const s = Math.round(size * 0.74);
+  return `<div class="pair" style="width:${size}px;height:${size}px">
+    <div style="position:absolute;right:0;top:0">${tile(o.pair[1], s)}</div>
+    <div style="position:absolute;left:0;bottom:0">${tile(o.pair[0], s)}</div></div>`;
+}
+
+const current = options[0];
+const state = new URLSearchParams(location.search).get('state') || 'collapsed';
+
+const settings = `
+  <div class="content">
+    <h1>Settings</h1>
+    <div class="section">
+      <div class="slabel">OUTPUT</div>
+      <div class="row" style="margin-bottom:0"><div class="label">Output folder</div><div class="note" style="margin:0">New keycuts files are saved here.</div></div>
+      <div class="field"><div class="input">C:\\Users\\sample\\Shortcuts</div><div class="sq"></div><div class="sq"></div></div>
+    </div>
+    <div class="section">
+      <div class="slabel">BEHAVIOR</div>
+      <div class="row"><div class="label">Ask before replacing a keycut</div><div class="toggle"></div></div>
+      <div class="row"><div><div class="label">Right-click context menus</div><div class="note">Add \u201ckeycut this!\u201d to File Explorer menus.</div></div><div class="toggle"></div></div>
+      <div class="row"><div><div class="label">Use environment variables in paths</div><div class="note">Save paths as %USERPROFILE%\\\u2026 or similar. Hold Shift to preview or create a keycut like this, even when disabled.</div></div><div class="toggle"></div></div>
+    </div>
+    <div class="section">
+      <div class="slabel">APPEARANCE</div>
+      <div class="iconrow">
+        ${preview(current, 60)}
+        <div class="text">
+          <div class="label">App icon <span class="muted">\u00b7 ${current.name}</span></div>
+          <div class="note">${current.desc}</div>
+        </div>
+        <div class="btn2">Change\u2026</div>
+      </div>
+      <div class="row"><div class="label">Theme</div>
+        <div class="radios"><span class="radio on"><i></i>System</span><span class="radio"><i></i>Light</span><span class="radio"><i></i>Dark</span></div></div>
+    </div>
+    <div class="section">
+      <div class="slabel">UPDATES</div>
+      <div class="row"><div><div class="label">Check for updates</div><div class="note">Once a day, ask GitHub whether a newer version is out.</div></div><div class="toggle"></div></div>
+    </div>
+  </div>
+  <div class="footer"><div class="btn2">Show welcome</div><div class="btn1">\u2713&nbsp; Save</div></div>`;
+
+const card = o => `<div class="card${o === current ? ' on' : ''}${o.id === 'ralon' ? ' wide' : ''}">
+    ${preview(o, 52)}<div><div class="name">${o.name}</div><div class="desc">${o.desc}</div></div>
+    ${o === current ? '<div class="check">\u2713</div>' : ''}</div>`;
+
+const picker = `
+  <div class="scrim"></div>
+  <div class="sheet">
+    <header><div><h2>App icon</h2><div class="note">Shown in the title bar, the taskbar and Alt+Tab.</div></div><div class="x">\u2715</div></header>
+    <div class="grid">
+      <div class="grouplabel">FOLLOWS THE THEME</div>
+      ${options.slice(0, 2).map(card).join('')}
+      <div class="grouplabel">ALWAYS THE SAME</div>
+      ${options.slice(2, 6).map(card).join('')}
+      ${card(options[6])}
+    </div>
+    <footer><div class="btn1">Done</div></footer>
+  </div>`;
+
+document.getElementById('win').innerHTML = settings + (state === 'expanded' ? picker : '');
+</script>
+</body>
+</html>

@@ -249,10 +249,10 @@
               CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
               Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
         <StackPanel>
-          <TextBlock Text="Welcome to keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+          <TextBlock Text="Welcome to keycuts!" FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
                      AutomationProperties.HeadingLevel="Level2" />
           <TextBlock TextWrapping="Wrap" Margin="0,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Text="keycuts gives your apps, files, folders, and websites short names. Create one here, then press Win+R, type the name, and press Enter to open it." />
+                     Text="keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it." />
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />

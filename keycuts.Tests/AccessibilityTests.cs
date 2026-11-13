@@ -262,8 +262,7 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
-                    (target, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+                var welcome = new WelcomeViewModel(() => false, () => { });
                 var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { Welcome = welcome };
                 creator.Target = "https://example.com";
                 creator.TargetKind = KeycutKind.Url;
@@ -274,12 +273,56 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "manager", "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" },
+                        new[]
+                        {
+                            "manager", "Dismiss welcome",
+                            "URL google.com, creates the keycut g", "Folder Downloads, creates the keycut dl", "File keycuts, creates the keycut kc",
+                            "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings"
+                        },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
                     Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, TabStops(window));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // #213: the bubbles and Got it change the form, so they are off while a keycut is being saved, like the fields themselves
+        [Fact]
+        public void Creator_WelcomePanel_IsOffWhileSaving()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var pending = new TaskCompletionSource<CreateResult>();
+                var welcome = new WelcomeViewModel(() => false, () => { });
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }),
+                    (target, name, description, useEnvironmentVariables, replace, ct) => pending.Task, TestNameChecks.NoWarnings)
+                {
+                    Welcome = welcome
+                };
+                welcome.OnKeycutCountLoaded(0);
+
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    var panel = (Border)Descendants<CreatorView>(window).Single().FindName("WelcomePanel");
+                    Assert.True(panel.IsEnabled);
+
+                    _ = creator.CreateCommand.ExecuteAsync();
+                    Pump();
+                    Assert.True(creator.IsSaving);
+                    Assert.False(panel.IsEnabled);
+
+                    pending.SetResult(CreateResult.Success(null!));
+                    Pump();
+                    Assert.False(creator.IsSaving);
+                    Assert.True(panel.IsEnabled);
                 }
                 finally
                 {

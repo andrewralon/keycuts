@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace keycuts.Common
 {
@@ -49,7 +51,37 @@ namespace keycuts.Common
                 ? new KeycutRepository(outputFolder).Find(name)
                 : null;
 
-            return new NameCheck(name, existing, NameConflicts.Find(name, outputFolder, environment));
+            var conflicts = NameConflicts.Find(name, outputFolder, environment).Select(AsKeycutIfOne).ToList();
+
+            return new NameCheck(name, existing, conflicts);
+        }
+
+        // A conflict that is a keycut (another keycuts folder on PATH) is described as one, with what it opens
+        private static NameConflict AsKeycutIfOne(NameConflict conflict)
+        {
+            if (!conflict.Path.EndsWith(ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return conflict;
+            }
+
+            // The repository's parser is lenient (a headerless launcher is listed in the manager), but an unrelated script that happens
+            // to have a START line is a program here, not a keycut
+            var keycut = HasKeycutsHeader(conflict.Path) ? KeycutRepository.TryParse(conflict.Path) : null;
+
+            return keycut == null ? conflict : new NameConflict(conflict.Path, conflict.Effect, conflict.Source, keycut);
+        }
+
+        // Every version of keycuts writes "REM keycuts <version>" among the first lines
+        private static bool HasKeycutsHeader(string path)
+        {
+            try
+            {
+                return File.ReadLines(path).Take(5).Any(line => line.TrimStart().StartsWith("REM keycuts ", StringComparison.OrdinalIgnoreCase));
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                return false;
+            }
         }
     }
 }

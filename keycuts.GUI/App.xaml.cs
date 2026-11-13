@@ -34,8 +34,6 @@ namespace keycuts.GUI
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
 
-            // The self-keycut opens this exe; ProcessPath is null only in unusual hosts
-            var appPath = Environment.ProcessPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "keycuts.GUI.exe");
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
             var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
@@ -43,10 +41,8 @@ namespace keycuts.GUI
             // wait for it, so the manager and the welcome already see the new names.
             var moveAside = Task.Run(MoveAsideCommandNames);
             var welcome = new ViewModels.WelcomeViewModel(
-                appPath,
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
-                (target, name, ct) => Common.KeycutCreator.CreateAsync(target, name, null, ct),
                 usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
                 usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
@@ -70,8 +66,10 @@ namespace keycuts.GUI
                 updateNotice,
                 new ViewModels.RegistryDescriptionVisibilityStore());
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
-            shell.Manager.CheckRename = name => new Common.NameCheck(name, null,
-                Common.NameConflicts.Find(name, new Common.Runner().GetOutputFolder(), Common.NameConflictEnvironment.GetDefault()));
+            // Through NameCheck.Run, like the Creator, so a conflict that is a keycut is described as one; askBeforeReplacing is
+            // off because the rename refuses a taken keycut name itself
+            shell.Manager.CheckRename = name => Common.NameCheck.Run(name, new Common.Runner().GetOutputFolder(), false,
+                Common.NameConflictEnvironment.GetDefault());
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();

@@ -176,6 +176,38 @@ namespace keycuts.Tests
             });
         }
 
+        // A status message (Deleted, a save error) appears with the focus elsewhere; LiveSetting alone raises nothing
+        [Fact]
+        public void Announces_TheManagerStatusMessage_WhenItAppears_ButNotWhenItGoes()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = NewLoadedManager(null, null, "alpha");
+                var managerWindow = Host(new ManagerView(), manager);
+                var announced = new List<UIElement>();
+                Action<UIElement> record = announced.Add;
+                LiveRegion.Announced += record;
+
+                try
+                {
+                    var message = (TextBlock)Descendants<ManagerStatusView>(managerWindow).Single().FindName("StatusMessageText");
+
+                    SetManagerStatus(manager, "Couldn’t restore “alpha”", true);
+                    Assert.Same(message, Assert.Single(announced));
+                    Assert.Equal("Couldn’t restore “alpha”", message.Text);
+
+                    SetManagerStatus(manager, string.Empty, false);   // it timed out: nothing to say
+                    Assert.Single(announced);
+                }
+                finally
+                {
+                    LiveRegion.Announced -= record;
+                    managerWindow.Close();
+                }
+            });
+        }
+
         // Saving and Created are on the Name label's row, not under the field, so the window keeps its height (#205)
         [Fact]
         public void Creator_SavingAndCreated_ShowByTheNameLabel_AndAreAnnounced()

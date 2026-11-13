@@ -1340,6 +1340,28 @@ namespace keycuts.Tests
             Assert.Equal(new[] { (@"C:\fixture\handmade.bat", "renamed") }, actions.Renamed);
         }
 
+        // #203: the warning marker takes the Missing marker's place under the name, and, like it, gives way to the name box
+        [Fact]
+        public async Task TheWarningIndicator_StepsAsideWhileTheNameIsEdited_AndTheCheckRaisesIt()
+        {
+            var keycut = NewKeycut("h");
+            var manager = await LoadedKeycutsAsync(new FakeActions(), keycut);
+            var row = manager.Rows[0];
+            var raised = new List<string?>();
+            row.PropertyChanged += (s, e) => raised.Add(e.PropertyName);
+
+            keycut.TargetStatus = TargetStatus.Warning;
+            row.RefreshTargetStatus();
+
+            Assert.True(row.ShowWarningIndicator);
+            Assert.False(row.ShowMissingIndicator);
+            Assert.Contains(nameof(KeycutRowViewModel.ShowWarningIndicator), raised);
+
+            manager.BeginRename(row);
+
+            Assert.False(row.ShowWarningIndicator);
+        }
+
         #endregion Edit when the form can't (#202)
 
         #region Editing the description in place (#202)

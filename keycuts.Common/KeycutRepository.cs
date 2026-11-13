@@ -1144,7 +1144,9 @@ namespace keycuts.Common
 
         private const string SearchedStartInFolderToo = "searched the start-in folder, the Windows folder, System32, PATH and App Paths";
 
-        private const string StartInFolderIsGone = "the start-in folder doesn't exist, and START only gets past that for a program that is in App Paths";
+        private const string StartInFolderGoneProgramFound = "the program is on PATH or in System32, but the start-in folder doesn't exist, and START stops with \"The current directory is invalid\"";
+
+        private const string StartInFolderGoneNothingFound = "the start-in folder doesn't exist, and the program isn't in App Paths, PATH, System32 or the Windows folder";
 
         /// <summary>
         /// Whether Windows finds <paramref name="programName"/> for <c>START "" /D "&lt;folder&gt;" &lt;program&gt;</c> (#203). This
@@ -1152,12 +1154,15 @@ namespace keycuts.Common
         /// <list type="bullet">
         /// <item>A <c>/D</c> folder that exists is searched for the program, so a program only there is found.</item>
         /// <item>A program found by name in the Windows folder, System32 or PATH is found, but only if the folder exists:
-        /// with a missing one START stops with "The current directory is invalid".</item>
+        /// with a missing one START stops with "The current directory is invalid", even if App Paths has the program
+        /// too. That is Missing.</item>
         /// <item>A program that is only in App Paths is found whatever the folder is: START hands the name it can't
         /// resolve to ShellExecute, which finds it there and does without the working directory. This is why a launcher
-        /// for Chrome that names a <c>Program Files (x86)</c> folder that doesn't exist still works.</item>
+        /// for Chrome that names a <c>Program Files (x86)</c> folder that doesn't exist still works. With a folder that
+        /// doesn't exist that is a Warning: it starts, but the folder is stale.</item>
         /// </list>
-        /// Missing is "none of those finds it". An empty folder (<c>/D ""</c>) is the same without the first two limits.
+        /// Missing is "none of those finds it", or the program can't get started. An empty folder (<c>/D ""</c>) is the same
+        /// without the first two limits.
         /// </summary>
         private static CheckResult CheckStartIn(string startIn, string programName, NameConflictEnvironment environment)
         {
@@ -1171,15 +1176,24 @@ namespace keycuts.Common
 
             // No output folder: that argument gives a name its conflict rules, and this only asks what Windows would find
             var found = NameConflicts.Find(programName, null, environment);
+            var foundByName = found.Any(c => c.Source != NameConflictSource.AppPaths);
+            var inAppPaths = found.Any(c => c.Source == NameConflictSource.AppPaths);
 
-            if (found.Any(c => c.Source != NameConflictSource.AppPaths) && folderExists)
+            // START finds these itself, and then a missing folder stops it. That holds even when App Paths has the program
+            // too (checked: the search by name comes first).
+            if (foundByName)
             {
-                return new CheckResult(TargetStatus.Ok, lookedFor);
+                return folderExists ?
+                    new CheckResult(TargetStatus.Ok, lookedFor) :
+                    new CheckResult(TargetStatus.Missing, lookedFor, StartInFolderGoneProgramFound);
             }
 
-            if (found.Any(c => c.Source == NameConflictSource.AppPaths))
+            if (inAppPaths)
             {
-                return new CheckResult(TargetStatus.Ok, lookedFor);
+                // It starts, whatever the folder is. A folder that isn't there is worth a warning, not a Missing.
+                return folderExists ?
+                    new CheckResult(TargetStatus.Ok, lookedFor) :
+                    new CheckResult(TargetStatus.Warning, lookedFor, $"It starts, but its start-in folder {startIn} doesn't exist. START finds {programName} in App Paths and doesn't need the folder.");
             }
 
             // A name like readme.txt is searched for as typed only when PATHEXT lists its extension, so a search that came
@@ -1189,7 +1203,7 @@ namespace keycuts.Common
                 return new CheckResult(TargetStatus.Unknown, lookedFor);
             }
 
-            var detail = !folderExists ? StartInFolderIsGone : startIn.Length == 0 ? SearchedByName : SearchedStartInFolderToo;
+            var detail = !folderExists ? StartInFolderGoneNothingFound : startIn.Length == 0 ? SearchedByName : SearchedStartInFolderToo;
 
             return new CheckResult(TargetStatus.Missing, lookedFor, detail);
         }

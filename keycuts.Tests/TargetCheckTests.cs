@@ -206,17 +206,45 @@ namespace keycuts.Tests
 
         private string GoneFolder() => Path.Combine(_root, "no such folder");
 
-        // The case that was wrong: the folder is missing, and the program is in App Paths. Not Missing.
+        // The case that was wrong: the folder is missing, and the program is in App Paths. It starts, so not Missing; the stale
+        // folder is a Warning.
         [Fact]
-        public async Task StartInFolderGone_ProgramInAppPaths_IsNotMissing()
+        public async Task StartInFolderGone_ProgramInAppPaths_IsAWarning_NotMissing()
         {
             var chrome = Program("chrome.exe");
             WriteLaunch("h", $"START \"\" /D \"{GoneFolder()}\" chrome.exe --profile-directory=\"Default\"");
 
             var keycut = await LoadAndCheck("h", Lookup(appPath: chrome));
 
-            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
-            Assert.Equal("", keycut.CheckedDetail);
+            Assert.Equal(TargetStatus.Warning, keycut.TargetStatus);
+            Assert.Equal(Path.Combine(GoneFolder(), "chrome.exe"), keycut.CheckedPath);
+            Assert.Contains(GoneFolder(), keycut.CheckedDetail);
+            Assert.Contains("doesn't exist", keycut.CheckedDetail);
+            Assert.Contains("App Paths", keycut.CheckedDetail);
+        }
+
+        // Checked with a throwaway program: a program that START finds by name stops at a missing folder even when App Paths
+        // has it too, so that launcher doesn't start
+        [Fact]
+        public async Task StartInFolderGone_ProgramOnThePathAndInAppPaths_IsMissing()
+        {
+            var tool = Program("tool.exe");
+            WriteLaunch("h", $"START \"\" /D \"{GoneFolder()}\" tool.exe");
+
+            var keycut = await LoadAndCheck("h", Lookup(_programs, tool));
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Contains("The current directory is invalid", keycut.CheckedDetail);
+        }
+
+        // With the folder there, App Paths alone is simply Ok
+        [Fact]
+        public async Task StartInFolderThere_ProgramOnlyInAppPaths_HasNoWarning()
+        {
+            var chrome = Program("chrome.exe");
+            WriteLaunch("h", $"START \"\" /D \"{_folder}\" chrome.exe");
+
+            Assert.Equal(TargetStatus.Ok, (await LoadAndCheck("h", Lookup(appPath: chrome))).TargetStatus);
         }
 
         [Fact]

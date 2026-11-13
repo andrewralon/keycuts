@@ -81,6 +81,7 @@ namespace keycuts.GUI.ViewModels
                 if (SetProperty(ref isRenaming, value))
                 {
                     OnPropertyChanged(nameof(ShowMissingIndicator));
+                    OnPropertyChanged(nameof(ShowWarningIndicator));
                 }
             }
         }
@@ -89,6 +90,12 @@ namespace keycuts.GUI.ViewModels
         public bool ShowMissingIndicator
         {
             get { return IsTargetMissing && !isRenaming; }
+        }
+
+        /// <summary>The Warning marker under the name (#203), shown in place of Missing when the keycut starts anyway.</summary>
+        public bool ShowWarningIndicator
+        {
+            get { return IsTargetWarning && !isRenaming; }
         }
 
         /// <summary>The name being typed while renaming.</summary>
@@ -213,6 +220,18 @@ namespace keycuts.GUI.ViewModels
             get { return Keycut.TargetStatus == TargetStatus.Missing; }
         }
 
+        /// <summary>True when the keycut starts but something it names is wrong, such as a start-in folder that doesn't exist.</summary>
+        public bool IsTargetWarning
+        {
+            get { return Keycut.TargetStatus == TargetStatus.Warning; }
+        }
+
+        /// <summary>What the Warning is about, for its tooltip: the check's own sentence.</summary>
+        public string WarningTooltip
+        {
+            get { return string.IsNullOrEmpty(Keycut.CheckedDetail) ? "It starts, but something it names is wrong." : Keycut.CheckedDetail; }
+        }
+
         /// <summary>
         /// Says what the check looked for (#203): the path with its environment variables expanded, so a stale
         /// <c>Program Files (x86)</c> is plain to see, or the bare program name with where it was searched for. Before a
@@ -268,6 +287,9 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(IsTargetMissing));
             OnPropertyChanged(nameof(ShowMissingIndicator));
             OnPropertyChanged(nameof(MissingTooltip));
+            OnPropertyChanged(nameof(IsTargetWarning));
+            OnPropertyChanged(nameof(ShowWarningIndicator));
+            OnPropertyChanged(nameof(WarningTooltip));
         }
     }
 }

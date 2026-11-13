@@ -403,6 +403,15 @@
                       <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
                                  VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" />
                     </StackPanel>
+                    <!-- #203: starts, but something it names is wrong (a start-in folder that doesn't exist). WarningBrush is yellow
+                         in the dark palette and a dark amber in the light one, where yellow text can't be read. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,1,0,0" ToolTip="{Binding WarningTooltip}"
+                                Visibility="{Binding ShowWarningIndicator, Converter={StaticResource BoolToVisibility}}">
+                      <controls:Icon Kind="Warning" Size="11" VerticalAlignment="Center"
+                                     Foreground="{DynamicResource WarningBrush}" />
+                      <TextBlock Text="Warning" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource WarningBrush}" />
+                    </StackPanel>
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>

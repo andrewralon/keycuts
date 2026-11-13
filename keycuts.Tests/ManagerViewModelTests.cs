@@ -269,6 +269,35 @@ namespace keycuts.Tests
                 row.MissingTooltip);
         }
 
+        // #203: a keycut that starts but names a start-in folder that isn't there gets a warning, not the Missing mark
+        [Fact]
+        public void AWarning_IsNotMissing_AndShowsItsOwnIndicatorAndTooltip()
+        {
+            var keycut = NewKeycut("h");
+            keycut.TargetStatus = TargetStatus.Warning;
+            keycut.CheckedDetail = @"It starts, but its start-in folder C:\gone doesn't exist.";
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.True(row.IsTargetWarning);
+            Assert.True(row.ShowWarningIndicator);
+            Assert.False(row.IsTargetMissing);
+            Assert.False(row.ShowMissingIndicator);
+            Assert.Equal(@"It starts, but its start-in folder C:\gone doesn't exist.", row.WarningTooltip);
+        }
+
+        [Fact]
+        public void AMissingKeycut_HasNoWarningIndicator()
+        {
+            var keycut = NewKeycut("m");
+            keycut.TargetStatus = TargetStatus.Missing;
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.True(row.ShowMissingIndicator);
+            Assert.False(row.ShowWarningIndicator);
+        }
+
         [Fact]
         public void MissingTooltip_BeforeACheckHasSaid_FallsBackToTheTarget()
         {

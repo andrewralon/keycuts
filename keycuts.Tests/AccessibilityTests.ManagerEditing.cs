@@ -1,12 +1,17 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
+using keycuts.Common;
+using keycuts.GUI.Mvvm;
 using keycuts.GUI.ViewModels;
+using keycuts.GUI.Views;
 using Xunit;
 
 namespace keycuts.Tests
@@ -39,6 +44,63 @@ namespace keycuts.Tests
         {
             return Descendants<TextBox>(window).Single(t => t.IsVisible && AutomationProperties.GetName(t) == accessibleName);
         }
+
+        #region Warning and Missing (#203)
+
+        // In the table: "Warning" in its own color for a keycut that starts despite a stale start-in folder, "Missing" for one that doesn't
+        [Fact]
+        public void Manager_ShowsWarningForAKeycutThatStarts_AndMissingForOneThatDoesNot()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var noop = new RelayCommand(() => { });
+                Keycut K(string name, TargetStatus status, string detail = "") => new Keycut
+                {
+                    Name = name,
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.File,
+                    Target = @"C:\temp\" + name + ".exe",
+                    FilePath = @"C:\fixture\" + name + ".bat",
+                    TargetStatus = status,
+                    CheckedDetail = detail
+                };
+                var keycuts = new List<Keycut>
+                {
+                    K("chrome", TargetStatus.Warning, "It starts, but its start-in folder C:\\gone doesn't exist."),
+                    K("npp", TargetStatus.Missing),
+                    K("fine", TargetStatus.Ok)
+                };
+                var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, new RecordingActions());
+                manager.LoadAsync().GetAwaiter().GetResult();
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var warnings = Descendants<TextBlock>(window).Where(t => t.Text == "Warning" && t.IsVisible).ToList();
+                    var missing = Descendants<TextBlock>(window).Where(t => t.Text == "Missing" && t.IsVisible).ToList();
+
+                    Assert.Single(warnings);
+                    Assert.Single(missing);
+                    Assert.Equal("It starts, but its start-in folder C:\\gone doesn't exist.", ((StackPanel)warnings[0].Parent).ToolTip);
+
+                    // Each has its own color, from the palette (a dark amber in Light, yellow in Dark), and the same one as its icon
+                    Assert.Same(Application.Current.FindResource("WarningBrush"), warnings[0].Foreground);
+                    Assert.Same(Application.Current.FindResource("DangerBrush"), missing[0].Foreground);
+                    Assert.Equal(GUI.Controls.IconKind.Warning, IconKindOf((StackPanel)warnings[0].Parent));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        static GUI.Controls.IconKind IconKindOf(StackPanel panel)
+        {
+            return panel.Children.OfType<GUI.Controls.Icon>().Single().Kind;
+        }
+
+        #endregion Warning and Missing (#203)
 
         #region Shift+F2
 

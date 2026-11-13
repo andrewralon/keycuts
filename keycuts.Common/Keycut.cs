@@ -6,7 +6,13 @@ namespace keycuts.Common
     {
         Unknown,
         Ok,
-        Missing
+        Missing,
+
+        /// <summary>
+        /// The keycut starts, but something it names is wrong (#203): a <c>START /D</c> folder that doesn't exist, for a
+        /// program Windows finds through App Paths anyway. Shown as a warning, not as Missing.
+        /// </summary>
+        Warning
     }
 
     /// <summary>One keycut (.bat file) in the output folder, as shown in the manager.</summary>

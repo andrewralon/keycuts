@@ -674,7 +674,7 @@ namespace keycuts.Tests
                         new[]
                         {
                             "Output folder", "Choose", "Launch", "Ask before replacing a keycut", "Right-click context menus",
-                            "Use environment variables in paths", "System theme", "Light theme", "Dark theme",
+                            "Use environment variables in paths", "Icon: Black & White. Change", "System theme", "Light theme", "Dark theme",
                             "Check for updates", "Show the welcome panel", "Save"
                         },
                         stops);

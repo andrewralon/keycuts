@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -33,6 +34,8 @@ namespace keycuts.GUI
         {
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
+            // After the theme, which the icon options that follow it read
+            Themes.AppIconManager.Initialize(this, Common.RegistryStuff.GetAppIcon(), UpdateShortcutIcons);
 
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
@@ -83,10 +86,53 @@ namespace keycuts.GUI
                 mainFormLogic.HandleNewTarget(shell.Creator, args[0]);
             }
 
+            // Before Show, so the title bar and the taskbar never show the exe's own icon first
+            Themes.AppIconManager.ApplyTo(mainWindow);
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell.Creator);
             _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
             _ = CheckForUpdatesAsync(updateNotice);
+        }
+
+        private static readonly SemaphoreSlim shortcutLock = new(1, 1);
+
+        private static string? pendingShortcutIcon;
+
+        /// <summary>
+        /// Points the app's shortcuts (Start menu, desktop, pinned taskbar) at the icon now shown, off the UI thread. Picks can
+        /// come faster than the shortcuts are written, so each run writes only the latest one. Only shortcuts to this exe change,
+        /// so a Debug run leaves the installed app's alone.
+        /// </summary>
+        private static void UpdateShortcutIcons(Themes.AppIconArt art)
+        {
+            var exe = Environment.ProcessPath;
+            var icon = System.IO.Path.Combine(AppContext.BaseDirectory, Themes.AppIcons.FolderName, Themes.AppIcons.GetFileName(art));
+            if (exe == null || !System.IO.File.Exists(icon))
+            {
+                return;
+            }
+
+            Interlocked.Exchange(ref pendingShortcutIcon, icon);
+            _ = Task.Run(async () =>
+            {
+                await shortcutLock.WaitAsync();
+                try
+                {
+                    var latest = Interlocked.Exchange(ref pendingShortcutIcon, null);
+                    if (latest != null)
+                    {
+                        Common.ShortcutIcons.PointAt(Common.ShortcutIcons.GetDefaultFolders(), exe, latest);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("keycuts: couldn't update the shortcut icons: " + ex.Message);
+                }
+                finally
+                {
+                    shortcutLock.Release();
+                }
+            });
         }
 
         /// <summary>After the window is up, so startup never waits on the network. Any failure just leaves the footer line hidden.</summary>

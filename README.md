@@ -42,6 +42,8 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
 
 **Settings.** The gear at the bottom left of both screens opens it, beside the number of keycuts. The output folder, **Ask before replacing a keycut**, the right-click menu (on Windows 11 under **Show more options**), the theme and update checks. **Use environment variables in paths** (off by default) saves paths like `%USERPROFILE%\Desktop`, so a keycuts folder still works on another PC; hold Shift in the Creator to flip it for one keycut.
 
+**Icon.** Click the icon in Settings to pick another: **Black & White** (the default) and **Accent** switch with the light and dark theme, and Porcelain, Onyx, Cobalt, Twilight and the original Classic stay the same. A pick applies at once to the window, the taskbar and Alt+Tab, and to the app's Start menu, desktop and pinned taskbar shortcuts (Windows can take a moment to redraw a pinned one). The icons, in every size and with transparent versions, are in [assets/icons](assets/icons).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
   <img src="docs/images/settings-light.png" alt="The Settings window." width="484">

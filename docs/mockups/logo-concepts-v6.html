@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Logo concepts</title>
+<style>
+  body { margin: 0; background: #e9ebef; font-family: "Segoe UI", sans-serif; color: #1d2330; }
+  .sheet { padding: 26px 30px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+  .card { background: #fff; border-radius: 14px; padding: 16px 18px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { margin: 0; font-size: 19px; font-weight: 600; }
+  .card p { margin: 2px 0 10px; font-size: 13px; color: #5b6475; }
+  .big { display: flex; justify-content: center; background: #f5f6f8; border-radius: 10px; padding: 6px 0; }
+  .big svg { width: 330px; height: 290px; }
+  .sizes { display: flex; margin-top: 10px; border-radius: 8px; overflow: hidden; }
+  .sizes div { flex: 1; display: flex; align-items: center; justify-content: space-evenly; padding: 10px 0; }
+  .light { background: #f3f4f6; } .dark { background: #1f232a; }
+  .only { margin: 0; background: transparent; }
+  .only svg { display: block; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// A keycap as real geometry: a rounded rectangle base, a smaller rounded top, side facets lit
+// by one light, and the legend drawn on the top plane through its exact affine projection
+// (orthographic view, so a plane maps affinely).
+const rad = d => d * Math.PI / 180;
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb = c => `rgb(${c.map(v => Math.round(Math.max(0, Math.min(255, v)))).join(',')})`;
+const scale = (c, s) => c.map(v => v * s);
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+let uid = 0;
+
+function roundedRect(w, d, r, n, oy) {
+  const pts = [];
+  const corners = [[w/2 - r, d/2 - r, 0], [-w/2 + r, d/2 - r, 90], [-w/2 + r, -d/2 + r, 180], [w/2 - r, -d/2 + r, 270]];
+  for (const [cx, cy, start] of corners)
+    for (let i = 0; i <= n; i++) {
+      const a = rad(start + 90 * i / n);
+      pts.push([cx + r * Math.cos(a), cy + oy + r * Math.sin(a)]);
+    }
+  return pts;
+}
+
+function renderKey(o) {
+  const id = 'k' + (uid++);
+  const az = rad(o.azimuth), el = rad(o.elevation);
+  const H = o.height ?? 8.5, topW = o.topW ?? 12.6, topD = o.topD ?? 13.2, yo = o.topShift ?? 0.9;
+  const rot = ([x, y, z]) => [x * Math.cos(az) - y * Math.sin(az), x * Math.sin(az) + y * Math.cos(az), z];
+  const proj = p => { const [x, y, z] = rot(p); return [x, -(y * Math.sin(el) + z * Math.cos(el))]; };
+  const V = [0, -Math.cos(el), Math.sin(el)];
+  const Lr = (() => { const l = [-0.5, -0.45, 0.75]; const m = Math.hypot(...l); return l.map(v => v / m); })();
+  const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+  const sub = (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+  const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+  const norm = a => { const m = Math.hypot(...a); return a.map(v => v / m); };
+
+  const N = 22;
+  const base = roundedRect(18, 18, o.baseR ?? 2.2, N, 0).map(([x, y]) => [x, y, 0]);
+  const top = roundedRect(topW, topD, o.topR ?? 2.4, N, yo).map(([x, y]) => [x, y, H]);
+  const side = hex(o.side), topC = hex(o.top);
+  let defs = '', quads = '';
+
+  for (let i = 0; i < base.length; i++) {
+    const j = (i + 1) % base.length;
+    const b0 = rot(base[i]), b1 = rot(base[j]), t0 = rot(top[i]), t1 = rot(top[j]);
+    const n = norm(cross(sub(b1, b0), sub(t0, b0)));
+    if (dot(n, V) <= 0.0001) continue;
+    let lit = (o.ambient ?? 0.62) + (o.diffuse ?? 0.48) * Math.max(0, dot(n, Lr));
+    if (o.flat) lit = dot(n, Lr) > 0.12 ? 1.0 : 0.8;
+    const cTop = scale(side, lit), cBot = scale(side, lit * (o.flat ? 1 : 0.8));
+    const P = [base[i], base[j], top[j], top[i]].map(proj);
+    const pts = P.map(p => p.map(v => v.toFixed(3)).join(',')).join(' ');
+    if (o.flat) {
+      quads += `<polygon points="${pts}" fill="${rgb(cTop)}" stroke="${rgb(cTop)}" stroke-width="0.14"/>`;
+    } else {
+      const g = `${id}q${i}`;
+      const mt = [(P[2][0] + P[3][0]) / 2, (P[2][1] + P[3][1]) / 2], mb = [(P[0][0] + P[1][0]) / 2, (P[0][1] + P[1][1]) / 2];
+      defs += `<linearGradient id="${g}" gradientUnits="userSpaceOnUse" x1="${mt[0]}" y1="${mt[1]}" x2="${mb[0]}" y2="${mb[1]}"><stop offset="0" stop-color="${rgb(cTop)}"/><stop offset="1" stop-color="${rgb(cBot)}"/></linearGradient>`;
+      quads += `<polygon points="${pts}" fill="url(#${g})" stroke="url(#${g})" stroke-width="0.06"/>`;
+    }
+  }
+
+  // Affine map from the top plane (x right, y down toward the viewer) to the screen.
+  const tp = (x, y) => proj([x, yo - y, H]);
+  const p0 = tp(0, 0), px = tp(1, 0), py = tp(0, 1);
+  const M = `matrix(${px[0]-p0[0]} ${px[1]-p0[1]} ${py[0]-p0[0]} ${py[1]-p0[1]} ${p0[0]} ${p0[1]})`;
+
+  // Shadow on the table, pushed away from the light.
+  const sh = base.map(p => { const r = rot(p); return [r[0] + 1.6, r[1] + 1.9, 0]; })
+                 .map(([x, y, z]) => [x, -(y * Math.sin(el) + z * Math.cos(el))]);
+  const contact = base.map(proj);
+  const poly = P => P.map(p => p.map(v => v.toFixed(3)).join(',')).join(' ');
+
+  const tight = o.tight;
+  const all = tight ? [...contact, ...top.map(proj)] : [...sh, ...contact, ...top.map(proj)];
+  const pad = tight ? 0.5 : 2.6;
+  let minX = Math.min(...all.map(p => p[0])) - pad, maxX = Math.max(...all.map(p => p[0])) + pad;
+  let minY = Math.min(...all.map(p => p[1])) - pad, maxY = Math.max(...all.map(p => p[1])) + pad;
+  if (tight) { const w = maxX - minX, h = maxY - minY, m = Math.max(w, h); minX -= (m - w) / 2; maxX = minX + m; minY -= (m - h) / 2; maxY = minY + m; }
+
+  const tw = topW, td = topD;
+  const dishHi = rgb(mix(topC, [255,255,255], o.dishLight ?? 0.10)), dishLo = rgb(scale(topC, o.dishDark ?? 0.93));
+  let topFace;
+  if (o.flat) {
+    topFace = `<rect x="${-tw/2}" y="${-td/2}" width="${tw}" height="${td}" rx="${o.topR ?? 2.4}" fill="${o.top}"/>`;
+  } else {
+    defs += `<linearGradient id="${id}t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${dishHi}"/><stop offset="1" stop-color="${dishLo}"/></linearGradient>
+      <radialGradient id="${id}d" cx="0.5" cy="0.52" r="0.55"><stop offset="0" stop-color="#000" stop-opacity="${o.dishShade ?? 0.07}"/><stop offset="0.75" stop-color="#000" stop-opacity="0"/></radialGradient>`;
+    topFace = `<rect x="${-tw/2}" y="${-td/2}" width="${tw}" height="${td}" rx="${o.topR ?? 2.4}" fill="url(#${id}t)"/>
+      <rect x="${-tw/2}" y="${-td/2}" width="${tw}" height="${td}" rx="${o.topR ?? 2.4}" fill="url(#${id}d)"/>
+      <rect x="${-tw/2 + 0.2}" y="${-td/2 + 0.2}" width="${tw - 0.4}" height="${td - 0.4}" rx="${(o.topR ?? 2.4) - 0.2}" fill="none" stroke="#fff" stroke-opacity="${o.rim ?? 0.45}" stroke-width="0.35"/>`;
+  }
+
+  const shadow = o.flat || o.noShadow || o.tight ? '' :
+    `<filter id="${id}b1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.3"/></filter>
+     <filter id="${id}b2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.35"/></filter>
+     <polygon points="${poly(sh)}" fill="#0b1220" opacity="${o.shadowOpacity ?? 0.22}" filter="url(#${id}b1)"/>
+     <polygon points="${poly(contact)}" fill="#0b1220" opacity="0.35" filter="url(#${id}b2)"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}">
+    <defs>${defs}</defs>${shadow}${quads}<g transform="${M}">${topFace}${o.legend(tw, td)}</g></svg>`;
+}
+
+// v5: center the K by its ink (the glyph's measured bounds), not by the font's em box,
+// so it sits in the middle of the top face both ways.
+const inkBox = (() => {
+  const ctx = document.createElement('canvas').getContext('2d');
+  return weight => {
+    ctx.font = `${weight} 100px "Segoe UI"`;
+    const m = ctx.measureText('K');
+    return { l: m.actualBoundingBoxLeft, r: m.actualBoundingBoxRight, a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent };
+  };
+})();
+const K = (color, size = 8.2, weight = 600, x = 0, y = 0) => (tw, td) => {
+  const b = inkBox(weight), s = size / 100;
+  const tx = x + (b.l - b.r) / 2 * s, ty = y + (b.a - b.d) / 2 * s;
+  return `<text x="${tx}" y="${ty}" font-family="Segoe UI" font-weight="${weight}" font-size="${size}" fill="${color}">K</text>`;
+};
+
+const concepts = [
+  // v2: all three use D's view (azimuth 26, elevation 48, facing right); the arrow badge is gone.
+  { key: 'D', name: 'D. White', note: 'White keycap, blue K centered (v1’s arrow badge removed).',
+    side: '#dfe3ea', top: '#fbfcfd', azimuth: 26, elevation: 48, dishShade: 0.05,
+    legend: K('#2563eb', 8.4, 600) },
+  { key: 'B', name: 'B. Midnight', note: 'Charcoal keycap, the app’s blue K, now in D’s view.',
+    side: '#2a2f38', top: '#353b46', azimuth: 26, elevation: 48, ambient: 0.75, diffuse: 0.55, dishLight: 0.08, rim: 0.05, dishShade: 0.05,
+    legend: K('#4f8cff', 8.4, 600) },
+  { key: 'C', name: 'C. Accent', note: 'Accent-blue keycap, white K, now in D’s view.',
+    side: '#1f56d0', top: '#2f6df0', azimuth: 26, elevation: 48, ambient: 0.7, diffuse: 0.42, rim: 0.3, dishLight: 0.12,
+    legend: K('#ffffff', 8.4, 600) },
+];
+// v3: row 2 is the same keys on the app's dark surface, row 3 is D and B on the app's accent blue.
+const DARK = '#20242c', BLUE = '#2563eb';
+const base = Object.fromEntries(concepts.map(c => [c.key, c]));
+concepts.push(
+  { ...base.D, key: 'D2', name: 'D2. White on dark', note: 'D on the app’s dark background.', bg: DARK, shadowOpacity: 0.55 },
+  { ...base.B, key: 'B2', name: 'B2. Midnight on dark', note: 'B on the app’s dark background.', bg: DARK, shadowOpacity: 0.55 },
+  { ...base.C, key: 'C2', name: 'C2. Accent on dark', note: 'C on the app’s dark background.', bg: DARK, shadowOpacity: 0.55 },
+  { ...base.D, key: 'D3', name: 'D3. White on blue', note: 'D on the app’s accent blue.', bg: BLUE, shadowOpacity: 0.4 },
+  { ...base.B, key: 'B3', name: 'B3. Midnight on blue', note: 'B on the app’s accent blue.', bg: BLUE, shadowOpacity: 0.4 },
+);
+
+// v6: the finalists, relettered A-D with names in the style of Midnight. The keys are v5's, unchanged.
+const finalists = [
+  ['D2', 'A', 'A. Porcelain', 'White keycap, the app’s blue K, on a dark background.'],
+  ['B',  'B', 'B. Midnight',  'Charcoal keycap, the app’s blue K, on a light background.'],
+  ['C',  'C', 'C. Cobalt',    'Accent-blue keycap, white K, on a light background.'],
+  ['C2', 'D', 'D. Twilight',  'Accent-blue keycap, white K, on a dark background.'],
+].map(([from, key, name, note]) => ({ ...concepts.find(c => c.key === from), key, name, note }));
+
+const params = new URLSearchParams(location.search);
+const root = document.getElementById('root');
+if (params.get('only')) {
+  const c = finalists.find(c => c.key === params.get('only'));
+  const s = +(params.get('size') || 1024);
+  document.body.className = 'only';
+  document.body.style.background = c.bg || '#f5f6f8';
+  root.innerHTML = renderKey(c).replace('<svg ', `<svg width="${s}" height="${s}" `);
+} else {
+  root.className = 'sheet';
+  root.innerHTML = finalists.map(c => `
+    <div class="card"><h2>${c.name}</h2><p>${c.note}</p>
+      <div class="big"${c.bg ? ` style="background:${c.bg}"` : ''}>${renderKey(c)}</div>
+      <div class="sizes">
+        <div class="light">${[64, 32, 16].map(s => renderKey({...c, tight: true}).replace('<svg ', `<svg width="${s}" height="${s}" `)).join('')}</div>
+        <div class="dark">${[64, 32, 16].map(s => renderKey({...c, tight: true}).replace('<svg ', `<svg width="${s}" height="${s}" `)).join('')}</div>
+      </div></div>`).join('');
+}
+</script>
+</body>
+</html>

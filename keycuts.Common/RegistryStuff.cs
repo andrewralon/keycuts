@@ -24,6 +24,9 @@ namespace keycuts.Common
 
         public static readonly string ThemeKeyName = "Theme";
 
+        /// <summary>The app icon picked in Settings, by its <see cref="AppIconChoice"/> name. Written as soon as one is picked.</summary>
+        public static readonly string AppIconKeyName = "AppIcon";
+
         /// <summary>Save new file and folder keycuts with environment variables (#31). Off unless set.</summary>
         public static readonly string UseEnvironmentVariablesKeyName = "UseEnvironmentVariables";
 
@@ -133,6 +136,11 @@ namespace keycuts.Common
             return ThemePreferences.Parse(ReadValue(ThemeKeyName) as string);
         }
 
+        public static AppIconChoice GetAppIcon()
+        {
+            return AppIconChoices.Parse(ReadValue(AppIconKeyName) as string);
+        }
+
         public static bool GetWelcomeDismissed()
         {
             return ReadValue(WelcomeDismissedKeyName) is int raw && raw != 0;
@@ -231,6 +239,11 @@ namespace keycuts.Common
         public static void SetThemePreference(ThemePreference preference)
         {
             SetRegistryValue(ThemeKeyName, preference.ToString(), RegistryValueKind.String);
+        }
+
+        public static void SetAppIcon(AppIconChoice choice)
+        {
+            SetRegistryValue(AppIconKeyName, choice.ToString(), RegistryValueKind.String);
         }
 
         public static void SetWelcomeDismissed()

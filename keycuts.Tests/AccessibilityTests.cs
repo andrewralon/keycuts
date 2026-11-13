@@ -262,8 +262,7 @@ namespace keycuts.Tests
             RunSta(() =>
             {
                 EnsureApplication();
-                var welcome = new WelcomeViewModel(@"C:\keycuts\keycuts.GUI.exe", () => false, () => { },
-                    (target, name, ct) => Task.FromResult(CreateResult.Success(null!)));
+                var welcome = new WelcomeViewModel(() => false, () => { });
                 var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings) { Welcome = welcome };
                 creator.Target = "https://example.com";
                 creator.TargetKind = KeycutKind.Url;
@@ -274,7 +273,7 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "manager", "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" },
+                        new[] { "manager", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" },
                         TabStops(window));
 
                     welcome.Dismiss();

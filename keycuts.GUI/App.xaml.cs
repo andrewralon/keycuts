@@ -34,8 +34,6 @@ namespace keycuts.GUI
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
 
-            // The self-keycut opens this exe; ProcessPath is null only in unusual hosts
-            var appPath = Environment.ProcessPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "keycuts.GUI.exe");
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
             var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
@@ -43,12 +41,10 @@ namespace keycuts.GUI
             // wait for it, so the manager and the welcome already see the new names.
             var moveAside = Task.Run(MoveAsideCommandNames);
             var welcome = new ViewModels.WelcomeViewModel(
-                appPath,
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
-                (target, name, ct) => Common.KeycutCreator.CreateAsync(target, name, null, ct),
-                usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
-                usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
+                usesDebugFolder ? null : () => Common.UserPathUpdater.IsOnPath(new Common.Runner().GetOutputFolder()),
+                usesDebugFolder ? null : () => new Common.UserPathUpdater().AddToOrReplace(null, new Common.Runner().GetOutputFolder()));
 
             // #171: the GUI only; the CLI never checks
             var updateNotice = new ViewModels.UpdateNoticeViewModel(Common.UpdateChecker.CreateDefault());

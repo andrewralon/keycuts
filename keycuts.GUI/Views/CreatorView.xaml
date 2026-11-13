@@ -243,7 +243,8 @@
         </Button>
       </Grid>
 
-      <!-- First-run welcome (#61, #11): shown once, while the keycuts folder is empty. Collapsed without a Welcome. -->
+      <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. It fills the example (np for notepad.exe)
+           into the fields below instead of having a form of its own. Collapsed without a Welcome. -->
       <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
               CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
               Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
@@ -251,32 +252,22 @@
           <TextBlock Text="Welcome to keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
                      AutomationProperties.HeadingLevel="Level2" />
           <TextBlock TextWrapping="Wrap" Margin="0,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Text="Give anything a short name here. Then press Win+R, type the name, and press Enter to open it." />
-          <TextBlock Text="Start with a keycut to keycuts itself:" FontWeight="SemiBold" Margin="0,0,0,6"
-                     Foreground="{DynamicResource TextBrush}" />
+                     Text="keycuts gives your apps, files, folders, and websites short names. Create one here, then press Win+R, type the name, and press Enter to open it." />
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="TextboxWelcomeName" Height="34" MinHeight="34"
-                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                     themes:TextBoxChrome.HasError="{Binding HelperIsError}"
-                     IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Name for the keycuts keycut"
-                     AutomationProperties.HelpText="{Binding HelperText}">
-              <TextBox.InputBindings>
-                <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
-              </TextBox.InputBindings>
-            </TextBox>
-            <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
-                    Command="{Binding CreateCommand}" Content="Create keycut"
-                    AutomationProperties.Name="Create keycut to keycuts" />
-            <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
-                    Command="{Binding DismissCommand}" Content="Got it" AutomationProperties.Name="Dismiss welcome" />
+            <TextBlock Text="Start by creating a keycut named np for notepad.exe" TextWrapping="Wrap" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" Height="34" Padding="12,0"
+                    VerticalAlignment="Center" Command="{Binding DismissCommand}" Content="Got it"
+                    AutomationProperties.Name="Dismiss welcome" />
           </Grid>
+          <!-- Empty until a keycut is created, then how to use it, or the PATH warning -->
           <TextBlock x:Name="WelcomeHelperTextBlock" Margin="0,8,0,0" Text="{Binding HelperText}"
-                     Style="{StaticResource HelperText}" TextWrapping="Wrap" TextTrimming="None" />
+                     Style="{StaticResource HelperText}" TextWrapping="Wrap" TextTrimming="None"
+                     Visibility="{Binding HasHelperText, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
           <!-- Only after a create, when the keycuts folder isn't on PATH yet (a portable copy), so Win+R can't find it -->
           <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Height="34"
                   Padding="12,0" Command="{Binding AddToPathCommand}" Content="Add to PATH"

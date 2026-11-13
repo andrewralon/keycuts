@@ -137,6 +137,11 @@ namespace keycuts.GUI.ViewModels
 
         private int successVersion;
 
+        private WelcomeViewModel? welcome;
+
+        // The welcome panel filled in its example (#213), so Got it may clear the form again
+        private bool exampleFilled;
+
         private readonly Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>> createAsync;
 
         private readonly Func<string, NameCheck> checkName;
@@ -328,8 +333,56 @@ namespace keycuts.GUI.ViewModels
             set { Target = value; }
         }
 
-        /// <summary>The first-run panel shown above the form, or null when the app was started without one (tests, design data).</summary>
-        public WelcomeViewModel? Welcome { get; init; }
+        /// <summary>
+        /// The first-run panel shown above the form, or null when the app was started without one (tests, design data). It works
+        /// through this form (#213): when it shows, the example is filled into the fields below, Got it clears it again, and a
+        /// create tells it so it can say how to use the keycut.
+        /// </summary>
+        public WelcomeViewModel? Welcome
+        {
+            get { return welcome; }
+            init
+            {
+                welcome = value;
+
+                if (welcome != null)
+                {
+                    welcome.Shown += (sender, e) => FillExample();
+                    welcome.Dismissed += (sender, e) => ClearExample();
+                }
+            }
+        }
+
+        /// <summary>
+        /// The welcome panel suggests <c>np</c> for Notepad: put it in the fields, so Enter in the name creates it. Only into an
+        /// empty form, so it never replaces what was typed or a target the Explorer verb passed in.
+        /// </summary>
+        private void FillExample()
+        {
+            if (HasTarget || shortcutName.Length > 0)
+            {
+                return;
+            }
+
+            Target = WelcomeViewModel.ExampleTarget;
+            ShortcutName = WelcomeViewModel.ExampleName;
+            exampleFilled = true;
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
+        }
+
+        /// <summary>Got it: empties the form, but only if the welcome filled it, so a target that came from elsewhere stays.</summary>
+        private void ClearExample()
+        {
+            if (!exampleFilled)
+            {
+                return;
+            }
+
+            exampleFilled = false;
+            Target = string.Empty;
+            ShortcutName = string.Empty;
+            Description = string.Empty;
+        }
 
         /// <summary>The "new version is out" line in the footer (#171), or null without one (tests, design data).</summary>
         public UpdateNoticeViewModel? UpdateNotice { get; init; }
@@ -944,6 +997,7 @@ namespace keycuts.GUI.ViewModels
                 case CreateOutcome.Success:
                     SetSuccess(name);
                     NotifyKeycutCreated();
+                    welcome?.OnKeycutCreated(name);
                     _ = HideSuccessAfterDelayAsync();
                     return;
                 case CreateOutcome.DuplicateName:

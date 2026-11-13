@@ -1,6 +1,6 @@
 # Round trip: Parse(Emit(Parse(f))) compared with Parse(f), field by field.
 # Files that parse as Unknown have nothing to emit and are listed as skipped.
-# 41 ok, 0 fail, 4 skipped
+# 42 ok, 0 fail, 4 skipped
 
 edge-cases/command-type.bat: ok
 edge-cases/embedded-quote.bat: ok
@@ -45,5 +45,6 @@ old-format/npp.bat: ok
 old-format/pdn.bat: ok
 old-format/pm.bat: skipped (parses as Unknown)
 old-format/shortcuts.bat: ok
+target-tag/description-percent.bat: ok
 target-tag/folder.bat: ok
 target-tag/url.bat: ok

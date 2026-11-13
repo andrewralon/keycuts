@@ -98,10 +98,10 @@ namespace keycuts.Tests
         {
             var keycuts = await Generate(20);
 
-            var vicki = keycuts.Single(k => k.Name == "l-vicki");
-            Assert.Equal(KeycutKind.Url, vicki.Kind);
-            Assert.Equal("logs for vicki", vicki.Description);
-            Assert.StartsWith("https://logs.example.com/vicki", vicki.Target);
+            var art = keycuts.Single(k => k.Name == "art");
+            Assert.Equal(KeycutKind.Url, art.Kind);
+            Assert.Equal("Paintings gallery", art.Description);
+            Assert.StartsWith("https://gallery.example.com/art", art.Target);
 
             var downloads = keycuts.Single(k => k.Name == "downloads");
             Assert.Equal(KeycutKind.Folder, downloads.Kind);

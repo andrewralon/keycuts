@@ -22,6 +22,9 @@ namespace keycuts.Common
 
         public static readonly string RightClickContextMenuText = "keycut this!";
 
+        /// <summary>The program a Folder or CLSID keycut's launch line starts. Keycuts written before #160 call it directly, without START.</summary>
+        internal const string ExplorerProgram = "%SystemRoot%\\explorer.exe";
+
         private readonly IPathUpdater _pathUpdater = new UserPathUpdater();
 
         private readonly string _fixedOutputFolder;
@@ -325,7 +328,9 @@ namespace keycuts.Common
                 ShortcutType.Url => $"START {Shortcut.SanitizeBatEscapeCharacters(shortcut.Target)}",
                 ShortcutType.File => string.Format(start, shortcut.Target),
                 ShortcutType.HostsFile => string.Format(startWithArgument, @"%windir%\system32\notepad.exe", shortcut.Target),
-                ShortcutType.Folder or ShortcutType.CLSIDKey => $"\"%SystemRoot%\\explorer.exe\" \"{shortcut.Target}\"",
+                // START, so cmd doesn't wait for explorer.exe to hand off to the running shell: called directly, the console
+                // stayed up for about 600 ms, and with START it is gone in about 70 ms, like an empty .bat (#160)
+                ShortcutType.Folder or ShortcutType.CLSIDKey => string.Format(startWithArgument, ExplorerProgram, shortcut.Target),
                 // cmd /C runs the whole line, arguments included, which START "" /B "<line>" would treat as one program name
                 ShortcutType.Command => $"START \"\" /B cmd /C \"{shortcut.Target}\"",
                 ShortcutType.Unknown => throw new InvalidOperationException($"Can't write a keycut of type {shortcut.Type}."),
@@ -335,9 +340,16 @@ namespace keycuts.Common
 
         #region Static Methods
 
-        private static string SanitizeDescription(string description)
+        /// <summary>
+        /// A description as it goes on its <c>REM</c> line: on one line, with every <c>%</c> doubled. cmd expands <c>%</c>
+        /// before it reads <c>REM</c>, so a <c>%~</c> (as in <c>%~dp0</c>) stops the whole .bat with a syntax error and the
+        /// keycut never launches; <c>%%~</c> is inert. Folding newlines also keeps a line ending in <c>^</c> from joining the
+        /// next line, which the closing tag does anyway. <see cref="ShortcutFile.ParseDescription"/> halves the <c>%%</c> again.
+        /// The other special characters (<c>&amp; | &lt; &gt; ^</c>, a lone <c>%</c>, <c>%1</c>, <c>%*</c>) are inert on a REM line.
+        /// </summary>
+        internal static string SanitizeDescription(string description)
         {
-            return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+            return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim().Replace("%", "%%");
         }
 
         #endregion Static Methods

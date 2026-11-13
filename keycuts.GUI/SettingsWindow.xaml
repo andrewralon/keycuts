@@ -78,6 +78,91 @@
         <Style x:Key="SettingRow" TargetType="Grid">
             <Setter Property="Margin" Value="0,0,0,16" />
         </Style>
+
+        <!-- An icon choice as a picture, 52 px. One that follows the theme shows both drawings: the light-mode one at the top
+             left, and the dark-mode one over it, smaller, at the bottom right, in a ring of whatever it sits on (a card, a button). -->
+        <DataTemplate x:Key="IconPreview" DataType="{x:Type themes:AppIconOption}">
+            <Grid Width="52" Height="52" RenderOptions.BitmapScalingMode="HighQuality">
+                <Image x:Name="Single" Source="{Binding LightImage}" />
+                <Image x:Name="Back" Source="{Binding LightImage}" Width="38" Height="38" HorizontalAlignment="Left" VerticalAlignment="Top"
+                       Visibility="Collapsed" />
+                <Border x:Name="Front" Width="33" Height="33" Padding="1" CornerRadius="8" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                        Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}"
+                        Visibility="Collapsed">
+                    <Image Source="{Binding DarkImage}" />
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding FollowsTheme}" Value="True">
+                    <Setter TargetName="Single" Property="Visibility" Value="Collapsed" />
+                    <Setter TargetName="Back" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="Front" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- A card in the icon picker. The picked one has the accent border and a check in its corner. Two cards share a row:
+             203 wide with 5 on each side, so a row is 426 and the list, 428, centers it with 2 to spare (rounding at any scale
+             can't wrap the second). That still fits beside the 12 px scrollbar the picker shows on a short screen. Classic, the
+             last, takes the whole row. -->
+        <Style x:Key="IconCard" TargetType="ListBoxItem">
+            <Setter Property="Width" Value="203" />
+            <Setter Property="Margin" Value="5,0,5,10" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+            <Setter Property="AutomationProperties.HelpText" Value="{Binding Description}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <Border x:Name="Card" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="8" Padding="10" MinHeight="74" SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource IconPreview}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Margin="12,0,16,0" VerticalAlignment="Center">
+                                        <!-- The list's own Foreground is the system text color, not the palette's -->
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextBrush}" />
+                                        <TextBlock Text="{Binding Description}" FontSize="{StaticResource FontSizeCaption}" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border x:Name="Check" Width="18" Height="18" CornerRadius="9" Margin="0,7,7,0" HorizontalAlignment="Right"
+                                    VerticalAlignment="Top" Background="{DynamicResource AccentBrush}"
+                                    TextElement.Foreground="{DynamicResource OnAccentBrush}" Visibility="Collapsed">
+                                <controls:Icon Kind="Check" Size="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Card" Property="BorderThickness" Value="2" />
+                                <Setter TargetName="Card" Property="Padding" Value="9" />
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWide}" Value="True">
+                    <Setter Property="Width" Value="416" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Dims the window behind the icon picker, in either palette -->
+        <SolidColorBrush x:Key="ScrimBrush" Color="#6B0F172A" />
     </Window.Resources>
 
     <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible -->
@@ -87,7 +172,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False"
+        <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False" IsEnabled="{Binding IsBodyEnabled}"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="24">
             <!-- Header -->
@@ -114,7 +199,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="TextboxOutputFolder" Grid.Column="0" Style="{StaticResource OutputFolderBox}"
                              Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
-                             themes:TextBoxChrome.Placeholder="Choose where shortcuts are saved"
+                             themes:TextBoxChrome.Placeholder="Choose where keycuts are saved"
                              AutomationProperties.Name="Output folder"
                              AutomationProperties.HelpText="{Binding OutputFolderMessage}" />
                     <!-- Icon-only, so each says what it does in a tooltip; the automation names are unchanged -->
@@ -162,7 +247,7 @@
                 </Grid>
 
                 <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating (the
-                     "Saved as" line previews it). The help text says "flip", which is right in both directions: Shift turns it on
+                     the Creator's Target shows the path that way). The help text says "flip", which is right in both directions: Shift turns it on
                      for one keycut when the setting is off, and off when it is on. -->
                 <Grid Style="{StaticResource SettingRow}" Margin="0">
                     <Grid.ColumnDefinitions>
@@ -180,9 +265,28 @@
                 </Grid>
             </StackPanel>
 
-            <!-- Appearance: the label and the three choices share a line -->
+            <!-- Appearance. The icon first: its name and what it does, and the icon itself as the button that opens the picker.
+                 Unlike the rest of Settings, a pick applies and is saved at once. -->
             <StackPanel Style="{StaticResource Section}">
                 <TextBlock Text="APPEARANCE" Style="{StaticResource SectionLabel}" />
+                <Grid Style="{StaticResource SettingRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingLabel}">
+                            <Run Text="Icon" /><Run Text=" &#x00B7; " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
+                                Text="{Binding SelectedIcon.Name, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </TextBlock>
+                        <TextBlock x:Name="IconDescription" Text="{Binding SelectedIcon.Description}" Style="{StaticResource SettingNote}" />
+                    </StackPanel>
+                    <Button x:Name="BtnIcon" Grid.Column="1" Margin="20,0,0,0" Padding="5" VerticalAlignment="Center"
+                            Command="{Binding OpenIconPickerCommand}" Content="{Binding SelectedIcon}" ContentTemplate="{StaticResource IconPreview}"
+                            ToolTip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
+                </Grid>
+
+                <!-- The theme: the label and the three choices share a line -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -218,7 +322,8 @@
                                   AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out." />
                 </Grid>
 
-                <Grid>
+                <!-- The version, the update status and Check now: hidden only for the README's screenshots -->
+                <Grid x:Name="VersionRow" Visibility="{Binding ShowVersionRow, Converter={StaticResource BoolToVisibility}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -251,7 +356,7 @@
 
         <!-- Footer. There is no Cancel button: Escape (SettingsWindow.OnKeyDown) and the window's close button leave without saving -->
         <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,1,0,0" Padding="24,13">
+                BorderThickness="0,1,0,0" Padding="24,13" IsEnabled="{Binding IsBodyEnabled}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -269,5 +374,107 @@
                 </Button>
             </Grid>
         </Border>
+
+        <!-- The icon picker, over the whole window. A click on a card applies it at once, so there is no Done button; the close
+             button, Escape and a click on the dimmed window close it, and closing undoes nothing. The window behind is disabled
+             meanwhile (IsBodyEnabled), so Tab stays in here and Enter can't press Save. The sheet gets the window's height less
+             its margins: when Settings is capped to a short screen (FitToWorkArea), the cards scroll and the header stays. -->
+        <Grid x:Name="IconPicker" Grid.RowSpan="2" Visibility="{Binding IsIconPickerOpen, Converter={StaticResource BoolToVisibility}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="14" />
+            </Grid.RowDefinitions>
+            <Border Grid.RowSpan="3" Background="{StaticResource ScrimBrush}" MouseLeftButtonDown="IconPickerScrim_MouseLeftButtonDown" />
+            <!-- The shadow sits behind the sheet, not on it, so the sheet's text keeps ClearType -->
+            <Border Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top" CornerRadius="10"
+                    Background="{DynamicResource SurfaceRaisedBrush}" Height="{Binding ActualHeight, ElementName=IconPickerSheet}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="#0F172A" />
+                </Border.Effect>
+            </Border>
+            <Border x:Name="IconPickerSheet" Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top"
+                    CornerRadius="10" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" KeyboardNavigation.TabNavigation="Cycle">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Margin="18,16,12,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Icon" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
+                                       AutomationProperties.HeadingLevel="Level2" />
+                            <TextBlock x:Name="IconPickerNoteText" Text="{Binding IconPickerNote}" Margin="0,3,0,0"
+                                       AutomationProperties.LiveSetting="Polite">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource SettingNote}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasIconError}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                        <Button x:Name="BtnCloseIconPicker" Grid.Column="1" Style="{StaticResource IconButton}" VerticalAlignment="Top"
+                                Command="{Binding CloseIconPickerCommand}" ToolTip="Close" AutomationProperties.Name="Close the icon picker">
+                            <controls:Icon Kind="Close" Size="16" />
+                        </Button>
+                    </Grid>
+
+                    <ScrollViewer x:Name="IconScroller" Grid.Row="1" Margin="0,0,0,8" Focusable="False" IsTabStop="False"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ListBox x:Name="IconList" ItemsSource="{Binding IconOptionsView}" SelectedItem="{Binding SelectedIcon}"
+                             ItemContainerStyle="{StaticResource IconCard}" Width="428" HorizontalAlignment="Center"
+                             Background="Transparent" BorderThickness="0"
+                             KeyboardNavigation.DirectionalNavigation="Contained" AutomationProperties.Name="Icons">
+                        <!-- Only the cards: the scroller around the list scrolls them -->
+                        <ListBox.Template>
+                            <ControlTemplate TargetType="ListBox">
+                                <ItemsPresenter />
+                            </ControlTemplate>
+                        </ListBox.Template>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.GroupStyle>
+                            <GroupStyle>
+                                <!-- The stock group indents its items by 5, which would push the second card of a row onto the next -->
+                                <GroupStyle.ContainerStyle>
+                                    <Style TargetType="GroupItem">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="GroupItem">
+                                                    <StackPanel>
+                                                        <ContentPresenter />
+                                                        <ItemsPresenter />
+                                                    </StackPanel>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </GroupStyle.ContainerStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="ExtraBold"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}" Margin="5,4,0,8"
+                                                   AutomationProperties.HeadingLevel="Level3" />
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListBox.GroupStyle>
+                    </ListBox>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

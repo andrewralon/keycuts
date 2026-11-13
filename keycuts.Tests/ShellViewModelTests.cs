@@ -37,7 +37,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ShellMode.Manager, shell.Mode);
             Assert.Same(shell.Manager, shell.CurrentView);
-            Assert.Equal("keycuts \u2014 Your keycuts", shell.Title);
+            Assert.Equal("keycuts", shell.Title);
             Assert.Contains(nameof(ShellViewModel.CurrentView), changed);
             Assert.Contains(nameof(ShellViewModel.Mode), changed);
             Assert.Contains(nameof(ShellViewModel.Title), changed);

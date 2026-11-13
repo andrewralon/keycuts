@@ -30,7 +30,8 @@ namespace keycuts.GUI.ViewModels
     {
         Target,
         Name,
-        NameSelectAll
+        NameSelectAll,
+        Description
     }
 
     /// <summary>
@@ -39,9 +40,10 @@ namespace keycuts.GUI.ViewModels
     /// </summary>
     public class CreatorViewModel : ObservableObject
     {
-        public const string DefaultHelperText = "Press Enter to create it";
-
         public const string SavingHelperText = "Saving\u2026";
+
+        /// <summary>Just "Created": the name is in the Name box, which keeps its text after a create (#205), so the message never grows with it.</summary>
+        public const string CreatedText = "Created";
 
         public const string InvalidNameMessage = "Use letters, numbers, dashes, or dots \u2014 no \\ / : * ? \" < > |";
 
@@ -63,6 +65,12 @@ namespace keycuts.GUI.ViewModels
         /// <summary>An existing keycut the new one would replace, and what it opens now (#153).</summary>
         public const string ReplaceMessage = "\u201c{0}\u201d already exists and opens {1}.";
 
+        /// <summary>An existing keycut that opens the very target being created: nothing would change but the file.</summary>
+        public const string ReplaceSameMessage = "\u201c{0}\u201d already exists and opens this target.";
+
+        /// <summary>An existing keycut whose URL differs from the new one only in capitals or a trailing slash: left to the user.</summary>
+        public const string ReplaceSimilarMessage = "\u201c{0}\u201d already exists and opens {1}, a URL that differs from this one only in capitals or a trailing slash.";
+
         /// <summary>An existing keycut whose target couldn't be read.</summary>
         public const string ReplaceUnknownMessage = "\u201c{0}\u201d already exists.";
 
@@ -72,15 +80,56 @@ namespace keycuts.GUI.ViewModels
         /// <summary>A program found after the keycut, which Win+R would no longer open by this name.</summary>
         public const string ShadowsMessage = "\u201c{0}\u201d already opens {1}. This keycut would replace it in Win+R.";
 
-        /// <summary>One line about a name conflict, as the creator, the manager and the confirmation show it.</summary>
-        public static string GetConflictMessage(string name, NameConflict conflict)
+        /// <summary>A keycut in another keycuts folder on PATH, found first: {1} is its folder, {2} what it opens.</summary>
+        public const string KeycutHiddenMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}, so this keycut would be ignored.";
+
+        /// <summary>A keycut in another keycuts folder on PATH, found after this one.</summary>
+        public const string KeycutShadowsMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}. This one would replace it in Win+R.";
+
+        /// <summary>A keycut in another keycuts folder on PATH that opens the very target being created.</summary>
+        public const string KeycutSameMessage = "\u201c{0}\u201d already exists in {1} and opens this target.";
+
+        /// <summary>A keycut in another keycuts folder on PATH whose URL differs only in capitals or a trailing slash.</summary>
+        public const string KeycutSimilarMessage = "\u201c{0}\u201d already exists in {1} and opens {2}, a URL that differs from this one only in capitals or a trailing slash.";
+
+        /// <summary>
+        /// One line about a name conflict, as the creator, the manager and the confirmation show it. A conflict that is a keycut
+        /// says so and what it opens, and when that is <paramref name="newTarget"/> (null for a rename, which has none) that it
+        /// already exists one to one.
+        /// </summary>
+        public static string GetConflictMessage(string name, NameConflict conflict, string? newTarget = null)
         {
+            var keycut = conflict.Keycut;
+
+            if (keycut != null && !string.IsNullOrEmpty(keycut.Target))
+            {
+                var folder = System.IO.Path.GetDirectoryName(conflict.Path) ?? conflict.Path;
+
+                var match = TargetComparison.Compare(keycut.Target, newTarget ?? string.Empty);
+
+                if (match == TargetMatch.Same)
+                {
+                    return string.Format(KeycutSameMessage, name, folder);
+                }
+
+                if (match == TargetMatch.Similar)
+                {
+                    return string.Format(KeycutSimilarMessage, name, folder, keycut.Target);
+                }
+
+                var keycutFormat = conflict.Effect == NameConflictEffect.Hidden ? KeycutHiddenMessage : KeycutShadowsMessage;
+                return string.Format(keycutFormat, name, folder, keycut.Target);
+            }
+
             var format = conflict.Effect == NameConflictEffect.Hidden ? HiddenMessage : ShadowsMessage;
             return string.Format(format, name, conflict.Path);
         }
 
-        /// <summary>The inline warning for a name (#153): the keycut it would replace, then the conflict that matters most.</summary>
-        public static string GetNameWarningMessage(NameCheck? check)
+        /// <summary>
+        /// The inline warning for a name (#153): the keycut it would replace, then the conflict that matters most.
+        /// <paramref name="newTarget"/> is what is being created, to tell "already exists" from "already exists, and does the same".
+        /// </summary>
+        public static string GetNameWarningMessage(NameCheck? check, string? newTarget = null)
         {
             if (check == null || !check.HasWarnings)
             {
@@ -91,14 +140,26 @@ namespace keycuts.GUI.ViewModels
 
             if (check.Existing != null)
             {
-                lines.Add(string.IsNullOrEmpty(check.Existing.Target)
-                    ? string.Format(ReplaceUnknownMessage, check.Name)
-                    : string.Format(ReplaceMessage, check.Name, check.Existing.Target));
+                if (string.IsNullOrEmpty(check.Existing.Target))
+                {
+                    lines.Add(string.Format(ReplaceUnknownMessage, check.Name));
+                }
+                else
+                {
+                    var match = TargetComparison.Compare(check.Existing.Target, newTarget ?? string.Empty);
+
+                    lines.Add(match switch
+                    {
+                        TargetMatch.Same => string.Format(ReplaceSameMessage, check.Name),
+                        TargetMatch.Similar => string.Format(ReplaceSimilarMessage, check.Name, check.Existing.Target),
+                        _ => string.Format(ReplaceMessage, check.Name, check.Existing.Target)
+                    });
+                }
             }
 
             if (check.MainConflict is NameConflict conflict)
             {
-                lines.Add(GetConflictMessage(check.Name, conflict));
+                lines.Add(GetConflictMessage(check.Name, conflict, newTarget));
             }
 
             return string.Join(Environment.NewLine, lines);
@@ -107,6 +168,12 @@ namespace keycuts.GUI.ViewModels
         private string target = string.Empty;
 
         private string shortcutName = string.Empty;
+
+        private string description = string.Empty;
+
+        private bool isDescriptionVisible;
+
+        private readonly IDescriptionVisibilityStore? descriptionStore;
 
         private int keycutCount;
 
@@ -117,8 +184,6 @@ namespace keycuts.GUI.ViewModels
         private bool isDragHover;
 
         private bool isSaving;
-
-        private bool isBrowseMenuOpen;
 
         // What the typed name runs into (#153), while the warning is showing; null when there's nothing to warn about
         private NameCheck? nameWarning;
@@ -131,7 +196,12 @@ namespace keycuts.GUI.ViewModels
 
         private int successVersion;
 
-        private readonly Func<string, string, bool, bool, CancellationToken, Task<CreateResult>> createAsync;
+        private WelcomeViewModel? welcome;
+
+        // The welcome panel filled in its example (#213), so Got it may clear the form again
+        private bool exampleFilled;
+
+        private readonly Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>> createAsync;
 
         private readonly Func<string, NameCheck> checkName;
 
@@ -139,27 +209,36 @@ namespace keycuts.GUI.ViewModels
 
         private bool isShiftHeld;
 
+        // True while the target box has the keyboard focus: then it always holds the real path, so typing never edits the %VAR% form
+        private bool isTargetEditing;
+
         // Null until the app has read them (in the background, since a custom folder on a network share can be slow)
         private IReadOnlyList<PathVariable>? pathVariables;
 
         // What the typed target resolved to (a shortcut's target, a normalized path), while the text keeps what was typed
         private string? resolvedTarget;
 
-        /// <param name="createAsync">Creates the keycut (target, name, use environment variables, replace an existing
-        /// one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
+        /// <param name="createAsync">Creates the keycut (target, name, description, use environment variables, replace an
+        /// existing one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
         /// <param name="checkName">What a name runs into (#153), checked while typing and before each create; defaults to
         /// <see cref="NameCheck.Run"/> on this machine. Tests pass a fake.</param>
+        /// <param name="descriptionStore">Remembers whether the description box is shown (#205): read once here, written each
+        /// time the user shows or hides it. Without one (tests, design data) the box starts hidden and nothing is remembered.</param>
         public CreatorViewModel(
             ICommand showManagerCommand,
             ICommand openSettingsCommand,
-            Func<string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
-            Func<string, NameCheck>? checkName = null)
+            Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
+            Func<string, NameCheck>? checkName = null,
+            IDescriptionVisibilityStore? descriptionStore = null)
         {
             ShowManagerCommand = showManagerCommand;
             OpenSettingsCommand = openSettingsCommand;
             this.createAsync = createAsync ?? DefaultCreateAsync;
             this.checkName = checkName ?? DefaultCheckName;
+            this.descriptionStore = descriptionStore;
+            isDescriptionVisible = descriptionStore?.Load() ?? false;
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
+            ToggleDescriptionCommand = new RelayCommand(ToggleDescription, () => IsInputEnabled);
             BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
             BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
         }
@@ -182,10 +261,16 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public Func<NameCheck, string, bool>? ConfirmName { get; set; }
 
-        /// <summary>How long the success confirmation shows before the creator resets to Empty.</summary>
-        public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(2);
+        /// <summary>How long "Created" shows before it goes away and Create works again. The fields keep their text.</summary>
+        public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(3);
 
         public AsyncRelayCommand CreateCommand { get; }
+
+        /// <summary>
+        /// The description label: "Add a description (optional)" shows the field and moves the focus into it, "Description (optional)"
+        /// hides it again. Either way the choice is remembered.
+        /// </summary>
+        public ICommand ToggleDescriptionCommand { get; }
 
         public ICommand BrowseFileCommand { get; }
 
@@ -203,7 +288,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref useEnvironmentVariablesSetting, value))
                 {
-                    RaiseSavedAsChanged();
+                    RaiseTargetDisplayChanged();
                 }
             }
         }
@@ -216,7 +301,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref isShiftHeld, value))
                 {
-                    RaiseSavedAsChanged();
+                    RaiseTargetDisplayChanged();
                 }
             }
         }
@@ -231,7 +316,7 @@ namespace keycuts.GUI.ViewModels
             set
             {
                 pathVariables = value;
-                RaiseSavedAsChanged();
+                RaiseTargetDisplayChanged();
             }
         }
 
@@ -245,7 +330,12 @@ namespace keycuts.GUI.ViewModels
             set
             {
                 resolvedTarget = value;
-                RaiseSavedAsChanged();
+                RaiseTargetDisplayChanged();
+
+                // The name warning compares with it ("opens this target"), and it is set after TargetKind, so the text can be stale
+                OnPropertyChanged(nameof(HelperText));
+                OnPropertyChanged(nameof(NameHelpText));
+                OnPropertyChanged(nameof(ShowHelperLine));
             }
         }
 
@@ -256,14 +346,15 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// The path as it will be saved, shown under the target: with variables or without, following
-        /// <see cref="UseEnvironmentVariables"/>. Empty when there is nothing to choose (not a file or folder, or no variable fits).
+        /// The path with environment variables in it, which is how a file or folder keycut will be saved while
+        /// <see cref="UseEnvironmentVariables"/> is on. Empty when it doesn't apply: the setting is off, the target isn't a
+        /// valid file or folder, or no variable fits it.
         /// </summary>
-        public string SavedAsPath
+        public string TargetWithVariables
         {
             get
             {
-                if (!HasValidTarget || (targetKind != KeycutKind.File && targetKind != KeycutKind.Folder))
+                if (!UseEnvironmentVariables || !HasValidTarget || (targetKind != KeycutKind.File && targetKind != KeycutKind.Folder))
                 {
                     return string.Empty;
                 }
@@ -271,22 +362,104 @@ namespace keycuts.GUI.ViewModels
                 var path = string.IsNullOrEmpty(resolvedTarget) ? target.Trim() : resolvedTarget;
                 var withVariables = Common.PathVariables.Substitute(path, PathVariables);
 
-                if (string.Equals(withVariables, path, StringComparison.Ordinal))
-                {
-                    return string.Empty;
-                }
-
-                return UseEnvironmentVariables ? withVariables : path;
+                return string.Equals(withVariables, path, StringComparison.Ordinal) ? string.Empty : withVariables;
             }
         }
 
-        public bool ShowSavedAs
+        /// <summary>
+        /// True while the target box has the keyboard focus. The view sets it. Then the box shows the real path (what is typed
+        /// or pasted), so Shift, which flips the variables, never rewrites text that is being edited.
+        /// </summary>
+        public bool IsTargetEditing
         {
-            get { return SavedAsPath.Length > 0; }
+            get { return isTargetEditing; }
+            set
+            {
+                if (SetProperty(ref isTargetEditing, value))
+                {
+                    OnPropertyChanged(nameof(TargetText));
+                }
+            }
         }
 
-        /// <summary>The first-run panel shown above the form, or null when the app was started without one (tests, design data).</summary>
-        public WelcomeViewModel? Welcome { get; init; }
+        /// <summary>
+        /// What the target box shows (#205): the %VAR% form of the path while it isn't being edited and
+        /// <see cref="TargetWithVariables"/> has one (Shift held, or the Settings choice), otherwise <see cref="Target"/>.
+        /// Typing sets <see cref="Target"/>; the form is only ever displayed, never stored in it.
+        /// </summary>
+        public string TargetText
+        {
+            get
+            {
+                var withVariables = isTargetEditing ? string.Empty : TargetWithVariables;
+                return withVariables.Length > 0 ? withVariables : target;
+            }
+            set { Target = value; }
+        }
+
+        /// <summary>What a create would open: what the target resolved to, else the text as typed. Empty without one.</summary>
+        private string EffectiveTarget
+        {
+            get { return string.IsNullOrEmpty(resolvedTarget) ? target.Trim() : resolvedTarget; }
+        }
+
+        /// <summary>
+        /// The first-run panel shown above the form, or null when the app was started without one (tests, design data). It works
+        /// through this form (#213): its first bubble is filled into the fields below when it shows, a picked bubble replaces them, Got it clears them again, and a
+        /// create tells it so it can say how to use the keycut.
+        /// </summary>
+        public WelcomeViewModel? Welcome
+        {
+            get { return welcome; }
+            init
+            {
+                welcome = value;
+
+                if (welcome != null)
+                {
+                    welcome.Shown += (sender, e) => PickFirstExample();
+                    welcome.ExampleSelected += (sender, example) => FillExample(example);
+                    welcome.Dismissed += (sender, e) => ClearExample();
+                }
+            }
+        }
+
+        /// <summary>
+        /// When the welcome panel opens, its first bubble is picked, but only into an empty form (no target, name or description), so it
+        /// never replaces what was typed or a target the Explorer verb passed in.
+        /// </summary>
+        private void PickFirstExample()
+        {
+            if (HasTarget || shortcutName.Length > 0 || description.Length > 0 || welcome == null || welcome.Examples.Count == 0)
+            {
+                return;
+            }
+
+            welcome.Select(welcome.Examples[0]);
+        }
+
+        /// <summary>A bubble was picked (also by the user, over what is there): put its target and name in the fields.</summary>
+        private void FillExample(WelcomeExample example)
+        {
+            Target = example.Target;
+            ShortcutName = example.Name;
+            exampleFilled = true;
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
+        }
+
+        /// <summary>Got it: empties the form, but only if the welcome filled it, so a target that came from elsewhere stays.</summary>
+        private void ClearExample()
+        {
+            if (!exampleFilled)
+            {
+                return;
+            }
+
+            exampleFilled = false;
+            Target = string.Empty;
+            ShortcutName = string.Empty;
+            Description = string.Empty;
+        }
 
         /// <summary>The "new version is out" line in the footer (#171), or null without one (tests, design data).</summary>
         public UpdateNoticeViewModel? UpdateNotice { get; init; }
@@ -328,10 +501,106 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
+        /// <summary>
+        /// The optional note stored in the keycut (#162). Text is never hidden: setting one shows the field. Changing it
+        /// clears the success message and any submit error, as typing in the other fields does.
+        /// </summary>
+        public string Description
+        {
+            get { return description; }
+            set
+            {
+                if (SetProperty(ref description, value ?? string.Empty))
+                {
+                    successName = null;
+                    submitError = null;
+
+                    if (description.Length > 0 && !isDescriptionVisible)
+                    {
+                        // Text is never hidden. Not remembered: only the user's own show and hide is
+                        isDescriptionVisible = true;
+                        RaiseDescriptionVisibilityChanged();
+                    }
+
+                    RaiseStateChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// The description field is shown: the last choice (remembered between launches), or while it holds text.
+        /// Hidden by default. A hidden description is not saved, whatever the field still holds.
+        /// </summary>
+        public bool IsDescriptionVisible
+        {
+            get { return isDescriptionVisible; }
+        }
+
+        /// <summary>The label says "Add a description (optional)" because the field is hidden.</summary>
+        public bool ShowAddDescription
+        {
+            get { return !isDescriptionVisible; }
+        }
+
+        /// <summary>The label above the description field, which is also the button that hides it.</summary>
+        public string DescriptionToggleText
+        {
+            get { return isDescriptionVisible ? "Description (optional)" : "Add a description (optional)"; }
+        }
+
+        /// <summary>What a screen reader calls the label button: what pressing it does.</summary>
+        public string DescriptionToggleName
+        {
+            get { return isDescriptionVisible ? "Hide description" : "Add a description (optional)"; }
+        }
+
+        private void ToggleDescription()
+        {
+            SetDescriptionVisible(!isDescriptionVisible);
+
+            if (isDescriptionVisible)
+            {
+                FocusRequested?.Invoke(this, CreatorFocusTarget.Description);
+            }
+        }
+
+        // The user's choice: remembered, unlike the field showing itself because it holds text
+        private void SetDescriptionVisible(bool visible)
+        {
+            if (isDescriptionVisible == visible)
+            {
+                return;
+            }
+
+            isDescriptionVisible = visible;
+            RaiseDescriptionVisibilityChanged();
+            descriptionStore?.Save(visible);
+        }
+
+        private void RaiseDescriptionVisibilityChanged()
+        {
+            OnPropertyChanged(nameof(IsDescriptionVisible));
+            OnPropertyChanged(nameof(ShowAddDescription));
+            OnPropertyChanged(nameof(DescriptionToggleText));
+            OnPropertyChanged(nameof(DescriptionToggleName));
+        }
+
         public int KeycutCount
         {
             get { return keycutCount; }
-            set { SetProperty(ref keycutCount, value); }
+            set
+            {
+                if (SetProperty(ref keycutCount, value))
+                {
+                    OnPropertyChanged(nameof(CountDescription));
+                }
+            }
+        }
+
+        /// <summary>What a screen reader and the tooltip say for the footer's count pill, which shows just the number.</summary>
+        public string CountDescription
+        {
+            get { return keycutCount + (keycutCount == 1 ? " keycut" : " keycuts"); }
         }
 
         /// <summary>The kind the target resolved to. Set it after <see cref="Target"/>, which clears it.</summary>
@@ -383,12 +652,6 @@ namespace keycuts.GUI.ViewModels
                     RaiseStateChanged();
                 }
             }
-        }
-
-        public bool IsBrowseMenuOpen
-        {
-            get { return isBrowseMenuOpen; }
-            set { SetProperty(ref isBrowseMenuOpen, value); }
         }
 
         /// <summary>What the name runs into, while its warning is showing (#153).</summary>
@@ -524,16 +787,47 @@ namespace keycuts.GUI.ViewModels
 
                 if (IsSuccess)
                 {
-                    return "Created " + successName;
+                    return CreatedText;
                 }
 
                 if (nameWarning != null)
                 {
-                    return GetNameWarningMessage(nameWarning);
+                    return GetNameWarningMessage(nameWarning, EffectiveTarget);
                 }
 
-                return DefaultHelperText;
+                return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// "Saving…" or "Created name", shown at the right of the Name label (#205), so the window keeps its height while a
+        /// keycut is made. Empty when the helper line says something else (an error outranks the success message).
+        /// </summary>
+        public string NameStatusText
+        {
+            get
+            {
+                if (isSaving)
+                {
+                    return SavingHelperText;
+                }
+
+                return IsSuccess && !HelperIsError ? CreatedText : string.Empty;
+            }
+        }
+
+        public bool HasNameStatus
+        {
+            get { return NameStatusText.Length > 0; }
+        }
+
+        /// <summary>
+        /// The line under the name field has a warning or an error to show; otherwise it takes no room. Saving and Created are
+        /// on the Name label's row instead (<see cref="NameStatusText"/>).
+        /// </summary>
+        public bool ShowHelperLine
+        {
+            get { return HelperText.Length > 0 && !HasNameStatus; }
         }
 
         /// <summary>The target field's current error for screen readers, or empty when there is none.</summary>
@@ -601,7 +895,7 @@ namespace keycuts.GUI.ViewModels
                 case TargetError.Timeout:
                     return "That target didn\u2019t respond in time.";
                 default:
-                    return DefaultHelperText;
+                    return string.Empty;
             }
         }
 
@@ -647,24 +941,6 @@ namespace keycuts.GUI.ViewModels
             RaiseStateChanged();
         }
 
-        public void Clear()
-        {
-            target = string.Empty;
-            shortcutName = string.Empty;
-            targetKind = null;
-            resolvedTarget = null;
-            targetError = TargetError.None;
-            nameWarning = null;
-            isInvalidName = false;
-            submitError = null;
-            successName = null;
-            OnPropertyChanged(nameof(Target));
-            OnPropertyChanged(nameof(ShortcutName));
-            OnPropertyChanged(nameof(TargetKind));
-            OnPropertyChanged(nameof(TargetError));
-            RaiseStateChanged();
-        }
-
         public void NotifyKeycutCreated()
         {
             KeycutCreated?.Invoke(this, EventArgs.Empty);
@@ -700,6 +976,11 @@ namespace keycuts.GUI.ViewModels
             // The command's CanExecute is rechecked here; the target text may be unresolved, so KeycutCreator validates it again
             var name = shortcutName.Trim();
             var trimmedTarget = target.Trim();
+            // What the confirmation compares and shows, as the inline warning does: the resolved target (a typed .lnk or .url
+            // resolves to its destination); the create itself still gets what was typed and resolves it again
+            var confirmTarget = EffectiveTarget;
+            // A hidden box is out of sight, so what it still holds isn't saved
+            var trimmedDescription = isDescriptionVisible ? description.Trim() : string.Empty;
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;
@@ -719,7 +1000,7 @@ namespace keycuts.GUI.ViewModels
 
                     if (check.HasWarnings)
                     {
-                        if (!Confirm(check, trimmedTarget))
+                        if (!Confirm(check, confirmTarget))
                         {
                             return;
                         }
@@ -732,7 +1013,7 @@ namespace keycuts.GUI.ViewModels
                     }
                 }
 
-                result = await createAsync(trimmedTarget, name, useEnvironmentVariables, replace, CancellationToken.None);
+                result = await createAsync(trimmedTarget, name, trimmedDescription, useEnvironmentVariables, replace, CancellationToken.None);
 
                 if (result.Outcome == CreateOutcome.DuplicateName && !replace)
                 {
@@ -740,12 +1021,12 @@ namespace keycuts.GUI.ViewModels
                     var again = await RunCheckAsync(name);
                     var existing = again.Existing ?? new Keycut { Name = name, Target = string.Empty };
 
-                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), trimmedTarget))
+                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), confirmTarget))
                     {
                         return;
                     }
 
-                    result = await createAsync(trimmedTarget, name, useEnvironmentVariables, true, CancellationToken.None);
+                    result = await createAsync(trimmedTarget, name, trimmedDescription, useEnvironmentVariables, true, CancellationToken.None);
                 }
             }
             catch (Exception ex)
@@ -796,7 +1077,8 @@ namespace keycuts.GUI.ViewModels
                 case CreateOutcome.Success:
                     SetSuccess(name);
                     NotifyKeycutCreated();
-                    _ = ResetAfterSuccessAsync();
+                    welcome?.OnKeycutCreated(string.IsNullOrEmpty(result.Keycut?.FilePath) ? null : System.IO.Path.GetDirectoryName(result.Keycut.FilePath));
+                    _ = HideSuccessAfterDelayAsync();
                     return;
                 case CreateOutcome.DuplicateName:
                     // Only after a confirmed replace that still failed, which shouldn't happen: say so and keep the name
@@ -833,20 +1115,24 @@ namespace keycuts.GUI.ViewModels
             FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
         }
 
-        /// <summary>Shows the success state for <see cref="SuccessDuration"/>, then resets to Empty unless the user started typing.</summary>
-        private async Task ResetAfterSuccessAsync()
+        /// <summary>
+        /// Shows "Created" for <see cref="SuccessDuration"/>, then takes it away (unless the user started typing, which did already)
+        /// so Create works again. The target, name and description are left as they were (#205), so a keycut made a little
+        /// differently, or the same one replaced, is a small edit away.
+        /// </summary>
+        private async Task HideSuccessAfterDelayAsync()
         {
             var version = ++successVersion;
             await Task.Delay(SuccessDuration);
 
             if (version == successVersion && successName != null && !isSaving)
             {
-                Clear();
-                FocusRequested?.Invoke(this, CreatorFocusTarget.Target);
+                successName = null;
+                RaiseStateChanged();
             }
         }
 
-        private async Task<CreateResult> DefaultCreateAsync(string target, string name, bool useEnvironmentVariables, bool replace, CancellationToken ct)
+        private async Task<CreateResult> DefaultCreateAsync(string target, string name, string description, bool useEnvironmentVariables, bool replace, CancellationToken ct)
         {
 #if DEBUG
             // Debug builds can slow creation down to see the Saving state
@@ -860,6 +1146,7 @@ namespace keycuts.GUI.ViewModels
             // keycut" off a keycut is replaced without asking, and with it on one that appeared since the check is refused
             var options = new CreateOptions
             {
+                Description = description,
                 UseEnvironmentVariables = useEnvironmentVariables,
                 PathVariables = pathVariables,
                 Overwrite = replace ? true : null
@@ -892,19 +1179,22 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(ShowTargetError));
             OnPropertyChanged(nameof(TargetIcon));
             OnPropertyChanged(nameof(HelperText));
+            OnPropertyChanged(nameof(NameStatusText));
+            OnPropertyChanged(nameof(HasNameStatus));
+            OnPropertyChanged(nameof(ShowHelperLine));
             OnPropertyChanged(nameof(HelperIsError));
             OnPropertyChanged(nameof(HelperIsWarning));
             OnPropertyChanged(nameof(TargetHelpText));
             OnPropertyChanged(nameof(NameHelpText));
             OnPropertyChanged(nameof(CreateButtonName));
-            RaiseSavedAsChanged();
+            RaiseTargetDisplayChanged();
         }
 
-        private void RaiseSavedAsChanged()
+        private void RaiseTargetDisplayChanged()
         {
             OnPropertyChanged(nameof(UseEnvironmentVariables));
-            OnPropertyChanged(nameof(SavedAsPath));
-            OnPropertyChanged(nameof(ShowSavedAs));
+            OnPropertyChanged(nameof(TargetWithVariables));
+            OnPropertyChanged(nameof(TargetText));
         }
     }
 }

@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Automation.Peers;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -61,11 +60,6 @@ namespace keycuts.GUI.Views
                 oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 oldViewModel.ConfirmName = null;
 
-                if (oldViewModel.UpdateNotice != null)
-                {
-                    oldViewModel.UpdateNotice.PropertyChanged -= UpdateNotice_PropertyChanged;
-                }
-
                 if (oldViewModel.Welcome != null)
                 {
                     oldViewModel.Welcome.PropertyChanged -= Welcome_PropertyChanged;
@@ -81,11 +75,6 @@ namespace keycuts.GUI.Views
                 newViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 newViewModel.ConfirmName = ConfirmName;
 
-                if (newViewModel.UpdateNotice != null)
-                {
-                    newViewModel.UpdateNotice.PropertyChanged += UpdateNotice_PropertyChanged;
-                }
-
                 if (newViewModel.Welcome != null)
                 {
                     newViewModel.Welcome.PropertyChanged += Welcome_PropertyChanged;
@@ -93,12 +82,16 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Tell screen readers when the helper line (errors, Saving, Created) changes
+        // Tell screen readers when the helper line (name warnings and errors) or the status by the Name label (Saving, Created) changes
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(CreatorViewModel.HelperText))
+            if (e.PropertyName == nameof(CreatorViewModel.HelperText) && ViewModel?.ShowHelperLine == true)
             {
-                AnnounceLiveRegion(HelperTextBlock);
+                LiveRegion.Announce(HelperTextBlock);
+            }
+            else if (e.PropertyName == nameof(CreatorViewModel.NameStatusText) && ViewModel?.HasNameStatus == true)
+            {
+                LiveRegion.Announce(NameStatusTextBlock);
             }
         }
 
@@ -107,31 +100,8 @@ namespace keycuts.GUI.Views
         {
             if (e.PropertyName == nameof(WelcomeViewModel.HelperText))
             {
-                AnnounceLiveRegion(WelcomeHelperTextBlock);
+                LiveRegion.Announce(WelcomeHelperTextBlock);
             }
-        }
-
-        // The update line (#171) appears after a background check, with focus elsewhere, so it has to be announced
-        private void UpdateNotice_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(UpdateNoticeViewModel.Message) && sender is UpdateNoticeViewModel { IsVisible: true })
-            {
-                AnnounceLiveRegion(UpdateNoticeText);
-            }
-        }
-
-        // The LiveSetting on the text block alone doesn't raise the event; the peer has to. CreatePeerForElement, not
-        // FromElement: a line that was collapsed until now (the update line) may have no peer yet, and FromElement
-        // returns only an existing one. It returns the existing peer when there is one.
-        private void AnnounceLiveRegion(UIElement element)
-        {
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            {
-                if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
-                {
-                    peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-                }
-            }));
         }
 
         // A name that would replace a keycut or clash with another command asks first, in the app's own dialog (#153)
@@ -150,7 +120,12 @@ namespace keycuts.GUI.Views
             // The name and target fields are disabled while saving; wait for the layout to re-enable them
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
             {
-                var field = target == CreatorFocusTarget.Target ? TextboxTarget : TextboxShortcut;
+                var field = target switch
+                {
+                    CreatorFocusTarget.Target => TextboxTarget,
+                    CreatorFocusTarget.Description => TextboxDescription,
+                    _ => TextboxShortcut
+                };
                 field.Focus();
                 Keyboard.Focus(field);
                 if (target == CreatorFocusTarget.NameSelectAll)
@@ -190,7 +165,7 @@ namespace keycuts.GUI.Views
             Keyboard.Focus(target);
         }
 
-        // Holding Shift flips the environment-variables setting for this keycut (#31); the "Saved as" line follows it
+        // Holding Shift flips the environment-variables setting for this keycut (#31); the Target shows the path that way
         private void CreatorView_PreviewKeyUp(object sender, KeyEventArgs e)
         {
             if ((e.Key == Key.LeftShift || e.Key == Key.RightShift) && ViewModel != null)
@@ -298,11 +273,6 @@ namespace keycuts.GUI.Views
 
         private void BrowseMenu_Opened(object sender, RoutedEventArgs e)
         {
-            if (ViewModel != null)
-            {
-                ViewModel.IsBrowseMenuOpen = true;
-            }
-
             BtnBrowse.RaiseMenuStateChanged(false);
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
             {
@@ -316,10 +286,6 @@ namespace keycuts.GUI.Views
         private void BrowseMenu_Closed(object sender, RoutedEventArgs e)
         {
             menuClosedAtTick = Environment.TickCount64;
-            if (ViewModel != null)
-            {
-                ViewModel.IsBrowseMenuOpen = false;
-            }
 
             BtnBrowse.RaiseMenuStateChanged(true);
         }
@@ -391,6 +357,33 @@ namespace keycuts.GUI.Views
         {
             typingTimer.Stop();
             _ = ResolveCurrentAsync(showError: false, normalize: false, focusName: false);
+        }
+
+        // While the box is being edited it holds the real path; otherwise it may show the %VAR% form of it (CreatorViewModel.TargetText).
+        // The text changes under the caret here, which isn't typing, so it must not start the resolve timer.
+        private void TextboxTarget_IsKeyboardFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            var viewModel = ViewModel;
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            var wasSuppressed = suppressTextChanged;
+            suppressTextChanged = true;
+            try
+            {
+                viewModel.IsTargetEditing = TextboxTarget.IsKeyboardFocusWithin;
+            }
+            finally
+            {
+                suppressTextChanged = wasSuppressed;
+            }
+
+            if (TextboxTarget.IsKeyboardFocusWithin)
+            {
+                TextboxTarget.CaretIndex = TextboxTarget.Text.Length;
+            }
         }
 
         private void TextboxTarget_LostFocus(object sender, RoutedEventArgs e)

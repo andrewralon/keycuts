@@ -78,11 +78,30 @@ This happens every time the product is used, so it's the most important thing to
 
 Each has tradeoffs against "the `.bat` is the whole product," and any change to the launch line falls under the sequencing rule in `CLAUDE.md`.
 
+Checked and partly fixed (#160, 2026-11-13). Measured with `ShellExecuteEx` (what Win+R calls, though not the Run dialog itself), watching the top-level windows every ~0.15 ms:
+
+| Default terminal | Keycut | What appears | Visible |
+|---|---|---|---|
+| Console Host | `.bat` that only runs `EXIT` | `cmd.exe` console | ~70 ms (the floor for any `.bat`) |
+| Console Host | File | `cmd.exe` console | ~180 ms |
+| Console Host | Folder (`explorer.exe` called directly) | `cmd.exe` console | ~600 ms |
+| Windows Terminal | any | a full Terminal window ~1 s after launch | 115-660 ms, and the target opens ~0.7 s later |
+
+- **Done: Folder and CLSID keycuts start `explorer.exe` through `START "" /B`** (`Runner.BuildCommand`). `cmd` no longer waits for `explorer.exe` to hand off, and the console drops from ~600 ms to ~70 ms, the same as an empty `.bat`. The same window opens, for a path with spaces, one with `&` and `()`, a `%VAR%` path and a CLSID target. Keycuts written before still have the direct call: they read the same, stay editable (`CanEditInForm` treats the two lines as equal, and a save writes the new one), and are migrated in #207.
+- **The ~70 ms floor stays.** No alternative covers File, Folder and URL keycuts:
+  - *App Paths* gives no console for an exe, but a folder target fails ("cannot find the file"), a `.bat` target still flashes, and it needs a registry entry per name.
+  - *`.lnk`* resolves from a bare name with **no `PATHEXT` change**, for exe and folder targets, with no console. A same-named `.bat` wins over a `.lnk` in the same folder. It isn't hand-editable, so it would give up "the `.bat` is the whole product". The only candidate worth revisiting.
+  - *`.url`, `.js` and `.vbs`* don't resolve from a bare name at all (also with `.JS` in `PATHEXT`), so Win+R can't run them. VBScript is also being deprecated.
+  - A windowless exe launcher was not tested; it needs one exe per name in the folder.
+- **Open: `PATHEXT`.** `NameConflicts` models Win+R as trying each `PATHEXT` extension in order. In these tests a `.bat` ran with `PATHEXT=.COM;.EXE`, and a `.js` did not run with `.JS` in it, so `ShellExecuteEx` seems to use a fixed list (`.bat` and `.lnk` resolved; `.js`, `.vbs` and `.url` did not). Worth confirming through the real Run dialog, since #153's name warnings depend on it.
+
 #### 2. Delete has no confirmation and no undo
 
 Issue: #179
 
 Delete calls `File.Delete` ([KeycutRepository.cs](../keycuts.Common/KeycutRepository.cs), `DeleteAsync`). Current practice prefers undo over a confirmation dialog: move the file to the Recycle Bin and put **Undo** in the Manager's status bar for a few seconds. It's cheap, and it's the only action in the app that loses data.
+
+Done (#179). Notes for whoever extends it: `KeycutRepository.CreateDefault()` recycles (`RecycleBinRecycler`, `Microsoft.VisualBasic.FileIO`) and the plain constructor deletes for good (`PermanentDeleter`), so tests can't fill the real bin. The Undo keeps the file's bytes and write time in memory and writes them back through a temp file and a no-overwrite move, so a hand edit and an old `REM <destination>` tag survive. It is one level (the latest delete), tied to the "Deleted" message, and 8 seconds long. A restore that fails keeps the Undo on offer for another try (on a drive without a bin the kept bytes are the only copy), and a delete is refused while a restore runs, and an Undo while a delete runs, so one never overwrites the other's message. That leaves a copy in the Recycle Bin after an Undo, which Windows can't be asked to drop from code. **Not kept by an Undo:** the file's permissions and alternate streams (the "downloaded from the internet" `Zone.Identifier`). Only the bytes and the write time are restored; the Recycle Bin copy has the rest, and capturing streams would need stream enumeration through P/Invoke for generated `.bat` files, so it was left out (PR #199 review). The shell shows its own error dialog if a delete fails (a file open elsewhere); `UIOption` has no "no UI" value. #161 (multi-select) should make the pending undo a list, so one Undo covers a batch, and `keycuts rm` (#173) should use `RecycleBinRecycler`.
 
 #### 3. There's no way to edit a keycut in the app
 
@@ -92,6 +111,14 @@ Issues: #162 (description field), #180 (Edit form)
 
 - add an optional description field to the Creator, and a `--description` option to the CLI;
 - add an **Edit** form for the destination, either limited to files the emitter wrote unchanged, or with a warning that hand edits will be overwritten. (Rename deliberately never re-emits a file; an Edit form would, so the hand-edit case needs a decision.)
+
+Done (#162, #180), with the first option for the hand-edit case: the form is offered only when the emitter would write the file identically from its parse, and otherwise says "This keycut can't be edited here. Edit it in Notepad." Notes for whoever extends it:
+
+- The comparison (`KeycutRepository.CanEditInForm`) ignores the version in the `REM keycuts` header, the old `<destination>` tag name (#195) and the path in `REM <shortcut>` (a copied or moved file's is stale and changes nothing). It also treats a missing `REM <description>` line as an empty one: keycuts 1.0 wrote none, and refusing them would have made the form useless for most existing folders. Everything else must match, so a trailing space, a `%*` or an extra line makes a file uneditable. `KeycutEditTests` pins the answer for every file in the corpus.
+- Saving writes a temp file and swaps it in (`File.Replace`). For a new name the file is moved first (`File.Move`, which never overwrites, so a taken name is refused before anything changes) and the content swapped in after; if that fails the name is put back. Both keep the file's permissions and alternate streams, which a copy and a delete would lose (checked: `Zone.Identifier` survives a move and a replace, not a copy and a delete).
+- The file is read as strict UTF-8, so a file that isn't (an ANSI "é") is not offered the form instead of being saved with a replacement character. And a file whose target or description is no longer what the form was opened with is refused (`KeycutRepositoryError.Changed`), so a save can't put old values back over another window's change. A target whose text wasn't changed is written from the parse as it was (type, target, open-with), never resolved again; a changed one is resolved like a new keycut's, with environment variables if the setting is on.
+- It is a dialog (`EditWindow`), not a mode of the Creator, which keeps the Creator's state machine out of it. The target is checked when you save, not while you type.
+- Saving also rewrites an older keycut in the current format. That overlaps with #196 (migrating `<destination>` for every file), which it doesn't replace: only the keycuts someone edits are touched.
 
 #### 4. Suggest a name from the destination
 

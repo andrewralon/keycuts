@@ -85,6 +85,7 @@ namespace keycuts.CLI
                 Shortcut = parsed.Shortcut?.Trim(),
                 OpenWithApp = parsed.OpenWithApp?.Trim(),
                 OutputFolder = parsed.OutputFolder?.Trim(),
+                Description = parsed.Description?.Trim(),
                 Force = parsed.Force
             };
 
@@ -100,6 +101,7 @@ namespace keycuts.CLI
                 // Run app and pass arguments as parameters. Environment variables in paths (#31) follow the setting.
                 var app = new Runner();
                 keycutArgs.UseEnvironmentVariables = app.GetUseEnvironmentVariables();
+                keycutArgs.Description = options.Description ?? "";
 
                 // Replacing a keycut and a name that other commands use both ask first, unless -f (#153)
                 var askBeforeReplacing = app.GetAskBeforeReplacing();

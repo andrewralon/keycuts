@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -7,8 +8,8 @@ namespace keycuts.Common
 {
     public class ShortcutFile
     {
-        private readonly string explorer = "\\explorer.exe\"";
-        private readonly string start = "START ";
+        private const string explorer = "\\explorer.exe\"";
+        private const string start = "START ";
 
         private static readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?(::{.+})\"";
         private static readonly string patternFolder = "\".+explorer.exe\" (\".+\")";
@@ -43,6 +44,27 @@ namespace keycuts.Common
 
         public string Description { get; set; } = "";
 
+        /// <summary>
+        /// For a File: the path of the program the launch line runs, without its arguments, as written (it may hold
+        /// <c>%VARS%</c> and may be a bare name such as <c>chrome</c>). Empty for other types, and for a File whose launch
+        /// line the parser can't take apart (a target with a quote in it that isn't one of the forms it knows): then
+        /// nothing is known about where the program is. <see cref="Target"/> is the same text for a plain File.
+        /// </summary>
+        public string Program { get; set; } = "";
+
+        /// <summary>
+        /// For a File read from a <c>START "" /D "&lt;folder&gt;" &lt;program&gt;</c> line (#203): the <c>/D</c> folder as written, which is
+        /// where the program starts and, when it exists, a place Windows looks for it. Empty for <c>/D ""</c>, for any other
+        /// form, and when the target came from the <c>REM</c> lines instead of the launch line.
+        /// </summary>
+        public string StartInFolder { get; set; } = "";
+
+        /// <summary>For a File read from a <c>START "" /D ...</c> line, with or without a folder: the program as the line wrote it (<c>chrome.exe</c>, <c>notepad++</c>, or a full path), not joined to the folder. Empty otherwise.</summary>
+        public string ProgramName { get; set; } = "";
+
+        /// <summary>For a File: what follows <see cref="Program"/> on the launch line, as written (quotes included). Empty if nothing does, or it can't be told.</summary>
+        public string Arguments { get; set; } = "";
+
         public ShortcutFile()
         {
         }
@@ -55,11 +77,7 @@ namespace keycuts.Common
         /// <summary>Parses lines already read from <paramref name="file"/>, which is only used for its name.</summary>
         public ShortcutFile(string file, string[] allLines)
         {
-            var lines = allLines
-                .Where(x => !IsRemLine(x) &&
-                            (x.Contains(explorer) ||
-                             x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase)))
-                .ToList();
+            var lines = allLines.Where(IsLaunchLine).ToList();
 
             Description = ParseDescription(allLines);
 
@@ -68,6 +86,13 @@ namespace keycuts.Common
 
             // Without this a file with no launch line would keep the enum's default, Command.
             Type = ShortcutType.Unknown;
+
+            // What the launch line says about the program, when the pattern that read it knows (see Program)
+            string launchTarget = null;
+            string launchProgram = null;
+            string launchArguments = null;
+            string launchStartIn = null;
+            string launchName = null;
 
             foreach (var line in lines)
             {
@@ -98,10 +123,15 @@ namespace keycuts.Common
                     OpenWithApp = Unquote(openWithApp);
                     break;
                 }
-                else if (ShortcutFile.IsStartInFolder(line, out string fileInFolder))
+                else if (ShortcutFile.TryReadStartInFolder(line, out string fileInFolder, out string programInFolder, out string argumentsInFolder, out string startInFolder, out string nameInFolder))
                 {
                     Target = fileInFolder;
                     Type = ShortcutType.File;
+                    launchTarget = fileInFolder;
+                    launchProgram = programInFolder;
+                    launchArguments = argumentsInFolder;
+                    launchStartIn = startInFolder;
+                    launchName = nameInFolder;
                     break;
                 }
                 else if (ShortcutFile.IsFile(line, out string newFile))
@@ -137,6 +167,22 @@ namespace keycuts.Common
             {
                 Type = remType;
                 Target = remTarget;
+            }
+
+            if (Type == ShortcutType.File && Target != null)
+            {
+                if (launchProgram != null && string.Equals(Target, launchTarget, StringComparison.Ordinal))
+                {
+                    Program = launchProgram;
+                    Arguments = launchArguments;
+                    StartInFolder = launchStartIn;
+                    ProgramName = launchName;
+                }
+                else if (Target.IndexOf('"') < 0)
+                {
+                    // A path can't hold a quote, so this is the program alone
+                    Program = Target;
+                }
             }
         }
 
@@ -206,7 +252,21 @@ namespace keycuts.Common
             return line.TrimStart().StartsWith("REM ", StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>Returns the trimmed text of the first well-formed description line, or empty.</summary>
+        /// <summary>
+        /// Whether the parser takes this line for a launch line: not a comment, and either a <c>START</c> or a call to
+        /// <c>explorer.exe</c>. Used to read the file, and to find where a description line goes when a file has none.
+        /// </summary>
+        public static bool IsLaunchLine(string line)
+        {
+            return !IsRemLine(line) &&
+                (line.Contains(explorer) || line.StartsWith(start, StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        /// <summary>
+        /// Returns the trimmed text of the first well-formed description line, or empty. A doubled <c>%%</c> reads as one
+        /// <c>%</c>: the emitter doubles them so cmd doesn't expand them (<c>Runner.SanitizeDescription</c>), and cmd
+        /// itself reads <c>%%</c> in a batch file as one.
+        /// </summary>
         public static string ParseDescription(string[] lines)
         {
             foreach (var line in lines)
@@ -215,7 +275,7 @@ namespace keycuts.Common
 
                 if (match.Success)
                 {
-                    return match.Groups[1].Value.Trim();
+                    return match.Groups[1].Value.Trim().Replace("%%", "%");
                 }
             }
 
@@ -254,15 +314,50 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// Reads the 0.1.x launch line for a program, <c>START "" /D "&lt;folder&gt;" "&lt;program&gt;" ["&lt;argument&gt;" ...]</c>.
-        /// The folder and program are joined into one path (just the program when the folder is empty), and any quoted
-        /// arguments are kept after it, unquoted like a File target: <c>C:\Tools\app.exe" "arg</c>. The /B line the
-        /// emitter writes for that reads back the same. A line with an unquoted program, or any unquoted argument (even
-        /// one between quoted arguments), is left to the other patterns.
+        /// Reads the launch line for a program that starts in a folder, <c>START "" /D "&lt;folder&gt;" ...</c>, which is
+        /// the 0.1.x form and what people write by hand. The folder and program are joined into one path (just the program
+        /// when the folder is empty). What follows the program decides what the target holds:
+        /// <list type="bullet">
+        /// <item>Only quoted arguments (<c>"&lt;program&gt;" ["&lt;argument&gt;" ...]</c>): they are kept after the program,
+        /// unquoted like a File target, <c>C:\Tools\app.exe" "arg</c>. The /B line the emitter writes for that reads back
+        /// the same.</item>
+        /// <item>Anything else, an unquoted program or an argument that isn't quoted (<c>chrome.exe --profile-directory="Profile 2"</c>):
+        /// the target is the program alone, <c>C:\Tools\chrome.exe</c>. The arguments don't fit in a target that the
+        /// emitter wraps in one pair of quotes, so they are only on <see cref="Arguments"/> (see
+        /// <see cref="TryReadStartInFolder"/>).</item>
+        /// </list>
+        /// A line whose program starts with <c>/</c> (a START switch such as <c>/MIN</c>) is left to the other patterns.
         /// </summary>
         public static bool IsStartInFolder(string line, out string file)
         {
+            return TryReadStartInFolder(line, out file, out _, out _);
+        }
+
+        /// <summary>
+        /// <see cref="IsStartInFolder"/> that also says where the program ends: <paramref name="program"/> is the folder
+        /// and program joined (the path to look for), and <paramref name="arguments"/> is what follows it on the line,
+        /// trimmed and as written (empty if there is nothing). <paramref name="file"/> is the target: for quoted arguments
+        /// the program and arguments in one string, as always; otherwise the same as <paramref name="program"/>.
+        /// </summary>
+        public static bool TryReadStartInFolder(string line, out string file, out string program, out string arguments)
+        {
+            return TryReadStartInFolder(line, out file, out program, out arguments, out _, out _);
+        }
+
+        /// <summary>
+        /// The same, and also the two parts <paramref name="program"/> is joined from (#203): <paramref name="startIn"/>, the
+        /// <c>/D</c> folder as written (empty for <c>/D ""</c>), and <paramref name="programName"/>, the program as
+        /// written (<c>chrome.exe</c>, or a full path if the line gave one). What Windows does with the pair isn't a
+        /// join: it looks in the folder, then wherever it finds a program by name (the Windows folder, System32, PATH,
+        /// App Paths), so a check needs them apart.
+        /// </summary>
+        public static bool TryReadStartInFolder(string line, out string file, out string program, out string arguments, out string startIn, out string programName)
+        {
             file = "";
+            program = "";
+            arguments = "";
+            startIn = "";
+            programName = "";
             var match = regexStartInFolder.Match(line);
 
             if (!match.Success)
@@ -271,17 +366,97 @@ namespace keycuts.Common
             }
 
             var folder = match.Groups[1].Value;
-            var program = regexProgramAndArguments.Match(match.Groups[2].Value);
+            var rest = match.Groups[2].Value;
+            var quoted = regexProgramAndArguments.Match(rest);
 
-            if (!program.Success)
+            if (quoted.Success)
+            {
+                var quotedArguments = quoted.Groups[2].Value;
+                program = JoinFolder(folder, quoted.Groups[1].Value);
+                arguments = quotedArguments.Trim();
+                file = Unquote("\"" + program + "\"" + quotedArguments);
+                startIn = folder;
+                programName = quoted.Groups[1].Value;
+                return true;
+            }
+
+            // More than one blank after the folder, or only blanks, is no program
+            rest = rest.Trim();
+
+            if (rest.Length == 0)
             {
                 return false;
             }
 
-            var arguments = program.Groups[2].Value;
-            var path = folder.Length == 0 ? program.Groups[1].Value : folder + "\\" + program.Groups[1].Value;
-            file = Unquote("\"" + path + "\"" + arguments);
+            string name;
+            string tail;
+
+            if (rest[0] == '"')
+            {
+                // A quoted program followed by something that isn't a quoted argument
+                var close = rest.IndexOf('"', 1);
+
+                if (close < 0 || (close + 1 < rest.Length && !char.IsWhiteSpace(rest[close + 1])))
+                {
+                    return false;
+                }
+
+                name = rest.Substring(1, close - 1);
+                tail = rest.Substring(close + 1);
+            }
+            else
+            {
+                // An unquoted program ends at the first blank, as START reads it
+                var end = rest.IndexOfAny(new[] { ' ', '\t' });
+                name = end < 0 ? rest : rest.Substring(0, end);
+                tail = end < 0 ? "" : rest.Substring(end);
+
+                // Not a program name: an unescaped & | < > ^ is cmd's own syntax even with no blank around it
+                // (notepad&echo ready is two commands), and a cmd built-in is run by START itself, not found as a file.
+                // Both stay with the other patterns, as before (a Command).
+                if (name.Contains('"') || name.IndexOfAny(CmdMetacharacters) >= 0 || CmdBuiltIns.Contains(name))
+                {
+                    return false;
+                }
+            }
+
+            if (name.Length == 0 || name[0] == '/')
+            {
+                return false;
+            }
+
+            program = JoinFolder(folder, name);
+            arguments = tail.Trim();
+            file = program;
+            startIn = folder;
+            programName = name;
             return true;
+        }
+
+        /// <summary>
+        /// The start-in folder and the program as one path. A program that already says where it is (<c>D:\Apps\tool.exe</c>,
+        /// a UNC path, or one that starts with an environment variable such as <c>%ProgramFiles%\...</c>) is left alone:
+        /// the folder is only where it starts, and prefixing it would make a path that doesn't exist.
+        /// </summary>
+        private static readonly char[] CmdMetacharacters = { '&', '|', '<', '>', '^' };
+
+        // cmd's internal commands: START runs these in a cmd of its own, so there is no file for a check to look for
+        private static readonly HashSet<string> CmdBuiltIns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "assoc", "break", "call", "cd", "chdir", "cls", "color", "copy", "date", "del", "dir", "echo", "endlocal", "erase",
+            "exit", "for", "ftype", "goto", "if", "md", "mkdir", "mklink", "move", "path", "pause", "popd", "prompt", "pushd",
+            "rd", "rem", "ren", "rename", "rmdir", "set", "setlocal", "shift", "start", "time", "title", "type", "ver",
+            "verify", "vol"
+        };
+
+        private static string JoinFolder(string folder, string program)
+        {
+            if (folder.Length == 0 || program.StartsWith("%", StringComparison.Ordinal) || System.IO.Path.IsPathFullyQualified(program))
+            {
+                return program;
+            }
+
+            return folder + "\\" + program;
         }
 
         public static bool IsCommand(string line, out string command)

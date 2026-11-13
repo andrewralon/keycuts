@@ -674,7 +674,7 @@ namespace keycuts.Tests
                         new[]
                         {
                             "Output folder", "Choose", "Launch", "Ask before replacing a keycut", "Right-click context menus",
-                            "Use environment variables in paths", "System theme", "Light theme", "Dark theme",
+                            "Use environment variables in paths", "Icon: Black & White. Change", "System theme", "Light theme", "Dark theme",
                             "Check for updates", "Show the welcome panel", "Save"
                         },
                         stops);
@@ -1073,6 +1073,45 @@ namespace keycuts.Tests
         static bool Themes_HasError(TextBox box)
         {
             return keycuts.GUI.Themes.TextBoxChrome.GetHasError(box);
+        }
+
+        // The README's screenshots leave the version row out (the version and Check now), so they don't go stale at each
+        // release (tools/New-Screenshots.ps1). The button never stays behind without its label.
+        [Fact]
+        public void Window_ShowsTheVersionRowUnlessToldNotTo_AsAWhole()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var checker = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "1.1.1.0");
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
+                var shown = new SettingsViewModel(store, updates: checker);
+                var hidden = new SettingsViewModel(store, updates: checker) { ShowVersionRow = false };
+                Assert.True(shown.ShowVersionRow);
+
+                var window = ShowOffscreen(shown);
+                var other = ShowOffscreen(hidden);
+                try
+                {
+                    Assert.True(((TextBlock)window.FindName("CurrentVersionText")).IsVisible);
+                    Assert.True(((Button)window.FindName("BtnCheckNow")).IsVisible);
+
+                    Assert.False(((FrameworkElement)other.FindName("VersionRow")).IsVisible);
+                    Assert.False(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
+                    Assert.False(((Button)other.FindName("BtnCheckNow")).IsVisible);
+
+                    // Turning it on later shows all of it
+                    hidden.ShowVersionRow = true;
+                    other.UpdateLayout();
+                    Assert.True(((TextBlock)other.FindName("CurrentVersionText")).IsVisible);
+                    Assert.True(((Button)other.FindName("BtnCheckNow")).IsVisible);
+                }
+                finally
+                {
+                    window.Close();
+                    other.Close();
+                }
+            });
         }
 
         // #171: Check now and the version show with a checker; Download only while a newer release is known

@@ -101,6 +101,16 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Success_ADescriptionWithPercentSigns_ReadsBackAsTyped_AndIsEscapedInTheFile()
+        {
+            var result = await KeycutCreator.CreateAsync(_target, "mine", Options(description: "Opens %~dp0 at 100%"));
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal("Opens %~dp0 at 100%", result.Keycut.Description);
+            Assert.Contains("REM <description>Opens %%~dp0 at 100%%</description>", File.ReadAllLines(Path.Combine(_out, "mine.bat")));
+        }
+
+        [Fact]
         public async Task Success_CreatesMissingOutputFolder()
         {
             Assert.False(Directory.Exists(_out));

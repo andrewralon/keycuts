@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -33,9 +34,9 @@ namespace keycuts.GUI
         {
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
+            // After the theme, which the icon options that follow it read
+            Themes.AppIconManager.Initialize(this, Common.RegistryStuff.GetAppIcon(), UpdateShortcutIcons);
 
-            // The self-keycut opens this exe; ProcessPath is null only in unusual hosts
-            var appPath = Environment.ProcessPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "keycuts.GUI.exe");
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
             var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
@@ -43,10 +44,8 @@ namespace keycuts.GUI
             // wait for it, so the manager and the welcome already see the new names.
             var moveAside = Task.Run(MoveAsideCommandNames);
             var welcome = new ViewModels.WelcomeViewModel(
-                appPath,
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
-                (target, name, ct) => Common.KeycutCreator.CreateAsync(target, name, null, ct),
                 usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
                 usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
@@ -67,10 +66,13 @@ namespace keycuts.GUI
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckTargetsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome,
-                updateNotice);
+                updateNotice,
+                new ViewModels.RegistryDescriptionVisibilityStore());
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
-            shell.Manager.CheckRename = name => new Common.NameCheck(name, null,
-                Common.NameConflicts.Find(name, new Common.Runner().GetOutputFolder(), Common.NameConflictEnvironment.GetDefault()));
+            // Through NameCheck.Run, like the Creator, so a conflict that is a keycut is described as one; askBeforeReplacing is
+            // off because the rename refuses a taken keycut name itself
+            shell.Manager.CheckRename = name => Common.NameCheck.Run(name, new Common.Runner().GetOutputFolder(), false,
+                Common.NameConflictEnvironment.GetDefault());
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
@@ -84,10 +86,53 @@ namespace keycuts.GUI
                 mainFormLogic.HandleNewTarget(shell.Creator, args[0]);
             }
 
+            // Before Show, so the title bar and the taskbar never show the exe's own icon first
+            Themes.AppIconManager.ApplyTo(mainWindow);
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell.Creator);
             _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
             _ = CheckForUpdatesAsync(updateNotice);
+        }
+
+        private static readonly SemaphoreSlim shortcutLock = new(1, 1);
+
+        private static string? pendingShortcutIcon;
+
+        /// <summary>
+        /// Points the app's shortcuts (Start menu, desktop, pinned taskbar) at the icon now shown, off the UI thread. Picks can
+        /// come faster than the shortcuts are written, so each run writes only the latest one. Only shortcuts to this exe change,
+        /// so a Debug run leaves the installed app's alone.
+        /// </summary>
+        private static void UpdateShortcutIcons(Themes.AppIconArt art)
+        {
+            var exe = Environment.ProcessPath;
+            var icon = System.IO.Path.Combine(AppContext.BaseDirectory, Themes.AppIcons.FolderName, Themes.AppIcons.GetFileName(art));
+            if (exe == null || !System.IO.File.Exists(icon))
+            {
+                return;
+            }
+
+            Interlocked.Exchange(ref pendingShortcutIcon, icon);
+            _ = Task.Run(async () =>
+            {
+                await shortcutLock.WaitAsync();
+                try
+                {
+                    var latest = Interlocked.Exchange(ref pendingShortcutIcon, null);
+                    if (latest != null)
+                    {
+                        Common.ShortcutIcons.PointAt(Common.ShortcutIcons.GetDefaultFolders(), exe, latest);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("keycuts: couldn't update the shortcut icons: " + ex.Message);
+                }
+                finally
+                {
+                    shortcutLock.Release();
+                }
+            });
         }
 
         /// <summary>After the window is up, so startup never waits on the network. Any failure just leaves the footer line hidden.</summary>
@@ -134,7 +179,7 @@ namespace keycuts.GUI
 
         /// <summary>
         /// Reads this machine's variables off the UI thread: a custom one is checked with <c>Directory.Exists</c>, which can
-        /// take a long time for a network share that's offline. The "Saved as" line appears when they arrive.
+        /// take a long time for a network share that's offline. The target shows its %VAR% form once they arrive.
         /// </summary>
         private static async Task LoadPathVariablesAsync(ViewModels.CreatorViewModel creator)
         {

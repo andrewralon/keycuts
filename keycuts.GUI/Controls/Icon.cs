@@ -18,9 +18,11 @@ namespace keycuts.GUI.Controls
         Link,
         More,
         Play,
+        Rocket,
         Search,
         Settings,
         Spark,
+        Table,
         Warning
     }
 

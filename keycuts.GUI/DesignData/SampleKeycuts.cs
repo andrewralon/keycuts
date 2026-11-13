@@ -10,11 +10,11 @@ namespace keycuts.GUI.DesignData
     /// </summary>
     public static class SampleKeycuts
     {
-        public const string VickiName = "l-vicki";
+        public const string ArtName = "art";
 
-        public const string VickiDescription = "logs for vicki";
+        public const string ArtDescription = "Paintings gallery";
 
-        public const string VickiTarget = "https://logs.example.com/vicki";
+        public const string ArtTarget = "https://gallery.example.com/art";
 
         public const string DownloadsName = "downloads";
 
@@ -24,9 +24,9 @@ namespace keycuts.GUI.DesignData
 
         private const string SampleFolder = @"C:\Shortcuts";
 
-        public static Keycut Vicki()
+        public static Keycut Art()
         {
-            return Create(VickiName, KeycutKind.Url, VickiDescription, VickiTarget, TargetStatus.Unknown);
+            return Create(ArtName, KeycutKind.Url, ArtDescription, ArtTarget, TargetStatus.Unknown);
         }
 
         public static Keycut Downloads()
@@ -37,7 +37,7 @@ namespace keycuts.GUI.DesignData
         /// <summary>The two canonical entries.</summary>
         public static IReadOnlyList<Keycut> Canonical()
         {
-            return new List<Keycut> { Vicki(), Downloads() };
+            return new List<Keycut> { Art(), Downloads() };
         }
 
         /// <summary>

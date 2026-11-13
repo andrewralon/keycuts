@@ -123,7 +123,7 @@ namespace keycuts.CLI
             "  keycuts -t C:\\Windows\\notepad.exe -s np -f" + Environment.NewLine +
             "  keycuts -t C:\\Path\\To\\Hobbies -s hobbies" + Environment.NewLine +
             "  keycuts -t C:\\Users\\MyUser\\Desktop -s desktop" + Environment.NewLine +
-            "  keycuts -t https://mail.google.com -s gmail" + Environment.NewLine +
+            "  keycuts -t https://mail.google.com -s gmail --description \"Work email\"" + Environment.NewLine +
             "  keycuts paste gmail" + Environment.NewLine +
             "  keypaste gmail";
 

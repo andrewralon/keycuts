@@ -16,7 +16,7 @@
                   DowngradeErrorMessage="A newer version of keycuts is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <Icon Id="keycuts.ico" SourceFile="..\keycuts.GUI\Images\TR_256_ico.ico" />
+    <Icon Id="keycuts.ico" SourceFile="..\assets\icons\porcelain\porcelain.ico" />
     <Property Id="ARPPRODUCTICON" Value="keycuts.ico" />
 
     <!-- Existing settings win over the defaults, so upgrades keep a custom folder and a menu the user turned off -->

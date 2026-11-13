@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:keycuts.GUI.Controls"
              xmlns:themes="clr-namespace:keycuts.GUI.Themes"
+             xmlns:views="clr-namespace:keycuts.GUI.Views"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
@@ -27,6 +28,36 @@
       </Style.Triggers>
     </Style>
 
+    <!-- The divider between two column headers, to drag (#202). Wider than it looks, so it's easy to hit; the line shows on
+         hover and turns to the accent while dragging. Mouse only: the full values are in the cells' tooltips. -->
+    <Style x:Key="ColumnGripper" TargetType="Thumb">
+      <Setter Property="Width" Value="9" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="SizeWE" />
+      <Setter Property="Focusable" Value="False" />
+      <!-- A double click on a divider would size the column to its content (see Gripper_PreviewMouseDoubleClick) -->
+      <EventSetter Event="PreviewMouseDoubleClick" Handler="Gripper_PreviewMouseDoubleClick" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Thumb">
+            <Border Background="{TemplateBinding Background}">
+              <Rectangle x:Name="Line" Width="2" Margin="0,9" HorizontalAlignment="Center"
+                         Fill="{DynamicResource BorderStrongBrush}" Opacity="0" SnapsToDevicePixels="True" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Line" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="IsDragging" Value="True">
+                <Setter TargetName="Line" Property="Opacity" Value="1" />
+                <Setter TargetName="Line" Property="Fill" Value="{DynamicResource AccentBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="ManagerHeader" TargetType="DataGridColumnHeader">
       <Setter Property="Height" Value="34" />
       <Setter Property="Padding" Value="10,0" />
@@ -39,13 +70,42 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="DataGridColumnHeader">
-            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left" RecognizesAccessKey="False"
-                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-            </Border>
+            <Grid>
+              <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left" RecognizesAccessKey="False"
+                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+              </Border>
+              <!-- The grid finds these two by name and hides the one a column can't use (a fixed column, the first one's left).
+                   It sets the thumb's own Visibility, so a header that must not offer one (see Tag, below) collapses its host. -->
+              <Border x:Name="LeftGripperHost" HorizontalAlignment="Left">
+                <Thumb x:Name="PART_LeftHeaderGripper" Style="{StaticResource ColumnGripper}" />
+              </Border>
+              <Border x:Name="RightGripperHost" HorizontalAlignment="Right">
+                <Thumb x:Name="PART_RightHeaderGripper" Style="{StaticResource ColumnGripper}" />
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Tag" Value="NoRightGripper">
+                <Setter TargetName="RightGripperHost" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="Tag" Value="NoGrippers">
+                <Setter TargetName="LeftGripperHost" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="RightGripperHost" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+    </Style>
+
+    <!-- The last column that gives way: the divider on its right can't move, since the fixed columns beside it are pinned -->
+    <Style x:Key="ManagerHeaderPinnedRight" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ManagerHeader}">
+      <Setter Property="Tag" Value="NoRightGripper" />
+    </Style>
+
+    <!-- The fixed columns (Modified, the menu): their left divider would resize the column before them, whose right edge is pinned -->
+    <Style x:Key="ManagerHeaderFixed" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ManagerHeader}">
+      <Setter Property="Tag" Value="NoGrippers" />
     </Style>
 
     <!-- Sortable column header: label plus a chevron that shows on hover and for the active column. -->
@@ -172,7 +232,8 @@
       <Setter Property="CanUserAddRows" Value="False" />
       <Setter Property="CanUserDeleteRows" Value="False" />
       <Setter Property="CanUserResizeRows" Value="False" />
-      <Setter Property="CanUserResizeColumns" Value="False" />
+      <!-- Name, Description and Target can be dragged (#202); the others say CanUserResize="False" -->
+      <Setter Property="CanUserResizeColumns" Value="True" />
       <Setter Property="CanUserReorderColumns" Value="False" />
       <Setter Property="CanUserSortColumns" Value="False" />
       <Setter Property="ClipboardCopyMode" Value="None" />
@@ -246,24 +307,21 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <StackPanel>
-        <TextBlock Text="KEYCUT MANAGER" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource AccentBrush}" />
-        <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
-        <TextBlock Text="Scan, search, and manage every shortcut in one place." Margin="0,4,0,0"
-                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextTrimming="CharacterEllipsis" />
-      </StackPanel>
-      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Top" Margin="12,0,40,0"
+      <TextBlock Text="keycuts manager" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                 AutomationProperties.HeadingLevel="Level1" />
+      <!-- Lowercase on purpose: the creator's link to this screen says "manager" -->
+      <Button x:Name="BtnCreator" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Margin="12,0,0,0"
+              AutomationProperties.Name="creator"
               Command="{Binding ShowCreatorCommand}">
         <StackPanel Orientation="Horizontal">
           <controls:Icon Kind="Spark" Size="15" />
-          <TextBlock Text="New keycut" Margin="8,0,0,0" />
+          <TextBlock Text="creator" Margin="8,0,0,0" />
         </StackPanel>
       </Button>
     </Grid>
 
+    <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
     <Grid Grid.Row="1" Margin="24,16,24,12">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
@@ -274,13 +332,14 @@
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
                  themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
-                 AutomationProperties.Name="Search shortcuts" />
+                 AutomationProperties.Name="Search keycuts" />
         <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
-      <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeBody}"
-                 Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ResultCountText}"
-                 AutomationProperties.LiveSetting="Polite" />
+      <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                 FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
+                 Text="{Binding ShownText}" AutomationProperties.LiveSetting="Polite"
+                 Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
     </Grid>
 
     <Grid Grid.Row="2" Margin="24,0,24,12">
@@ -292,9 +351,10 @@
                   SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="Keycuts"
                   KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
-            <DataGridTemplateColumn Width="1.7*" MinWidth="190">
+            <!-- A click on the name or description cell of the selected row edits it in place (#202; see ManagerView_PreviewMouseDown) -->
+            <DataGridTemplateColumn x:Name="NameColumn" Width="1.7*" MinWidth="190">
               <DataGridTemplateColumn.Header>
-                <controls:SortHeaderButton Column="Shortcut" Content="Shortcut" Style="{StaticResource SortHeaderButtonStyle}" />
+                <controls:SortHeaderButton Column="Shortcut" Content="Name" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -310,7 +370,7 @@
                         </Style>
                       </TextBlock.Style>
                     </TextBlock>
-                    <!-- Rename in place (F2 or Rename): Enter saves, Escape cancels, clicking or tabbing away saves -->
+                    <!-- Rename in place (F2, Rename, or a click on the selected row): Enter saves, Escape cancels, clicking or tabbing away saves -->
                     <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Height="30" MinHeight="30"
                              Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibility}}"
                              AutomationProperties.Name="{Binding RenameLabel}"
@@ -323,11 +383,23 @@
                       <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
                                  VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" />
                     </StackPanel>
+                    <!-- #203: starts, but something it names is wrong (a start-in folder that doesn't exist). WarningBrush is yellow
+                         in the dark palette and a dark amber in the light one, where yellow text can't be read. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,1,0,0" ToolTip="{Binding WarningTooltip}"
+                                Visibility="{Binding ShowWarningIndicator, Converter={StaticResource BoolToVisibility}}">
+                      <controls:Icon Kind="Warning" Size="11" VerticalAlignment="Center"
+                                     Foreground="{DynamicResource WarningBrush}" />
+                      <TextBlock Text="Warning" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource WarningBrush}" />
+                    </StackPanel>
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="110">
+            <!-- Type, Modified and the menu are fixed: the same MinWidth as Width, or the grid squeezes them to its default 20
+                 when the table jumps narrower than all the columns need (a snap, a restore), and keeps them squeezed after the
+                 Modified column has made way again -->
+            <DataGridTemplateColumn Width="110" MinWidth="110" CanUserResize="False">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Type" Content="Type" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -337,24 +409,62 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="1.5*" MinWidth="100">
+            <DataGridTemplateColumn x:Name="DescriptionColumn" Width="1.5*" MinWidth="100">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Description" Content="Description" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Description}" />
+                  <Grid VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Description}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEditingDescription}" Value="True">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <!-- Edit in place (Shift+F2, Edit description, or a click on the selected row): Enter saves, Escape cancels, clicking or tabbing away saves -->
+                    <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}" Height="30" MinHeight="30"
+                             themes:TextBoxChrome.Placeholder="Add a description"
+                             Visibility="{Binding IsEditingDescription, Converter={StaticResource BoolToVisibility}}"
+                             AutomationProperties.Name="{Binding DescriptionLabel}"
+                             IsVisibleChanged="DescriptionBox_IsVisibleChanged" PreviewKeyDown="DescriptionBox_PreviewKeyDown"
+                             LostKeyboardFocus="DescriptionBox_LostKeyboardFocus" />
+                  </Grid>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="Target" Width="2.8*" MinWidth="120">
+            <!-- Target is resizable, and the columns to its left give way to it. Its right edge is pinned by the fixed columns
+                 beside it, which the grid can't move, so there is no gripper there (#202) -->
+            <DataGridTemplateColumn Width="2.8*" MinWidth="120" HeaderStyle="{StaticResource ManagerHeaderPinnedRight}">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Target" Content="Target" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" />
+                  <!-- The cell shows the program; the tooltip adds its arguments (#203) -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" ToolTip="{Binding TargetTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="44">
+            <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="110" MinWidth="110" CanUserResize="False"
+                                    HeaderStyle="{StaticResource ManagerHeaderFixed}">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <!-- The text is how long ago; the tooltip is the exact date and time -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding ModifiedText}" ToolTip="{Binding ModifiedTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <controls:MenuButton Style="{StaticResource IconButton}" Width="28" Height="28"
@@ -363,32 +473,52 @@
                                        Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown">
                     <controls:Icon Kind="More" Size="17" />
                     <Button.ContextMenu>
-                      <ContextMenu Width="190" Placement="Bottom" HorizontalOffset="-162" VerticalOffset="4"
+                      <!-- 250 wide for the key names beside the items; the offset keeps the menu's right edge under the button (250 - 28) -->
+                      <ContextMenu Width="250" Placement="Bottom" HorizontalOffset="-222" VerticalOffset="4"
                                    Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
-                        <MenuItem Header="Open keycut" Command="{Binding OpenCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Play" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Edit" Command="{Binding EditCommand}" Click="SafeItem_Click">
+                        <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
+                        <MenuItem Header="Edit" InputGestureText="Ctrl+E" Command="{Binding EditCommand}" Click="SafeItem_Click">
+                          <MenuItem.Style>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
+                              <Setter Property="ToolTip" Value="{Binding EditTooltip}" />
+                              <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+                              <Setter Property="ToolTipService.IsEnabled" Value="False" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanEditInForm}" Value="False">
+                                  <Setter Property="ToolTipService.IsEnabled" Value="True" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </MenuItem.Style>
                           <MenuItem.Icon>
                             <controls:Icon Kind="File" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Open file location" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Edit in Notepad" InputGestureText="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
+                          <MenuItem.Icon>
+                            <controls:Icon Kind="External" Size="16" />
+                          </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Open file location" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Folder" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Copy target" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Copy target" InputGestureText="Ctrl+C" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Copy" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
                         <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
                         <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
+                        <MenuItem Header="Edit description" InputGestureText="Shift+F2" Command="{Binding EditDescriptionCommand}" />
                         <Separator />
-                        <MenuItem Header="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+                        <MenuItem Header="Delete" InputGestureText="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
                           </MenuItem.Icon>
@@ -462,36 +592,12 @@
       </StackPanel>
     </Grid>
 
-    <Border Grid.Row="3" Height="34" Background="{DynamicResource SurfaceSubtleBrush}"
-            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="24,0">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <TextBlock VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
-                   Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding StatusText}" />
-        <TextBlock Grid.Column="1" x:Name="StatusMessageText" Margin="16,0,0,0" HorizontalAlignment="Right"
-                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="{StaticResource FontSizeCaption}"
-                   Text="{Binding StatusMessage}" AutomationProperties.LiveSetting="Polite">
-          <TextBlock.Style>
-            <Style TargetType="TextBlock">
-              <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding StatusIsError}" Value="True">
-                  <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </TextBlock.Style>
-        </TextBlock>
-      </Grid>
-    </Border>
-
-    <!-- Declared last so Tab reaches it after the status bar; it sits visually at the top right. -->
-    <Button Style="{StaticResource IconButton}" HorizontalAlignment="Right" VerticalAlignment="Top"
-            Margin="0,24,24,0" Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Open settings">
-      <controls:Icon Kind="Settings" />
-    </Button>
+    <!-- #205: the footer both screens share. The status line (Deleted, errors) and Undo sit in it between the count and the
+         update line. -->
+    <views:FooterView Grid.Row="3">
+      <views:FooterView.Message>
+        <views:ManagerStatusView />
+      </views:FooterView.Message>
+    </views:FooterView>
   </Grid>
 </UserControl>

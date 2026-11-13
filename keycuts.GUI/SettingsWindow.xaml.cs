@@ -36,7 +36,8 @@ namespace keycuts.GUI
         {
             InitializeComponent();
 
-            this.viewModel = viewModel ?? new SettingsViewModel(new RunnerSettingsStore(), PickFolder, OpenFolder, updates: updates);
+            this.viewModel = viewModel ?? new SettingsViewModel(new RunnerSettingsStore(), PickFolder, OpenFolder, updates: updates,
+                appIcon: new AppIconService());
             DataContext = this.viewModel;
 
             // Checking the saved choice raises Checked; that is not a preview, so the palette is left alone
@@ -110,6 +111,14 @@ namespace keycuts.GUI
             {
                 AnnounceLiveRegion(UpdateStatusMessage);
             }
+            else if (e.PropertyName == nameof(SettingsViewModel.IsIconPickerOpen))
+            {
+                MoveFocusForIconPicker();
+            }
+            else if (e.PropertyName == nameof(SettingsViewModel.IconError) && viewModel.HasIconError)
+            {
+                AnnounceLiveRegion(IconPickerNoteText);
+            }
         }
 
         // Also scrolls the message into view: when the window is height-capped, the save error sits below the visible part of the body
@@ -156,7 +165,8 @@ namespace keycuts.GUI
 
         // There is no Cancel button, so Escape closes the window the way its close button does: nothing is saved, and the theme
         // preview is dropped in Settings_Closed. Like the IsCancel button this replaces, it acts only on a key nothing inside the
-        // window handled: WPF doesn't call OnKeyDown for a key that is already marked handled.
+        // window handled: WPF doesn't call OnKeyDown for a key that is already marked handled. While the icon picker is open,
+        // Escape closes only the picker (the pick is already saved).
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
@@ -164,8 +174,48 @@ namespace keycuts.GUI
             if (e.Key == Key.Escape)
             {
                 e.Handled = true;
-                Close();
+
+                if (viewModel.IsIconPickerOpen)
+                {
+                    viewModel.IsIconPickerOpen = false;
+                }
+                else
+                {
+                    Close();
+                }
             }
+        }
+
+        // A click on the dimmed window behind the picker closes it
+        private void IconPickerScrim_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            viewModel.IsIconPickerOpen = false;
+            e.Handled = true;
+        }
+
+        // Opening moves the focus to the picked card, so the arrows move from there; closing gives it back to the icon button.
+        // Driven by the view model rather than IsVisibleChanged, which also fires while the window first lays out. Input
+        // priority runs after the layout that creates the cards.
+        private void MoveFocusForIconPicker()
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                if (viewModel.IsIconPickerOpen)
+                {
+                    if (IconList.ItemContainerGenerator.ContainerFromItem(viewModel.SelectedIcon) is ListBoxItem card)
+                    {
+                        card.Focus();
+                    }
+                    else
+                    {
+                        IconList.Focus();
+                    }
+                }
+                else
+                {
+                    BtnIcon.Focus();
+                }
+            }));
         }
 
         // A click previews the theme right away; only Save keeps it.

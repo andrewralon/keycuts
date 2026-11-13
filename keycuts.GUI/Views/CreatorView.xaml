@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:keycuts.GUI.Controls"
              xmlns:themes="clr-namespace:keycuts.GUI.Themes"
+             xmlns:views="clr-namespace:keycuts.GUI.Views"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
@@ -132,22 +133,22 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Quiet full-width link button for the footer. -->
-    <Style x:Key="FooterLinkButton" TargetType="Button">
+    <!-- A field label that is also a button (#205): "Description (optional)" hides its box, "Add a description (optional)" shows it. It looks
+         like the "Name" label, and turns to the accent on hover so it reads as clickable. -->
+    <Style x:Key="FieldLabelButton" TargetType="Button">
       <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
       <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
       <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="Padding" Value="0" />
       <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border Background="{TemplateBinding Background}" CornerRadius="{StaticResource RadiusSm}">
-              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+              <ContentPresenter RecognizesAccessKey="False" />
             </Border>
           </ControlTemplate>
         </Setter.Value>
@@ -155,6 +156,10 @@
       <Style.Triggers>
         <Trigger Property="IsMouseOver" Value="True">
           <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        </Trigger>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+          <Setter Property="Cursor" Value="Arrow" />
         </Trigger>
       </Style.Triggers>
     </Style>
@@ -199,22 +204,50 @@
       </Style.Triggers>
     </Style>
 
-    <Style x:Key="BrowseChevron" TargetType="controls:Icon">
-      <Setter Property="Size" Value="12" />
-      <Setter Property="Kind" Value="Chevron" />
-      <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
-      <Setter Property="RenderTransform">
+    <!-- A welcome bubble (#213): a radio button drawn as a centered card. Picked (checked) gets the accent border, drawn thicker
+         with the padding taken in, so picking one never moves the layout. -->
+    <Style x:Key="WelcomeBubble" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="8,8" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+      <Setter Property="Template">
         <Setter.Value>
-          <RotateTransform Angle="90" />
+          <ControlTemplate TargetType="RadioButton">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                    CornerRadius="{StaticResource RadiusMd}">
+              <ContentPresenter HorizontalAlignment="Center" />
+            </Border>
+          </ControlTemplate>
         </Setter.Value>
       </Setter>
       <Style.Triggers>
-        <DataTrigger Binding="{Binding IsBrowseMenuOpen}" Value="True">
-          <Setter Property="RenderTransform">
-            <Setter.Value>
-              <RotateTransform Angle="-90" />
-            </Setter.Value>
-          </Setter>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}" />
+        </Trigger>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+          <Setter Property="BorderThickness" Value="2" />
+          <Setter Property="Padding" Value="7,7" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- The welcome panel's line under the bubbles (#213): the same size and color as the intro above it, which reads better than the
+         small tertiary helper text on the blue panel in the dark theme. Only a PATH problem changes it, to the error color. -->
+    <Style x:Key="WelcomeHelperText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
         </DataTrigger>
       </Style.Triggers>
     </Style>
@@ -230,7 +263,8 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <Grid Grid.Row="0" Margin="20,20,20,22">
+    <!-- 16 at the bottom: the same gap as between the Name and Description fields, so the window ends where its content does -->
+    <Grid Grid.Row="0" Margin="20,20,20,16">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
@@ -238,53 +272,89 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <Grid Grid.Row="0" Margin="0,0,0,20">
+      <Grid Grid.Row="0" Margin="0,0,0,16">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel Margin="0,0,44,0">
-          <TextBlock Text="NEW KEYCUT" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="Bold"
-                     Foreground="{DynamicResource AccentBrush}" />
-          <TextBlock Text="Launch anything instantly" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                     Foreground="{DynamicResource TextBrush}" AutomationProperties.HeadingLevel="Level1" />
-        </StackPanel>
+        <TextBlock Text="keycuts creator" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
+                   VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                   AutomationProperties.HeadingLevel="Level1" />
+        <!-- Lowercase on purpose: the manager's own heading is "keycuts manager" -->
+        <Button x:Name="BtnManager" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
+                AutomationProperties.Name="manager"
+                Margin="12,0,0,0" Command="{Binding ShowManagerCommand}">
+          <StackPanel Orientation="Horizontal">
+            <controls:Icon Kind="Table" Size="15" />
+            <TextBlock Text="manager" Margin="8,0,0,0" />
+          </StackPanel>
+        </Button>
       </Grid>
 
-      <!-- First-run welcome (#61, #11): shown once, while the keycuts folder is empty. Collapsed without a Welcome. -->
+      <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. Its bubbles fill an example (a website, a
+           folder, keycuts itself) into the fields below instead of the panel having a form of its own. Off while a keycut is being saved,
+           like the fields it fills. Collapsed without a Welcome. -->
       <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
+              IsEnabled="{Binding DataContext.IsInputEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=True}"
               CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
               Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
         <StackPanel>
-          <TextBlock Text="Welcome to keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
-                     AutomationProperties.HeadingLevel="Level2" />
-          <TextBlock TextWrapping="Wrap" Margin="0,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Text="Give anything a short name here. Then press Win+R, type the name, and press Enter to open it." />
-          <TextBlock Text="Start with a keycut to keycuts itself:" FontWeight="SemiBold" Margin="0,0,0,6"
-                     Foreground="{DynamicResource TextBrush}" />
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="TextboxWelcomeName" Height="34" MinHeight="34"
-                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                     themes:TextBoxChrome.HasError="{Binding HelperIsError}"
-                     IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Name for the keycuts keycut"
-                     AutomationProperties.HelpText="{Binding HelperText}">
-              <TextBox.InputBindings>
-                <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
-              </TextBox.InputBindings>
-            </TextBox>
-            <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
-                    Command="{Binding CreateCommand}" Content="Create keycut"
-                    AutomationProperties.Name="Create keycut to keycuts" />
-            <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Height="34" Padding="12,0"
-                    Command="{Binding DismissCommand}" Content="Got it" AutomationProperties.Name="Dismiss welcome" />
+            <TextBlock Text="Welcome to keycuts!" FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                       AutomationProperties.HeadingLevel="Level2" />
+            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" Height="32" Padding="12,0"
+                    VerticalAlignment="Center" Command="{Binding DismissCommand}" Content="Got it"
+                    AutomationProperties.Name="Dismiss welcome" />
           </Grid>
-          <TextBlock x:Name="WelcomeHelperTextBlock" Margin="0,8,0,0" Text="{Binding HelperText}"
-                     Style="{StaticResource HelperText}" TextWrapping="Wrap" TextTrimming="None" />
+          <TextBlock TextWrapping="Wrap" Margin="0,6,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
+                     Text="keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it." />
+          <TextBlock Text="Start by creating one of these keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+          <!-- Three bubbles in a row: type badge, what it opens, an arrow to its name. Each fills the fields below. -->
+          <ItemsControl x:Name="WelcomeExamples" ItemsSource="{Binding Examples}" Margin="-4,8,-4,0" IsTabStop="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <RadioButton Style="{StaticResource WelcomeBubble}" Margin="4,0"
+                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                             Command="{Binding DataContext.SelectExampleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                             CommandParameter="{Binding}" AutomationProperties.Name="{Binding AutomationName}">
+                  <StackPanel HorizontalAlignment="Center">
+                    <controls:TypeBadge Kind="{Binding Kind}" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding Label}" Margin="0,6,0,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                      <controls:Icon Kind="Arrow" Size="20" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
+                      <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="{StaticResource FontSizeInput}"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                    </StackPanel>
+                  </StackPanel>
+                </RadioButton>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <!-- Empty until a bubble is picked, then which button to click, then how to use the keycut, or the PATH warning -->
+          <Grid Margin="0,9,0,0" Visibility="{Binding HasHelperText, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <controls:Icon Kind="Rocket" Size="18" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"
+                           Visibility="{Binding ShowRocket, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+            <!-- The same place and size once the keycut is created (and Win+R can find it), in the success color -->
+            <controls:Icon Kind="Check" Size="18" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}"
+                           Visibility="{Binding IsSuccess, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+            <TextBlock x:Name="WelcomeHelperTextBlock" Grid.Column="1" Text="{Binding HelperText}"
+                       Style="{StaticResource WelcomeHelperText}" />
+          </Grid>
           <!-- Only after a create, when the keycuts folder isn't on PATH yet (a portable copy), so Win+R can't find it -->
           <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Height="34"
                   Padding="12,0" Command="{Binding AddToPathCommand}" Content="Add to PATH"
@@ -313,27 +383,25 @@
 
           <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
             <TextBlock Text="Target" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+            <!-- #205: a long target wraps and the box grows with it, so there is no ellipsis. Not being edited, it shows the path
+                 as it will be saved (#31): with %VAR% while Shift is held or the setting is on (TargetText). -->
             <TextBox x:Name="TextboxTarget" Style="{StaticResource InlineTextBox}" Margin="-2,4,0,0"
-                     Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
-                     themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, or URL here"
+                     Text="{Binding TargetText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"
+                     themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, URL ..."
                      IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
                      AutomationProperties.HelpText="{Binding TargetHelpText}"
                      PreviewKeyDown="TextboxTarget_PreviewKeyDown" TextChanged="TextboxTarget_TextChanged"
-                     LostFocus="TextboxTarget_LostFocus" />
-            <!-- #31: the path as it will be saved, with or without environment variables (the setting, flipped by Shift) -->
-            <TextBlock x:Name="SavedAsText" Margin="0,4,0,0" FontSize="{StaticResource FontSizeCaption}"
-                       Foreground="{DynamicResource TextTertiaryBrush}" TextTrimming="CharacterEllipsis"
-                       Text="{Binding SavedAsPath, StringFormat='Saved as {0}'}" ToolTip="{Binding SavedAsPath}"
-                       Visibility="{Binding ShowSavedAs, Converter={StaticResource BoolToVisibility}}" />
+                     LostFocus="TextboxTarget_LostFocus"
+                     IsKeyboardFocusWithinChanged="TextboxTarget_IsKeyboardFocusWithinChanged" />
           </StackPanel>
 
+          <!-- Icon-only, like the Settings window's folder button: the tooltip and the automation name say "Browse". Centered in
+               the box, so it stays so when a long target wraps and the box grows. -->
           <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
+                  Width="40" Height="40" Padding="0"
                   Click="Browse_Click" PreviewKeyDown="Browse_PreviewKeyDown" ContextMenuOpening="Browse_ContextMenuOpening" IsEnabled="{Binding IsInputEnabled}"
-                  AutomationProperties.Name="Browse">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="Browse" VerticalAlignment="Center" />
-              <controls:Icon Style="{StaticResource BrowseChevron}" Margin="6,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
+                  ToolTip="Browse" AutomationProperties.Name="Browse">
+            <controls:Icon Kind="Folder" Size="18" VerticalAlignment="Center" />
             <Button.ContextMenu>
               <ContextMenu x:Name="BrowseMenu" Width="190" Opened="BrowseMenu_Opened" Closed="BrowseMenu_Closed"
                            PreviewKeyDown="BrowseMenu_PreviewKeyDown">
@@ -370,8 +438,33 @@
       </Grid>
 
       <!-- Name form -->
-      <StackPanel Grid.Row="3" Margin="0,18,0,0">
-        <TextBlock Text="Name your keycut" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6" />
+      <StackPanel Grid.Row="3" Margin="0,16,0,0">
+        <!-- The label, and at its right what is happening to the keycut: "Saving…", then "Created name" (#205). They sit on this
+             row, not under the field, so the window keeps its height while a keycut is made. -->
+        <Grid Margin="0,0,0,6">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="Name" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0"
+                      Visibility="{Binding HasNameStatus, Converter={StaticResource BoolToVisibility}}">
+            <controls:Icon Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource SuccessBrush}">
+              <controls:Icon.Style>
+                <Style TargetType="controls:Icon">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSuccess}" Value="True">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </controls:Icon.Style>
+            </controls:Icon>
+            <TextBlock x:Name="NameStatusTextBlock" Text="{Binding NameStatusText}" Style="{StaticResource HelperText}" />
+          </StackPanel>
+        </Grid>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -379,7 +472,7 @@
           </Grid.ColumnDefinitions>
           <TextBox x:Name="TextboxShortcut" Height="38" MinHeight="38"
                    Text="{Binding ShortcutName, UpdateSourceTrigger=PropertyChanged}"
-                   themes:TextBoxChrome.Placeholder="e.g. l-vicki"
+                   themes:TextBoxChrome.Placeholder="e.g. art"
                    themes:TextBoxChrome.HasError="{Binding IsNameError}"
                    themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
                    IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
@@ -391,13 +484,17 @@
               <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
             </TextBox.InputBindings>
           </TextBox>
+          <!-- Icon-only (#205): a white rocket on the same solid blue. The tooltip and the automation name are "Create", or
+               "Saving" while the keycut is being written, when the rocket gives way to the spinner. The tooltip also shows while
+               the button is disabled, so the bare icon can always be identified. -->
           <Button x:Name="BtnCreateShortcut" Grid.Column="1" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
-                  Height="38" MinWidth="104" Padding="16,0" Command="{Binding CreateCommand}"
+                  Width="38" Height="38" Padding="0" Command="{Binding CreateCommand}"
+                  ToolTip="{Binding CreateButtonName}" ToolTipService.ShowOnDisabled="True"
                   AutomationProperties.Name="{Binding CreateButtonName}">
             <Grid>
-              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <StackPanel.Style>
-                  <Style TargetType="StackPanel">
+              <controls:Icon Kind="Rocket" Size="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <controls:Icon.Style>
+                  <Style TargetType="controls:Icon">
                     <Setter Property="Visibility" Value="Visible" />
                     <Style.Triggers>
                       <DataTrigger Binding="{Binding IsSaving}" Value="True">
@@ -405,13 +502,12 @@
                       </DataTrigger>
                     </Style.Triggers>
                   </Style>
-                </StackPanel.Style>
-                <TextBlock Text="Create" VerticalAlignment="Center" />
-                <controls:Icon Kind="Arrow" Size="16" Margin="8,0,0,0" VerticalAlignment="Center" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <StackPanel.Style>
-                  <Style TargetType="StackPanel">
+                </controls:Icon.Style>
+              </controls:Icon>
+              <Control HorizontalAlignment="Center" VerticalAlignment="Center" Width="14" Height="14"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}">
+                <Control.Style>
+                  <Style TargetType="Control" BasedOn="{StaticResource Spinner}">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
                       <DataTrigger Binding="{Binding IsSaving}" Value="True">
@@ -419,15 +515,14 @@
                       </DataTrigger>
                     </Style.Triggers>
                   </Style>
-                </StackPanel.Style>
-                <Control Style="{StaticResource Spinner}" Width="12" Height="12" VerticalAlignment="Center"
-                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                <TextBlock Text="Saving" Margin="8,0,0,0" VerticalAlignment="Center" />
-              </StackPanel>
+                </Control.Style>
+              </Control>
             </Grid>
           </Button>
         </Grid>
-        <DockPanel Margin="0,8,0,0" MinHeight="18">
+        <!-- Name warnings and errors; takes no room (#205) while there is nothing to say. Saving and Created are above, by the label. -->
+        <DockPanel Margin="0,8,0,0" MinHeight="18"
+                   Visibility="{Binding ShowHelperLine, Converter={StaticResource BoolToVisibility}}">
           <controls:Icon DockPanel.Dock="Left" Kind="Warning" Size="14" Margin="0,1,6,0" VerticalAlignment="Top"
                          Foreground="{DynamicResource WarningBrush}">
             <controls:Icon.Style>
@@ -441,77 +536,30 @@
               </Style>
             </controls:Icon.Style>
           </controls:Icon>
-          <controls:Icon DockPanel.Dock="Left" Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
-                         Foreground="{DynamicResource SuccessBrush}">
-            <controls:Icon.Style>
-              <Style TargetType="controls:Icon">
-                <Setter Property="Visibility" Value="Collapsed" />
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding IsSuccess}" Value="True">
-                    <Setter Property="Visibility" Value="Visible" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </controls:Icon.Style>
-          </controls:Icon>
           <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource NameHelperText}" />
         </DockPanel>
+
+        <!-- #162, #205: the description is optional. Its label is a button: "Add a description (optional)" shows the box and
+             "Description (optional)" hides it, the choice being remembered between launches. Styled like the "Name" label,
+             with the same 16 above it as between Target and Name. -->
+        <Button x:Name="BtnToggleDescription" Style="{StaticResource FieldLabelButton}" HorizontalAlignment="Left"
+                Margin="0,16,0,0" Command="{Binding ToggleDescriptionCommand}"
+                Content="{Binding DescriptionToggleText}" AutomationProperties.Name="{Binding DescriptionToggleName}"
+                IsEnabled="{Binding IsInputEnabled}" />
+        <TextBox x:Name="TextboxDescription" Height="38" MinHeight="38" Margin="0,6,0,0"
+                 Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                 themes:TextBoxChrome.Placeholder="e.g. Recent paintings"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description"
+                 Visibility="{Binding IsDescriptionVisible, Converter={StaticResource BoolToVisibility}}">
+          <TextBox.InputBindings>
+            <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+            <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
+          </TextBox.InputBindings>
+        </TextBox>
       </StackPanel>
     </Grid>
 
-    <!-- Footer strip -->
-    <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="0,1,0,0" Padding="20,10">
-      <StackPanel>
-        <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing.
-             Declared in reading order so Tab reaches Download before the dismiss button. -->
-        <Grid x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" Margin="0,0,0,6"
-              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <controls:Icon Grid.Column="0" Kind="Spark" Size="15" Margin="0,0,8,0" VerticalAlignment="Center"
-                         Foreground="{DynamicResource AccentBrush}" />
-          <TextBlock x:Name="UpdateNoticeText" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
-                     Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
-            <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
-                Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentBrush}"
-                AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">Download</Hyperlink>
-          </TextBlock>
-          <Button x:Name="BtnDismissUpdate" Grid.Column="2" Style="{StaticResource IconButton}" Margin="8,0,0,0"
-                  Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
-            <controls:Icon Kind="Close" Size="14" />
-          </Button>
-        </Grid>
-        <Button Style="{StaticResource FooterLinkButton}" Command="{Binding ShowManagerCommand}"
-                AutomationProperties.Name="{Binding KeycutCount, StringFormat='View all keycuts ({0})'}">
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <controls:Icon Kind="External" Size="15" />
-              <TextBlock Text="View all keycuts" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-            <Border Grid.Column="1" MinWidth="24" Height="20" Padding="7,0" CornerRadius="10"
-                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" VerticalAlignment="Center">
-              <TextBlock Text="{Binding KeycutCount}" FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
-                         Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
-                         VerticalAlignment="Center" />
-            </Border>
-          </Grid>
-        </Button>
-      </StackPanel>
-    </Border>
-
-    <!-- Declared last so Tab reaches it after the footer link, as it sits visually at the top right. -->
-    <Button Style="{StaticResource IconButton}" HorizontalAlignment="Right" VerticalAlignment="Top"
-            Margin="0,20,20,0" Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Settings">
-      <controls:Icon Kind="Settings" />
-    </Button>
+    <!-- #205: the footer both screens share (Settings, the count, the update line) -->
+    <views:FooterView Grid.Row="1" />
   </Grid>
 </UserControl>

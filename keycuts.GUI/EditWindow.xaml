@@ -1,0 +1,94 @@
+<Window x:Class="keycuts.GUI.EditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:keycuts.GUI.Controls"
+        xmlns:themes="clr-namespace:keycuts.GUI.Themes"
+        xmlns:vm="clr-namespace:keycuts.GUI.ViewModels"
+        mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:EditKeycutViewModel}"
+        Title="{Binding Title}" Width="480" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" UseLayoutRounding="True"
+        Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}"
+        FontFamily="{StaticResource AppFontFamily}" FontSize="{StaticResource FontSizeBody}"
+        Loaded="Edit_Loaded" Closing="Edit_Closing" Closed="Edit_Closed">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <!-- Beside the field it is about, in the error color; wraps, since a message can be long -->
+        <Style x:Key="FieldError" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </Style>
+    </Window.Resources>
+
+    <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False"
+                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="24">
+                <TextBlock Text="Edit keycut" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+                           Margin="0,0,0,20" AutomationProperties.HeadingLevel="Level1" />
+
+                <TextBlock Text="Target" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="TextboxTarget" Style="{StaticResource AppTextBox}" Height="38" MinHeight="38"
+                         Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
+                         themes:TextBoxChrome.Placeholder="A file, folder, or URL"
+                         themes:TextBoxChrome.HasError="{Binding HasTargetError}"
+                         IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
+                         AutomationProperties.HelpText="{Binding TargetError}"
+                         ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                <TextBlock x:Name="TargetErrorText" Text="{Binding TargetError}" Style="{StaticResource FieldError}"
+                           Visibility="{Binding HasTargetError, Converter={StaticResource BoolToVisibility}}" />
+
+                <TextBlock Text="Name" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+                <TextBox x:Name="TextboxName" Style="{StaticResource AppTextBox}" Height="38" MinHeight="38"
+                         Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                         themes:TextBoxChrome.Placeholder="What you type in Win+R"
+                         themes:TextBoxChrome.HasError="{Binding HasNameError}"
+                         IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
+                         AutomationProperties.HelpText="{Binding NameError}" />
+                <TextBlock x:Name="NameErrorText" Text="{Binding NameError}" Style="{StaticResource FieldError}"
+                           Visibility="{Binding HasNameError, Converter={StaticResource BoolToVisibility}}" />
+
+                <TextBlock Text="Description (optional)" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+                <TextBox x:Name="TextboxDescription" Style="{StaticResource AppTextBox}" Height="38" MinHeight="38"
+                         Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                         themes:TextBoxChrome.Placeholder="What is it for? Shown in the manager"
+                         IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
+
+                <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Style="{StaticResource FieldError}"
+                           Margin="0,14,0,0" Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer, as in Settings and the confirmation: Escape and Cancel leave things as they are; Enter saves -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="24,13">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnCancel" Content="Cancel" Style="{StaticResource SecondaryButton}" IsCancel="True"
+                        IsEnabled="{Binding IsInputEnabled}" />
+                <Button x:Name="BtnSave" Style="{StaticResource PrimaryButton}" IsDefault="True" Margin="8,0,0,0"
+                        Command="{Binding SaveCommand}" AutomationProperties.Name="Save">
+                    <StackPanel Orientation="Horizontal">
+                        <controls:Icon Kind="Check" Size="16" VerticalAlignment="Center" />
+                        <TextBlock Text="Save" Margin="7,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

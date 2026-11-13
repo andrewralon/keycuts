@@ -85,7 +85,7 @@ namespace keycuts.GUI.ViewModels
                 throw new ArgumentNullException(nameof(check));
             }
 
-            var warnings = GetWarnings(check);
+            var warnings = GetWarnings(check, newTarget);
 
             if (check.Existing != null)
             {
@@ -108,17 +108,17 @@ namespace keycuts.GUI.ViewModels
             }
 
             return new ConfirmViewModel("Name already in use", Quote("Rename to ", check.Name, " anyway?"), ConflictIntro,
-                "Rename anyway", null, null, GetWarnings(check));
+                "Rename anyway", null, null, GetWarnings(check, null));
         }
 
-        private static IReadOnlyList<string> GetWarnings(NameCheck check)
+        private static IReadOnlyList<string> GetWarnings(NameCheck check, string? newTarget)
         {
             // The one that matters most first: a conflict that hides the keycut outranks one it shadows
             var ordered = check.Conflicts.Where(c => c.Effect == NameConflictEffect.Hidden)
                 .Concat(check.Conflicts.Where(c => c.Effect != NameConflictEffect.Hidden))
                 .ToList();
 
-            var lines = ordered.Take(MaxConflictLines).Select(c => CreatorViewModel.GetConflictMessage(check.Name, c)).ToList();
+            var lines = ordered.Take(MaxConflictLines).Select(c => CreatorViewModel.GetConflictMessage(check.Name, c, newTarget)).ToList();
             var more = ordered.Count - lines.Count;
 
             if (more > 0)

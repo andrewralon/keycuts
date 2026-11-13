@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>keycuts app icons</title>
+<!--
+  Draws the keycuts app icons for tools/New-AppIcons.ps1, which screenshots this page with headless Edge and cuts it up.
+  ?icon=<name> lays out one icon on a transparent page: 1024 px at (0,0), then each Windows size on one row at y = 1032,
+  left to right with 8 px between them (the script computes the same positions). ?preview shows them all on light and dark.
+-->
+<style>
+  html, body { margin: 0; background: transparent; }
+  .at { position: absolute; }
+  .at svg { display: block; }
+  .preview { font-family: "Segoe UI", sans-serif; padding: 16px; background: #eef1f5; }
+  .preview h2 { font-size: 14px; margin: 14px 0 6px; }
+  .preview .strip { display: flex; align-items: end; gap: 10px; padding: 10px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<script src="keycap.js"></script>
+<script>
+const SIZES = [16, 20, 24, 32, 40, 48, 64, 96, 256];
+const BIG = 1024, ROW_Y = 1032, GAP = 8;
+
+const VIEW = { azimuth: 26, elevation: 48 };
+const KEYS = {
+  white:    { side: '#dfe3ea', top: '#fbfcfd', dishShade: 0.05, legendColor: '#2563eb' },
+  charcoal: { side: '#2a2f38', top: '#353b46', ambient: 0.75, diffuse: 0.55, dishLight: 0.08, rim: 0.05, dishShade: 0.05, legendColor: '#4f8cff' },
+  blue:     { side: '#1f56d0', top: '#2f6df0', ambient: 0.7, diffuse: 0.42, rim: 0.3, dishLight: 0.12, legendColor: '#ffffff' },
+};
+const DARK_TILE = '#20242c', LIGHT_TILE = '#e8ecf2';
+// The four the app offers sit on a rounded square; the key-* ones are the key alone on a transparent background.
+const ICONS = {
+  porcelain:      { key: 'charcoal', tile: LIGHT_TILE, shadow: 0.22 },
+  onyx:           { key: 'white', tile: DARK_TILE, shadow: 0.5 },
+  cobalt:         { key: 'blue', tile: LIGHT_TILE, shadow: 0.22 },
+  twilight:       { key: 'blue', tile: DARK_TILE, shadow: 0.5 },
+  'key-white':    { key: 'white' },
+  'key-charcoal': { key: 'charcoal' },
+  'key-blue':     { key: 'blue' },
+};
+
+// 24 px and below get the flat key with a heavier, larger K: the shaded one turns to mush at that size.
+// The shadow on the tile only from 48 px, where it reads as a shadow rather than a smudge.
+function draw(name, px) {
+  const icon = ICONS[name], key = KEYS[icon.key];
+  const small = px <= 24;
+  const withShadow = icon.tile && px >= 48;
+  const svg = renderKey({
+    ...key, ...VIEW,
+    flat: small,
+    tight: !withShadow,
+    square: withShadow,
+    shadowOpacity: icon.shadow,
+    legend: K(key.legendColor, small ? 9.8 : 8.4, small ? 700 : 600),
+  });
+  if (!icon.tile) {
+    return svg.replace('<svg ', `<svg width="${px}" height="${px}" `);
+  }
+  // The key's share of the tile; the shadowed box has room around the key already
+  const share = withShadow ? 0.94 : small ? 0.9 : 0.82;
+  const k = 100 * share, o = (100 - k) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 100 100">
+    <rect width="100" height="100" rx="20" fill="${icon.tile}"/>
+    ${svg.replace('<svg ', `<svg x="${o}" y="${o}" width="${k}" height="${k}" `)}</svg>`;
+}
+
+const params = new URLSearchParams(location.search);
+if (params.has('preview')) {
+  document.body.className = 'preview';
+  document.body.innerHTML = Object.keys(ICONS).map(name => `<h2>${name}</h2>` +
+    ['#f3f3f3', '#202020'].map(bg => `<div class="strip" style="background:${bg}">${SIZES.map(s => draw(name, s)).join('')}</div>`).join('')).join('');
+} else {
+  const name = params.get('icon');
+  let html = `<div class="at" style="left:0;top:0">${draw(name, BIG)}</div>`;
+  let x = 0;
+  for (const s of SIZES) {
+    html += `<div class="at" style="left:${x}px;top:${ROW_Y}px">${draw(name, s)}</div>`;
+    x += s + GAP;
+  }
+  document.body.innerHTML = html;
+}
+</script>
+</body>
+</html>

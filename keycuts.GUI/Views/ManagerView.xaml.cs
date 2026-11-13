@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -37,40 +38,202 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Round the table's corners so the pinned header doesn't poke out of the border.
+        /// <summary>The table width below which the Modified column is hidden: the other columns need their room more.</summary>
+        internal const double ModifiedColumnMinTableWidth = 780;
+
+        // Round the table's corners so the pinned header doesn't poke out of the border, and drop the Modified column
+        // when the window is narrow (at its minimum width the other columns' minimum widths already fill the table).
         private void TableHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var radius = TableHost.CornerRadius.TopLeft;
             TableHost.Clip = new RectangleGeometry(new Rect(0, 0, TableHost.ActualWidth, TableHost.ActualHeight), radius, radius);
+
+            var modifiedVisibility = TableHost.ActualWidth < ModifiedColumnMinTableWidth ? Visibility.Collapsed : Visibility.Visible;
+
+            if (ModifiedColumn.Visibility != modifiedVisibility)
+            {
+                ModifiedColumn.Visibility = modifiedVisibility;
+
+                // The grid works out the widths from the change in the space it has, one step at a time, and a big step
+                // (a window snapped or restored) leaves the star columns short of the table with nothing to fill it.
+                // Giving each its own star width back makes it work them out from the space there is.
+                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(RefillStarColumns));
+            }
+        }
+
+        // Double-clicking a divider is how a grid is told to fit a column to its content, and the grid does it by making the
+        // column Auto-sized. A long description then pushes the other columns, the menu button included, out of a table that
+        // can't scroll sideways, and nothing puts them back until the app restarts. So a double-click on a divider does nothing.
+        // PreviewMouseDoubleClick is a Direct event, so only the thumb itself sees it (the gripper style wires this up), and
+        // the framework doesn't raise the MouseDoubleClick the grid listens to when this handles it.
+        private void Gripper_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
+
+        private void RefillStarColumns()
+        {
+            foreach (var column in Table.Columns.Where(c => c.Width.IsStar))
+            {
+                column.Width = new DataGridLength(column.Width.Value, DataGridLengthUnitType.Star);
+            }
         }
 
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.
         private void ManagerView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // While renaming, the name box owns the keys (this handler runs before it). Modifiers come from the event's own device:
-            // in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give the event its own.
-            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming || e.KeyboardDevice.Modifiers != ModifierKeys.None)
+            // While a name or description is edited, its box owns the keys (this handler runs before it). Modifiers come from
+            // the event's own device: in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give
+            // the event its own.
+            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsEditing)
             {
                 return;
             }
 
-            if (e.Key == Key.F2 && ViewModel.SelectedRow != null)
+            // Ctrl+Z undoes a delete while the status bar offers it, even from the search box, where it would otherwise be
+            // the box's own undo. Any other time the box keeps it.
+            if (e.Key == Key.Z && e.KeyboardDevice.Modifiers == ModifierKeys.Control && ViewModel.CanUndoDelete)
             {
                 e.Handled = true;
-                Table.ScrollIntoView(ViewModel.SelectedRow);
-                ViewModel.BeginRename(ViewModel.SelectedRow);
+                _ = ViewModel.UndoDeleteAsync();
+                return;
             }
-            else if (e.Key == Key.Up || e.Key == Key.Down)
+
+            var modifiers = e.KeyboardDevice.Modifiers;
+
+            if (modifiers == ModifierKeys.Control)
             {
-                MoveSelection(e, e.Key == Key.Down ? 1 : -1);
+                HandleControlKey(e);
             }
-            else if (e.Key == Key.Enter && e.OriginalSource is not ButtonBase)
+            else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             {
-                e.Handled = ViewModel.OpenSelected();
+                HandleControlShiftKey(e);
+            }
+            else if (modifiers == ModifierKeys.Shift)
+            {
+                // Shift+F2 edits the description, as F2 edits the name
+                if (e.Key == Key.F2 && ActionRow() is { } describing)
+                {
+                    e.Handled = true;
+                    Table.ScrollIntoView(describing);
+                    ViewModel.BeginEditDescription(describing);
+                }
+            }
+            else if (modifiers == ModifierKeys.None)
+            {
+                HandlePlainKey(e);
             }
         }
 
-        private void MoveSelection(KeyEventArgs e, int direction)
+        // The search box has the focus almost all the time, so a key that means something in a text box goes to the box
+        // when the box has something to act on: Delete and Home/End when it holds text, Ctrl+C when text is selected. A
+        // mistaken Delete costs little, since a delete has an Undo (#179).
+        private static bool SearchBoxHasText(KeyEventArgs e)
+        {
+            return e.OriginalSource is TextBox { Text.Length: > 0 };
+        }
+
+        private static bool SearchBoxHasSelection(KeyEventArgs e)
+        {
+            return e.OriginalSource is TextBox { SelectionLength: > 0 };
+        }
+
+        /// <summary>
+        /// The row a key acts on: the selected one. Tabbing to a row's menu button puts the user on that row, so a key
+        /// pressed there acts on it, and the selection follows. Null with nothing selected, and the key does nothing.
+        /// </summary>
+        private KeycutRowViewModel? ActionRow()
+        {
+            if ((Keyboard.FocusedElement as MenuButton)?.DataContext is KeycutRowViewModel focused)
+            {
+                ViewModel!.SelectedRow = focused;
+            }
+
+            return ViewModel!.SelectedRow;
+        }
+
+        private void HandleControlKey(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.F:
+                    // Search from anywhere, with what was typed selected, so the next letter starts a new search
+                    if (SearchBox.IsEnabled)
+                    {
+                        e.Handled = true;
+                        SearchBox.Focus();
+                        Keyboard.Focus(SearchBox);
+                        SearchBox.SelectAll();
+                    }
+
+                    break;
+                case Key.C when !SearchBoxHasSelection(e) && ActionRow() is { } copy:
+                    e.Handled = true;
+                    ViewModel!.CopyTarget(copy);
+                    break;
+                case Key.E when ActionRow() is { } edit:
+                    e.Handled = true;
+                    _ = ViewModel!.EditKeycutAsync(edit);
+                    break;
+            }
+        }
+
+        private void HandleControlShiftKey(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.E when ActionRow() is { } notepad:
+                    e.Handled = true;
+                    ViewModel!.EditInNotepad(notepad);
+                    break;
+                case Key.O when ActionRow() is { } location:
+                    e.Handled = true;
+                    ViewModel!.OpenFileLocation(location);
+                    break;
+            }
+        }
+
+        private void HandlePlainKey(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.F2 when ActionRow() is { } renaming:
+                    e.Handled = true;
+                    Table.ScrollIntoView(renaming);
+                    ViewModel!.BeginRename(renaming);
+                    break;
+                case Key.Up:
+                case Key.Down:
+                    MoveSelection(e, model => model.MoveSelection(e.Key == Key.Down ? 1 : -1));
+                    break;
+                case Key.PageUp:
+                case Key.PageDown:
+                    MoveSelection(e, model => model.MoveSelection(e.Key == Key.PageDown ? RowsPerPage() : -RowsPerPage()));
+                    break;
+                case Key.Home when !SearchBoxHasText(e):
+                    MoveSelection(e, model => model.SelectFirst());
+                    break;
+                case Key.End when !SearchBoxHasText(e):
+                    MoveSelection(e, model => model.SelectLast());
+                    break;
+                // A button or a link (the footer's Download) acts on Enter itself; the key must not open the selected row instead
+                case Key.Enter when e.OriginalSource is not ButtonBase && e.OriginalSource is not System.Windows.Documents.Hyperlink:
+                    e.Handled = ViewModel!.OpenSelected();
+                    break;
+                case Key.Delete when !SearchBoxHasText(e) && ActionRow() is { } doomed:
+                    e.Handled = true;
+                    _ = ViewModel!.DeleteKeycutAsync(doomed);
+                    break;
+            }
+        }
+
+        /// <summary>How far Page Up and Page Down move: the rows the table shows, less one so the last one stays in view.</summary>
+        private int RowsPerPage()
+        {
+            return Math.Max(1, (int)((Table.ActualHeight - Table.ColumnHeaderHeight) / Table.RowHeight) - 1);
+        }
+
+        private void MoveSelection(KeyEventArgs e, Func<ManagerViewModel, bool> move)
         {
             // Tabbing to a row's menu button puts the user on that row, so move from there and keep the focus with the selection
             var focusedRow = (Keyboard.FocusedElement as MenuButton)?.DataContext as KeycutRowViewModel;
@@ -80,14 +243,14 @@ namespace keycuts.GUI.Views
                 ViewModel!.SelectedRow = focusedRow;
             }
 
-            if (!ViewModel!.MoveSelection(direction))
+            if (!move(ViewModel!))
             {
                 return;
             }
 
             e.Handled = true;
 
-            var row = ViewModel.SelectedRow!;
+            var row = ViewModel!.SelectedRow!;
             Table.ScrollIntoView(row);
 
             if (focusedRow != null)
@@ -138,25 +301,84 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Rows, cells and the background can't take focus, so a click there leaves the focus in the name box and
+        // A click on text can report a Run, which isn't a Visual, so walk its logical parent until a Visual is reached
+        private static DependencyObject? ParentOf(DependencyObject node)
+        {
+            return node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node);
+        }
+
+        private static T? FindAncestor<T>(DependencyObject node)
+            where T : DependencyObject
+        {
+            for (DependencyObject? current = node; current != null; current = ParentOf(current))
+            {
+                if (current is T match)
+                {
+                    return match;
+                }
+            }
+
+            return null;
+        }
+
+        // Rows, cells and the background can't take focus, so a click there leaves the focus in the box being edited and
         // LostKeyboardFocus never fires. Save on any click in the view outside the box; the click itself goes on as usual.
+        // With nothing being edited, a click on the name or description of the selected row starts editing it.
         private void ManagerView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (ViewModel?.IsRenaming != true || e.OriginalSource is not DependencyObject source)
+            if (ViewModel == null || e.OriginalSource is not DependencyObject source)
             {
                 return;
             }
 
-            // A click on text can report a Run, which isn't a Visual, so walk its logical parent until a Visual is reached
-            for (var node = source; node != null; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+            if (ViewModel.IsEditing)
             {
-                if (node is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } })
+                for (var node = source; node != null; node = ParentOf(node))
                 {
-                    return;
+                    if (node is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } } ||
+                        node is TextBox { DataContext: KeycutRowViewModel { IsEditingDescription: true } })
+                    {
+                        return;
+                    }
                 }
+
+                // The click only saves; it doesn't also start another edit
+                // (A description saved by a click elsewhere leaves the focus where that click put it)
+                _ = ViewModel.IsRenaming ? ViewModel.CommitRenameAsync() : ViewModel.CommitDescriptionAsync(restoreFocus: false);
+                return;
             }
 
-            _ = ViewModel.CommitRenameAsync();
+            BeginEditFromClick(e, source);
+        }
+
+        // #202: as in Explorer, a click on the name or description of the row that is already selected edits it, and a click
+        // on any other row only selects it. Every click starting an edit would open a box each time a row is picked, since
+        // those two cells cover most of a row.
+        private void BeginEditFromClick(MouseButtonEventArgs e, DependencyObject source)
+        {
+            // A plain left click, and not the one that dismissed a menu: that click is delivered too, once the menu has closed
+            if (e.ChangedButton != MouseButton.Left || ViewModel!.IsMenuOpen || Environment.TickCount64 - menuClosedAtTick < 250)
+            {
+                return;
+            }
+
+            var cell = FindAncestor<DataGridCell>(source);
+
+            if (cell?.DataContext is not KeycutRowViewModel row || !ReferenceEquals(row, ViewModel.SelectedRow))
+            {
+                return;
+            }
+
+            if (cell.Column == NameColumn)
+            {
+                e.Handled = true;
+                ViewModel.BeginRename(row);
+            }
+            else if (cell.Column == DescriptionColumn)
+            {
+                e.Handled = true;
+                ViewModel.BeginEditDescription(row);
+            }
         }
 
         // Clicking or tabbing away saves, as in Explorer. Switching windows (no new focus in this one) keeps editing.
@@ -167,6 +389,45 @@ namespace keycuts.GUI.Views
                 !IsInContextMenuOf(box, e.NewFocus as DependencyObject))
             {
                 _ = ViewModel?.CommitRenameAsync();
+            }
+        }
+
+        // The description box works as the name box does (#202)
+        private void DescriptionBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            RenameBox_IsVisibleChanged(sender, e);
+        }
+
+        private void DescriptionBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Enter:
+                    e.Handled = true;
+                    _ = ViewModel?.CommitDescriptionAsync();
+                    break;
+                case Key.Escape:
+                    // Handled here, so the window doesn't also treat it as "back to the creator"
+                    e.Handled = true;
+                    ViewModel?.CancelEditDescription();
+                    break;
+                case Key.Up:
+                case Key.Down:
+                case Key.PageUp:
+                case Key.PageDown:
+                    // The table would move the selection off the row being edited
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void DescriptionBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (e.NewFocus != null && sender is TextBox { DataContext: KeycutRowViewModel { IsEditingDescription: true } } box &&
+                !IsInContextMenuOf(box, e.NewFocus as DependencyObject))
+            {
+                // Tabbed or clicked away: the focus is already where the user put it
+                _ = ViewModel?.CommitDescriptionAsync(restoreFocus: false);
             }
         }
 
@@ -198,14 +459,28 @@ namespace keycuts.GUI.Views
         {
             if (e.OldValue is ManagerViewModel oldViewModel)
             {
+                oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 oldViewModel.FocusRowRequested -= ViewModel_FocusRowRequested;
                 oldViewModel.ConfirmRename = null;
+                oldViewModel.ShowEditForm = null;
             }
 
             if (e.NewValue is ManagerViewModel newViewModel)
             {
+                newViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 newViewModel.FocusRowRequested += ViewModel_FocusRowRequested;
                 newViewModel.ConfirmRename = check => ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForRename(check));
+                // The Edit form (#180) is a dialog over the window; the form saves itself, and its name checks use the same dialog
+                newViewModel.ShowEditForm = form => EditWindow.Show(Window.GetWindow(this), form);
+            }
+        }
+
+        // "4 of 355 shown" changes as the search is typed, with the focus in the search box: say so (LiveSetting alone doesn't)
+        private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ManagerViewModel.ShownText) && ViewModel?.HasShownText == true)
+            {
+                LiveRegion.Announce(ShownTextBlock);
             }
         }
 

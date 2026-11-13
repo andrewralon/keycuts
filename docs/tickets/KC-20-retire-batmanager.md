@@ -16,7 +16,7 @@
 | Refresh (button / F5) | Auto-refresh plus F5 (KC-12) | |
 | Open destination location (O / Ctrl+O) | **Dropped** | Out of scope ("no additional manager actions"). Note it in the PR. |
 | Read-only output-folder display | **Dropped** | Shown in Settings. |
-| Single-letter row shortcuts (E, O, C, Del) | **Dropped** | Rows aren't actionable in the new design. |
+| Single-letter row shortcuts (E, O, C, Del) | **Dropped** | Rows aren't actionable in the new design. (Rows are now: Enter opens and F2 renames, and #202 brought most of these back as Delete, Ctrl+C, Ctrl+E, Ctrl+Shift+E and Ctrl+Shift+O. Single letters stay out, because typing goes to the search box.) |
 
 ## Scope
 - Remove `keycuts.Batmanager` from `keycuts.sln` and delete the `keycuts.Batmanager/` folder, including the committed `bin/` and `obj/` output if it's tracked.

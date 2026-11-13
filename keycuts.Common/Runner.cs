@@ -342,7 +342,7 @@ namespace keycuts.Common
         /// next line, which the closing tag does anyway. <see cref="ShortcutFile.ParseDescription"/> halves the <c>%%</c> again.
         /// The other special characters (<c>&amp; | &lt; &gt; ^</c>, a lone <c>%</c>, <c>%1</c>, <c>%*</c>) are inert on a REM line.
         /// </summary>
-        private static string SanitizeDescription(string description)
+        internal static string SanitizeDescription(string description)
         {
             return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim().Replace("%", "%%");
         }

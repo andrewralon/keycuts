@@ -26,6 +26,7 @@ namespace keycuts.Tests.Characterization
             ["edge-cases/openwithapp.bat"] = "Read from the REM lines, so OpenWithApp is lost: the fallback has no File-with-app form, and without REM lines it would read the app and the file as one File target (the line between its first and last quote), which re-emits the same line (#89).",
             ["new-format/keypaste.bat"] = "The REM target wins, so the hand-added %* is only in Command, not Target (#91). Re-emitting from these fields would drop it.",
             ["new-format/kp.bat"] = "The REM target wins, so the hand-added %* is only in Command, not Target (#91). Re-emitting from these fields would drop it.",
+            ["not-keycuts/chromep0.bat"] = "Not written by keycuts, but a launcher the manager lists, so it is read as a File: the target is the program alone and --profile-directory is only on Arguments and Command. Re-emitting from Target would drop it (#203, #172).",
             ["not-keycuts/dequote.bat"] = "Not a keycut. No START or explorer.exe line, so Unknown.",
             ["not-keycuts/ss.bat"] = "Not a keycut. The explorer.exe argument is unquoted, so no pattern matches.",
             ["old-format/gg.bat"] = "Header says url, but the command is a hand-edited Chrome launcher; only the command line is read (#91).",
@@ -75,6 +76,21 @@ namespace keycuts.Tests.Characterization
             builder.Append("Shortcut:    ").Append(Show(parsed.Shortcut)).Append('\n');
             builder.Append("Type:        ").Append(parsed.Type).Append('\n');
             builder.Append("Target:      ").Append(Show(parsed.Target)).Append('\n');
+
+            // Only a File has a program apart from its arguments
+            if (parsed.Type == ShortcutType.File)
+            {
+                builder.Append("Program:     ").Append(Show(parsed.Program)).Append('\n');
+                builder.Append("Arguments:   ").Append(Show(parsed.Arguments)).Append('\n');
+
+                // Only a START "" /D line has them (#203): the check looks in the folder, then wherever Windows finds the name
+                if (parsed.ProgramName.Length > 0)
+                {
+                    builder.Append("StartIn:     ").Append(Show(parsed.StartInFolder)).Append('\n');
+                    builder.Append("ProgramName: ").Append(Show(parsed.ProgramName)).Append('\n');
+                }
+            }
+
             builder.Append("OpenWithApp: ").Append(Show(parsed.OpenWithApp)).Append('\n');
             builder.Append("Command:     ").Append(Show(parsed.Command)).Append('\n');
             builder.Append("Description: ").Append(Show(parsed.Description)).Append('\n');

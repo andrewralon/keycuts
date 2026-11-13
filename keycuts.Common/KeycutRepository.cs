@@ -54,6 +54,8 @@ namespace keycuts.Common
 
         private readonly IFileRecycler _recycler;
 
+        private readonly Func<NameConflictEnvironment> _programLookup;
+
         /// <summary>
         /// A repository that deletes files for good. Use <see cref="CreateDefault"/> (or pass a
         /// <see cref="RecycleBinRecycler"/>) for the app, which sends them to the Recycle Bin.
@@ -64,9 +66,18 @@ namespace keycuts.Common
         }
 
         public KeycutRepository(string outputFolder, IFileRecycler recycler)
+            : this(outputFolder, recycler, null)
+        {
+        }
+
+        /// <param name="programLookup">Where to look for a keycut's program when it is a bare name such as <c>chrome</c>
+        /// (#203): the folders, PATH and App Paths that Windows searches. Null reads this machine's, only when a check needs
+        /// it; tests pass their own so a check never reads the real PATH or registry.</param>
+        public KeycutRepository(string outputFolder, IFileRecycler recycler, Func<NameConflictEnvironment> programLookup)
         {
             _outputFolder = outputFolder;
             _recycler = recycler ?? throw new ArgumentNullException(nameof(recycler));
+            _programLookup = programLookup ?? NameConflictEnvironment.GetDefault;
         }
 
         public string OutputFolder => _outputFolder;
@@ -142,6 +153,7 @@ namespace keycuts.Common
                     RawType = ShortcutType.Unknown,
                     Target = "",
                     FilePath = file,
+                    CanEditInForm = false,
                     Modified = File.GetLastWriteTime(file)
                 };
             }
@@ -260,6 +272,12 @@ namespace keycuts.Common
         {
             parsed = new ShortcutFile(path, lines);
 
+            return IsEditable(parsed, path, lines);
+        }
+
+        /// <summary><see cref="TryReadEditable"/> for lines that are already parsed, so loading a folder parses each file once.</summary>
+        private static bool IsEditable(ShortcutFile parsed, string path, string[] lines)
+        {
             if (parsed.Type == ShortcutType.Unknown || string.IsNullOrEmpty(parsed.Target))
             {
                 return false;
@@ -347,6 +365,24 @@ namespace keycuts.Common
         }
 
         /// <summary>
+        /// Changes the keycut's description by rewriting just its <c>REM &lt;description&gt;</c> line (#202), as
+        /// <see cref="RenameAsync"/> does for <c>REM &lt;shortcut&gt;</c>: the file isn't emitted again, so a hand-edited
+        /// launch line survives, and a keycut the Edit form refuses can still have its description changed. The text is
+        /// written as the Creator writes one: on one line (a newline becomes a space) with every <c>%</c> doubled (#162).
+        /// A file with no description line (keycuts 1.0, or a hand-written launcher) gets one just before its launch line.
+        /// The temp file is swapped in with <c>File.Replace</c>, which keeps the file's permissions and alternate streams,
+        /// and the file's date changes. A description that is already the one in the file leaves the file alone. Returns
+        /// the keycut as read back.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The file is gone (<see cref="KeycutRepositoryError.NotFound"/>), isn't valid
+        /// UTF-8 (<see cref="KeycutRepositoryError.NotEditable"/>: the bytes would be lost), no longer holds the description the
+        /// keycut was loaded with (<see cref="KeycutRepositoryError.Changed"/>), or can't be written.</exception>
+        public Task<Keycut> SetDescriptionAsync(Keycut keycut, string description, CancellationToken ct = default)
+        {
+            return Task.Run(() => SetDescription(keycut, description), ct);
+        }
+
+        /// <summary>
         /// Renames each keycut named after a keycuts command (<see cref="CommandNames"/>) to that name plus
         /// <see cref="CommandNames.PreviousSuffix"/> (keypaste_previous, then keypaste_previous2 and so on if that's taken),
         /// so the command on PATH works again. It's renamed like <see cref="RenameAsync"/>, so it still works under the
@@ -422,6 +458,9 @@ namespace keycuts.Common
         {
             var checkable = keycuts.Where(IsCheckable).ToList();
 
+            // Read once per run, and only if a keycut has a bare program name to look for
+            var lookup = new Lazy<NameConflictEnvironment>(_programLookup);
+
             using (var gate = new SemaphoreSlim(MaxParallelChecks))
             {
                 var tasks = checkable.Select(async keycut =>
@@ -430,11 +469,13 @@ namespace keycuts.Common
 
                     try
                     {
-                        var status = await CheckOneAsync(keycut.Target, timeout, ct).ConfigureAwait(false);
+                        var result = await CheckOneAsync(keycut, lookup, timeout, ct).ConfigureAwait(false);
 
-                        if (status != TargetStatus.Unknown)
+                        if (result.Status != TargetStatus.Unknown)
                         {
-                            keycut.TargetStatus = status;
+                            keycut.CheckedPath = result.LookedFor;
+                            keycut.CheckedDetail = result.Detail;
+                            keycut.TargetStatus = result.Status;
                         }
                     }
                     finally
@@ -491,7 +532,23 @@ namespace keycuts.Common
         {
             try
             {
-                var shortcut = new ShortcutFile(file);
+                // Read as the Edit form reads it, strictly: a file that isn't valid UTF-8 is still listed (read leniently, as
+                // it always was), but the form would lose bytes of it, so it can't be edited there (#202). For valid UTF-8,
+                // with or without a BOM, the lines are the ones File.ReadAllLines gives.
+                string[] lines;
+                var strict = true;
+
+                try
+                {
+                    lines = ReadLinesStrict(file);
+                }
+                catch (System.Text.DecoderFallbackException)
+                {
+                    lines = File.ReadAllLines(file);
+                    strict = false;
+                }
+
+                var shortcut = new ShortcutFile(file, lines);
 
                 if (string.IsNullOrEmpty(shortcut.Shortcut) ||
                     string.IsNullOrEmpty(shortcut.Command) ||
@@ -508,7 +565,12 @@ namespace keycuts.Common
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
                     Target = shortcut.Target ?? "",
+                    Program = shortcut.Program ?? "",
+                    Arguments = shortcut.Arguments ?? "",
+                    StartInFolder = shortcut.StartInFolder ?? "",
+                    ProgramName = shortcut.ProgramName ?? "",
                     FilePath = file,
+                    CanEditInForm = strict && IsEditable(shortcut, file, lines),
                     Modified = File.GetLastWriteTime(file)
                 };
             }
@@ -651,6 +713,7 @@ namespace keycuts.Common
                     RawType = ShortcutType.Unknown,
                     Target = edit.Target,
                     FilePath = newPath,
+                    CanEditInForm = false,
                     Modified = File.GetLastWriteTime(newPath)
                 };
             }
@@ -830,32 +893,173 @@ namespace keycuts.Common
                 }
 
                 var body = strict.GetBytes(updated);
-                // Write a temp file beside it and swap it in only once it's complete: writing in place truncates first,
-                // so a failed write (a full disk) would leave the keycut empty or half written
-                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
 
-                try
-                {
-                    File.WriteAllBytes(temp, hasBom ? preamble.Concat(body).ToArray() : body);
-
-                    // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
-                    // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
-                    // it throws, and the original stays as it was.
-                    File.Replace(temp, path, null);
-                }
-                finally
-                {
-                    if (File.Exists(temp))
-                    {
-                        File.Delete(temp);
-                    }
-                }
+                ReplaceFileContent(path, hasBom ? preamble.Concat(body).ToArray() : body);
             }
             catch (Exception ex) when (ex is System.Text.DecoderFallbackException || ex is IOException || ex is UnauthorizedAccessException)
             {
                 // The REM line is only a comment, so a file we can't decode or rewrite keeps its old one
                 Debug.WriteLine($"keycuts: kept the old <shortcut> line in \"{path}\": {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Writes <paramref name="content"/> to a temp file beside <paramref name="path"/> and swaps it in only once it's
+        /// complete: writing in place truncates first, so a failed write (a full disk) would leave the keycut empty or half written.
+        /// </summary>
+        private static void ReplaceFileContent(string path, byte[] content)
+        {
+            var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+            try
+            {
+                File.WriteAllBytes(temp, content);
+
+                // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
+                // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
+                // it throws, and the original stays as it was.
+                File.Replace(temp, path, null);
+            }
+            finally
+            {
+                if (File.Exists(temp))
+                {
+                    File.Delete(temp);
+                }
+            }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex DescriptionLineParts = new System.Text.RegularExpressions.Regex(
+            @"^(?<pre>\s*REM\s+<description>)(?<text>.*)(?<post></description>\s*)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly char[] LineBreaks = { '\r', '\n' };
+
+        /// <summary>Where each line of <paramref name="text"/> starts and how long it is, without its line break (<c>\r\n</c>, <c>\n</c> or <c>\r</c>), as <see cref="StringReader.ReadLine"/> splits it.</summary>
+        private static List<(int Start, int Length)> ScanLines(string text)
+        {
+            var lines = new List<(int, int)>();
+            var position = 0;
+
+            while (position < text.Length)
+            {
+                var end = text.IndexOfAny(LineBreaks, position);
+
+                if (end < 0)
+                {
+                    lines.Add((position, text.Length - position));
+                    break;
+                }
+
+                lines.Add((position, end - position));
+                position = end + (text[end] == '\r' && end + 1 < text.Length && text[end + 1] == '\n' ? 2 : 1);
+            }
+
+            return lines;
+        }
+
+        private static Keycut SetDescription(Keycut keycut, string description)
+        {
+            var path = keycut.FilePath;
+
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{path}\" no longer exists.");
+                }
+
+                var bytes = File.ReadAllBytes(path);
+                var preamble = System.Text.Encoding.UTF8.GetPreamble();
+                var hasBom = bytes.AsSpan().StartsWith(preamble);
+                var strict = new System.Text.UTF8Encoding(false, true);
+                string text;
+
+                try
+                {
+                    var start = hasBom ? preamble.Length : 0;
+                    text = strict.GetString(bytes, start, bytes.Length - start);
+                }
+                catch (System.Text.DecoderFallbackException ex)
+                {
+                    // Written back as UTF-8, a byte that isn't valid would be lost for good
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{path}\" isn't valid UTF-8, so its description can't be changed here.", ex);
+                }
+
+                var spans = ScanLines(text);
+                var lines = spans.Select(span => text.Substring(span.Start, span.Length)).ToArray();
+
+                // The keycut was loaded some time ago. If its description has been changed since (Notepad, another window),
+                // saving would quietly put the old one back over it
+                if (!string.Equals(ShortcutFile.ParseDescription(lines), keycut.Description ?? string.Empty, StringComparison.Ordinal))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.Changed, $"\"{path}\" changed since it was loaded.");
+                }
+
+                // As the Creator writes it (one line, every % doubled, #162), and as reading it back gives it
+                var sanitized = Runner.SanitizeDescription(description);
+                var wanted = ShortcutFile.ParseDescription(new[] { $"REM <description>{sanitized}</description>" });
+                var existing = Array.FindIndex(lines, line => DescriptionLineParts.IsMatch(line));
+
+                // Nothing to change: the file keeps its bytes and its date. No line and nothing to say needs no line.
+                if (existing >= 0 ? string.Equals(ShortcutFile.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
+                {
+                    return TryParse(path) ?? UnreadableKeycut(keycut);
+                }
+
+                string updated;
+
+                if (existing >= 0)
+                {
+                    // Only the text between the tags changes; the line's own spacing, and the file's line breaks, stay
+                    var match = DescriptionLineParts.Match(lines[existing]);
+                    var replacement = match.Groups["pre"].Value + sanitized + match.Groups["post"].Value;
+                    updated = text.Substring(0, spans[existing].Start) + replacement + text.Substring(spans[existing].Start + spans[existing].Length);
+                }
+                else
+                {
+                    // A keycut from before descriptions (1.0) or a hand-written launcher has no line: add one where the
+                    // emitter puts it, just before the launch line, with the file's own line breaks
+                    var launch = Array.FindIndex(lines, ShortcutFile.IsLaunchLine);
+
+                    if (launch < 0)
+                    {
+                        throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{path}\" has no launch line, so no description can be added.");
+                    }
+
+                    var firstBreak = text.IndexOfAny(LineBreaks);
+                    var lineBreak = firstBreak < 0 ? "\r\n" : text[firstBreak] == '\r' && firstBreak + 1 < text.Length && text[firstBreak + 1] == '\n' ? "\r\n" : text[firstBreak].ToString();
+                    updated = text.Insert(spans[launch].Start, $"REM <description>{sanitized}</description>" + lineBreak);
+                }
+
+                var body = strict.GetBytes(updated);
+                ReplaceFileContent(path, hasBom ? preamble.Concat(body).ToArray() : body);
+
+                return TryParse(path) ?? UnreadableKeycut(keycut);
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't save \"{path}\".");
+            }
+        }
+
+        /// <summary>A keycut whose file can't be read as one any more, as <see cref="Find"/> reports it: just its name and path.</summary>
+        private static Keycut UnreadableKeycut(Keycut keycut)
+        {
+            return new Keycut
+            {
+                Name = Path.GetFileNameWithoutExtension(keycut.FilePath),
+                Kind = KeycutKind.File,
+                RawType = ShortcutType.Unknown,
+                Target = "",
+                FilePath = keycut.FilePath,
+                CanEditInForm = false,
+                Modified = File.GetLastWriteTime(keycut.FilePath)
+            };
         }
 
         private static bool IsCheckable(Keycut keycut)
@@ -866,21 +1070,66 @@ namespace keycuts.Common
                  keycut.RawType == ShortcutType.HostsFile);
         }
 
-        private static async Task<TargetStatus> CheckOneAsync(string target, TimeSpan timeout, CancellationToken ct)
+        private async Task<CheckResult> CheckOneAsync(Keycut keycut, Lazy<NameConflictEnvironment> lookup, TimeSpan timeout, CancellationToken ct)
         {
+            // The program, not the whole target: arguments after it aren't part of any path
+            var target = string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program;
+            var type = keycut.RawType;
+
             var work = Task.Run(() =>
             {
                 try
                 {
                     var path = Environment.ExpandEnvironmentVariables(target);
 
+                    // Missing means "we looked for this and it isn't there". Text that can't be a path (a quote in it, a
+                    // wildcard) was never looked for, so the keycut is left unmarked rather than claimed missing.
+                    if (!IsPlausiblePath(path))
+                    {
+                        return new CheckResult(TargetStatus.Unknown, path);
+                    }
+
+                    // START "" /D "<folder>" <program>, with a program that has no folder of its own: Windows doesn't just join
+                    // the two (see CheckStartIn)
+                    var programName = Environment.ExpandEnvironmentVariables(keycut.ProgramName ?? string.Empty);
+
+                    if (type == ShortcutType.File && programName.Length > 0 && IsBareName(programName))
+                    {
+                        var startIn = Environment.ExpandEnvironmentVariables(keycut.StartInFolder ?? string.Empty);
+
+                        if (startIn.Length == 0 || IsPlausiblePath(startIn))
+                        {
+                            return CheckStartIn(startIn, programName, lookup.Value);
+                        }
+                    }
+
+                    // A program with no folder (chrome, notepad.exe) is found where Windows finds it, not in this process's
+                    // current directory, which is all File.Exists looks at
+                    if (type == ShortcutType.File && IsBareName(path))
+                    {
+                        var environment = lookup.Value;
+
+                        // No output folder: that argument gives a name its conflict rules (the keycut's own .bat is skipped, the
+                        // folder is searched even when it isn't on PATH), and this only asks what Windows would find
+                        if (NameConflicts.Find(path, null, environment).Count > 0)
+                        {
+                            return new CheckResult(TargetStatus.Ok, path);
+                        }
+
+                        // A name like readme.txt is searched for as typed only when PATHEXT lists its extension, so a
+                        // search that came up empty says nothing about it
+                        return HasUnlistedExtension(path, environment) ?
+                            new CheckResult(TargetStatus.Unknown, path) :
+                            new CheckResult(TargetStatus.Missing, path, SearchedByName);
+                    }
+
                     return File.Exists(path) || Directory.Exists(path) ?
-                        TargetStatus.Ok :
-                        TargetStatus.Missing;
+                        new CheckResult(TargetStatus.Ok, path) :
+                        new CheckResult(TargetStatus.Missing, path);
                 }
                 catch (Exception)
                 {
-                    return TargetStatus.Unknown;
+                    return new CheckResult(TargetStatus.Unknown, string.Empty);
                 }
             });
 
@@ -888,7 +1137,121 @@ namespace keycuts.Common
 
             ct.ThrowIfCancellationRequested();
 
-            return finished == work ? await work.ConfigureAwait(false) : TargetStatus.Unknown;
+            return finished == work ? await work.ConfigureAwait(false) : new CheckResult(TargetStatus.Unknown, string.Empty);
+        }
+
+        private const string SearchedByName = "searched the Windows folder, System32, PATH and App Paths";
+
+        private const string SearchedStartInFolderToo = "searched the start-in folder, the Windows folder, System32, PATH and App Paths";
+
+        private const string StartInFolderGoneProgramFound = "the program is on PATH or in System32, but the start-in folder doesn't exist, and START stops with \"The current directory is invalid\"";
+
+        private const string StartInFolderGoneNothingFound = "the start-in folder doesn't exist, and the program isn't in App Paths, PATH, System32 or the Windows folder";
+
+        /// <summary>
+        /// Whether Windows finds <paramref name="programName"/> for <c>START "" /D "&lt;folder&gt;" &lt;program&gt;</c> (#203). This
+        /// is what experiments with a throwaway program showed, by both <c>cmd /c file.bat</c> and ShellExecute (Win+R):
+        /// <list type="bullet">
+        /// <item>A <c>/D</c> folder that exists is searched for the program, so a program only there is found.</item>
+        /// <item>A program found by name in the Windows folder, System32 or PATH is found, but only if the folder exists:
+        /// with a missing one START stops with "The current directory is invalid", even if App Paths has the program
+        /// too. That is Missing.</item>
+        /// <item>A program that is only in App Paths is found whatever the folder is: START hands the name it can't
+        /// resolve to ShellExecute, which finds it there and does without the working directory. This is why a launcher
+        /// for Chrome that names a <c>Program Files (x86)</c> folder that doesn't exist still works. With a folder that
+        /// doesn't exist that is a Warning: it starts, but the folder is stale.</item>
+        /// </list>
+        /// Missing is "none of those finds it", or the program can't get started. An empty folder (<c>/D ""</c>) is the same
+        /// without the first two limits.
+        /// </summary>
+        private static CheckResult CheckStartIn(string startIn, string programName, NameConflictEnvironment environment)
+        {
+            var lookedFor = startIn.Length == 0 ? programName : startIn.TrimEnd('\\') + "\\" + programName;
+            var folderExists = startIn.Length == 0 || Directory.Exists(startIn);
+
+            if (startIn.Length > 0 && folderExists && FileInFolder(startIn, programName, environment))
+            {
+                return new CheckResult(TargetStatus.Ok, lookedFor);
+            }
+
+            // No output folder: that argument gives a name its conflict rules, and this only asks what Windows would find
+            var found = NameConflicts.Find(programName, null, environment);
+            var foundByName = found.Any(c => c.Source != NameConflictSource.AppPaths);
+            var inAppPaths = found.Any(c => c.Source == NameConflictSource.AppPaths);
+
+            // START finds these itself, and then a missing folder stops it. That holds even when App Paths has the program
+            // too (checked: the search by name comes first).
+            if (foundByName)
+            {
+                return folderExists ?
+                    new CheckResult(TargetStatus.Ok, lookedFor) :
+                    new CheckResult(TargetStatus.Missing, lookedFor, StartInFolderGoneProgramFound);
+            }
+
+            if (inAppPaths)
+            {
+                // It starts, whatever the folder is. A folder that isn't there is worth a warning, not a Missing.
+                return folderExists ?
+                    new CheckResult(TargetStatus.Ok, lookedFor) :
+                    new CheckResult(TargetStatus.Warning, lookedFor, $"It starts, but its start-in folder {startIn} doesn't exist. START finds {programName} in App Paths and doesn't need the folder.");
+            }
+
+            // A name like readme.txt is searched for as typed only when PATHEXT lists its extension, so a search that came
+            // up empty says nothing about it
+            if (HasUnlistedExtension(programName, environment))
+            {
+                return new CheckResult(TargetStatus.Unknown, lookedFor);
+            }
+
+            var detail = !folderExists ? StartInFolderGoneNothingFound : startIn.Length == 0 ? SearchedByName : SearchedStartInFolderToo;
+
+            return new CheckResult(TargetStatus.Missing, lookedFor, detail);
+        }
+
+        /// <summary>Whether the program is in the folder, as typed or with a PATHEXT extension added.</summary>
+        private static bool FileInFolder(string folder, string programName, NameConflictEnvironment environment)
+        {
+            if (environment.FileExists(Path.Combine(folder, programName)))
+            {
+                return true;
+            }
+
+            return NameConflicts.ParsePathExt(environment.PathExt)
+                .Any(extension => environment.FileExists(Path.Combine(folder, programName + extension.ToLowerInvariant())));
+        }
+
+        /// <summary>What a check found out, the path (expanded) or name it looked for, and for Missing what was searched.</summary>
+        private readonly record struct CheckResult(TargetStatus Status, string LookedFor, string Detail = "");
+
+        // GetInvalidPathChars() is only | and the control characters in .NET (not the quote, < and >, which Windows paths can't hold either), and a wildcard names no one file
+        private static readonly char[] ImplausiblePathChars = Path.GetInvalidPathChars().Concat(new[] { '"', '<', '>', '*' }).Distinct().ToArray();
+
+        /// <summary>False for text that can't name a file: empty, with a quote, a wildcard or another character Windows paths can't hold.</summary>
+        private static bool IsPlausiblePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || path.IndexOfAny(ImplausiblePathChars) >= 0)
+            {
+                return false;
+            }
+
+            // ? is the other wildcard, except in the \\?\ prefix of an extended path
+            var body = path.StartsWith(@"\\?\", StringComparison.Ordinal) || path.StartsWith(@"\\.\", StringComparison.Ordinal) ? path.Substring(4) : path;
+
+            return body.IndexOf('?') < 0;
+        }
+
+        /// <summary>A program name with no folder in it, like <c>chrome</c> or <c>notepad.exe</c>: a file name, not a path.</summary>
+        private static bool IsBareName(string path)
+        {
+            return path.Trim('.').Length > 0 && path.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+        }
+
+        private static bool HasUnlistedExtension(string name, NameConflictEnvironment environment)
+        {
+            var extension = Path.GetExtension(name);
+
+            return extension.Length > 0 && !NameConflicts.ParsePathExt(environment.PathExt)
+                .Contains(extension, StringComparer.OrdinalIgnoreCase);
         }
 
         private static KeycutRepositoryException Translate(Exception ex, string message)

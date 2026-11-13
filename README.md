@@ -28,13 +28,15 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
   <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="424">
 </picture>
 
-**Manager.** **View all keycuts** shows a table you can search and sort by any column, including **Modified**. Up/Down and Enter open a row, F2 renames it, and the `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**. Missing targets are flagged.
+**Manager.** **View all keycuts** shows a table you can search and sort by any column, including **Modified**. Up/Down, Home/End and Page Up/Page Down move the selection, Enter opens the row, and from the search box Ctrl+E edits it, Ctrl+Shift+E edits it in Notepad, Ctrl+Shift+O shows its file, Ctrl+C copies its target, F2 renames it, Delete deletes it and Ctrl+F searches. Delete and Home/End are the search box's while it holds text, and Ctrl+C while text is selected in it. The `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**, each with its key. Missing targets are flagged in red, and a hand-written launcher that still starts but names a start-in folder that doesn't exist gets a yellow warning.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">
   <img src="docs/images/manager-light.png" alt="The manager: a searchable table of keycuts, one flagged as missing its target." width="830">
 </picture>
 
+* **Rename and Edit description** change the name or the description where it is: click it on the selected row (a click on another row only selects it), or press F2 or Shift+F2. Enter saves, Escape cancels, and clicking away saves. A description change rewrites just that line of the `.bat`, so it works on a keycut you've changed by hand too.
+* **Column widths** can be dragged: the divider after **Name** and the one between **Description** and **Target** (the line shows when you point at it). The other columns give way and the table never scrolls sideways; the whole text of a cell is in its tooltip. Widths go back to normal when the app restarts.
 * **Edit** changes the target, name and description. It's offered only for a keycut the app would have written itself; one you've changed by hand says to use **Edit in Notepad**, so your edits are never lost.
 * **Delete** moves the file to the Recycle Bin (drives without one, such as network shares, delete for good). **Undo** (or Ctrl+Z) shows in the status bar for a few seconds and restores the file's contents and modified date.
 

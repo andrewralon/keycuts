@@ -21,7 +21,7 @@ using Xunit;
 namespace keycuts.Tests
 {
     [Collection(WpfCollection.Name)]
-    public class AccessibilityTests
+    public partial class AccessibilityTests
     {
         static CreatorViewModel NewCreator()
         {
@@ -501,16 +501,25 @@ namespace keycuts.Tests
                 Launched.Add(path);
             }
 
+            public List<string> Edited { get; } = new List<string>();
+
             public void Edit(string path)
             {
+                Edited.Add(path);
             }
+
+            public List<string> Located { get; } = new List<string>();
 
             public void OpenFileLocation(string path)
             {
+                Located.Add(path);
             }
+
+            public List<string> Copied { get; } = new List<string>();
 
             public void CopyText(string text)
             {
+                Copied.Add(text);
             }
 
             public List<DeletedKeycut> Deleted { get; } = new List<DeletedKeycut>();
@@ -538,6 +547,24 @@ namespace keycuts.Tests
                 return Task.FromResult(keycut.FilePath);
             }
 
+            public List<(Keycut Keycut, string Description)> Described { get; } = new List<(Keycut, string)>();
+
+            /// <summary>The keycuts "on disk" that the manager's loader reads (see <see cref="LoadedManager"/>); saving a description changes its entry.</summary>
+            public List<Keycut>? Disk { get; set; }
+
+            public Task<Keycut> SetDescriptionAsync(Keycut keycut, string description)
+            {
+                Described.Add((keycut, description));
+                var saved = keycut with { Description = description.Trim(), Modified = new DateTime(2026, 6, 7, 8, 9, 10) };
+
+                if (Disk != null)
+                {
+                    Disk[Disk.FindIndex(k => k.FilePath == keycut.FilePath)] = saved;
+                }
+
+                return Task.FromResult(saved);
+            }
+
             public Task<bool> CanEditInFormAsync(Keycut keycut)
             {
                 return Task.FromResult(true);
@@ -560,7 +587,13 @@ namespace keycuts.Tests
                 Target = @"C:\temp\" + name + ".txt",
                 FilePath = @"C:\fixture\" + name + ".bat"
             }).ToList();
-            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, actions);
+            if (actions is RecordingActions recording)
+            {
+                recording.Disk = keycuts;
+            }
+
+            // Every load reads the list as it is now, as the real one reads the folder
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts.ToList()), null, actions);
             manager.LoadAsync().GetAwaiter().GetResult();
             return manager;
         }
@@ -700,8 +733,13 @@ namespace keycuts.Tests
                     Assert.True(Press(search, Key.Down));
                     Assert.Equal("alpha", manager.SelectedRow?.Name);
 
-                    Assert.False(Press(search, Key.F2, modifiers));
+                    // Shift+F2 is the description's (#202); with the other modifiers F2 isn't ours
+                    var isEditDescription = modifiers == ModifierKeys.Shift;
+                    Assert.Equal(isEditDescription, Press(search, Key.F2, modifiers));
                     Assert.False(manager.IsRenaming);
+                    Assert.Equal(isEditDescription, manager.IsEditingDescription);
+                    manager.CancelEditDescription();
+
                     Assert.True(Press(search, Key.F2));
                     Assert.True(manager.IsRenaming);
                 }
@@ -969,6 +1007,64 @@ namespace keycuts.Tests
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     Assert.Equal(2, Descendants<TypeBadge>(window).Count());
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        static MenuItem OpenRowMenuItem(Window window, string rowName, string header, out ContextMenu menu)
+        {
+            var button = Descendants<MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for " + rowName);
+            menu = button.ContextMenu;
+            menu.PlacementTarget = button;
+            menu.IsOpen = true;
+            Pump();
+            return menu.Items.OfType<MenuItem>().Single(i => i.Header as string == header);
+        }
+
+        // #202: Edit looks unavailable on a keycut the form can't save, UI Automation says so, and its tooltip points to Notepad
+        [Fact]
+        public void Manager_EditIsDisabled_ForAKeycutTheFormCantEdit_AndSaysWhy()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var noop = new RelayCommand(() => { });
+                var keycuts = new[] { ("alpha", true), ("bravo", false) }.Select(item => new Keycut
+                {
+                    Name = item.Item1,
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.File,
+                    Target = @"C:\temp\" + item.Item1 + ".txt",
+                    FilePath = @"C:\Shortcuts\" + item.Item1 + ".bat",
+                    CanEditInForm = item.Item2
+                }).ToList();
+                var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, new RecordingActions());
+                manager.LoadAsync().GetAwaiter().GetResult();
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var fine = OpenRowMenuItem(window, "alpha", "Edit", out var fineMenu);
+                    Assert.True(fine.IsEnabled);
+                    Assert.True(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(fine).IsEnabled());
+                    Assert.False(ToolTipService.GetIsEnabled(fine));
+                    fineMenu.IsOpen = false;
+
+                    var edit = OpenRowMenuItem(window, "bravo", "Edit", out var menu);
+                    Assert.False(edit.IsEnabled);
+                    Assert.False(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(edit).IsEnabled());
+                    Assert.Equal(EditKeycutViewModel.NotEditableMessage, edit.ToolTip);
+                    Assert.True(ToolTipService.GetIsEnabled(edit));
+                    Assert.True(ToolTipService.GetShowOnDisabled(edit));
+
+                    // Edit in Notepad is the way to edit it, so it stays available
+                    var notepad = menu.Items.OfType<MenuItem>().Single(i => i.Header as string == "Edit in Notepad");
+                    Assert.True(notepad.IsEnabled);
+                    Assert.True(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(notepad).IsEnabled());
+                    menu.IsOpen = false;
                 }
                 finally
                 {

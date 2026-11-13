@@ -15,6 +15,8 @@ Note:        The REM lines make it Command. Its launch line is the old emitter's
 Shortcut:    |embedded-quote|
 Type:        File
 Target:      |C:\Users\me\Documents\Say "Hi".txt|
+Program:     ||
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Users\me\Documents\Say "Hi".txt"|
 Description: ||
@@ -57,6 +59,8 @@ Description: ||
 Shortcut:    |openwithapp|
 Type:        File
 Target:      |C:\Shortcuts\README.txt|
+Program:     |C:\Shortcuts\README.txt|
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files\Notepad++\notepad++.exe" "C:\Shortcuts\README.txt"|
 Description: ||
@@ -82,6 +86,8 @@ Description: ||
 Shortcut:    |unicode-destination|
 Type:        File
 Target:      |C:\Users\me\Documents\résumé.docx|
+Program:     |C:\Users\me\Documents\résumé.docx|
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Users\me\Documents\résumé.docx"|
 Description: ||
@@ -130,6 +136,8 @@ Description: ||
 Shortcut:    |kc|
 Type:        File
 Target:      |C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe|
+Program:     |C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe|
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"|
 Description: ||
@@ -138,6 +146,8 @@ Description: ||
 Shortcut:    |keycuts|
 Type:        File
 Target:      |C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe|
+Program:     |C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe|
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keycuts.GUI.exe"|
 Description: ||
@@ -146,6 +156,8 @@ Description: ||
 Shortcut:    |keypaste|
 Type:        File
 Target:      |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
+Program:     |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
 Description: ||
@@ -155,6 +167,8 @@ Note:        The REM target wins, so the hand-added %* is only in Command, not T
 Shortcut:    |kp|
 Type:        File
 Target:      |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
+Program:     |C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe|
+Arguments:   ||
 OpenWithApp: <null>
 Command:     |START "" /B "C:\Program Files (x86)\TeamRalon\keycuts\keypaste.exe" %*|
 Description: ||
@@ -187,10 +201,15 @@ Description: ||
 ## not-keycuts/chromep0.bat
 Shortcut:    |chromep0|
 Type:        File
-Target:      |%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default|
+Target:      |%programfiles(x86)%\Google\Chrome\Application\chrome.exe|
+Program:     |%programfiles(x86)%\Google\Chrome\Application\chrome.exe|
+Arguments:   |--profile-directory="Default"|
+StartIn:     |%programfiles(x86)%\Google\Chrome\Application|
+ProgramName: |chrome.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default"|
 Description: ||
+Note:        Not written by keycuts, but a launcher the manager lists, so it is read as a File: the target is the program alone and --profile-directory is only on Arguments and Command. Re-emitting from Target would drop it (#203, #172).
 
 ## not-keycuts/dequote.bat
 Shortcut:    |dequote|
@@ -270,6 +289,10 @@ Description: ||
 Shortcut:    |ff|
 Type:        File
 Target:      |C:\Program Files (x86)\Mozilla Firefox\firefox.exe|
+Program:     |C:\Program Files (x86)\Mozilla Firefox\firefox.exe|
+Arguments:   ||
+StartIn:     |C:\Program Files (x86)\Mozilla Firefox|
+ProgramName: |firefox.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files (x86)\Mozilla Firefox" "firefox.exe"|
 Description: ||
@@ -286,6 +309,10 @@ Description: ||
 Shortcut:    |gg|
 Type:        File
 Target:      |chrome" "? %*|
+Program:     |chrome|
+Arguments:   |"? %*"|
+StartIn:     ||
+ProgramName: |chrome|
 OpenWithApp: <null>
 Command:     |START "" /D "" "chrome" "? %*"|
 Description: ||
@@ -295,6 +322,10 @@ Note:        Header says url, but the command is a hand-edited Chrome launcher; 
 Shortcut:    |ghd|
 Type:        File
 Target:      |C:\Users\000000000\AppData\Local\GitHubDesktop\GitHubDesktop.exe|
+Program:     |C:\Users\000000000\AppData\Local\GitHubDesktop\GitHubDesktop.exe|
+Arguments:   ||
+StartIn:     |C:\Users\000000000\AppData\Local\GitHubDesktop|
+ProgramName: |GitHubDesktop.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Users\000000000\AppData\Local\GitHubDesktop" "GitHubDesktop.exe"|
 Description: ||
@@ -311,6 +342,10 @@ Description: ||
 Shortcut:    |ie|
 Type:        File
 Target:      |C:\Program Files\Internet Explorer\iexplore.exe|
+Program:     |C:\Program Files\Internet Explorer\iexplore.exe|
+Arguments:   ||
+StartIn:     |C:\Program Files\Internet Explorer|
+ProgramName: |iexplore.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files\Internet Explorer" "iexplore.exe"|
 Description: ||
@@ -319,6 +354,10 @@ Description: ||
 Shortcut:    |iis|
 Type:        File
 Target:      |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\IIS Manager.lnk|
+Program:     |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\IIS Manager.lnk|
+Arguments:   ||
+StartIn:     |C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools|
+ProgramName: |IIS Manager.lnk|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools" "IIS Manager.lnk"|
 Description: ||
@@ -327,6 +366,10 @@ Description: ||
 Shortcut:    |npp|
 Type:        File
 Target:      |C:\Program Files (x86)\Notepad++\notepad++.exe|
+Program:     |C:\Program Files (x86)\Notepad++\notepad++.exe|
+Arguments:   ||
+StartIn:     |C:\Program Files (x86)\Notepad++|
+ProgramName: |notepad++.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files (x86)\Notepad++" "notepad++.exe"|
 Description: ||
@@ -335,6 +378,10 @@ Description: ||
 Shortcut:    |pdn|
 Type:        File
 Target:      |C:\Program Files\paint.net\PaintDotNet.exe|
+Program:     |C:\Program Files\paint.net\PaintDotNet.exe|
+Arguments:   ||
+StartIn:     |C:\Program Files\paint.net|
+ProgramName: |PaintDotNet.exe|
 OpenWithApp: <null>
 Command:     |START "" /D "C:\Program Files\paint.net" "PaintDotNet.exe"|
 Description: ||

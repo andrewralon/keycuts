@@ -52,6 +52,12 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>Renames the keycut file and returns its new path. Throws <see cref="KeycutRepositoryException"/> if that fails.</summary>
         Task<string> RenameAsync(Keycut keycut, string newName);
+
+        /// <summary>
+        /// Changes the keycut's description in its file, rewriting only that line (#202), and returns the keycut as read back.
+        /// Throws <see cref="KeycutRepositoryException"/> if the file is gone, isn't valid UTF-8, has changed, or can't be written.
+        /// </summary>
+        Task<Keycut> SetDescriptionAsync(Keycut keycut, string description);
     }
 
     /// <summary>The production implementation, which uses the shell, the clipboard and the configured output folder.</summary>
@@ -128,6 +134,11 @@ namespace keycuts.GUI.ViewModels
         public Task<string> RenameAsync(Keycut keycut, string newName)
         {
             return KeycutRepository.CreateDefault().RenameAsync(keycut, newName);
+        }
+
+        public Task<Keycut> SetDescriptionAsync(Keycut keycut, string description)
+        {
+            return KeycutRepository.CreateDefault().SetDescriptionAsync(keycut, description);
         }
     }
 }

@@ -230,6 +230,103 @@ namespace keycuts.Tests
             Assert.Contains(nameof(KeycutRowViewModel.IsTargetMissing), raised);
         }
 
+        // #203: the tooltip names the path the check looked for, expanded, so a stale (x86) folder is plain to see
+        [Fact]
+        public void MissingTooltip_NamesThePathThatWasLookedFor()
+        {
+            var keycut = NewKeycut("chrome") with { Target = @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe" };
+            keycut.CheckedPath = @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
+            keycut.TargetStatus = TargetStatus.Missing;
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.Equal(@"Not found: C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", row.MissingTooltip);
+        }
+
+        [Fact]
+        public void MissingTooltip_ForABareName_SaysWhereItWasSearched()
+        {
+            var keycut = NewKeycut("n") with { Target = "notepad.exe" };
+            keycut.CheckedPath = "notepad.exe";
+            keycut.CheckedDetail = "searched the Windows folder, System32, PATH and App Paths";
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.Equal("Not found: notepad.exe (searched the Windows folder, System32, PATH and App Paths)", row.MissingTooltip);
+        }
+
+        [Fact]
+        public void MissingTooltip_ForAStartInFolder_SaysWhatWasSearched()
+        {
+            var keycut = NewKeycut("h") with { Target = @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe" };
+            keycut.CheckedPath = @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
+            keycut.CheckedDetail = "the start-in folder doesn't exist, and START only gets past that for a program that is in App Paths";
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.Equal(
+                @"Not found: C:\Program Files (x86)\Google\Chrome\Application\chrome.exe (the start-in folder doesn't exist, and START only gets past that for a program that is in App Paths)",
+                row.MissingTooltip);
+        }
+
+        // #203: a keycut that starts but names a start-in folder that isn't there gets a warning, not the Missing mark
+        [Fact]
+        public void AWarning_IsNotMissing_AndShowsItsOwnIndicatorAndTooltip()
+        {
+            var keycut = NewKeycut("h");
+            keycut.TargetStatus = TargetStatus.Warning;
+            keycut.CheckedDetail = @"It starts, but its start-in folder C:\gone doesn't exist.";
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.True(row.IsTargetWarning);
+            Assert.True(row.ShowWarningIndicator);
+            Assert.False(row.IsTargetMissing);
+            Assert.False(row.ShowMissingIndicator);
+            Assert.Equal(@"It starts, but its start-in folder C:\gone doesn't exist.", row.WarningTooltip);
+        }
+
+        [Fact]
+        public void AMissingKeycut_HasNoWarningIndicator()
+        {
+            var keycut = NewKeycut("m");
+            keycut.TargetStatus = TargetStatus.Missing;
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.True(row.ShowMissingIndicator);
+            Assert.False(row.ShowWarningIndicator);
+        }
+
+        [Fact]
+        public void MissingTooltip_BeforeACheckHasSaid_FallsBackToTheTarget()
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a"));
+
+            Assert.Equal(@"Not found: C:\temp\a.txt", row.MissingTooltip);
+        }
+
+        // #203: the Target cell shows the program, so the arguments (which profile a Chrome launcher opens) are in its tooltip
+        [Theory]
+        [InlineData(@"C:\Tools\app.exe", @"C:\Tools\app.exe", "", @"C:\Tools\app.exe")]
+        [InlineData(@"%programfiles(x86)%\Google\Chrome\Application\chrome.exe", @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe", "--profile-directory=\"Profile 2\"", @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe --profile-directory=""Profile 2""")]
+        // The 0.1.x form with quoted arguments keeps them in its target, spliced; the tooltip reads them as they were typed
+        [InlineData("C:\\Tools\\app.exe\" \"arg", @"C:\Tools\app.exe", "\"arg\"", "C:\\Tools\\app.exe \"arg\"")]
+        public void TargetTooltip_IsTheProgramWithItsArguments(string target, string program, string arguments, string expected)
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a") with { Target = target, Program = program, Arguments = arguments });
+
+            Assert.Equal(expected, row.TargetTooltip);
+        }
+
+        [Fact]
+        public void TargetTooltip_ForAKeycutWithNoProgram_IsTheTarget()
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a", target: "https://example.com"));
+
+            Assert.Equal("https://example.com", row.TargetTooltip);
+        }
+
         [Fact]
         public async Task LoadAsync_TargetCheckFailure_IsIgnored()
         {

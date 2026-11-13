@@ -234,6 +234,78 @@ namespace keycuts.Tests
             }
         }
 
+        // #202: the manager greys out Edit from what the load found, so the flag has to say what the form would
+        [Fact]
+        public async Task ALoadedKeycut_CarriesTheAnswerOfTheFormsCheck()
+        {
+            Emit("fine", ShortcutType.Url, "https://example.com");
+            WriteLines("handmade",
+                "@ECHO OFF", "REM keycuts 1.3.0.0", @"REM <shortcut>C:\Shortcuts\handmade.bat</shortcut>", "REM <type>file</type>",
+                @"REM <target>C:\Tools\app.exe</target>", "REM <description></description>",
+                "START \"\" /B \"C:\\Tools\\app.exe\" %*", "EXIT");
+            WriteLines("zeropointone", "@ECHO OFF", "REM keycuts 0.1.1.5", @"REM <url>C:\Shortcuts\zeropointone.bat</url>", "START https://example.com", "EXIT");
+
+            var all = (await Repo().LoadAllAsync()).ToDictionary(k => k.Name);
+
+            Assert.True(all["fine"].CanEditInForm);
+            Assert.False(all["handmade"].CanEditInForm);
+            Assert.False(all["zeropointone"].CanEditInForm);
+        }
+
+        // A listed keycut that isn't valid UTF-8 keeps its row, read leniently as before, but the form would lose bytes of it
+        [Fact]
+        public async Task AFileThatIsNotUtf8_IsStillListed_ButCannotBeEdited()
+        {
+            var lines = new[]
+            {
+                "@ECHO OFF", "REM keycuts 1.3.0.0", @"REM <shortcut>C:\Shortcuts\cafe.bat</shortcut>", "REM <type>url</type>",
+                "REM <target>https://example.com</target>", "REM <description>caf\u00E9</description>", "START https://example.com", "EXIT"
+            };
+            File.WriteAllBytes(Path.Combine(_folder, "cafe.bat"), System.Text.Encoding.Latin1.GetBytes(string.Join("\r\n", lines) + "\r\n"));
+
+            var keycut = await LoadOne("cafe");
+
+            Assert.False(keycut.CanEditInForm);
+            Assert.Equal("https://example.com", keycut.Target);
+            Assert.Equal(keycut.CanEditInForm, KeycutRepository.CanEditInForm(keycut.FilePath));
+        }
+
+        [Fact]
+        public async Task AFileWithAUtf8ByteOrderMark_CanStillBeEdited()
+        {
+            var path = Emit("bom", ShortcutType.Url, "https://example.com", "Résumé");
+            File.WriteAllBytes(path, System.Text.Encoding.UTF8.GetPreamble().Concat(File.ReadAllBytes(path)).ToArray());
+
+            var keycut = await LoadOne("bom");
+
+            Assert.True(keycut.CanEditInForm);
+            Assert.Equal("Résumé", keycut.Description);
+        }
+
+        // The same answer as the static check, for every real file, so the menu and Ctrl+E can't disagree with the form
+        [Fact]
+        public async Task TheCorpus_LoadedWithTheSameAnswerAsTheFormsOwnCheck()
+        {
+            var corpus = Path.Combine(FindRepoRoot(), "tests", "corpus", "legacy");
+
+            foreach (var file in Directory.EnumerateFiles(corpus, "*.bat", SearchOption.AllDirectories))
+            {
+                File.Copy(file, Path.Combine(_folder, Path.GetRelativePath(corpus, file).Replace('\\', '_').Replace('/', '_')), true);
+            }
+
+            var all = await Repo().LoadAllAsync();
+
+            Assert.True(all.Count > 20);
+
+            foreach (var keycut in all)
+            {
+                Assert.True(keycut.CanEditInForm == KeycutRepository.CanEditInForm(keycut.FilePath), keycut.FilePath);
+            }
+
+            Assert.Contains(all, k => k.CanEditInForm);
+            Assert.Contains(all, k => !k.CanEditInForm);
+        }
+
         private static string FindRepoRoot()
         {
             var folder = new DirectoryInfo(AppContext.BaseDirectory);

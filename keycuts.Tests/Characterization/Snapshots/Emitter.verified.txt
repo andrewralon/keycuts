@@ -108,7 +108,7 @@
 |REM <type>folder</type>|
 |REM <target>C:\Users\me\Downloads</target>|
 |REM <description></description>|
-|"%SystemRoot%\explorer.exe" "C:\Users\me\Downloads"|
+|START "" /B "%SystemRoot%\explorer.exe" "C:\Users\me\Downloads"|
 |EXIT|
 
 ## folder-with-variable
@@ -118,7 +118,7 @@
 |REM <type>folder</type>|
 |REM <target>%USERPROFILE%\Google Drive</target>|
 |REM <description></description>|
-|"%SystemRoot%\explorer.exe" "%USERPROFILE%\Google Drive"|
+|START "" /B "%SystemRoot%\explorer.exe" "%USERPROFILE%\Google Drive"|
 |EXIT|
 
 ## clsidkey
@@ -128,7 +128,7 @@
 |REM <type>clsidkey</type>|
 |REM <target>::{645FF040-5081-101B-9F08-00AA002F954E}</target>|
 |REM <description></description>|
-|"%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
+|START "" /B "%SystemRoot%\explorer.exe" "::{645FF040-5081-101B-9F08-00AA002F954E}"|
 |EXIT|
 
 ## clsidkey-nested
@@ -138,7 +138,7 @@
 |REM <type>clsidkey</type>|
 |REM <target>::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}</target>|
 |REM <description></description>|
-|"%SystemRoot%\explorer.exe" "::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}"|
+|START "" /B "%SystemRoot%\explorer.exe" "::{26EE0668-A00A-44D7-9371-BEB064C98683}\0\::{7B81BE6A-CE2B-4676-A29E-EB907A5126C5}"|
 |EXIT|
 
 ## command

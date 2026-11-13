@@ -40,6 +40,20 @@ namespace keycuts.Tests
         }
 
         [Theory]
+        [InlineData("START \"\" /B \"%SystemRoot%\\explorer.exe\" \"%USERPROFILE%\\Documents\"", ShortcutType.Folder, @"%USERPROFILE%\Documents")]
+        [InlineData("START \"\" /B \"%SystemRoot%\\explorer.exe\" \"C:\\My Folder\"", ShortcutType.Folder, @"C:\My Folder")]
+        [InlineData("START \"\" /B \"%SystemRoot%\\explorer.exe\" \"::{645FF040-5081-101B-9F08-00AA002F954E}\"", ShortcutType.CLSIDKey, "::{645FF040-5081-101B-9F08-00AA002F954E}")]
+        public void FolderAndCLSID_WithStart_ReadTheSameAsWithout(string line, ShortcutType type, string target)
+        {
+            // #160: the emitter starts explorer.exe through START now; the unanchored patterns read both forms
+            var file = new ShortcutFile(@"C:\Shortcuts\docs.bat", new[] { "@ECHO OFF", line, "EXIT" });
+
+            Assert.Equal(type, file.Type);
+            Assert.Equal(target, file.Target);
+            Assert.Equal(line, file.Command);
+        }
+
+        [Theory]
         [InlineData("START \"\" /D \"C:\\Program Files (x86)\\Notepad++\" \"notepad++.exe\"", @"C:\Program Files (x86)\Notepad++\notepad++.exe")]
         [InlineData("START \"\" /D \"\" \"chrome\" \"? %*\"", "chrome\" \"? %*")]
         [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\"", "C:\\Tools\\app.exe\" \"arg")]

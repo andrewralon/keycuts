@@ -218,7 +218,8 @@
                                   AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out." />
                 </Grid>
 
-                <Grid>
+                <!-- The version, the update status and Check now: hidden only for the README's screenshots -->
+                <Grid x:Name="VersionRow" Visibility="{Binding ShowVersionRow, Converter={StaticResource BoolToVisibility}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />

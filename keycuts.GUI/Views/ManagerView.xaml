@@ -457,7 +457,8 @@
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" />
+                  <!-- The cell shows the program; the tooltip adds its arguments (#203) -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" ToolTip="{Binding TargetTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>

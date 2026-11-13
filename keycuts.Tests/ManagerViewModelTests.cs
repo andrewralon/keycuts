@@ -262,6 +262,27 @@ namespace keycuts.Tests
             Assert.Equal(@"Not found: C:\temp\a.txt", row.MissingTooltip);
         }
 
+        // #203: the Target cell shows the program, so the arguments (which profile a Chrome launcher opens) are in its tooltip
+        [Theory]
+        [InlineData(@"C:\Tools\app.exe", @"C:\Tools\app.exe", "", @"C:\Tools\app.exe")]
+        [InlineData(@"%programfiles(x86)%\Google\Chrome\Application\chrome.exe", @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe", "--profile-directory=\"Profile 2\"", @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe --profile-directory=""Profile 2""")]
+        // The 0.1.x form with quoted arguments keeps them in its target, spliced; the tooltip reads them as they were typed
+        [InlineData("C:\\Tools\\app.exe\" \"arg", @"C:\Tools\app.exe", "\"arg\"", "C:\\Tools\\app.exe \"arg\"")]
+        public void TargetTooltip_IsTheProgramWithItsArguments(string target, string program, string arguments, string expected)
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a") with { Target = target, Program = program, Arguments = arguments });
+
+            Assert.Equal(expected, row.TargetTooltip);
+        }
+
+        [Fact]
+        public void TargetTooltip_ForAKeycutWithNoProgram_IsTheTarget()
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a", target: "https://example.com"));
+
+            Assert.Equal("https://example.com", row.TargetTooltip);
+        }
+
         [Fact]
         public async Task LoadAsync_TargetCheckFailure_IsIgnored()
         {

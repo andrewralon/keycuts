@@ -175,6 +175,21 @@ namespace keycuts.GUI.ViewModels
             get { return Keycut.Target ?? string.Empty; }
         }
 
+        /// <summary>
+        /// The tooltip of the Target cell (#203): the program with its arguments, as they'd be typed, where the cell itself
+        /// shows the program (<see cref="Target"/>) so it stays a path to copy. A launcher such as Chrome with a profile shows
+        /// which one here. The same as the target when there are no arguments.
+        /// </summary>
+        public string TargetTooltip
+        {
+            get
+            {
+                var program = string.IsNullOrEmpty(Keycut.Program) ? Target : Keycut.Program;
+
+                return string.IsNullOrEmpty(Keycut.Arguments) ? Target : program + " " + Keycut.Arguments;
+            }
+        }
+
         /// <summary>When the .bat was last written; sorted by. <c>default</c> when unknown.</summary>
         public System.DateTime Modified
         {

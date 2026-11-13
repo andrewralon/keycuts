@@ -194,13 +194,13 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public Func<NameCheck, string, bool>? ConfirmName { get; set; }
 
-        /// <summary>How long the success confirmation shows before the creator resets to Empty.</summary>
+        /// <summary>How long "Created" shows before it goes away and Create works again. The fields keep their text.</summary>
         public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(2);
 
         public AsyncRelayCommand CreateCommand { get; }
 
         /// <summary>
-        /// The description label: "Add a description" shows the field and moves the focus into it, "Description (optional)"
+        /// The description label: "Add a description (optional)" shows the field and moves the focus into it, "Description (optional)"
         /// hides it again. Either way the choice is remembered.
         /// </summary>
         public ICommand ToggleDescriptionCommand { get; }
@@ -403,7 +403,7 @@ namespace keycuts.GUI.ViewModels
             get { return isDescriptionVisible; }
         }
 
-        /// <summary>The label says "Add a description" because the field is hidden.</summary>
+        /// <summary>The label says "Add a description (optional)" because the field is hidden.</summary>
         public bool ShowAddDescription
         {
             get { return !isDescriptionVisible; }
@@ -412,13 +412,13 @@ namespace keycuts.GUI.ViewModels
         /// <summary>The label above the description field, which is also the button that hides it.</summary>
         public string DescriptionToggleText
         {
-            get { return isDescriptionVisible ? "Description (optional)" : "Add a description"; }
+            get { return isDescriptionVisible ? "Description (optional)" : "Add a description (optional)"; }
         }
 
         /// <summary>What a screen reader calls the label button: what pressing it does.</summary>
         public string DescriptionToggleName
         {
-            get { return isDescriptionVisible ? "Hide description" : "Add a description"; }
+            get { return isDescriptionVisible ? "Hide description" : "Add a description (optional)"; }
         }
 
         private void ToggleDescription()
@@ -666,10 +666,35 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>The line under the name field has something to say (a warning, an error, Saving, Created); otherwise it takes no room.</summary>
-        public bool HasHelperText
+        /// <summary>
+        /// "Saving…" or "Created name", shown at the right of the Name label (#205), so the window keeps its height while a
+        /// keycut is made. Empty when the helper line says something else (an error outranks the success message).
+        /// </summary>
+        public string NameStatusText
         {
-            get { return HelperText.Length > 0; }
+            get
+            {
+                if (isSaving)
+                {
+                    return SavingHelperText;
+                }
+
+                return IsSuccess && !HelperIsError ? "Created " + successName : string.Empty;
+            }
+        }
+
+        public bool HasNameStatus
+        {
+            get { return NameStatusText.Length > 0; }
+        }
+
+        /// <summary>
+        /// The line under the name field has a warning or an error to show; otherwise it takes no room. Saving and Created are
+        /// on the Name label's row instead (<see cref="NameStatusText"/>).
+        /// </summary>
+        public bool ShowHelperLine
+        {
+            get { return HelperText.Length > 0 && !HasNameStatus; }
         }
 
         /// <summary>The target field's current error for screen readers, or empty when there is none.</summary>
@@ -780,27 +805,6 @@ namespace keycuts.GUI.ViewModels
             nameWarning = null;
             isInvalidName = false;
             submitError = null;
-            RaiseStateChanged();
-        }
-
-        public void Clear()
-        {
-            target = string.Empty;
-            shortcutName = string.Empty;
-            // The text goes; whether the box is shown is the user's choice and stays
-            description = string.Empty;
-            targetKind = null;
-            resolvedTarget = null;
-            targetError = TargetError.None;
-            nameWarning = null;
-            isInvalidName = false;
-            submitError = null;
-            successName = null;
-            OnPropertyChanged(nameof(Target));
-            OnPropertyChanged(nameof(ShortcutName));
-            OnPropertyChanged(nameof(Description));
-            OnPropertyChanged(nameof(TargetKind));
-            OnPropertyChanged(nameof(TargetError));
             RaiseStateChanged();
         }
 
@@ -937,7 +941,7 @@ namespace keycuts.GUI.ViewModels
                 case CreateOutcome.Success:
                     SetSuccess(name);
                     NotifyKeycutCreated();
-                    _ = ResetAfterSuccessAsync();
+                    _ = HideSuccessAfterDelayAsync();
                     return;
                 case CreateOutcome.DuplicateName:
                     // Only after a confirmed replace that still failed, which shouldn't happen: say so and keep the name
@@ -974,16 +978,20 @@ namespace keycuts.GUI.ViewModels
             FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
         }
 
-        /// <summary>Shows the success state for <see cref="SuccessDuration"/>, then resets to Empty unless the user started typing.</summary>
-        private async Task ResetAfterSuccessAsync()
+        /// <summary>
+        /// Shows "Created" for <see cref="SuccessDuration"/>, then takes it away (unless the user started typing, which did already)
+        /// so Create works again. The target, name and description are left as they were (#205), so a keycut made a little
+        /// differently, or the same one replaced, is a small edit away.
+        /// </summary>
+        private async Task HideSuccessAfterDelayAsync()
         {
             var version = ++successVersion;
             await Task.Delay(SuccessDuration);
 
             if (version == successVersion && successName != null && !isSaving)
             {
-                Clear();
-                FocusRequested?.Invoke(this, CreatorFocusTarget.Target);
+                successName = null;
+                RaiseStateChanged();
             }
         }
 
@@ -1034,7 +1042,9 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(ShowTargetError));
             OnPropertyChanged(nameof(TargetIcon));
             OnPropertyChanged(nameof(HelperText));
-            OnPropertyChanged(nameof(HasHelperText));
+            OnPropertyChanged(nameof(NameStatusText));
+            OnPropertyChanged(nameof(HasNameStatus));
+            OnPropertyChanged(nameof(ShowHelperLine));
             OnPropertyChanged(nameof(HelperIsError));
             OnPropertyChanged(nameof(HelperIsWarning));
             OnPropertyChanged(nameof(TargetHelpText));

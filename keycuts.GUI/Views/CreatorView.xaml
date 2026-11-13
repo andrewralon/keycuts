@@ -133,7 +133,7 @@
       </Style.Triggers>
     </Style>
 
-    <!-- A field label that is also a button (#205): "Description (optional)" hides its box, "Add a description" shows it. It looks
+    <!-- A field label that is also a button (#205): "Description (optional)" hides its box, "Add a description (optional)" shows it. It looks
          like the "Name" label, and turns to the accent on hover so it reads as clickable. -->
     <Style x:Key="FieldLabelButton" TargetType="Button">
       <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
@@ -361,7 +361,32 @@
 
       <!-- Name form -->
       <StackPanel Grid.Row="3" Margin="0,16,0,0">
-        <TextBlock Text="Name" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6" />
+        <!-- The label, and at its right what is happening to the keycut: "Saving…", then "Created name" (#205). They sit on this
+             row, not under the field, so the window keeps its height while a keycut is made. -->
+        <Grid Margin="0,0,0,6">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="Name" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0"
+                      Visibility="{Binding HasNameStatus, Converter={StaticResource BoolToVisibility}}">
+            <controls:Icon Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource SuccessBrush}">
+              <controls:Icon.Style>
+                <Style TargetType="controls:Icon">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSuccess}" Value="True">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </controls:Icon.Style>
+            </controls:Icon>
+            <TextBlock x:Name="NameStatusTextBlock" Text="{Binding NameStatusText}" Style="{StaticResource HelperText}" />
+          </StackPanel>
+        </Grid>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -417,9 +442,9 @@
             </Grid>
           </Button>
         </Grid>
-        <!-- Warnings, errors and the success message; takes no room (#205) while there is nothing to say -->
+        <!-- Name warnings and errors; takes no room (#205) while there is nothing to say. Saving and Created are above, by the label. -->
         <DockPanel Margin="0,8,0,0" MinHeight="18"
-                   Visibility="{Binding HasHelperText, Converter={StaticResource BoolToVisibility}}">
+                   Visibility="{Binding ShowHelperLine, Converter={StaticResource BoolToVisibility}}">
           <controls:Icon DockPanel.Dock="Left" Kind="Warning" Size="14" Margin="0,1,6,0" VerticalAlignment="Top"
                          Foreground="{DynamicResource WarningBrush}">
             <controls:Icon.Style>
@@ -433,23 +458,10 @@
               </Style>
             </controls:Icon.Style>
           </controls:Icon>
-          <controls:Icon DockPanel.Dock="Left" Kind="Check" Size="14" Margin="0,0,6,0" VerticalAlignment="Center"
-                         Foreground="{DynamicResource SuccessBrush}">
-            <controls:Icon.Style>
-              <Style TargetType="controls:Icon">
-                <Setter Property="Visibility" Value="Collapsed" />
-                <Style.Triggers>
-                  <DataTrigger Binding="{Binding IsSuccess}" Value="True">
-                    <Setter Property="Visibility" Value="Visible" />
-                  </DataTrigger>
-                </Style.Triggers>
-              </Style>
-            </controls:Icon.Style>
-          </controls:Icon>
           <TextBlock x:Name="HelperTextBlock" Text="{Binding HelperText}" Style="{StaticResource NameHelperText}" />
         </DockPanel>
 
-        <!-- #162, #205: the description is optional. Its label is a button: "Add a description" shows the box and
+        <!-- #162, #205: the description is optional. Its label is a button: "Add a description (optional)" shows the box and
              "Description (optional)" hides it, the choice being remembered between launches. Styled like the "Name" label,
              with the same 16 above it as between Target and Name. -->
         <Button x:Name="BtnToggleDescription" Style="{StaticResource FieldLabelButton}" HorizontalAlignment="Left"

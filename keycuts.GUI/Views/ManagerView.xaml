@@ -321,8 +321,12 @@
       </Button>
     </Grid>
 
-    <!-- The count that used to sit beside the search box is the footer's pill now (#205) -->
+    <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
     <Grid Grid.Row="1" Margin="24,16,24,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
       <Grid>
         <TextBox x:Name="SearchBox" Style="{StaticResource AppTextBox}" Padding="34,0,10,0"
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -332,6 +336,10 @@
         <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
+      <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                 FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
+                 Text="{Binding ShownText}" AutomationProperties.LiveSetting="Polite"
+                 Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
     </Grid>
 
     <Grid Grid.Row="2" Margin="24,0,24,12">

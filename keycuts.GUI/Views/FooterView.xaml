@@ -5,8 +5,9 @@
              xmlns:views="clr-namespace:keycuts.GUI.Views">
   <!-- #205: the footer both screens share. It binds to whichever view model it sits in (the creator's or the manager's), which both
        have OpenSettingsCommand, KeycutCount, CountDescription and UpdateNotice. Left to right: Settings, the count, the screen's own
-       message (Message; the manager's Deleted/Undo/error line), and the update line, right-justified. Only the update line shrinks
-       or wraps, so Settings and the count are never pushed out. -->
+       message (Message; the manager's Deleted/Undo/error line, which caps its own width), and the update line, right-justified.
+       Declared left to right, so Tab goes Settings, Undo, Download, dismiss. The message takes what it needs up to its cap and the
+       update line the rest, wrapping if that is narrow, so neither pushes Settings or the count out. -->
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
   </UserControl.Resources>
@@ -15,6 +16,7 @@
           BorderThickness="0,1,0,0" Padding="16,0" MinHeight="46">
     <Grid>
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
@@ -36,30 +38,32 @@
                    AutomationProperties.LiveSetting="Polite" />
       </Border>
 
-      <DockPanel Grid.Column="2" Margin="16,0,0,0" LastChildFill="True">
-        <!-- The message gets its room first, up to a cap so a long error can't push the update line out entirely -->
-        <ContentPresenter DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,16,0"
-                          Content="{Binding Message, RelativeSource={RelativeSource AncestorType=views:FooterView}}" />
+      <ContentPresenter Grid.Column="2" VerticalAlignment="Center"
+                        Content="{Binding Message, RelativeSource={RelativeSource AncestorType=views:FooterView}}" />
 
-        <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing.
-             Declared in reading order so Tab reaches Download before the dismiss button, which sits right after the text. -->
-        <DockPanel x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" HorizontalAlignment="Right"
-                   VerticalAlignment="Center" LastChildFill="True" Margin="0,6"
-                   Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
-                   DataContextChanged="UpdateNotice_DataContextChanged">
-          <Button x:Name="BtnDismissUpdate" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="0,0,0,0"
-                  VerticalAlignment="Center" Command="{Binding DismissCommand}" ToolTip="Dismiss"
-                  AutomationProperties.Name="Dismiss update notice">
-            <controls:Icon Kind="Close" Size="14" />
-          </Button>
-          <TextBlock x:Name="UpdateNoticeText" VerticalAlignment="Center" TextWrapping="Wrap"
-                     Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
-            <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
-                Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentBrush}"
-                AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">Download</Hyperlink>
-          </TextBlock>
-        </DockPanel>
-      </DockPanel>
+      <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing.
+           The text is right-aligned in the space it gets, so the dismiss button follows it closely and the line is
+           right-justified; the text wraps when the space is narrow. -->
+      <Grid x:Name="UpdateNotice" Grid.Column="3" DataContext="{Binding UpdateNotice}" Margin="16,6,0,6"
+            VerticalAlignment="Center"
+            Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
+            DataContextChanged="UpdateNotice_DataContextChanged">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="UpdateNoticeText" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                   TextWrapping="Wrap" TextAlignment="Right"
+                   Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
+          <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
+              Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentBrush}"
+              AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">Download</Hyperlink>
+        </TextBlock>
+        <Button x:Name="BtnDismissUpdate" Grid.Column="1" Style="{StaticResource IconButton}" VerticalAlignment="Center"
+                Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
+          <controls:Icon Kind="Close" Size="14" />
+        </Button>
+      </Grid>
     </Grid>
   </Border>
 </UserControl>

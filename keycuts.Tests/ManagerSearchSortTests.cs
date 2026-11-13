@@ -69,7 +69,8 @@ namespace keycuts.Tests
             manager.SearchText = "VICKI";
 
             Assert.Equal(new[] { "l-vicki" }, Names(manager));
-            Assert.Equal("1 of 4 keycuts", manager.CountDescription);
+            Assert.Equal("1 of 4 shown", manager.ShownText);
+            Assert.Equal("4 keycuts", manager.CountDescription);   // the footer's pill is always the total
         }
 
         [Fact]
@@ -112,7 +113,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ManagerState.NoResults, manager.State);
             Assert.Empty(manager.Rows);
-            Assert.Equal("0 of 4 keycuts", manager.CountDescription);
+            Assert.Equal("0 of 4 shown", manager.ShownText);
 
             manager.ClearSearchCommand.Execute(null);
 

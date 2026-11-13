@@ -31,7 +31,8 @@ namespace keycuts.Tests
             Assert.Equal(CreatorState.Empty, creator.State);
             Assert.Equal(IconKind.Arrow, creator.TargetIcon);
             Assert.Equal(string.Empty, creator.HelperText);
-            Assert.False(creator.HasHelperText);
+            Assert.False(creator.ShowHelperLine);
+            Assert.False(creator.HasNameStatus);
             Assert.False(creator.CanCreate);
             Assert.True(creator.IsInputEnabled);
         }
@@ -242,20 +243,6 @@ namespace keycuts.Tests
 
             creator.ShortcutName = "next";
             Assert.False(creator.IsSuccess);
-        }
-
-        [Fact]
-        public void Clear_ReturnsToEmpty()
-        {
-            var creator = WithTargetAndName();
-            creator.SetNameWarning(TestNameChecks.Existing("ex"));
-
-            creator.Clear();
-
-            Assert.Equal(CreatorState.Empty, creator.State);
-            Assert.Equal(string.Empty, creator.Target);
-            Assert.Equal(string.Empty, creator.ShortcutName);
-            Assert.Null(creator.TargetKind);
         }
 
         [Fact]

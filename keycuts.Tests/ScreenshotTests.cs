@@ -137,7 +137,6 @@ namespace keycuts.Tests
             var creator = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { KeycutCount = 7, SuccessDuration = TimeSpan.FromMinutes(1) };
             var window = Host(new CreatorView(), creator, 440, null);
             var captionBar = NewCaptionBar(window);
-            var parts = new List<(PixelBuffer View, PixelBuffer Caption, int Delay)>();
             var frames = new List<GifFrame>();
 
             try
@@ -150,7 +149,7 @@ namespace keycuts.Tests
                     Pump();
                     window.UpdateLayout();
                     Pump();
-                    parts.Add((Pixels(Capture(view)), Pixels(captionBar.Render(caption)), delayCentiseconds));
+                    frames.Add(Frame(Pixels(Capture(view)), Pixels(captionBar.Render(caption)), delayCentiseconds));
                 }
 
                 Add("Drop, paste or type what you want to open", 150);
@@ -174,13 +173,6 @@ namespace keycuts.Tests
                 creator.SetSuccess(name);
                 Add("Created", 150);
 
-                // The window fits its content (#205), so the line that says "Created" makes it taller than the frames before it,
-                // and a GIF's frames are all one size: the shorter ones get the window's canvas color under them, as if the
-                // window had been smaller
-                var viewHeight = parts.Max(p => p.View.Height);
-                var canvas = CanvasPixel();
-                frames.AddRange(parts.Select(p => Frame(PadHeight(p.View, viewHeight, canvas), p.Caption, p.Delay)));
-
                 var first = frames[0];
                 var card = NewCard(first.Width / Scale, first.Height / Scale);
 
@@ -200,32 +192,6 @@ namespace keycuts.Tests
             }
 
             File.WriteAllBytes(Path.Combine(folder, "walkthrough-" + suffix + ".gif"), GifWriter.Write(frames));
-        }
-
-        /// <summary>The window canvas color as one BGRA pixel, which is what shows around the app's window.</summary>
-        private static byte[] CanvasPixel()
-        {
-            var color = Application.Current.TryFindResource("CanvasBrush") is SolidColorBrush brush ? brush.Color : Colors.White;
-            return new[] { color.B, color.G, color.R, (byte)255 };
-        }
-
-        /// <summary>The picture with rows of <paramref name="pixel"/> added under it until it is <paramref name="height"/> high.</summary>
-        private static PixelBuffer PadHeight(PixelBuffer view, int height, byte[] pixel)
-        {
-            if (view.Height >= height)
-            {
-                return view;
-            }
-
-            var padded = new byte[view.Width * height * 4];
-            view.Bgra.CopyTo(padded, 0);
-
-            for (var offset = view.Bgra.Length; offset < padded.Length; offset += 4)
-            {
-                pixel.CopyTo(padded, offset);
-            }
-
-            return new PixelBuffer(view.Width, height, padded);
         }
 
         /// <summary>The creator's rendering with its caption strip under it, as one frame.</summary>

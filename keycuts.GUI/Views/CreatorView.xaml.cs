@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Automation.Peers;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -83,12 +82,16 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Tell screen readers when the helper line (errors, Saving, Created) changes
+        // Tell screen readers when the helper line (name warnings and errors) or the status by the Name label (Saving, Created) changes
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(CreatorViewModel.HelperText))
+            if (e.PropertyName == nameof(CreatorViewModel.HelperText) && ViewModel?.ShowHelperLine == true)
             {
-                AnnounceLiveRegion(HelperTextBlock);
+                LiveRegion.Announce(HelperTextBlock);
+            }
+            else if (e.PropertyName == nameof(CreatorViewModel.NameStatusText) && ViewModel?.HasNameStatus == true)
+            {
+                LiveRegion.Announce(NameStatusTextBlock);
             }
         }
 
@@ -97,22 +100,8 @@ namespace keycuts.GUI.Views
         {
             if (e.PropertyName == nameof(WelcomeViewModel.HelperText))
             {
-                AnnounceLiveRegion(WelcomeHelperTextBlock);
+                LiveRegion.Announce(WelcomeHelperTextBlock);
             }
-        }
-
-        // The LiveSetting on the text block alone doesn't raise the event; the peer has to. CreatePeerForElement, not
-        // FromElement: a line that was collapsed until now may have no peer yet, and FromElement returns only an
-        // existing one. It returns the existing peer when there is one.
-        private void AnnounceLiveRegion(UIElement element)
-        {
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            {
-                if (UIElementAutomationPeer.CreatePeerForElement(element) is AutomationPeer peer)
-                {
-                    peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-                }
-            }));
         }
 
         // A name that would replace a keycut or clash with another command asks first, in the app's own dialog (#153)

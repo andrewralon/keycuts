@@ -2145,7 +2145,8 @@ namespace keycuts.Tests
             await manager.DeleteKeycutAsync(manager.Rows[0]);
 
             Assert.Equal(new[] { "alpine" }, manager.Rows.Select(r => r.Name));
-            Assert.Equal("1 of 2 keycuts", manager.CountDescription);
+            Assert.Equal("1 of 2 shown", manager.ShownText);
+            Assert.Equal("2 keycuts", manager.CountDescription);
         }
 
         [Fact]

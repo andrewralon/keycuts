@@ -62,6 +62,8 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
             Assert.Equal(3, manager.KeycutCount);
             Assert.Equal("3 keycuts", manager.CountDescription);
+            Assert.Equal(string.Empty, manager.ShownText);   // all of them are shown: nothing to say
+            Assert.False(manager.HasShownText);
             Assert.True(manager.IsTableVisible);
             Assert.True(manager.CanSearch);
             Assert.False(manager.IsLoading);

@@ -322,16 +322,16 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task Description_IsClearedAfterTheReset_ButTheBoxStaysShown()
+        public async Task Description_StaysFilledInAfterACreate_AndSoDoesTheBox()
         {
             var creator = Ready(new FakeCreator());
             creator.SuccessDuration = TimeSpan.FromMilliseconds(500);
             creator.Description = "Team wiki";
 
             await creator.CreateCommand.ExecuteAsync();
-            await WaitFor(() => creator.State == CreatorState.Empty);
+            await WaitFor(() => creator.State == CreatorState.TargetSelected);
 
-            Assert.Equal(string.Empty, creator.Description);
+            Assert.Equal("Team wiki", creator.Description);
             Assert.True(creator.IsDescriptionVisible);   // shown or hidden is the user's choice, not something a create undoes
             Assert.False(creator.ShowAddDescription);
         }
@@ -343,8 +343,8 @@ namespace keycuts.Tests
             var focus = new List<CreatorFocusTarget>();
             creator.FocusRequested += (sender, e) => focus.Add(e);
 
-            Assert.Equal("Add a description", creator.DescriptionToggleText);
-            Assert.Equal("Add a description", creator.DescriptionToggleName);
+            Assert.Equal("Add a description (optional)", creator.DescriptionToggleText);
+            Assert.Equal("Add a description (optional)", creator.DescriptionToggleName);
 
             creator.ToggleDescriptionCommand.Execute(null);
             Assert.Equal("Description (optional)", creator.DescriptionToggleText);
@@ -353,7 +353,7 @@ namespace keycuts.Tests
             creator.ToggleDescriptionCommand.Execute(null);
             Assert.False(creator.IsDescriptionVisible);
             Assert.True(creator.ShowAddDescription);
-            Assert.Equal("Add a description", creator.DescriptionToggleText);
+            Assert.Equal("Add a description (optional)", creator.DescriptionToggleText);
             Assert.Equal(new[] { CreatorFocusTarget.Description }, focus);   // only showing moves the focus into the box
         }
 
@@ -393,14 +393,18 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TextShowingTheBox_AndTheReset_AreNotTheUsersChoice_SoNothingIsSaved()
+        public async Task TextShowingTheBox_IsNotTheUsersChoice_SoNothingIsSaved_EvenAfterACreate()
         {
             var store = new FakeDescriptionStore(false);
             var creator = Create(new FakeCreator(), null, store);
+            creator.Target = "https://example.com";
+            creator.TargetKind = KeycutKind.Url;
+            creator.ShortcutName = "ex";
 
             creator.Description = "Team wiki";   // shows the box, because text is never hidden
-            creator.Clear();
+            await creator.CreateCommand.ExecuteAsync();
 
+            Assert.True(creator.IsDescriptionVisible);
             Assert.Empty(store.Saved);
         }
 
@@ -427,23 +431,26 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task TypingADescription_DuringTheSuccessMessage_SkipsTheReset()
+        public async Task TypingADescription_DuringTheSuccessMessage_EndsItAtOnce_AndKeepsTheOtherFields()
         {
             var creator = Ready(new FakeCreator());
             creator.SuccessDuration = TimeSpan.FromMilliseconds(50);
 
             await creator.CreateCommand.ExecuteAsync();
+            Assert.True(creator.IsSuccess);
             creator.Description = "next";
             await Task.Delay(150);
 
+            Assert.False(creator.IsSuccess);
             Assert.Equal("next", creator.Description);
             Assert.Equal("https://example.com", creator.Target);
+            Assert.Equal("ex", creator.ShortcutName);
         }
 
         #endregion Description (#162)
 
         [Fact]
-        public async Task Success_ShowsSuccessRaisesCreatedThenResetsToEmpty()
+        public async Task Success_ShowsCreatedRaisesCreated_ThenLeavesTheFormFilledInAndReady()
         {
             var fake = new FakeCreator();
             var creator = Ready(fake);
@@ -460,17 +467,25 @@ namespace keycuts.Tests
             Assert.Equal(1, created);
             Assert.Equal(CreatorState.Success, creator.State);
             Assert.Equal("Created ex", creator.HelperText);
+            // "Created" sits by the Name label, not under the field, so the line under it stays out of the way
+            Assert.Equal("Created ex", creator.NameStatusText);
+            Assert.True(creator.HasNameStatus);
+            Assert.False(creator.ShowHelperLine);
             Assert.False(creator.CanCreate);
 
-            await WaitFor(() => creator.State == CreatorState.Empty);
+            await WaitFor(() => creator.State == CreatorState.TargetSelected);
 
-            Assert.Equal(string.Empty, creator.Target);
-            Assert.Equal(string.Empty, creator.ShortcutName);
-            Assert.Equal(new[] { CreatorFocusTarget.Target }, focus);
+            // Nothing is cleared (#205): the keycut is a small edit away, and the focus isn't moved
+            Assert.Equal("https://example.com", creator.Target);
+            Assert.Equal(KeycutKind.Url, creator.TargetKind);
+            Assert.Equal("ex", creator.ShortcutName);
+            Assert.Equal(string.Empty, creator.NameStatusText);
+            Assert.True(creator.CanCreate);
+            Assert.Empty(focus);
         }
 
         [Fact]
-        public async Task Success_ResetIsSkippedWhenTheUserStartsTyping()
+        public async Task Success_EndsWhenTheUserStartsTyping_AndTheTextIsTheirs()
         {
             var creator = Ready(new FakeCreator());
             creator.SuccessDuration = TimeSpan.FromMilliseconds(50);
@@ -479,8 +494,46 @@ namespace keycuts.Tests
             creator.ShortcutName = "next";
             await Task.Delay(150);
 
+            Assert.False(creator.IsSuccess);
             Assert.Equal("next", creator.ShortcutName);
             Assert.Equal("https://example.com", creator.Target);
+        }
+
+        [Fact]
+        public async Task SavingAndCreated_ShowByTheNameLabel_AndWarningsAndErrorsUnderTheField()
+        {
+            var release = new TaskCompletionSource<CreateResult>();
+            var fake = new FakeCreator { Result = () => release.Task };
+            var creator = Ready(fake);
+
+            var create = creator.CreateCommand.ExecuteAsync();
+            await WaitFor(() => creator.IsSaving);
+            Assert.Equal(CreatorViewModel.SavingHelperText, creator.NameStatusText);
+            Assert.False(creator.ShowHelperLine);
+
+            release.SetResult(CreateResult.Success(null!));
+            await create;
+            Assert.Equal("Created ex", creator.NameStatusText);
+            Assert.False(creator.ShowHelperLine);
+
+            // A warning is a sentence about a path: it keeps the line under the field
+            creator.ShortcutName = "ex2";
+            creator.SetNameWarning(TestNameChecks.Existing("ex2"));
+            Assert.Equal(string.Empty, creator.NameStatusText);
+            Assert.True(creator.ShowHelperLine);
+        }
+
+        [Fact]
+        public async Task AnErrorAfterACreate_OutranksTheCreatedMessage_SoNothingSaysCreated()
+        {
+            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.Unexpected)) };
+            var creator = Ready(fake);
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(string.Empty, creator.NameStatusText);
+            Assert.True(creator.ShowHelperLine);
+            Assert.Equal(CreatorViewModel.UnexpectedErrorMessage, creator.HelperText);
         }
 
         [Fact]

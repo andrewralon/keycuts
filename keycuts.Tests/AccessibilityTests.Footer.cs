@@ -349,7 +349,7 @@ namespace keycuts.Tests
             });
         }
 
-        // The Manager's narrowest width: a long message is trimmed to its cap, Undo stays, and the update line still has room
+        // The Manager's narrowest width: a long message is trimmed to its cap, Undo stays put, and the update line still has room
         [Fact]
         public void Footer_AtTheManagersNarrowestWidth_KeepsEverythingVisible_WhateverTheMessageSays()
         {
@@ -364,6 +364,7 @@ namespace keycuts.Tests
                 {
                     window.Width = GUI.WindowLayout.ManagerMinWidth;
                     var footer = Descendants<FooterView>(window).Single();
+                    double? undoLeft = null;
 
                     void CheckEverythingFits(string scenario, bool undoShows)
                     {
@@ -387,8 +388,18 @@ namespace keycuts.Tests
 
                         // In order, never over each other, and the update text has real room
                         Assert.True(RightIn(settings, footer) <= LeftIn(count, footer), scenario);
-                        Assert.True(RightIn(count, footer) <= LeftIn(message, footer) + 0.5, scenario);
-                        Assert.True((undoShows ? RightIn(undo, footer) : RightIn(message, footer)) <= LeftIn(line, footer) + 0.5, scenario);
+                        // Undo first, right after the count, then the message, then the update line
+                        Assert.True(RightIn(count, footer) <= LeftIn(undoShows ? undo : message, footer) + 0.5, scenario);
+                        if (undoShows)
+                        {
+                            Assert.True(RightIn(undo, footer) <= LeftIn(message, footer) + 0.5, scenario);
+
+                            // ...and always in the same place, whatever the message says
+                            undoLeft ??= LeftIn(undo, footer);
+                            Assert.Equal(undoLeft.Value, LeftIn(undo, footer), 0.5);
+                        }
+
+                        Assert.True(RightIn(message, footer) <= LeftIn(line, footer) + 0.5, scenario);
                         Assert.True(link.ActualWidth >= 150, $"{scenario}: the update text is only {link.ActualWidth} wide");
                     }
 

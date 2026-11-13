@@ -109,11 +109,11 @@ namespace keycuts.Tests
             creator.Target = "https://mail.google.com/mail/u/0/#inbox";
             creator.TargetKind = KeycutKind.Url;
             creator.ShortcutName = "gmail";
-            Render(Host(new CreatorView(), creator, 440, null), folder, "creator-" + suffix);
+            Render(HideCarets(Host(new CreatorView(), creator, 440, null)), folder, "creator-" + suffix);
 
             var manager = new ManagerViewModel(noop, noop);
             manager.ShowKeycuts(SampleKeycuts());
-            Render(Host(new ManagerView(), manager, 960, 560), folder, "manager-" + suffix);
+            Render(HideCarets(Host(new ManagerView(), manager, 960, 560)), folder, "manager-" + suffix);
 
             // Settings, with the update row the real app has (#171)
             // without the version row (the version and Check now), so the screenshot doesn't go stale at every release
@@ -387,6 +387,31 @@ namespace keycuts.Tests
             }
 
             return Show(window);
+        }
+
+        /// <summary>
+        /// A still picture shouldn't show a text caret caught mid-blink, as a blip in front of the typed text. The box keeps its
+        /// focus look; only the caret is made invisible, which is the one thing a screenshot can't tell is a blink.
+        /// </summary>
+        private static Window HideCarets(Window window)
+        {
+            void Hide(DependencyObject node)
+            {
+                for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+                {
+                    var child = VisualTreeHelper.GetChild(node, i);
+
+                    if (child is TextBox box)
+                    {
+                        box.CaretBrush = Brushes.Transparent;
+                    }
+
+                    Hide(child);
+                }
+            }
+
+            Hide(window);
+            return window;
         }
 
         private static Window Show(Window window)

@@ -53,9 +53,10 @@ namespace keycuts.GUI.Views
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.
         private void ManagerView_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // While renaming, the name box owns the keys (this handler runs before it). Modifiers come from the event's own device:
-            // in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give the event its own.
-            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsRenaming)
+            // While a name or description is edited, its box owns the keys (this handler runs before it). Modifiers come from
+            // the event's own device: in the app that is the physical keyboard, as with Keyboard.Modifiers, but a test can give
+            // the event its own.
+            if (ViewModel == null || ViewModel.IsMenuOpen || ViewModel.IsEditing)
             {
                 return;
             }
@@ -78,6 +79,16 @@ namespace keycuts.GUI.Views
             else if (modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             {
                 HandleControlShiftKey(e);
+            }
+            else if (modifiers == ModifierKeys.Shift)
+            {
+                // Shift+F2 edits the description, as F2 edits the name
+                if (e.Key == Key.F2 && ViewModel.SelectedRow != null)
+                {
+                    e.Handled = true;
+                    Table.ScrollIntoView(ViewModel.SelectedRow);
+                    ViewModel.BeginEditDescription(ViewModel.SelectedRow);
+                }
             }
             else if (modifiers == ModifierKeys.None)
             {
@@ -260,25 +271,83 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Rows, cells and the background can't take focus, so a click there leaves the focus in the name box and
+        // A click on text can report a Run, which isn't a Visual, so walk its logical parent until a Visual is reached
+        private static DependencyObject? ParentOf(DependencyObject node)
+        {
+            return node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node);
+        }
+
+        private static T? FindAncestor<T>(DependencyObject node)
+            where T : DependencyObject
+        {
+            for (DependencyObject? current = node; current != null; current = ParentOf(current))
+            {
+                if (current is T match)
+                {
+                    return match;
+                }
+            }
+
+            return null;
+        }
+
+        // Rows, cells and the background can't take focus, so a click there leaves the focus in the box being edited and
         // LostKeyboardFocus never fires. Save on any click in the view outside the box; the click itself goes on as usual.
+        // With nothing being edited, a click on the name or description of the selected row starts editing it.
         private void ManagerView_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (ViewModel?.IsRenaming != true || e.OriginalSource is not DependencyObject source)
+            if (ViewModel == null || e.OriginalSource is not DependencyObject source)
             {
                 return;
             }
 
-            // A click on text can report a Run, which isn't a Visual, so walk its logical parent until a Visual is reached
-            for (var node = source; node != null; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+            if (ViewModel.IsEditing)
             {
-                if (node is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } })
+                for (var node = source; node != null; node = ParentOf(node))
                 {
-                    return;
+                    if (node is TextBox { DataContext: KeycutRowViewModel { IsRenaming: true } } ||
+                        node is TextBox { DataContext: KeycutRowViewModel { IsEditingDescription: true } })
+                    {
+                        return;
+                    }
                 }
+
+                // The click only saves; it doesn't also start another edit
+                _ = ViewModel.IsRenaming ? ViewModel.CommitRenameAsync() : ViewModel.CommitDescriptionAsync();
+                return;
             }
 
-            _ = ViewModel.CommitRenameAsync();
+            BeginEditFromClick(e, source);
+        }
+
+        // #202: as in Explorer, a click on the name or description of the row that is already selected edits it, and a click
+        // on any other row only selects it. Every click starting an edit would open a box each time a row is picked, since
+        // those two cells cover most of a row.
+        private void BeginEditFromClick(MouseButtonEventArgs e, DependencyObject source)
+        {
+            // A plain left click, and not the one that dismissed a menu: that click is delivered too, once the menu has closed
+            if (e.ChangedButton != MouseButton.Left || ViewModel!.IsMenuOpen || Environment.TickCount64 - menuClosedAtTick < 250)
+            {
+                return;
+            }
+
+            var cell = FindAncestor<DataGridCell>(source);
+
+            if (cell?.DataContext is not KeycutRowViewModel row || !ReferenceEquals(row, ViewModel.SelectedRow))
+            {
+                return;
+            }
+
+            if (cell.Column == NameColumn)
+            {
+                e.Handled = true;
+                ViewModel.BeginRename(row);
+            }
+            else if (cell.Column == DescriptionColumn)
+            {
+                e.Handled = true;
+                ViewModel.BeginEditDescription(row);
+            }
         }
 
         // Clicking or tabbing away saves, as in Explorer. Switching windows (no new focus in this one) keeps editing.
@@ -289,6 +358,44 @@ namespace keycuts.GUI.Views
                 !IsInContextMenuOf(box, e.NewFocus as DependencyObject))
             {
                 _ = ViewModel?.CommitRenameAsync();
+            }
+        }
+
+        // The description box works as the name box does (#202)
+        private void DescriptionBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            RenameBox_IsVisibleChanged(sender, e);
+        }
+
+        private void DescriptionBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Enter:
+                    e.Handled = true;
+                    _ = ViewModel?.CommitDescriptionAsync();
+                    break;
+                case Key.Escape:
+                    // Handled here, so the window doesn't also treat it as "back to the creator"
+                    e.Handled = true;
+                    ViewModel?.CancelEditDescription();
+                    break;
+                case Key.Up:
+                case Key.Down:
+                case Key.PageUp:
+                case Key.PageDown:
+                    // The table would move the selection off the row being edited
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void DescriptionBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (e.NewFocus != null && sender is TextBox { DataContext: KeycutRowViewModel { IsEditingDescription: true } } box &&
+                !IsInContextMenuOf(box, e.NewFocus as DependencyObject))
+            {
+                _ = ViewModel?.CommitDescriptionAsync();
             }
         }
 

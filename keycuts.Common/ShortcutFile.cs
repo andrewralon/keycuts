@@ -7,8 +7,8 @@ namespace keycuts.Common
 {
     public class ShortcutFile
     {
-        private readonly string explorer = "\\explorer.exe\"";
-        private readonly string start = "START ";
+        private const string explorer = "\\explorer.exe\"";
+        private const string start = "START ";
 
         private static readonly string patternCLSID = "\".+explorer.exe\" \"[shell:]?(::{.+})\"";
         private static readonly string patternFolder = "\".+explorer.exe\" (\".+\")";
@@ -66,11 +66,7 @@ namespace keycuts.Common
         /// <summary>Parses lines already read from <paramref name="file"/>, which is only used for its name.</summary>
         public ShortcutFile(string file, string[] allLines)
         {
-            var lines = allLines
-                .Where(x => !IsRemLine(x) &&
-                            (x.Contains(explorer) ||
-                             x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase)))
-                .ToList();
+            var lines = allLines.Where(IsLaunchLine).ToList();
 
             Description = ParseDescription(allLines);
 
@@ -237,6 +233,16 @@ namespace keycuts.Common
         public static bool IsRemLine(string line)
         {
             return line.TrimStart().StartsWith("REM ", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Whether the parser takes this line for a launch line: not a comment, and either a <c>START</c> or a call to
+        /// <c>explorer.exe</c>. Used to read the file, and to find where a description line goes when a file has none.
+        /// </summary>
+        public static bool IsLaunchLine(string line)
+        {
+            return !IsRemLine(line) &&
+                (line.Contains(explorer) || line.StartsWith(start, StringComparison.CurrentCultureIgnoreCase));
         }
 
         /// <summary>

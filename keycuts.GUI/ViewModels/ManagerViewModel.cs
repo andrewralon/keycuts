@@ -71,8 +71,14 @@ namespace keycuts.GUI.ViewModels
 
         private KeycutRowViewModel? renamingRow;
 
-        // The file a rename is moving, while it's being saved. Actions on a row with that path wait for the save.
+        // The row whose description is being edited in place (#202). Never at the same time as renamingRow.
+        private KeycutRowViewModel? describingRow;
+
+        // The file a rename or a description is saving, while it's being saved. Actions on a row with that path wait for the save.
         private string? savingPath;
+
+        // What the save under way is called, for the message an action on that row gets
+        private string savingVerb = "renaming";
 
         // A renamed keycut's old path, and that keycut as it is on disk now. Until a reload rebuilds the rows (one may have
         // been cancelled), a row with the old path still shows the old name, and its actions use the renamed keycut. It's
@@ -164,6 +170,18 @@ namespace keycuts.GUI.ViewModels
         public bool IsRenaming
         {
             get { return renamingRow != null; }
+        }
+
+        /// <summary>True while a row's description is being edited in place (Shift+F2 or Edit description…, #202). Reloads wait until it ends.</summary>
+        public bool IsEditingDescription
+        {
+            get { return describingRow != null; }
+        }
+
+        /// <summary>True while either is: the name or the description box has the keys, and the row shortcuts step aside.</summary>
+        public bool IsEditing
+        {
+            get { return renamingRow != null || describingRow != null; }
         }
 
         /// <summary>True when this view model can load keycuts itself.</summary>
@@ -686,6 +704,9 @@ namespace keycuts.GUI.ViewModels
                 renamingRow.EndRename();
             }
 
+            // One box at a time
+            EndDescriptionEdit();
+
             Interlocked.Exchange(ref loadSource, null)?.Cancel();
 
             IsMenuOpen = false;
@@ -693,6 +714,133 @@ namespace keycuts.GUI.ViewModels
             renamingRow = row;
             row.StartRename();
             OnPropertyChanged(nameof(IsRenaming));
+            OnPropertyChanged(nameof(IsEditing));
+        }
+
+        /// <summary>
+        /// Starts editing the row's description in place (Shift+F2, Edit description…, or a click on the description of the
+        /// selected row; #202). Guarded like <see cref="BeginRename"/>: one row at a time, not while a save is under way, and a
+        /// load already running is cancelled so its result can't replace the row.
+        /// </summary>
+        public void BeginEditDescription(KeycutRowViewModel row)
+        {
+            if (actions == null || savingPath != null || renamedKeycut != null || deleting.Contains(row))
+            {
+                return;
+            }
+
+            if (describingRow != null && !ReferenceEquals(describingRow, row))
+            {
+                describingRow.EndEditDescription();
+            }
+
+            if (renamingRow != null)
+            {
+                EndRename(renamingRow);
+            }
+
+            Interlocked.Exchange(ref loadSource, null)?.Cancel();
+
+            IsMenuOpen = false;
+            SelectedRow = row;
+            describingRow = row;
+            row.StartEditDescription();
+            OnPropertyChanged(nameof(IsEditingDescription));
+            OnPropertyChanged(nameof(IsEditing));
+        }
+
+        /// <summary>Leaves the description unchanged, gives the focus back to the row, and catches up on any reload it held off.</summary>
+        public void CancelEditDescription()
+        {
+            var row = describingRow;
+
+            if (row == null)
+            {
+                return;
+            }
+
+            EndDescriptionEdit();
+            FocusRowRequested?.Invoke(this, row);
+            _ = LoadAsync();
+        }
+
+        /// <summary>
+        /// Saves the typed description (#202): only the description line of the file is rewritten, so this works on a keycut
+        /// the Edit form refuses too. Unchanged text just ends the edit. On success the row is replaced by the keycut as saved,
+        /// selected and focused, with its new Modified date, and a reload follows; a failure (the file is gone, changed on
+        /// disk since it loaded, isn't valid UTF-8, or is locked) ends the edit and says why in the status line.
+        /// </summary>
+        public async Task CommitDescriptionAsync()
+        {
+            var row = describingRow;
+
+            if (row == null || actions == null)
+            {
+                return;
+            }
+
+            var keycut = row.Keycut;
+            var typed = row.EditDescription ?? string.Empty;
+            EndDescriptionEdit();
+
+            if (string.Equals(typed.Trim(), keycut.Description ?? string.Empty, StringComparison.Ordinal))
+            {
+                FocusRowRequested?.Invoke(this, row);
+                _ = LoadAsync();
+                return;
+            }
+
+            // Actions on this row wait while its file is rewritten, as they do while it's renamed
+            savingPath = keycut.FilePath;
+            savingVerb = "saving";
+
+            try
+            {
+                Keycut saved;
+
+                try
+                {
+                    saved = await actions.SetDescriptionAsync(keycut, typed);
+                }
+                catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
+                {
+                    ShowStatusMessage("This keycut no longer exists", true);
+                    _ = LoadAsync();
+                    return;
+                }
+                catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.Changed)
+                {
+                    ShowStatusMessage("“" + row.Name + "” changed on disk, so its description wasn’t changed. It’s reloaded.", true);
+                    FocusRowRequested?.Invoke(this, row);
+                    _ = LoadAsync();
+                    return;
+                }
+                catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotEditable)
+                {
+                    ShowStatusMessage("Couldn’t change the description of “" + row.Name + "”: its file isn’t valid UTF-8. Edit it in Notepad.", true);
+                    FocusRowRequested?.Invoke(this, row);
+                    _ = LoadAsync();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    ShowStatusMessage("Couldn’t change the description of “" + row.Name + "”: " + ReasonOf(ex), true);
+                    FocusRowRequested?.Invoke(this, row);
+                    _ = LoadAsync();
+                    return;
+                }
+
+                ReplaceEditedRow(keycut, saved);
+                ShowStatusMessage("Saved the description of “" + saved.Name + "”", false);
+            }
+            finally
+            {
+                savingPath = null;
+                savingVerb = "renaming";
+            }
+
+            // Whatever else the folder holds now (the reload keeps the row just shown, since its content matches)
+            _ = LoadAsync();
         }
 
         /// <summary>Leaves the name unchanged, gives the focus back to the row, and catches up on any reload it held off.</summary>
@@ -851,7 +999,7 @@ namespace keycuts.GUI.ViewModels
 
             if (savingPath != null && string.Equals(path, savingPath, StringComparison.OrdinalIgnoreCase))
             {
-                ShowStatusMessage("Still renaming “" + row.Name + "”", false);
+                ShowStatusMessage("Still " + savingVerb + " “" + row.Name + "”", false);
                 return null;
             }
 
@@ -883,6 +1031,18 @@ namespace keycuts.GUI.ViewModels
             {
                 renamingRow = null;
                 OnPropertyChanged(nameof(IsRenaming));
+                OnPropertyChanged(nameof(IsEditing));
+            }
+        }
+
+        private void EndDescriptionEdit()
+        {
+            if (describingRow != null)
+            {
+                describingRow.EndEditDescription();
+                describingRow = null;
+                OnPropertyChanged(nameof(IsEditingDescription));
+                OnPropertyChanged(nameof(IsEditing));
             }
         }
 
@@ -971,8 +1131,8 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public async Task LoadAsync()
         {
-            // A reload builds new rows, which would throw away the name being typed (the window reloads when it's activated)
-            if (renamingRow != null)
+            // A reload builds new rows, which would throw away the name or description being typed (the window reloads when it's activated)
+            if (renamingRow != null || describingRow != null)
             {
                 return;
             }
@@ -1228,7 +1388,8 @@ namespace keycuts.GUI.ViewModels
                 var next = keycuts[i];
 
                 if (old.FilePath != next.FilePath || old.Name != next.Name || old.Kind != next.Kind ||
-                    old.Description != next.Description || old.Target != next.Target || old.Modified != next.Modified)
+                    old.Description != next.Description || old.Target != next.Target || old.Modified != next.Modified ||
+                    old.Program != next.Program || old.Arguments != next.Arguments || old.CanEditInForm != next.CanEditInForm)
                 {
                     return false;
                 }

@@ -163,6 +163,37 @@ namespace keycuts.Tests
                 Restored.Add(deleted);
             }
 
+            public List<(Keycut Keycut, string Description)> Described { get; } = new List<(Keycut, string)>();
+
+            public Exception? DescribeError { get; set; }
+
+            /// <summary>When set, saving a description waits for this before it finishes.</summary>
+            public Task? DescribeGate { get; set; }
+
+            public async Task<Keycut> SetDescriptionAsync(Keycut keycut, string description)
+            {
+                if (DescribeGate != null)
+                {
+                    await DescribeGate;
+                }
+
+                if (DescribeError != null)
+                {
+                    throw DescribeError;
+                }
+
+                Described.Add((keycut, description));
+                var saved = keycut with { Description = description.Trim(), Modified = new DateTime(2026, 6, 7, 8, 9, 10) };
+
+                // What a loader reads next time, as for an edit
+                if (Disk != null)
+                {
+                    Disk[Disk.FindIndex(k => k.FilePath == keycut.FilePath)] = saved;
+                }
+
+                return saved;
+            }
+
             public List<(string Path, string NewName)> Renamed { get; } = new List<(string, string)>();
 
             public Exception? RenameError { get; set; }
@@ -1310,6 +1341,311 @@ namespace keycuts.Tests
         }
 
         #endregion Edit when the form can't (#202)
+
+        #region Editing the description in place (#202)
+
+        [Fact]
+        public async Task EditDescription_StartsAnEditOfThatRow_FilledInWithTheDescription()
+        {
+            var manager = await LoadedKeycutsAsync(new FakeActions(), NewKeycut("a") with { Description = "Work email" }, NewKeycut("b"));
+            var changed = new List<string?>();
+            manager.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+
+            manager.Rows[0].EditDescriptionCommand.Execute(null);
+
+            Assert.True(manager.IsEditingDescription);
+            Assert.True(manager.IsEditing);
+            Assert.False(manager.IsRenaming);
+            Assert.True(manager.Rows[0].IsEditingDescription);
+            Assert.Equal("Work email", manager.Rows[0].EditDescription);
+            Assert.Equal("New description for a", manager.Rows[0].DescriptionLabel);
+            Assert.Same(manager.Rows[0], manager.SelectedRow);
+            Assert.False(manager.Rows[1].IsEditingDescription);
+            Assert.Contains(nameof(ManagerViewModel.IsEditingDescription), changed);
+            Assert.Contains(nameof(ManagerViewModel.IsEditing), changed);
+        }
+
+        [Fact]
+        public async Task EditDescription_Commit_SavesTheTypedText_ReplacesTheRow_AndSaysSo()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a", "b", "c");
+            var requests = new List<KeycutRowViewModel?>();
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+
+            manager.BeginEditDescription(manager.Rows[1]);
+            manager.Rows[1].EditDescription = "  Changed words  ";
+            await manager.CommitDescriptionAsync();
+
+            var described = Assert.Single(actions.Described);
+            Assert.Equal(@"C:\fixture\b.bat", described.Keycut.FilePath);
+            Assert.Equal("  Changed words  ", described.Description);
+            Assert.False(manager.IsEditingDescription);
+            Assert.False(manager.IsEditing);
+            Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
+            var row = manager.Rows[1];
+            Assert.Equal("Changed words", row.Description);
+            Assert.Equal(new DateTime(2026, 6, 7, 8, 9, 10), row.Modified);
+            Assert.Same(row, manager.SelectedRow);
+            Assert.Same(row, requests.Last());
+            Assert.Equal("Saved the description of \u201Cb\u201D", manager.StatusMessage);
+            Assert.False(manager.StatusIsError);
+
+            // The reload that follows finds the folder as the manager now shows it, and keeps this row
+            await manager.LoadAsync();
+            Assert.Same(row, manager.Rows[1]);
+        }
+
+        [Fact]
+        public async Task EditDescription_UnchangedText_SavesNothing_AndSaysNothing()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("a") with { Description = "Same" });
+            var requests = new List<KeycutRowViewModel?>();
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = " Same ";
+            await manager.CommitDescriptionAsync();
+
+            Assert.Empty(actions.Described);
+            Assert.False(manager.IsEditingDescription);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+            Assert.Same(manager.Rows[0], requests.Single());
+        }
+
+        [Fact]
+        public async Task EditDescription_Cancel_ChangesNothing_AndGivesTheFocusBack()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("a") with { Description = "Kept" });
+            var requests = new List<KeycutRowViewModel?>();
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "Typed and abandoned";
+            manager.CancelEditDescription();
+
+            Assert.Empty(actions.Described);
+            Assert.False(manager.IsEditingDescription);
+            Assert.Equal("Kept", manager.Rows[0].Description);
+            Assert.Same(manager.Rows[0], requests.Single());
+        }
+
+        [Fact]
+        public async Task EditDescription_ClearingTheText_SavesAnEmptyDescription()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a");
+            actions.Disk![0] = actions.Disk[0] with { Description = "Something" };
+            await manager.LoadAsync();
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = string.Empty;
+            await manager.CommitDescriptionAsync();
+
+            Assert.Equal(string.Empty, manager.Rows[0].Description);
+            Assert.Equal(string.Empty, actions.Described.Single().Description);
+        }
+
+        // The name and description are edited one at a time
+        [Fact]
+        public async Task EditDescription_EndsARename_AndARenameEndsADescriptionEdit()
+        {
+            var manager = await LoadedKeycutsAsync(new FakeActions(), NewKeycut("a"), NewKeycut("b"));
+
+            manager.BeginRename(manager.Rows[0]);
+            manager.BeginEditDescription(manager.Rows[1]);
+
+            Assert.False(manager.IsRenaming);
+            Assert.True(manager.IsEditingDescription);
+            Assert.False(manager.Rows[0].IsRenaming);
+
+            manager.BeginRename(manager.Rows[0]);
+
+            Assert.True(manager.IsRenaming);
+            Assert.False(manager.IsEditingDescription);
+            Assert.False(manager.Rows[1].IsEditingDescription);
+            Assert.True(manager.IsEditing);
+        }
+
+        [Fact]
+        public async Task EditDescription_StartingOnAnotherRow_MovesTheEdit()
+        {
+            var manager = await LoadedKeycutsAsync(new FakeActions(), NewKeycut("a"), NewKeycut("b"));
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.BeginEditDescription(manager.Rows[1]);
+
+            Assert.False(manager.Rows[0].IsEditingDescription);
+            Assert.True(manager.Rows[1].IsEditingDescription);
+        }
+
+        // A reload would build new rows and throw away what is being typed
+        [Fact]
+        public async Task EditDescription_HoldsOffReloads_UntilItEnds()
+        {
+            var actions = new FakeActions();
+            var loads = 0;
+            var noop = new RelayCommand(() => { });
+            var keycuts = new List<Keycut> { NewKeycut("a") };
+            var manager = new ManagerViewModel(noop, noop, ct => { loads++; return Task.FromResult<IReadOnlyList<Keycut>>(keycuts.ToList()); }, null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            var row = manager.Rows[0];
+
+            manager.BeginEditDescription(row);
+            keycuts.Add(NewKeycut("b"));
+            var before = loads;
+            await manager.LoadAsync();
+
+            Assert.Equal(before, loads);
+            Assert.Same(row, manager.Rows[0]);
+            Assert.Single(manager.Rows);
+
+            manager.CancelEditDescription();
+            await WaitFor(() => manager.Rows.Count == 2);
+        }
+
+        [Theory]
+        [InlineData(KeycutRepositoryError.NotFound, "This keycut no longer exists")]
+        [InlineData(KeycutRepositoryError.Changed, "\u201Ca\u201D changed on disk, so its description wasn\u2019t changed. It\u2019s reloaded.")]
+        [InlineData(KeycutRepositoryError.NotEditable, "Couldn\u2019t change the description of \u201Ca\u201D: its file isn\u2019t valid UTF-8. Edit it in Notepad.")]
+        public async Task EditDescription_AFileTheRepositoryRefuses_SaysWhy_AndEndsTheEdit(KeycutRepositoryError error, string message)
+        {
+            var actions = new FakeActions { DescribeError = new KeycutRepositoryException(error, "refused") };
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("a"));
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "new";
+            await manager.CommitDescriptionAsync();
+
+            Assert.False(manager.IsEditingDescription);
+            Assert.True(manager.StatusIsError);
+            Assert.Equal(message, manager.StatusMessage);
+            Assert.Equal(string.Empty, manager.Rows[0].Description);
+        }
+
+        [Fact]
+        public async Task EditDescription_AnotherFailure_SaysTheReason_AndKeepsTheRow()
+        {
+            var actions = new FakeActions { DescribeError = new KeycutRepositoryException(KeycutRepositoryError.AccessDenied, "Can't save", new UnauthorizedAccessException("Access to the path is denied.")) };
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("a"));
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "new";
+            await manager.CommitDescriptionAsync();
+
+            Assert.True(manager.StatusIsError);
+            Assert.Equal("Couldn\u2019t change the description of \u201Ca\u201D: Access to the path is denied.", manager.StatusMessage);
+            Assert.Single(manager.Rows);
+        }
+
+        [Fact]
+        public async Task EditDescription_WhileSaving_ActionsOnTheRowWait_AndSayWhy()
+        {
+            var gate = new TaskCompletionSource<bool>();
+            var actions = new FakeActions { DescribeGate = gate.Task };
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("a"));
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "new";
+            var saving = manager.CommitDescriptionAsync();
+
+            manager.OpenKeycut(manager.Rows[0]);
+            Assert.Empty(actions.Launched);
+            Assert.Equal("Still saving \u201Ca\u201D", manager.StatusMessage);
+
+            // No second edit while the file is being rewritten
+            manager.BeginEditDescription(manager.Rows[0]);
+            Assert.False(manager.IsEditingDescription);
+
+            gate.SetResult(true);
+            await saving;
+
+            manager.OpenKeycut(manager.Rows[0]);
+            Assert.Single(actions.Launched);
+        }
+
+        [Fact]
+        public async Task EditDescription_ASearchThatNoLongerMatchesTheSavedRow_IsCleared()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "alpha", "beta");
+            actions.Disk![0] = actions.Disk[0] with { Description = "work email" };
+            await manager.LoadAsync();
+            manager.SearchText = "work";
+            Assert.Single(manager.Rows);
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "personal";
+            await manager.CommitDescriptionAsync();
+
+            Assert.Equal(string.Empty, manager.SearchText);
+            Assert.Equal("personal", manager.SelectedRow!.Description);
+        }
+
+        // These rows aren't dead ends: one line is rewritten, so nothing can be lost, whether or not the form takes the file
+        [Fact]
+        public async Task EditDescription_WorksOnAKeycutTheFormCantEdit()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "handmade");
+            actions.Disk![0] = actions.Disk[0] with { CanEditInForm = false };
+            await manager.LoadAsync();
+            Assert.False(manager.Rows[0].EditCommand.CanExecute(null));
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "Chrome, profile 2";
+            await manager.CommitDescriptionAsync();
+
+            Assert.Equal("Chrome, profile 2", actions.Described.Single().Description);
+            Assert.Equal("Chrome, profile 2", manager.Rows[0].Description);
+            Assert.False(manager.Rows[0].CanEditInForm);
+        }
+
+        [Fact]
+        public async Task EditDescription_WithoutActions_DoesNothing()
+        {
+            var noop = new RelayCommand(() => { });
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(new[] { NewKeycut("a") }), null, null);
+            await manager.LoadAsync();
+
+            manager.BeginEditDescription(manager.Rows[0]);
+
+            Assert.False(manager.IsEditingDescription);
+        }
+
+        // Until the reload after a rename has rebuilt the rows, the row still holds the old name and path, so no edit may start on it
+        [Fact]
+        public async Task EditDescription_AfterARename_WaitsForItsReload_LikeAnotherRename()
+        {
+            var noop = new RelayCommand(() => { });
+            var reload = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var calls = 0;
+            var manager = new ManagerViewModel(noop, noop,
+                ct => ++calls == 1 ? Task.FromResult<IReadOnlyList<Keycut>>(new List<Keycut> { NewKeycut("a") }) : reload.Task,
+                null, new FakeActions())
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "z";
+            await manager.CommitRenameAsync();
+
+            manager.BeginEditDescription(manager.Rows[0]);
+            Assert.False(manager.IsEditingDescription);
+
+            reload.SetResult(new List<Keycut> { NewKeycut("z") });
+            await WaitFor(() => manager.Rows.Count == 1 && manager.Rows[0].Name == "z");
+            manager.BeginEditDescription(manager.Rows[0]);
+            Assert.True(manager.IsEditingDescription);
+        }
+
+        #endregion Editing the description in place (#202)
 
         #region Undo (#179)
 

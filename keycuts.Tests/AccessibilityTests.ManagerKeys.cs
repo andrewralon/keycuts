@@ -419,6 +419,7 @@ namespace keycuts.Tests
                 Assert.Equal("Ctrl+Shift+O", keys["Open file location"]);
                 Assert.Equal("Ctrl+C", keys["Copy target"]);
                 Assert.Equal("F2", keys["Rename"]);
+                Assert.Equal("Shift+F2", keys["Edit description"]);
                 Assert.Equal("Delete", keys["Delete"]);
             });
         }

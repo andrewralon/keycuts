@@ -313,7 +313,8 @@
                   SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="Keycuts"
                   KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
-            <DataGridTemplateColumn Width="1.7*" MinWidth="190">
+            <!-- A click on the name or description cell of the selected row edits it in place (#202; see ManagerView_PreviewMouseDown) -->
+            <DataGridTemplateColumn x:Name="NameColumn" Width="1.7*" MinWidth="190">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Shortcut" Content="Name" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -331,7 +332,7 @@
                         </Style>
                       </TextBlock.Style>
                     </TextBlock>
-                    <!-- Rename in place (F2 or Rename): Enter saves, Escape cancels, clicking or tabbing away saves -->
+                    <!-- Rename in place (F2, Rename, or a click on the selected row): Enter saves, Escape cancels, clicking or tabbing away saves -->
                     <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Height="30" MinHeight="30"
                              Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibility}}"
                              AutomationProperties.Name="{Binding RenameLabel}"
@@ -358,13 +359,32 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="1.5*" MinWidth="100">
+            <DataGridTemplateColumn x:Name="DescriptionColumn" Width="1.5*" MinWidth="100">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Description" Content="Description" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Description}" />
+                  <Grid VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Description}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource CellText}">
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEditingDescription}" Value="True">
+                              <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <!-- Edit in place (Shift+F2, Edit description, or a click on the selected row): Enter saves, Escape cancels, clicking or tabbing away saves -->
+                    <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}" Height="30" MinHeight="30"
+                             themes:TextBoxChrome.Placeholder="Add a description"
+                             Visibility="{Binding IsEditingDescription, Converter={StaticResource BoolToVisibility}}"
+                             AutomationProperties.Name="{Binding DescriptionLabel}"
+                             IsVisibleChanged="DescriptionBox_IsVisibleChanged" PreviewKeyDown="DescriptionBox_PreviewKeyDown"
+                             LostKeyboardFocus="DescriptionBox_LostKeyboardFocus" />
+                  </Grid>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
@@ -442,6 +462,7 @@
                         </MenuItem>
                         <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
                         <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
+                        <MenuItem Header="Edit description" InputGestureText="Shift+F2" Command="{Binding EditDescriptionCommand}" />
                         <Separator />
                         <MenuItem Header="Delete" InputGestureText="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
                           <MenuItem.Icon>

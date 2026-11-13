@@ -365,6 +365,24 @@ namespace keycuts.Common
         }
 
         /// <summary>
+        /// Changes the keycut's description by rewriting just its <c>REM &lt;description&gt;</c> line (#202), as
+        /// <see cref="RenameAsync"/> does for <c>REM &lt;shortcut&gt;</c>: the file isn't emitted again, so a hand-edited
+        /// launch line survives, and a keycut the Edit form refuses can still have its description changed. The text is
+        /// written as the Creator writes one: on one line (a newline becomes a space) with every <c>%</c> doubled (#162).
+        /// A file with no description line (keycuts 1.0, or a hand-written launcher) gets one just before its launch line.
+        /// The temp file is swapped in with <c>File.Replace</c>, which keeps the file's permissions and alternate streams,
+        /// and the file's date changes. A description that is already the one in the file leaves the file alone. Returns
+        /// the keycut as read back.
+        /// </summary>
+        /// <exception cref="KeycutRepositoryException">The file is gone (<see cref="KeycutRepositoryError.NotFound"/>), isn't valid
+        /// UTF-8 (<see cref="KeycutRepositoryError.NotEditable"/>: the bytes would be lost), no longer holds the description the
+        /// keycut was loaded with (<see cref="KeycutRepositoryError.Changed"/>), or can't be written.</exception>
+        public Task<Keycut> SetDescriptionAsync(Keycut keycut, string description, CancellationToken ct = default)
+        {
+            return Task.Run(() => SetDescription(keycut, description), ct);
+        }
+
+        /// <summary>
         /// Renames each keycut named after a keycuts command (<see cref="CommandNames"/>) to that name plus
         /// <see cref="CommandNames.PreviousSuffix"/> (keypaste_previous, then keypaste_previous2 and so on if that's taken),
         /// so the command on PATH works again. It's renamed like <see cref="RenameAsync"/>, so it still works under the
@@ -873,32 +891,173 @@ namespace keycuts.Common
                 }
 
                 var body = strict.GetBytes(updated);
-                // Write a temp file beside it and swap it in only once it's complete: writing in place truncates first,
-                // so a failed write (a full disk) would leave the keycut empty or half written
-                var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
 
-                try
-                {
-                    File.WriteAllBytes(temp, hasBom ? preamble.Concat(body).ToArray() : body);
-
-                    // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
-                    // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
-                    // it throws, and the original stays as it was.
-                    File.Replace(temp, path, null);
-                }
-                finally
-                {
-                    if (File.Exists(temp))
-                    {
-                        File.Delete(temp);
-                    }
-                }
+                ReplaceFileContent(path, hasBom ? preamble.Concat(body).ToArray() : body);
             }
             catch (Exception ex) when (ex is System.Text.DecoderFallbackException || ex is IOException || ex is UnauthorizedAccessException)
             {
                 // The REM line is only a comment, so a file we can't decode or rewrite keeps its old one
                 Debug.WriteLine($"keycuts: kept the old <shortcut> line in \"{path}\": {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Writes <paramref name="content"/> to a temp file beside <paramref name="path"/> and swaps it in only once it's
+        /// complete: writing in place truncates first, so a failed write (a full disk) would leave the keycut empty or half written.
+        /// </summary>
+        private static void ReplaceFileContent(string path, byte[] content)
+        {
+            var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+            try
+            {
+                File.WriteAllBytes(temp, content);
+
+                // Replace, not Move: Windows' ReplaceFile keeps the original's identity, so its permissions and
+                // alternate data streams (the "downloaded from the internet" mark) survive. If they can't be kept
+                // it throws, and the original stays as it was.
+                File.Replace(temp, path, null);
+            }
+            finally
+            {
+                if (File.Exists(temp))
+                {
+                    File.Delete(temp);
+                }
+            }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex DescriptionLineParts = new System.Text.RegularExpressions.Regex(
+            @"^(?<pre>\s*REM\s+<description>)(?<text>.*)(?<post></description>\s*)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly char[] LineBreaks = { '\r', '\n' };
+
+        /// <summary>Where each line of <paramref name="text"/> starts and how long it is, without its line break (<c>\r\n</c>, <c>\n</c> or <c>\r</c>), as <see cref="StringReader.ReadLine"/> splits it.</summary>
+        private static List<(int Start, int Length)> ScanLines(string text)
+        {
+            var lines = new List<(int, int)>();
+            var position = 0;
+
+            while (position < text.Length)
+            {
+                var end = text.IndexOfAny(LineBreaks, position);
+
+                if (end < 0)
+                {
+                    lines.Add((position, text.Length - position));
+                    break;
+                }
+
+                lines.Add((position, end - position));
+                position = end + (text[end] == '\r' && end + 1 < text.Length && text[end + 1] == '\n' ? 2 : 1);
+            }
+
+            return lines;
+        }
+
+        private static Keycut SetDescription(Keycut keycut, string description)
+        {
+            var path = keycut.FilePath;
+
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotFound, $"\"{path}\" no longer exists.");
+                }
+
+                var bytes = File.ReadAllBytes(path);
+                var preamble = System.Text.Encoding.UTF8.GetPreamble();
+                var hasBom = bytes.AsSpan().StartsWith(preamble);
+                var strict = new System.Text.UTF8Encoding(false, true);
+                string text;
+
+                try
+                {
+                    var start = hasBom ? preamble.Length : 0;
+                    text = strict.GetString(bytes, start, bytes.Length - start);
+                }
+                catch (System.Text.DecoderFallbackException ex)
+                {
+                    // Written back as UTF-8, a byte that isn't valid would be lost for good
+                    throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{path}\" isn't valid UTF-8, so its description can't be changed here.", ex);
+                }
+
+                var spans = ScanLines(text);
+                var lines = spans.Select(span => text.Substring(span.Start, span.Length)).ToArray();
+
+                // The keycut was loaded some time ago. If its description has been changed since (Notepad, another window),
+                // saving would quietly put the old one back over it
+                if (!string.Equals(ShortcutFile.ParseDescription(lines), keycut.Description ?? string.Empty, StringComparison.Ordinal))
+                {
+                    throw new KeycutRepositoryException(KeycutRepositoryError.Changed, $"\"{path}\" changed since it was loaded.");
+                }
+
+                // As the Creator writes it (one line, every % doubled, #162), and as reading it back gives it
+                var sanitized = Runner.SanitizeDescription(description);
+                var wanted = ShortcutFile.ParseDescription(new[] { $"REM <description>{sanitized}</description>" });
+                var existing = Array.FindIndex(lines, line => DescriptionLineParts.IsMatch(line));
+
+                // Nothing to change: the file keeps its bytes and its date. No line and nothing to say needs no line.
+                if (existing >= 0 ? string.Equals(ShortcutFile.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
+                {
+                    return TryParse(path) ?? UnreadableKeycut(keycut);
+                }
+
+                string updated;
+
+                if (existing >= 0)
+                {
+                    // Only the text between the tags changes; the line's own spacing, and the file's line breaks, stay
+                    var match = DescriptionLineParts.Match(lines[existing]);
+                    var replacement = match.Groups["pre"].Value + sanitized + match.Groups["post"].Value;
+                    updated = text.Substring(0, spans[existing].Start) + replacement + text.Substring(spans[existing].Start + spans[existing].Length);
+                }
+                else
+                {
+                    // A keycut from before descriptions (1.0) or a hand-written launcher has no line: add one where the
+                    // emitter puts it, just before the launch line, with the file's own line breaks
+                    var launch = Array.FindIndex(lines, ShortcutFile.IsLaunchLine);
+
+                    if (launch < 0)
+                    {
+                        throw new KeycutRepositoryException(KeycutRepositoryError.NotEditable, $"\"{path}\" has no launch line, so no description can be added.");
+                    }
+
+                    var firstBreak = text.IndexOfAny(LineBreaks);
+                    var lineBreak = firstBreak < 0 ? "\r\n" : text[firstBreak] == '\r' && firstBreak + 1 < text.Length && text[firstBreak + 1] == '\n' ? "\r\n" : text[firstBreak].ToString();
+                    updated = text.Insert(spans[launch].Start, $"REM <description>{sanitized}</description>" + lineBreak);
+                }
+
+                var body = strict.GetBytes(updated);
+                ReplaceFileContent(path, hasBom ? preamble.Concat(body).ToArray() : body);
+
+                return TryParse(path) ?? UnreadableKeycut(keycut);
+            }
+            catch (KeycutRepositoryException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw Translate(ex, $"Can't save \"{path}\".");
+            }
+        }
+
+        /// <summary>A keycut whose file can't be read as one any more, as <see cref="Find"/> reports it: just its name and path.</summary>
+        private static Keycut UnreadableKeycut(Keycut keycut)
+        {
+            return new Keycut
+            {
+                Name = Path.GetFileNameWithoutExtension(keycut.FilePath),
+                Kind = KeycutKind.File,
+                RawType = ShortcutType.Unknown,
+                Target = "",
+                FilePath = keycut.FilePath,
+                CanEditInForm = false,
+                Modified = File.GetLastWriteTime(keycut.FilePath)
+            };
         }
 
         private static bool IsCheckable(Keycut keycut)

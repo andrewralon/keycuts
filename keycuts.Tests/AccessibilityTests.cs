@@ -547,6 +547,24 @@ namespace keycuts.Tests
                 return Task.FromResult(keycut.FilePath);
             }
 
+            public List<(Keycut Keycut, string Description)> Described { get; } = new List<(Keycut, string)>();
+
+            /// <summary>The keycuts "on disk" that the manager's loader reads (see <see cref="LoadedManager"/>); saving a description changes its entry.</summary>
+            public List<Keycut>? Disk { get; set; }
+
+            public Task<Keycut> SetDescriptionAsync(Keycut keycut, string description)
+            {
+                Described.Add((keycut, description));
+                var saved = keycut with { Description = description.Trim(), Modified = new DateTime(2026, 6, 7, 8, 9, 10) };
+
+                if (Disk != null)
+                {
+                    Disk[Disk.FindIndex(k => k.FilePath == keycut.FilePath)] = saved;
+                }
+
+                return Task.FromResult(saved);
+            }
+
             public Task<bool> CanEditInFormAsync(Keycut keycut)
             {
                 return Task.FromResult(true);
@@ -569,7 +587,13 @@ namespace keycuts.Tests
                 Target = @"C:\temp\" + name + ".txt",
                 FilePath = @"C:\fixture\" + name + ".bat"
             }).ToList();
-            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, actions);
+            if (actions is RecordingActions recording)
+            {
+                recording.Disk = keycuts;
+            }
+
+            // Every load reads the list as it is now, as the real one reads the folder
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts.ToList()), null, actions);
             manager.LoadAsync().GetAwaiter().GetResult();
             return manager;
         }
@@ -709,8 +733,13 @@ namespace keycuts.Tests
                     Assert.True(Press(search, Key.Down));
                     Assert.Equal("alpha", manager.SelectedRow?.Name);
 
-                    Assert.False(Press(search, Key.F2, modifiers));
+                    // Shift+F2 is the description's (#202); with the other modifiers F2 isn't ours
+                    var isEditDescription = modifiers == ModifierKeys.Shift;
+                    Assert.Equal(isEditDescription, Press(search, Key.F2, modifiers));
                     Assert.False(manager.IsRenaming);
+                    Assert.Equal(isEditDescription, manager.IsEditingDescription);
+                    manager.CancelEditDescription();
+
                     Assert.True(Press(search, Key.F2));
                     Assert.True(manager.IsRenaming);
                 }

@@ -35,6 +35,7 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
   <img src="docs/images/manager-light.png" alt="The manager: a searchable table of keycuts, one flagged as missing its target." width="830">
 </picture>
 
+* **Rename and Edit description** change the name or the description where it is: click it on the selected row (a click on another row only selects it), or press F2 or Shift+F2. Enter saves, Escape cancels, and clicking away saves. A description change rewrites just that line of the `.bat`, so it works on a keycut you've changed by hand too.
 * **Edit** changes the target, name and description. It's offered only for a keycut the app would have written itself; one you've changed by hand says to use **Edit in Notepad**, so your edits are never lost.
 * **Delete** moves the file to the Recycle Bin (drives without one, such as network shares, delete for good). **Undo** (or Ctrl+Z) shows in the status bar for a few seconds and restores the file's contents and modified date.
 

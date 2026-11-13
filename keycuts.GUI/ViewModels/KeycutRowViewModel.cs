@@ -16,6 +16,10 @@ namespace keycuts.GUI.ViewModels
 
         private string editName = string.Empty;
 
+        private bool isEditingDescription;
+
+        private string editDescription = string.Empty;
+
         public KeycutRowViewModel(Keycut keycut, ManagerViewModel? owner = null)
         {
             Keycut = keycut ?? throw new System.ArgumentNullException(nameof(keycut));
@@ -29,9 +33,44 @@ namespace keycuts.GUI.ViewModels
             CopyTargetCommand = new RelayCommand(() => owner?.CopyTarget(this));
             DeleteCommand = new RelayCommand(() => _ = owner?.DeleteKeycutAsync(this));
             RenameCommand = new RelayCommand(() => owner?.BeginRename(this));
+            EditDescriptionCommand = new RelayCommand(() => owner?.BeginEditDescription(this));
         }
 
         public ICommand RenameCommand { get; }
+
+        /// <summary>"Edit description" (Shift+F2): edits the description in place, like <see cref="RenameCommand"/> does the name (#202).</summary>
+        public ICommand EditDescriptionCommand { get; }
+
+        /// <summary>True while the description cell shows a text box (see <see cref="ManagerViewModel.BeginEditDescription"/>).</summary>
+        public bool IsEditingDescription
+        {
+            get { return isEditingDescription; }
+            private set { SetProperty(ref isEditingDescription, value); }
+        }
+
+        /// <summary>The description being typed while it is edited.</summary>
+        public string EditDescription
+        {
+            get { return editDescription; }
+            set { SetProperty(ref editDescription, value ?? string.Empty); }
+        }
+
+        /// <summary>Accessible name of the description text box.</summary>
+        public string DescriptionLabel
+        {
+            get { return "New description for " + Name; }
+        }
+
+        internal void StartEditDescription()
+        {
+            EditDescription = Description;
+            IsEditingDescription = true;
+        }
+
+        internal void EndEditDescription()
+        {
+            IsEditingDescription = false;
+        }
 
         /// <summary>True while the name cell shows a text box (see <see cref="ManagerViewModel.BeginRename"/>).</summary>
         public bool IsRenaming

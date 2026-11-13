@@ -57,13 +57,13 @@ A keycut can't be named `keycuts` or `keypaste`; existing ones are renamed to `*
 
 ## Development
 
-Needs the .NET SDK 10. From the repository root:
+.NET SDK 10. From the repository root:
 
 * Format: `dotnet format keycuts.sln --verify-no-changes --severity error`
-* Build: `dotnet build keycuts.sln` (0 warnings, and it should stay that way)
-* Test: `dotnet test keycuts.sln` (tests use temp folders, never the real output folder or the registry)
-* Installer: `pwsh -File tools/Build-Installer.ps1` (add `-Runtime win-arm64` for ARM)
-* Sample data: Debug builds honor `KEYCUTS_OUTPUT_FOLDER` (no registry or `PATH` changes); `tools/New-SampleKeycuts.ps1` makes a fixture folder.
-* Screenshots: `pwsh -File tools/New-Screenshots.ps1` renders the real views with sample keycuts into `docs/images`, light and dark. The walkthrough GIF is rendered the same way, not recorded, so its Win+R step is a caption. To add a view, add it to `ScreenshotTests`.
+* Build: `dotnet build keycuts.sln`
+* Test: `dotnet test keycuts.sln`
+* Installer: `pwsh -File tools/Build-Installer.ps1` (`-Runtime win-arm64` for ARM)
+* Sample keycuts: `tools/New-SampleKeycuts.ps1` (use with `KEYCUTS_OUTPUT_FOLDER` in a Debug build)
+* Screenshots and walkthrough: `pwsh -File tools/New-Screenshots.ps1`
 
-**Releasing.** Raise `<Version>` in `Directory.Build.props`, regenerate the screenshots and commit anything that visibly changed, then merge `develop` into `main`. The release workflow tags `v<Version>` and publishes both MSIs, portable zips and SHA-256 checksums. A merge that doesn't change the version doesn't release.
+**Releasing.** Raise `<Version>` in `Directory.Build.props`, run the screenshots script, then merge `develop` into `main`.

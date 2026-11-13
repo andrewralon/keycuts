@@ -42,7 +42,8 @@ namespace keycuts.GUI.ViewModels
             Func<IReadOnlyList<Keycut>, CancellationToken, Task>? targetChecker = null,
             IKeycutActions? actions = null,
             WelcomeViewModel? welcome = null,
-            UpdateNoticeViewModel? updateNotice = null)
+            UpdateNoticeViewModel? updateNotice = null,
+            IDescriptionVisibilityStore? descriptionStore = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
 
@@ -50,8 +51,16 @@ namespace keycuts.GUI.ViewModels
             ShowCreatorCommand = new RelayCommand(ShowCreator);
             OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
 
-            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand) { Welcome = welcome, UpdateNotice = updateNotice };
-            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, targetChecker, actions);
+            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, descriptionStore: descriptionStore)
+            {
+                Welcome = welcome,
+                UpdateNotice = updateNotice
+            };
+            // Both screens share the footer, so both show the same update line
+            Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, targetChecker, actions)
+            {
+                UpdateNotice = updateNotice
+            };
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();

@@ -69,8 +69,7 @@ namespace keycuts.Tests
             manager.SearchText = "VICKI";
 
             Assert.Equal(new[] { "l-vicki" }, Names(manager));
-            Assert.Equal("1 keycut", manager.ResultCountText);
-            Assert.Equal("4 items", manager.StatusText);
+            Assert.Equal("1 of 4 keycuts", manager.CountDescription);
         }
 
         [Fact]
@@ -113,7 +112,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ManagerState.NoResults, manager.State);
             Assert.Empty(manager.Rows);
-            Assert.Equal("4 items", manager.StatusText);
+            Assert.Equal("0 of 4 keycuts", manager.CountDescription);
 
             manager.ClearSearchCommand.Execute(null);
 

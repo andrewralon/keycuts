@@ -195,16 +195,16 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Button:Add a description", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Add a description", "Settings" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, stops);
+                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description", "Settings" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
-                    Assert.Equal(new[] { "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "manager", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -213,9 +213,10 @@ namespace keycuts.Tests
             });
         }
 
-        // #162: the description is a link until asked for; then it's a named field that follows Create, and Enter there creates
+        // #162, #205: the description label is a button. "Add a description" shows a named field that follows Create (Enter there
+        // creates), and "Description (optional)", now named "Hide description", hides it again
         [Fact]
-        public void Creator_AddADescription_ShowsANamedField_AfterCreateInTheTabOrder()
+        public void Creator_TheDescriptionLabel_ShowsANamedField_AndHidesItAgain()
         {
             RunSta(() =>
             {
@@ -224,22 +225,29 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), creator);
                 try
                 {
-                    var link = Descendants<Button>(window).Single(b => b.Name == "BtnAddDescription");
-                    var form = (FrameworkElement)((FrameworkElement)window.Content).FindName("DescriptionForm");
-                    Assert.True(link.IsVisible);
-                    Assert.False(form.IsVisible);
+                    var toggle = Descendants<Button>(window).Single(b => b.Name == "BtnToggleDescription");
+                    var box = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Description");
+                    Assert.True(toggle.IsVisible);
+                    Assert.False(box.IsVisible);
+                    Assert.Equal("Add a description", toggle.Content);
 
-                    link.Command.Execute(null);
+                    toggle.Command.Execute(null);
                     Pump();
 
-                    Assert.False(link.IsVisible);
-                    Assert.True(form.IsVisible);
+                    Assert.True(toggle.IsVisible);
+                    Assert.True(box.IsVisible);
+                    Assert.Equal("Description (optional)", toggle.Content);
+                    Assert.Equal("Hide description", AutomationProperties.GetName(toggle));
                     Assert.Equal(
-                        new[] { "Target", "Browse", "Keycut name", "Create", "Description", "View all keycuts (0)", "Settings" },
+                        new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Hide description", "Description", "Settings" },
                         TabStops(window));
-
-                    var box = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Description");
                     Assert.Contains(box.InputBindings.OfType<KeyBinding>(), b => b.Key == Key.Return && ReferenceEquals(b.Command, creator.CreateCommand));
+
+                    toggle.Command.Execute(null);
+                    Pump();
+
+                    Assert.False(box.IsVisible);
+                    Assert.Equal("Add a description", toggle.Content);
                 }
                 finally
                 {
@@ -249,7 +257,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Creator_WelcomePanel_ComesFirstInTabOrder_WithNamedControls_AndHidesOnDismiss()
+        public void Creator_WelcomePanel_FollowsTheManagerButtonInTabOrder_WithNamedControls_AndHidesOnDismiss()
         {
             RunSta(() =>
             {
@@ -266,12 +274,12 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" },
+                        new[] { "manager", "Name for the keycuts keycut", "Create keycut to keycuts", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Add a description", "Settings" },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -302,14 +310,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "Dismiss update notice", "View all keycuts (0)", "Settings" },
+                        new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description", "Settings", "Dismiss update notice" },
                         TabStops(window));
-                    var link = (System.Windows.Documents.Hyperlink)((FrameworkElement)window.Content).FindName("UpdateDownloadLink");
+                    var link = (System.Windows.Documents.Hyperlink)Descendants<FooterView>(window).Single().FindName("UpdateDownloadLink");
                     Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Button:Add a description", "View all keycuts (0)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description", "Settings" }, TabStops(window));
                 }
                 finally
                 {
@@ -327,7 +335,7 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), NewCreator());
                 try
                 {
-                    var line = (FrameworkElement)((FrameworkElement)window.Content).FindName("UpdateNotice");
+                    var line = (FrameworkElement)Descendants<FooterView>(window).Single().FindName("UpdateNotice");
                     Assert.False(line.IsVisible);
                 }
                 finally
@@ -472,7 +480,7 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), creator);
                 try
                 {
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "New keycut");
+                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "keycuts creator");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
@@ -990,7 +998,7 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "Button:",
+                            "creator",
                             "Search keycuts",
                             "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
@@ -998,12 +1006,12 @@ namespace keycuts.Tests
                             "SortHeaderButton:Target",
                             "Actions for alpha",
                             "Actions for bravo",
-                            "Open settings"
+                            "Settings"
                         },
                         TabStops(window));
                     Assert.Equal("Search keycuts", FocusedName());
 
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Your keycuts");
+                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "keycuts manager");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     Assert.Equal(2, Descendants<TypeBadge>(window).Count());
@@ -1114,7 +1122,7 @@ namespace keycuts.Tests
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "Button:", "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha", "Open settings" },
+                        new[] { "creator", "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha", "Settings" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

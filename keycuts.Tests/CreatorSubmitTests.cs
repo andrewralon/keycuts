@@ -34,9 +34,9 @@ namespace keycuts.Tests
             }
         }
 
-        static CreatorViewModel Create(FakeCreator fake, Func<string, NameCheck>? checkName = null)
+        static CreatorViewModel Create(FakeCreator fake, Func<string, NameCheck>? checkName = null, IDescriptionVisibilityStore? descriptionStore = null)
         {
-            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, checkName ?? TestNameChecks.NoWarnings);
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, checkName ?? TestNameChecks.NoWarnings, descriptionStore);
             // Longer than any test runs, so a test that asserts Success never races the reset to Empty (a slow CI runner
             // can pause a test past a short duration). The tests about the reset set their own.
             creator.SuccessDuration = TimeSpan.FromMinutes(1);
@@ -73,28 +73,60 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void SavedAs_ShowsThePathAsItWillBeSaved_AndFollowsShift()
+        public void TargetText_ShowsThePathWithVariables_WhileItIsNotBeingEdited_AndFollowsShift()
         {
             var creator = FileCreator(new FakeCreator());
             var changed = new List<string?>();
             creator.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
 
-            Assert.True(creator.ShowSavedAs);
-            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.SavedAsPath);
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.TargetText);
 
             creator.IsShiftHeld = true;
-            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
-            Assert.Contains(nameof(CreatorViewModel.SavedAsPath), changed);
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.TargetText);
+            Assert.Contains(nameof(CreatorViewModel.TargetText), changed);
 
-            creator.UseEnvironmentVariablesSetting = true;
-            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.SavedAsPath);
+            creator.UseEnvironmentVariablesSetting = true;   // the setting on, flipped by Shift: back to the plain path
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.TargetText);
 
             creator.IsShiftHeld = false;
-            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.TargetText);
+
+            // It is only displayed: what is created from is still the real path
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.Target);
         }
 
         [Fact]
-        public void SavedAs_PreviewsTheResolvedTarget_NotTheTypedText()
+        public void TargetText_IsTheRealPath_WhileTheTargetBoxIsBeingEdited()
+        {
+            var creator = FileCreator(new FakeCreator());
+            creator.UseEnvironmentVariablesSetting = true;
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.TargetText);
+
+            creator.IsTargetEditing = true;
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.TargetText);
+
+            creator.IsShiftHeld = true;   // Shift while typing a capital must not rewrite the text
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.TargetText);
+
+            creator.IsTargetEditing = false;
+            Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.TargetText);   // setting on, Shift flips it off
+        }
+
+        [Fact]
+        public void TargetText_SetByTyping_SetsTheTarget()
+        {
+            var creator = FileCreator(new FakeCreator());
+            creator.UseEnvironmentVariablesSetting = true;
+            creator.IsTargetEditing = true;
+
+            creator.TargetText = @"C:\Users\me\Desktop\other.txt";
+
+            Assert.Equal(@"C:\Users\me\Desktop\other.txt", creator.Target);
+            Assert.Null(creator.TargetKind);   // a new text forgets what the old one resolved to
+        }
+
+        [Fact]
+        public void TargetText_PreviewsTheResolvedTarget_NotTheTypedText()
         {
             var creator = Create(new FakeCreator());
             creator.PathVariables = TestVariables;
@@ -103,29 +135,30 @@ namespace keycuts.Tests
             creator.TargetKind = KeycutKind.File;
 
             creator.ResolvedTarget = @"C:\Users\me\Tools\app.exe";
-            Assert.Equal(@"%USERPROFILE%\Tools\app.exe", creator.SavedAsPath);
+            Assert.Equal(@"%USERPROFILE%\Tools\app.exe", creator.TargetText);
 
-            creator.ResolvedTarget = @"D:\Tools\app.exe";      // no variable fits the target: nothing to choose
-            Assert.False(creator.ShowSavedAs);
+            creator.ResolvedTarget = @"D:\Tools\app.exe";      // no variable fits the target: the typed text stays
+            Assert.Equal(@"C:\Users\me\Desktop\app.lnk", creator.TargetText);
 
             creator.Target = @"C:\Users\me\Desktop\notes.txt";  // new text forgets the old resolution
             creator.TargetKind = KeycutKind.File;
             Assert.Null(creator.ResolvedTarget);
-            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.SavedAsPath);
+            Assert.Equal(@"%USERPROFILE%\Desktop\notes.txt", creator.TargetText);
         }
 
         [Theory]
-        [InlineData(@"D:\Data\notes.txt", KeycutKind.File)]           // no variable fits: nothing to choose
+        [InlineData(@"D:\Data\notes.txt", KeycutKind.File)]           // no variable fits
         [InlineData("https://example.com", KeycutKind.Url)]           // not a path
-        public void SavedAs_IsHidden_WhenThereIsNothingToChoose(string target, KeycutKind kind)
+        public void TargetText_IsTheTarget_WhenThereIsNoVariableForIt(string target, KeycutKind kind)
         {
             var creator = Create(new FakeCreator());
             creator.PathVariables = TestVariables;
+            creator.UseEnvironmentVariablesSetting = true;
             creator.Target = target;
             creator.TargetKind = kind;
 
-            Assert.False(creator.ShowSavedAs);
-            Assert.Equal(string.Empty, creator.SavedAsPath);
+            Assert.Equal(string.Empty, creator.TargetWithVariables);
+            Assert.Equal(target, creator.TargetText);
         }
 
         static CreatorViewModel Ready(FakeCreator fake, Func<string, NameCheck>? checkName = null)
@@ -232,7 +265,7 @@ namespace keycuts.Tests
             creator.FocusRequested += (sender, e) => focus.Add(e);
             creator.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
 
-            creator.ShowDescriptionCommand.Execute(null);
+            creator.ToggleDescriptionCommand.Execute(null);
 
             Assert.True(creator.IsDescriptionVisible);
             Assert.False(creator.ShowAddDescription);
@@ -289,7 +322,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task Description_IsClearedAndCollapsedAfterTheReset()
+        public async Task Description_IsClearedAfterTheReset_ButTheBoxStaysShown()
         {
             var creator = Ready(new FakeCreator());
             creator.SuccessDuration = TimeSpan.FromMilliseconds(500);
@@ -299,8 +332,98 @@ namespace keycuts.Tests
             await WaitFor(() => creator.State == CreatorState.Empty);
 
             Assert.Equal(string.Empty, creator.Description);
+            Assert.True(creator.IsDescriptionVisible);   // shown or hidden is the user's choice, not something a create undoes
+            Assert.False(creator.ShowAddDescription);
+        }
+
+        [Fact]
+        public void TheDescriptionLabel_IsAButtonThatHidesTheBoxAgain()
+        {
+            var creator = Ready(new FakeCreator());
+            var focus = new List<CreatorFocusTarget>();
+            creator.FocusRequested += (sender, e) => focus.Add(e);
+
+            Assert.Equal("Add a description", creator.DescriptionToggleText);
+            Assert.Equal("Add a description", creator.DescriptionToggleName);
+
+            creator.ToggleDescriptionCommand.Execute(null);
+            Assert.Equal("Description (optional)", creator.DescriptionToggleText);
+            Assert.Equal("Hide description", creator.DescriptionToggleName);
+
+            creator.ToggleDescriptionCommand.Execute(null);
             Assert.False(creator.IsDescriptionVisible);
             Assert.True(creator.ShowAddDescription);
+            Assert.Equal("Add a description", creator.DescriptionToggleText);
+            Assert.Equal(new[] { CreatorFocusTarget.Description }, focus);   // only showing moves the focus into the box
+        }
+
+        [Fact]
+        public async Task AHiddenDescription_IsNotSaved_ButComesBackWhenShownAgain()
+        {
+            var fake = new FakeCreator();
+            var creator = Ready(fake);
+            creator.Description = "Team wiki";
+            creator.ToggleDescriptionCommand.Execute(null);   // hides it, text and all
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new[] { string.Empty }, fake.Descriptions);
+            Assert.Equal("Team wiki", creator.Description);
+        }
+
+        [Fact]
+        public void TheDescriptionBox_StartsWhereItWasLeft()
+        {
+            Assert.True(Create(new FakeCreator(), null, new FakeDescriptionStore(true)).IsDescriptionVisible);
+            Assert.False(Create(new FakeCreator(), null, new FakeDescriptionStore(false)).IsDescriptionVisible);
+        }
+
+        [Fact]
+        public void ShowingAndHidingTheDescription_IsSavedEachTime_AndOpeningItWritesNothing()
+        {
+            var store = new FakeDescriptionStore(false);
+            var creator = Create(new FakeCreator(), null, store);
+            Assert.Empty(store.Saved);   // reading the state on open doesn't write it
+
+            creator.ToggleDescriptionCommand.Execute(null);
+            creator.ToggleDescriptionCommand.Execute(null);
+            creator.ToggleDescriptionCommand.Execute(null);
+
+            Assert.Equal(new[] { true, false, true }, store.Saved);
+        }
+
+        [Fact]
+        public void TextShowingTheBox_AndTheReset_AreNotTheUsersChoice_SoNothingIsSaved()
+        {
+            var store = new FakeDescriptionStore(false);
+            var creator = Create(new FakeCreator(), null, store);
+
+            creator.Description = "Team wiki";   // shows the box, because text is never hidden
+            creator.Clear();
+
+            Assert.Empty(store.Saved);
+        }
+
+        sealed class FakeDescriptionStore : IDescriptionVisibilityStore
+        {
+            private readonly bool initial;
+
+            public readonly List<bool> Saved = new List<bool>();
+
+            public FakeDescriptionStore(bool initial)
+            {
+                this.initial = initial;
+            }
+
+            public bool Load()
+            {
+                return initial;
+            }
+
+            public void Save(bool shown)
+            {
+                Saved.Add(shown);
+            }
         }
 
         [Fact]

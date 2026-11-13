@@ -9,7 +9,7 @@ using keycuts.GUI.Mvvm;
 namespace keycuts.GUI.ViewModels
 {
     /// <summary>
-    /// The quiet line in the creator's footer when a newer release is out (#171): "keycuts 1.2.0 is available · Download".
+    /// The quiet line in the footer of both screens when a newer release is out (#171, #205): "keycuts 1.2.0 is available · Download".
     /// Download opens the release page; dismissing hides it until a newer release than that one.
     /// </summary>
     public class UpdateNoticeViewModel : ObservableObject

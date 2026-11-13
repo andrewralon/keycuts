@@ -217,7 +217,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref keycutCount, value))
                 {
-                    OnPropertyChanged(nameof(StatusText));
+                    OnPropertyChanged(nameof(CountDescription));
                 }
             }
         }
@@ -281,17 +281,22 @@ namespace keycuts.GUI.ViewModels
             get { return errorMessage ?? string.Empty; }
         }
 
-        /// <summary>Toolbar count: the filtered results.</summary>
-        public string ResultCountText
+        /// <summary>
+        /// What a screen reader and the tooltip say for the footer's count pill, which shows just the total (#205): the total,
+        /// or "4 of 355 keycuts" while a search hides some. It is announced as it changes, which is how a search's result count reaches a screen reader.
+        /// </summary>
+        public string CountDescription
         {
-            get { return Rows.Count + (Rows.Count == 1 ? " keycut" : " keycuts"); }
+            get
+            {
+                return Rows.Count == keycutCount
+                    ? keycutCount + (keycutCount == 1 ? " keycut" : " keycuts")
+                    : Rows.Count + " of " + keycutCount + (keycutCount == 1 ? " keycut" : " keycuts");
+            }
         }
 
-        /// <summary>Status bar text: the total count.</summary>
-        public string StatusText
-        {
-            get { return keycutCount + (keycutCount == 1 ? " item" : " items"); }
-        }
+        /// <summary>The "new version is out" line in the footer (#171), shared with the creator; null without one (tests, design data).</summary>
+        public UpdateNoticeViewModel? UpdateNotice { get; init; }
 
         public string NoResultsMessage
         {
@@ -1440,7 +1445,7 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(IsTableVisible));
             OnPropertyChanged(nameof(CanSearch));
             OnPropertyChanged(nameof(ErrorMessage));
-            OnPropertyChanged(nameof(ResultCountText));
+            OnPropertyChanged(nameof(CountDescription));
             OnPropertyChanged(nameof(NoResultsMessage));
         }
     }

@@ -67,7 +67,8 @@ namespace keycuts.GUI
                 (keycuts, ct) => Common.KeycutRepository.CreateDefault().CheckTargetsAsync(keycuts, ct),
                 new ViewModels.SystemKeycutActions(),
                 welcome,
-                updateNotice);
+                updateNotice,
+                new ViewModels.RegistryDescriptionVisibilityStore());
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
             shell.Manager.CheckRename = name => new Common.NameCheck(name, null,
                 Common.NameConflicts.Find(name, new Common.Runner().GetOutputFolder(), Common.NameConflictEnvironment.GetDefault()));
@@ -134,7 +135,7 @@ namespace keycuts.GUI
 
         /// <summary>
         /// Reads this machine's variables off the UI thread: a custom one is checked with <c>Directory.Exists</c>, which can
-        /// take a long time for a network share that's offline. The "Saved as" line appears when they arrive.
+        /// take a long time for a network share that's offline. The target shows its %VAR% form once they arrive.
         /// </summary>
         private static async Task LoadPathVariablesAsync(ViewModels.CreatorViewModel creator)
         {

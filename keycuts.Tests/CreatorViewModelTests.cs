@@ -30,7 +30,8 @@ namespace keycuts.Tests
 
             Assert.Equal(CreatorState.Empty, creator.State);
             Assert.Equal(IconKind.Arrow, creator.TargetIcon);
-            Assert.Equal("Press Enter to create it", creator.HelperText);
+            Assert.Equal(string.Empty, creator.HelperText);
+            Assert.False(creator.HasHelperText);
             Assert.False(creator.CanCreate);
             Assert.True(creator.IsInputEnabled);
         }
@@ -169,7 +170,7 @@ namespace keycuts.Tests
 
             Assert.False(creator.IsNameWarning);
             Assert.Equal(CreatorState.TargetSelected, creator.State);
-            Assert.Equal(CreatorViewModel.DefaultHelperText, creator.HelperText);
+            Assert.Equal(string.Empty, creator.HelperText);
         }
 
         [Theory]

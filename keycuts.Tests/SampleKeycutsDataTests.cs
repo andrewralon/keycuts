@@ -14,9 +14,9 @@ namespace keycuts.Tests
             var canonical = SampleKeycuts.Canonical();
 
             Assert.Equal(2, canonical.Count);
-            Assert.Equal("l-vicki", canonical[0].Name);
+            Assert.Equal("art", canonical[0].Name);
             Assert.Equal(KeycutKind.Url, canonical[0].Kind);
-            Assert.Equal("logs for vicki", canonical[0].Description);
+            Assert.Equal("Paintings gallery", canonical[0].Description);
             Assert.Equal("downloads", canonical[1].Name);
             Assert.Equal(KeycutKind.Folder, canonical[1].Kind);
             Assert.Equal("Downloads folder", canonical[1].Description);
@@ -62,7 +62,7 @@ namespace keycuts.Tests
         public void Design_creator_states_use_the_canonical_entries()
         {
             Assert.Equal(string.Empty, DesignViewModels.CreatorEmpty.Target);
-            Assert.Equal("l-vicki", DesignViewModels.CreatorUrl.ShortcutName);
+            Assert.Equal("art", DesignViewModels.CreatorUrl.ShortcutName);
             Assert.Equal("downloads", DesignViewModels.CreatorFolder.ShortcutName);
         }
     }

@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     The .bat files use the exact format that keycuts.Common's Runner.CreateShortcutFile produces, including the
-    REM <description> line. The first two entries are the canonical samples (l-vicki, downloads); the rest cycle through
+    REM <description> line. The first two entries are the canonical samples (art, downloads); the rest cycle through
     URL, Folder, File and Command items with long names, long descriptions, very long targets (200+ chars) and a few
     File items whose targets don't exist (the Missing state).
 
@@ -181,7 +181,7 @@ function New-ExistingFolder([string] $Name)
     return $path
 }
 
-Write-Url 'l-vicki' 'https://logs.example.com/vicki' 'logs for vicki'
+Write-Url 'art' 'https://gallery.example.com/art' 'Paintings gallery'
 Write-Folder 'downloads' '%USERPROFILE%\Downloads' 'Downloads folder'
 
 $longQuery = 'q=' + ('abcdefghij' * 22)

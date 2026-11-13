@@ -162,7 +162,7 @@
                 </Grid>
 
                 <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating (the
-                     "Saved as" line previews it). The help text says "flip", which is right in both directions: Shift turns it on
+                     the Creator's Target shows the path that way). The help text says "flip", which is right in both directions: Shift turns it on
                      for one keycut when the setting is off, and off when it is on. -->
                 <Grid Style="{StaticResource SettingRow}" Margin="0">
                     <Grid.ColumnDefinitions>

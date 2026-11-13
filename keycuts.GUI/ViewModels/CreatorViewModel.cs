@@ -40,8 +40,6 @@ namespace keycuts.GUI.ViewModels
     /// </summary>
     public class CreatorViewModel : ObservableObject
     {
-        public const string DefaultHelperText = "Press Enter to create it";
-
         public const string SavingHelperText = "Saving\u2026";
 
         public const string InvalidNameMessage = "Use letters, numbers, dashes, or dots \u2014 no \\ / : * ? \" < > |";
@@ -113,6 +111,8 @@ namespace keycuts.GUI.ViewModels
 
         private bool isDescriptionVisible;
 
+        private readonly IDescriptionVisibilityStore? descriptionStore;
+
         private int keycutCount;
 
         private KeycutKind? targetKind;
@@ -122,8 +122,6 @@ namespace keycuts.GUI.ViewModels
         private bool isDragHover;
 
         private bool isSaving;
-
-        private bool isBrowseMenuOpen;
 
         // What the typed name runs into (#153), while the warning is showing; null when there's nothing to warn about
         private NameCheck? nameWarning;
@@ -144,6 +142,9 @@ namespace keycuts.GUI.ViewModels
 
         private bool isShiftHeld;
 
+        // True while the target box has the keyboard focus: then it always holds the real path, so typing never edits the %VAR% form
+        private bool isTargetEditing;
+
         // Null until the app has read them (in the background, since a custom folder on a network share can be slow)
         private IReadOnlyList<PathVariable>? pathVariables;
 
@@ -154,18 +155,23 @@ namespace keycuts.GUI.ViewModels
         /// existing one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
         /// <param name="checkName">What a name runs into (#153), checked while typing and before each create; defaults to
         /// <see cref="NameCheck.Run"/> on this machine. Tests pass a fake.</param>
+        /// <param name="descriptionStore">Remembers whether the description box is shown (#205): read once here, written each
+        /// time the user shows or hides it. Without one (tests, design data) the box starts hidden and nothing is remembered.</param>
         public CreatorViewModel(
             ICommand showManagerCommand,
             ICommand openSettingsCommand,
             Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
-            Func<string, NameCheck>? checkName = null)
+            Func<string, NameCheck>? checkName = null,
+            IDescriptionVisibilityStore? descriptionStore = null)
         {
             ShowManagerCommand = showManagerCommand;
             OpenSettingsCommand = openSettingsCommand;
             this.createAsync = createAsync ?? DefaultCreateAsync;
             this.checkName = checkName ?? DefaultCheckName;
+            this.descriptionStore = descriptionStore;
+            isDescriptionVisible = descriptionStore?.Load() ?? false;
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
-            ShowDescriptionCommand = new RelayCommand(ShowDescription, () => IsInputEnabled);
+            ToggleDescriptionCommand = new RelayCommand(ToggleDescription, () => IsInputEnabled);
             BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
             BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
         }
@@ -193,8 +199,11 @@ namespace keycuts.GUI.ViewModels
 
         public AsyncRelayCommand CreateCommand { get; }
 
-        /// <summary>Shows the description field and moves the focus into it ("Add a description").</summary>
-        public ICommand ShowDescriptionCommand { get; }
+        /// <summary>
+        /// The description label: "Add a description" shows the field and moves the focus into it, "Description (optional)"
+        /// hides it again. Either way the choice is remembered.
+        /// </summary>
+        public ICommand ToggleDescriptionCommand { get; }
 
         public ICommand BrowseFileCommand { get; }
 
@@ -212,7 +221,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref useEnvironmentVariablesSetting, value))
                 {
-                    RaiseSavedAsChanged();
+                    RaiseTargetDisplayChanged();
                 }
             }
         }
@@ -225,7 +234,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref isShiftHeld, value))
                 {
-                    RaiseSavedAsChanged();
+                    RaiseTargetDisplayChanged();
                 }
             }
         }
@@ -240,7 +249,7 @@ namespace keycuts.GUI.ViewModels
             set
             {
                 pathVariables = value;
-                RaiseSavedAsChanged();
+                RaiseTargetDisplayChanged();
             }
         }
 
@@ -254,7 +263,7 @@ namespace keycuts.GUI.ViewModels
             set
             {
                 resolvedTarget = value;
-                RaiseSavedAsChanged();
+                RaiseTargetDisplayChanged();
             }
         }
 
@@ -265,14 +274,15 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// The path as it will be saved, shown under the target: with variables or without, following
-        /// <see cref="UseEnvironmentVariables"/>. Empty when there is nothing to choose (not a file or folder, or no variable fits).
+        /// The path with environment variables in it, which is how a file or folder keycut will be saved while
+        /// <see cref="UseEnvironmentVariables"/> is on. Empty when it doesn't apply: the setting is off, the target isn't a
+        /// valid file or folder, or no variable fits it.
         /// </summary>
-        public string SavedAsPath
+        public string TargetWithVariables
         {
             get
             {
-                if (!HasValidTarget || (targetKind != KeycutKind.File && targetKind != KeycutKind.Folder))
+                if (!UseEnvironmentVariables || !HasValidTarget || (targetKind != KeycutKind.File && targetKind != KeycutKind.Folder))
                 {
                     return string.Empty;
                 }
@@ -280,18 +290,39 @@ namespace keycuts.GUI.ViewModels
                 var path = string.IsNullOrEmpty(resolvedTarget) ? target.Trim() : resolvedTarget;
                 var withVariables = Common.PathVariables.Substitute(path, PathVariables);
 
-                if (string.Equals(withVariables, path, StringComparison.Ordinal))
-                {
-                    return string.Empty;
-                }
-
-                return UseEnvironmentVariables ? withVariables : path;
+                return string.Equals(withVariables, path, StringComparison.Ordinal) ? string.Empty : withVariables;
             }
         }
 
-        public bool ShowSavedAs
+        /// <summary>
+        /// True while the target box has the keyboard focus. The view sets it. Then the box shows the real path (what is typed
+        /// or pasted), so Shift, which flips the variables, never rewrites text that is being edited.
+        /// </summary>
+        public bool IsTargetEditing
         {
-            get { return SavedAsPath.Length > 0; }
+            get { return isTargetEditing; }
+            set
+            {
+                if (SetProperty(ref isTargetEditing, value))
+                {
+                    OnPropertyChanged(nameof(TargetText));
+                }
+            }
+        }
+
+        /// <summary>
+        /// What the target box shows (#205): the %VAR% form of the path while it isn't being edited and
+        /// <see cref="TargetWithVariables"/> has one (Shift held, or the Settings choice), otherwise <see cref="Target"/>.
+        /// Typing sets <see cref="Target"/>; the form is only ever displayed, never stored in it.
+        /// </summary>
+        public string TargetText
+        {
+            get
+            {
+                var withVariables = isTargetEditing ? string.Empty : TargetWithVariables;
+                return withVariables.Length > 0 ? withVariables : target;
+            }
+            set { Target = value; }
         }
 
         /// <summary>The first-run panel shown above the form, or null when the app was started without one (tests, design data).</summary>
@@ -353,9 +384,9 @@ namespace keycuts.GUI.ViewModels
 
                     if (description.Length > 0 && !isDescriptionVisible)
                     {
+                        // Text is never hidden. Not remembered: only the user's own show and hide is
                         isDescriptionVisible = true;
-                        OnPropertyChanged(nameof(IsDescriptionVisible));
-                        OnPropertyChanged(nameof(ShowAddDescription));
+                        RaiseDescriptionVisibilityChanged();
                     }
 
                     RaiseStateChanged();
@@ -363,34 +394,80 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>The description field is shown: after "Add a description", or while it holds text. Collapsed by default.</summary>
+        /// <summary>
+        /// The description field is shown: the last choice (remembered between launches), or while it holds text.
+        /// Hidden by default. A hidden description is not saved, whatever the field still holds.
+        /// </summary>
         public bool IsDescriptionVisible
         {
             get { return isDescriptionVisible; }
         }
 
-        /// <summary>The "Add a description" link is shown, in place of the field.</summary>
+        /// <summary>The label says "Add a description" because the field is hidden.</summary>
         public bool ShowAddDescription
         {
             get { return !isDescriptionVisible; }
         }
 
-        private void ShowDescription()
+        /// <summary>The label above the description field, which is also the button that hides it.</summary>
+        public string DescriptionToggleText
         {
-            if (!isDescriptionVisible)
+            get { return isDescriptionVisible ? "Description (optional)" : "Add a description"; }
+        }
+
+        /// <summary>What a screen reader calls the label button: what pressing it does.</summary>
+        public string DescriptionToggleName
+        {
+            get { return isDescriptionVisible ? "Hide description" : "Add a description"; }
+        }
+
+        private void ToggleDescription()
+        {
+            SetDescriptionVisible(!isDescriptionVisible);
+
+            if (isDescriptionVisible)
             {
-                isDescriptionVisible = true;
-                OnPropertyChanged(nameof(IsDescriptionVisible));
-                OnPropertyChanged(nameof(ShowAddDescription));
+                FocusRequested?.Invoke(this, CreatorFocusTarget.Description);
+            }
+        }
+
+        // The user's choice: remembered, unlike the field showing itself because it holds text
+        private void SetDescriptionVisible(bool visible)
+        {
+            if (isDescriptionVisible == visible)
+            {
+                return;
             }
 
-            FocusRequested?.Invoke(this, CreatorFocusTarget.Description);
+            isDescriptionVisible = visible;
+            RaiseDescriptionVisibilityChanged();
+            descriptionStore?.Save(visible);
+        }
+
+        private void RaiseDescriptionVisibilityChanged()
+        {
+            OnPropertyChanged(nameof(IsDescriptionVisible));
+            OnPropertyChanged(nameof(ShowAddDescription));
+            OnPropertyChanged(nameof(DescriptionToggleText));
+            OnPropertyChanged(nameof(DescriptionToggleName));
         }
 
         public int KeycutCount
         {
             get { return keycutCount; }
-            set { SetProperty(ref keycutCount, value); }
+            set
+            {
+                if (SetProperty(ref keycutCount, value))
+                {
+                    OnPropertyChanged(nameof(CountDescription));
+                }
+            }
+        }
+
+        /// <summary>What a screen reader and the tooltip say for the footer's count pill, which shows just the number.</summary>
+        public string CountDescription
+        {
+            get { return keycutCount + (keycutCount == 1 ? " keycut" : " keycuts"); }
         }
 
         /// <summary>The kind the target resolved to. Set it after <see cref="Target"/>, which clears it.</summary>
@@ -442,12 +519,6 @@ namespace keycuts.GUI.ViewModels
                     RaiseStateChanged();
                 }
             }
-        }
-
-        public bool IsBrowseMenuOpen
-        {
-            get { return isBrowseMenuOpen; }
-            set { SetProperty(ref isBrowseMenuOpen, value); }
         }
 
         /// <summary>What the name runs into, while its warning is showing (#153).</summary>
@@ -591,8 +662,14 @@ namespace keycuts.GUI.ViewModels
                     return GetNameWarningMessage(nameWarning);
                 }
 
-                return DefaultHelperText;
+                return string.Empty;
             }
+        }
+
+        /// <summary>The line under the name field has something to say (a warning, an error, Saving, Created); otherwise it takes no room.</summary>
+        public bool HasHelperText
+        {
+            get { return HelperText.Length > 0; }
         }
 
         /// <summary>The target field's current error for screen readers, or empty when there is none.</summary>
@@ -660,7 +737,7 @@ namespace keycuts.GUI.ViewModels
                 case TargetError.Timeout:
                     return "That target didn\u2019t respond in time.";
                 default:
-                    return DefaultHelperText;
+                    return string.Empty;
             }
         }
 
@@ -710,8 +787,8 @@ namespace keycuts.GUI.ViewModels
         {
             target = string.Empty;
             shortcutName = string.Empty;
+            // The text goes; whether the box is shown is the user's choice and stays
             description = string.Empty;
-            isDescriptionVisible = false;
             targetKind = null;
             resolvedTarget = null;
             targetError = TargetError.None;
@@ -722,8 +799,6 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(Target));
             OnPropertyChanged(nameof(ShortcutName));
             OnPropertyChanged(nameof(Description));
-            OnPropertyChanged(nameof(IsDescriptionVisible));
-            OnPropertyChanged(nameof(ShowAddDescription));
             OnPropertyChanged(nameof(TargetKind));
             OnPropertyChanged(nameof(TargetError));
             RaiseStateChanged();
@@ -764,7 +839,8 @@ namespace keycuts.GUI.ViewModels
             // The command's CanExecute is rechecked here; the target text may be unresolved, so KeycutCreator validates it again
             var name = shortcutName.Trim();
             var trimmedTarget = target.Trim();
-            var trimmedDescription = description.Trim();
+            // A hidden box is out of sight, so what it still holds isn't saved
+            var trimmedDescription = isDescriptionVisible ? description.Trim() : string.Empty;
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;
@@ -958,19 +1034,20 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(ShowTargetError));
             OnPropertyChanged(nameof(TargetIcon));
             OnPropertyChanged(nameof(HelperText));
+            OnPropertyChanged(nameof(HasHelperText));
             OnPropertyChanged(nameof(HelperIsError));
             OnPropertyChanged(nameof(HelperIsWarning));
             OnPropertyChanged(nameof(TargetHelpText));
             OnPropertyChanged(nameof(NameHelpText));
             OnPropertyChanged(nameof(CreateButtonName));
-            RaiseSavedAsChanged();
+            RaiseTargetDisplayChanged();
         }
 
-        private void RaiseSavedAsChanged()
+        private void RaiseTargetDisplayChanged()
         {
             OnPropertyChanged(nameof(UseEnvironmentVariables));
-            OnPropertyChanged(nameof(SavedAsPath));
-            OnPropertyChanged(nameof(ShowSavedAs));
+            OnPropertyChanged(nameof(TargetWithVariables));
+            OnPropertyChanged(nameof(TargetText));
         }
     }
 }

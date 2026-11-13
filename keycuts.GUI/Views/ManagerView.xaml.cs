@@ -61,6 +61,16 @@ namespace keycuts.GUI.Views
             }
         }
 
+        // Double-clicking a divider is how a grid is told to fit a column to its content, and the grid does it by making the
+        // column Auto-sized. A long description then pushes the other columns, the menu button included, out of a table that
+        // can't scroll sideways, and nothing puts them back until the app restarts. So a double-click on a divider does nothing.
+        // PreviewMouseDoubleClick is a Direct event, so only the thumb itself sees it (the gripper style wires this up), and
+        // the framework doesn't raise the MouseDoubleClick the grid listens to when this handles it.
+        private void Gripper_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
+
         private void RefillStarColumns()
         {
             foreach (var column in Table.Columns.Where(c => c.Width.IsStar))

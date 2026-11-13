@@ -34,6 +34,8 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Cursor" Value="SizeWE" />
       <Setter Property="Focusable" Value="False" />
+      <!-- A double click on a divider would size the column to its content (see Gripper_PreviewMouseDoubleClick) -->
+      <EventSetter Event="PreviewMouseDoubleClick" Handler="Gripper_PreviewMouseDoubleClick" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Thumb">

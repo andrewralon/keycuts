@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using keycuts.Common;
 using keycuts.GUI.Controls;
@@ -40,7 +41,8 @@ namespace keycuts.Tests
                     Name = "k" + i,
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.File,
-                    Description = "description " + i,
+                    // One long description, as real ones can be: what a column sized to its content would be as wide as
+                    Description = i == 3 ? new string('d', 700) : "description " + i,
                     Target = @"C:\temp\k" + i + ".txt",
                     FilePath = @"C:\fixture\k" + i + ".bat",
                     Modified = DateTime.Now.AddDays(-i)
@@ -263,6 +265,46 @@ namespace keycuts.Tests
                 // And all the way back leaves Name at its own
                 DragGripper(window, table, NameColumn, right: true, change: -5000);
                 Assert.Equal(table.Columns[NameColumn].MinWidth, WidthOf(table, NameColumn), 1);
+                AssertFillsTheTable(table);
+            });
+        }
+
+        // Double-clicking a divider is a reflex for "fit this column", and the grid answers by sizing the column to its
+        // content: a star column becomes a content-width one, and a long description pushes the others, the menu button
+        // included, out of a table that can't scroll sideways. A double-click on a divider does nothing here.
+        [Theory]
+        [InlineData(NameColumn, true)]
+        [InlineData(TypeColumn, false)]
+        [InlineData(DescriptionColumn, true)]
+        [InlineData(TargetColumn, false)]
+        public void Manager_DoubleClickingADivider_DoesNotSizeTheColumnToItsContent(int column, bool right)
+        {
+            WithWideManager(1000, (window, manager, table) =>
+            {
+                var gripper = GripperOf(window, table, column, right);
+                var starred = table.Columns.Select(c => c.Width.UnitType).ToList();
+
+                // What the framework does for a double click: the tunneling event first, and the bubbling one if that wasn't handled
+                var preview = new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                {
+                    RoutedEvent = Control.PreviewMouseDoubleClickEvent,
+                    Source = gripper
+                };
+                gripper.RaiseEvent(preview);
+
+                if (!preview.Handled)
+                {
+                    gripper.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    {
+                        RoutedEvent = Control.MouseDoubleClickEvent,
+                        Source = gripper
+                    });
+                }
+
+                Settle(window);
+
+                Assert.True(preview.Handled, "the tunneling double click should have been handled over a divider");
+                Assert.Equal(starred, table.Columns.Select(c => c.Width.UnitType).ToList());
                 AssertFillsTheTable(table);
             });
         }

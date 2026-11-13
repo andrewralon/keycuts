@@ -43,8 +43,8 @@ namespace keycuts.GUI
             var welcome = new ViewModels.WelcomeViewModel(
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
-                usesDebugFolder ? null : () => Common.UserPathUpdater.IsOnPath(new Common.Runner().GetOutputFolder()),
-                usesDebugFolder ? null : () => new Common.UserPathUpdater().AddToOrReplace(null, new Common.Runner().GetOutputFolder()));
+                usesDebugFolder ? null : folder => Common.UserPathUpdater.IsOnPath(folder ?? new Common.Runner().GetOutputFolder()),
+                usesDebugFolder ? null : folder => new Common.UserPathUpdater().AddToOrReplace(null, folder ?? new Common.Runner().GetOutputFolder()));
 
             // #171: the GUI only; the CLI never checks
             var updateNotice = new ViewModels.UpdateNoticeViewModel(Common.UpdateChecker.CreateDefault());
@@ -66,8 +66,10 @@ namespace keycuts.GUI
                 updateNotice,
                 new ViewModels.RegistryDescriptionVisibilityStore());
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
-            shell.Manager.CheckRename = name => new Common.NameCheck(name, null,
-                Common.NameConflicts.Find(name, new Common.Runner().GetOutputFolder(), Common.NameConflictEnvironment.GetDefault()));
+            // Through NameCheck.Run, like the Creator, so a conflict that is a keycut is described as one; askBeforeReplacing is
+            // off because the rename refuses a taken keycut name itself
+            shell.Manager.CheckRename = name => Common.NameCheck.Run(name, new Common.Runner().GetOutputFolder(), false,
+                Common.NameConflictEnvironment.GetDefault());
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();

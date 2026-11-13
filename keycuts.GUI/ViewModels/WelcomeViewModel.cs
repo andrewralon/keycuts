@@ -24,9 +24,12 @@ namespace keycuts.GUI.ViewModels
 
         private readonly Action markDismissed;
 
-        private readonly Func<bool> isOnPath;
+        private readonly Func<string?, bool> isOnPath;
 
-        private readonly Func<bool> addToPath;
+        private readonly Func<string?, bool> addToPath;
+
+        // Where the last keycut was written, so the PATH check and Add to PATH use that folder even if Settings changes it
+        private string? createdFolder;
 
         private bool decided;
 
@@ -42,21 +45,23 @@ namespace keycuts.GUI.ViewModels
 
         /// <param name="isDismissed">Reads whether the panel was dismissed before (HKCU in production).</param>
         /// <param name="markDismissed">Records that it was dismissed. A failure is ignored: the panel just shows again next time.</param>
-        /// <param name="isOnPath">Whether Win+R can find keycuts in the output folder (it's on the user or machine PATH). Null
-        /// treats it as on PATH: tests, and the Debug folder override, which must never write PATH.</param>
-        /// <param name="addToPath">Adds the output folder to the user PATH, as the installer and Settings do. False on failure.</param>
+        /// <param name="isOnPath">Whether Win+R can find keycuts in the given folder (it's on the user or machine PATH). The folder
+        /// is where the keycut was written, or null if the create result didn't say (then use the output folder). Null treats it as on
+        /// PATH: tests, and the Debug folder override, which must never write PATH.</param>
+        /// <param name="addToPath">Adds the given folder (as for <paramref name="isOnPath"/>) to the user PATH, as the installer and
+        /// Settings do. False on failure.</param>
         /// <param name="examples">The bubbles, first one first; defaults to <see cref="WelcomeExample.CreateDefaults"/>.</param>
         public WelcomeViewModel(
             Func<bool> isDismissed,
             Action markDismissed,
-            Func<bool>? isOnPath = null,
-            Func<bool>? addToPath = null,
+            Func<string?, bool>? isOnPath = null,
+            Func<string?, bool>? addToPath = null,
             IReadOnlyList<WelcomeExample>? examples = null)
         {
             this.isDismissed = isDismissed ?? throw new ArgumentNullException(nameof(isDismissed));
             this.markDismissed = markDismissed ?? throw new ArgumentNullException(nameof(markDismissed));
-            this.isOnPath = isOnPath ?? (() => true);
-            this.addToPath = addToPath ?? (() => true);
+            this.isOnPath = isOnPath ?? (folder => true);
+            this.addToPath = addToPath ?? (folder => true);
             Examples = examples ?? WelcomeExample.CreateDefaults();
 
             DismissCommand = new RelayCommand(Dismiss);
@@ -201,7 +206,8 @@ namespace keycuts.GUI.ViewModels
         /// A keycut was made in the creator. While the panel shows, that counts as using it: it is remembered, the panel says how to
         /// open the keycut, and a folder that isn't on PATH is flagged, since GUI creates never change PATH.
         /// </summary>
-        public void OnKeycutCreated()
+        /// <param name="folder">The folder the keycut was written to, or null if unknown (the output folder is used).</param>
+        public void OnKeycutCreated(string? folder = null)
         {
             if (!isVisible)
             {
@@ -210,7 +216,8 @@ namespace keycuts.GUI.ViewModels
 
             created = true;
             error = null;
-            needsPath = !isOnPath();
+            createdFolder = folder;
+            needsPath = !isOnPath(createdFolder);
             TryMarkDismissed();
             RaiseStateChanged();
         }
@@ -220,6 +227,7 @@ namespace keycuts.GUI.ViewModels
             created = false;
             needsPath = false;
             error = null;
+            createdFolder = null;
             SetSelected(null);
             IsVisible = true;
             RaiseStateChanged();
@@ -239,7 +247,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Puts the output folder on the user PATH, then checks again; a failure keeps the button and says so.</summary>
         private void AddToPath()
         {
-            if (addToPath() && isOnPath())
+            if (addToPath(createdFolder) && isOnPath(createdFolder))
             {
                 needsPath = false;
                 error = null;

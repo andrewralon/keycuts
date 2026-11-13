@@ -158,6 +158,37 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void AHeaderlessLauncher_IsAProgram_EvenThoughTheRepositoryParserAcceptsIt()
+        {
+            var other = Path.Combine(root, "other");
+            Directory.CreateDirectory(other);
+            var file = Path.Combine(other, "app.bat");
+            File.WriteAllText(file, "@ECHO OFF\r\nSTART \"\" /B \"C:\\Tools\\app.exe\"\r\nEXIT\r\n");
+            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists };
+
+            var check = NameCheck.Run("app", Path.Combine(root, "output"), true, env);
+
+            Assert.Equal(file, check.MainConflict!.Path);
+            Assert.Null(check.MainConflict.Keycut);
+            Assert.StartsWith("\u201capp\u201d already opens ", CreatorViewModel.GetConflictMessage("app", check.MainConflict, @"C:\Tools\app.exe"));
+        }
+
+        [Fact]
+        public void ARenameCheck_WithoutAskingAboutReplacing_StillDescribesAKeycutConflict()
+        {
+            var other = Path.Combine(root, "other");
+            Directory.CreateDirectory(other);
+            var file = Path.Combine(other, "dl.bat");
+            File.WriteAllLines(file, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Folder, Downloads, file)));
+            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists };
+
+            var check = NameCheck.Run("dl", Path.Combine(root, "output"), false, env);
+
+            Assert.Null(check.Existing);
+            Assert.Equal(Downloads, check.MainConflict!.Keycut!.Target);
+        }
+
+        [Fact]
         public void TheConfirmation_UsesTheSameWords()
         {
             var (folder, check) = CheckAgainstAKeycutOnPath("dl", Downloads);

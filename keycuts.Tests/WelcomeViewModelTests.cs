@@ -39,6 +39,8 @@ namespace keycuts.Tests
             public bool AddSucceeds = true;
             public bool AddPutsItOnPath = true;
             public int AddCount;
+            public readonly List<string?> CheckedFolders = new List<string?>();
+            public readonly List<string?> AddedFolders = new List<string?>();
 
             public WelcomeViewModel Create()
             {
@@ -53,10 +55,15 @@ namespace keycuts.Tests
 
                         MarkCount++;
                     },
-                    () => OnPath,
-                    () =>
+                    folder =>
+                    {
+                        CheckedFolders.Add(folder);
+                        return OnPath;
+                    },
+                    folder =>
                     {
                         AddCount++;
+                        AddedFolders.Add(folder);
                         if (AddSucceeds && AddPutsItOnPath)
                         {
                             OnPath = true;
@@ -332,6 +339,55 @@ namespace keycuts.Tests
             Assert.False(welcome.HelperIsError);
             Assert.StartsWith("Created.", welcome.HelperText);
             Assert.False(welcome.AddToPathCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void PathCheckAndAdd_UseTheFolderTheKeycutWasCreatedIn()
+        {
+            // Settings can change the output folder after the create; the .bat stays where it was written
+            var fakes = new Fakes { OnPath = false };
+            var welcome = fakes.Create();
+            welcome.OnKeycutCountLoaded(0);
+
+            welcome.OnKeycutCreated(@"D:\Portable\Shortcuts");
+            welcome.AddToPathCommand.Execute(null);
+
+            Assert.All(fakes.CheckedFolders, folder => Assert.Equal(@"D:\Portable\Shortcuts", folder));
+            Assert.Equal(new string?[] { @"D:\Portable\Shortcuts" }, fakes.AddedFolders);
+        }
+
+        [Fact]
+        public void PathCheck_WithoutAFolderInTheResult_PassesNone_AndAnotherCreateUsesItsOwnFolder()
+        {
+            var fakes = new Fakes { OnPath = false };
+            var welcome = fakes.Create();
+            welcome.OnKeycutCountLoaded(0);
+
+            welcome.OnKeycutCreated();
+            welcome.OnKeycutCreated(@"E:\Other");
+
+            Assert.Equal(new string?[] { null, @"E:\Other" }, fakes.CheckedFolders);
+        }
+
+        [Fact]
+        public async Task Creator_TellsTheWelcome_WhichFolderTheKeycutWentTo()
+        {
+            var fakes = new Fakes { OnPath = false };
+            var welcome = fakes.Create();
+            var creator = new CreatorViewModel(
+                new RelayCommand(() => { }),
+                new RelayCommand(() => { }),
+                (target, name, description, useEnvironmentVariables, replace, ct) =>
+                    Task.FromResult(CreateResult.Success(new Keycut { Name = name, FilePath = @"D:\Portable\Shortcuts\" + name + ".bat" })),
+                TestNameChecks.NoWarnings)
+            {
+                Welcome = welcome
+            };
+            welcome.OnKeycutCountLoaded(0);
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new string?[] { @"D:\Portable\Shortcuts" }, fakes.CheckedFolders);
         }
 
         [Theory]

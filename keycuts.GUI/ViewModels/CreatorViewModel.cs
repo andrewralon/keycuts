@@ -1053,7 +1053,7 @@ namespace keycuts.GUI.ViewModels
                 case CreateOutcome.Success:
                     SetSuccess(name);
                     NotifyKeycutCreated();
-                    welcome?.OnKeycutCreated();
+                    welcome?.OnKeycutCreated(string.IsNullOrEmpty(result.Keycut?.FilePath) ? null : System.IO.Path.GetDirectoryName(result.Keycut.FilePath));
                     _ = HideSuccessAfterDelayAsync();
                     return;
                 case CreateOutcome.DuplicateName:

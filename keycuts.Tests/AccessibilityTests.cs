@@ -292,6 +292,45 @@ namespace keycuts.Tests
             });
         }
 
+        // #213: the bubbles and Got it change the form, so they are off while a keycut is being saved, like the fields themselves
+        [Fact]
+        public void Creator_WelcomePanel_IsOffWhileSaving()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var pending = new TaskCompletionSource<CreateResult>();
+                var welcome = new WelcomeViewModel(() => false, () => { });
+                var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }),
+                    (target, name, description, useEnvironmentVariables, replace, ct) => pending.Task, TestNameChecks.NoWarnings)
+                {
+                    Welcome = welcome
+                };
+                welcome.OnKeycutCountLoaded(0);
+
+                var window = Host(new CreatorView(), creator);
+                try
+                {
+                    var panel = (Border)Descendants<CreatorView>(window).Single().FindName("WelcomePanel");
+                    Assert.True(panel.IsEnabled);
+
+                    _ = creator.CreateCommand.ExecuteAsync();
+                    Pump();
+                    Assert.True(creator.IsSaving);
+                    Assert.False(panel.IsEnabled);
+
+                    pending.SetResult(CreateResult.Success(null!));
+                    Pump();
+                    Assert.False(creator.IsSaving);
+                    Assert.True(panel.IsEnabled);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         // #171: the update line sits above the footer link; its dismiss button is named and takes the line away
         [Fact]
         public void Creator_UpdateNotice_HasANamedDismissButton_AndHidesOnDismiss()

@@ -292,8 +292,10 @@
       </Grid>
 
       <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. Its bubbles fill an example (a website, a
-           folder, keycuts itself) into the fields below instead of the panel having a form of its own. Collapsed without a Welcome. -->
+           folder, keycuts itself) into the fields below instead of the panel having a form of its own. Off while a keycut is being saved,
+           like the fields it fills. Collapsed without a Welcome. -->
       <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
+              IsEnabled="{Binding DataContext.IsInputEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=True}"
               CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
               Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
         <StackPanel>

@@ -101,12 +101,13 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <!-- A card in the icon picker. The picked one has the accent border and a check in its corner. Two cards share a row
-             (204 + 10 + 204 fill the sheet's 418; the list is 2 wider than the cards and their margins, so rounding at any scale
-             can't wrap the second); Classic, the last, takes the whole row. -->
+        <!-- A card in the icon picker. The picked one has the accent border and a check in its corner. Two cards share a row:
+             203 wide with 5 on each side, so a row is 426 and the list, 428, centers it with 2 to spare (rounding at any scale
+             can't wrap the second). That still fits beside the 12 px scrollbar the picker shows on a short screen. Classic, the
+             last, takes the whole row. -->
         <Style x:Key="IconCard" TargetType="ListBoxItem">
-            <Setter Property="Width" Value="204" />
-            <Setter Property="Margin" Value="0,0,10,10" />
+            <Setter Property="Width" Value="203" />
+            <Setter Property="Margin" Value="5,0,5,10" />
             <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
@@ -124,7 +125,9 @@
                                     </Grid.ColumnDefinitions>
                                     <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource IconPreview}" VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Margin="12,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                        <!-- The list's own Foreground is the system text color, not the palette's -->
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextBrush}" />
                                         <TextBlock Text="{Binding Description}" FontSize="{StaticResource FontSizeCaption}" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
                                     </StackPanel>
@@ -153,7 +156,7 @@
             </Setter>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsWide}" Value="True">
-                    <Setter Property="Width" Value="418" />
+                    <Setter Property="Width" Value="416" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -374,20 +377,30 @@
 
         <!-- The icon picker, over the whole window. A click on a card applies it at once, so there is no Done button; the close
              button, Escape and a click on the dimmed window close it, and closing undoes nothing. The window behind is disabled
-             meanwhile (IsBodyEnabled), so Tab stays in here and Enter can't press Save. -->
+             meanwhile (IsBodyEnabled), so Tab stays in here and Enter can't press Save. The sheet gets the window's height less
+             its margins: when Settings is capped to a short screen (FitToWorkArea), the cards scroll and the header stays. -->
         <Grid x:Name="IconPicker" Grid.RowSpan="2" Visibility="{Binding IsIconPickerOpen, Converter={StaticResource BoolToVisibility}}">
-            <Border Background="{StaticResource ScrimBrush}" MouseLeftButtonDown="IconPickerScrim_MouseLeftButtonDown" />
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="14" />
+            </Grid.RowDefinitions>
+            <Border Grid.RowSpan="3" Background="{StaticResource ScrimBrush}" MouseLeftButtonDown="IconPickerScrim_MouseLeftButtonDown" />
             <!-- The shadow sits behind the sheet, not on it, so the sheet's text keeps ClearType -->
-            <Border Width="456" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,14" CornerRadius="10"
+            <Border Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top" CornerRadius="10"
                     Background="{DynamicResource SurfaceRaisedBrush}" Height="{Binding ActualHeight, ElementName=IconPickerSheet}">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="#0F172A" />
                 </Border.Effect>
             </Border>
-            <Border x:Name="IconPickerSheet" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,14"
+            <Border x:Name="IconPickerSheet" Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top"
                     CornerRadius="10" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" KeyboardNavigation.TabNavigation="Cycle">
-                <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
                     <Grid Margin="18,16,12,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -415,10 +428,13 @@
                         </Button>
                     </Grid>
 
+                    <ScrollViewer x:Name="IconScroller" Grid.Row="1" Margin="0,0,0,8" Focusable="False" IsTabStop="False"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ListBox x:Name="IconList" ItemsSource="{Binding IconOptionsView}" SelectedItem="{Binding SelectedIcon}"
-                             ItemContainerStyle="{StaticResource IconCard}" Margin="18,0,6,8" Background="Transparent" BorderThickness="0"
+                             ItemContainerStyle="{StaticResource IconCard}" Width="428" HorizontalAlignment="Center"
+                             Background="Transparent" BorderThickness="0"
                              KeyboardNavigation.DirectionalNavigation="Contained" AutomationProperties.Name="Icons">
-                        <!-- No scroller: the sheet is sized to fit all seven cards -->
+                        <!-- Only the cards: the scroller around the list scrolls them -->
                         <ListBox.Template>
                             <ControlTemplate TargetType="ListBox">
                                 <ItemsPresenter />
@@ -449,14 +465,15 @@
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="ExtraBold"
-                                                   Foreground="{DynamicResource TextTertiaryBrush}" Margin="0,4,0,8"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}" Margin="5,4,0,8"
                                                    AutomationProperties.HeadingLevel="Level3" />
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
                             </GroupStyle>
                         </ListBox.GroupStyle>
                     </ListBox>
-                </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

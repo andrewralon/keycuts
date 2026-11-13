@@ -438,6 +438,74 @@ namespace keycuts.Tests
             });
         }
 
+        // The list's own Foreground is the system text color, which is black even in the app's Dark palette (PR #215 review)
+        [Fact]
+        public void Window_CardNamesUseThePalettesTextColor()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var viewModel = new SettingsViewModel(new FakeStore());
+                var window = ShowOffscreen(viewModel);
+                try
+                {
+                    viewModel.OpenIconPickerCommand.Execute(null);
+                    Pump();
+                    var picker = (FrameworkElement)window.FindName("IconPicker");
+                    var textBrush = (Brush)Application.Current.FindResource("TextBrush");
+
+                    var names = Descendants<TextBlock>(picker).Where(t => AppIcons.Options.Any(o => o.Name == t.Text)).ToList();
+                    Assert.Equal(AppIcons.Options.Count, names.Count);
+                    Assert.All(names, name => Assert.Same(textBrush, name.Foreground));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // Settings is capped to the screen at high scaling (FitToWorkArea): the cards scroll, two to a row, and the header and
+        // the close button stay in view (PR #215 review)
+        [Fact]
+        public void Window_OnAShortScreen_TheCardsScroll_AndTheCloseButtonStaysInView()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var viewModel = new SettingsViewModel(new FakeStore());
+                var window = ShowOffscreen(viewModel);
+                try
+                {
+                    window.MaxHeight = 420;
+                    window.UpdateLayout();
+                    viewModel.OpenIconPickerCommand.Execute(null);
+                    Pump();
+
+                    var scroller = (ScrollViewer)window.FindName("IconScroller");
+                    var sheet = (FrameworkElement)window.FindName("IconPickerSheet");
+                    var close = (Button)window.FindName("BtnCloseIconPicker");
+                    var content = (FrameworkElement)window.Content;
+                    Assert.True(scroller.ScrollableHeight > 0);
+                    Assert.Equal(Visibility.Visible, scroller.ComputedVerticalScrollBarVisibility);
+                    Assert.True(sheet.TranslatePoint(new Point(0, sheet.ActualHeight), content).Y <= content.ActualHeight);
+                    Assert.True(close.TranslatePoint(new Point(0, 0), content).Y >= 0);
+
+                    var cards = Descendants<ListBoxItem>(sheet).ToList();
+                    Assert.Equal(cards[0].TranslatePoint(new Point(0, 0), sheet).Y, cards[1].TranslatePoint(new Point(0, 0), sheet).Y, 1);
+
+                    // The last card can be scrolled to
+                    cards[^1].BringIntoView();
+                    Pump();
+                    Assert.True(scroller.VerticalOffset > 0);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         [Fact]
         public void Window_EscapeClosesOnlyThePicker_AndGivesTheFocusBackToTheIconButton()
         {

@@ -168,9 +168,11 @@ foreach ($name in $KeycapIcons) {
     Write-Host "Wrote $dir"
 }
 
-# Classic: keycuts' original icon. Its own frames where it has the size; the others from its 256 px frame.
+# Classic: keycuts' original icon. Its own frames where it has the size; the others from its 256 px frame. The original is
+# an input kept in the repository, so it is read from there whatever -OutDir says.
 $classicDir = Join-Path $OutDir 'classic'
-$source = Join-Path $classicDir 'source.ico'
+New-Item -ItemType Directory -Force -Path $classicDir | Out-Null
+$source = Join-Path $PSScriptRoot '..\assets\icons\classic\source.ico'
 $bytes = [System.IO.File]::ReadAllBytes($source)
 $count = [BitConverter]::ToUInt16($bytes, 4)
 $entries = for ($i = 0; $i -lt $count; $i++) {

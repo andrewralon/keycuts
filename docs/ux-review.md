@@ -78,6 +78,23 @@ This happens every time the product is used, so it's the most important thing to
 
 Each has tradeoffs against "the `.bat` is the whole product," and any change to the launch line falls under the sequencing rule in `CLAUDE.md`.
 
+Checked and partly fixed (#160, 2026-11-13). Measured with `ShellExecuteEx` (what Win+R calls, though not the Run dialog itself), watching the top-level windows every ~0.15 ms:
+
+| Default terminal | Keycut | What appears | Visible |
+|---|---|---|---|
+| Console Host | `.bat` that only runs `EXIT` | `cmd.exe` console | ~70 ms (the floor for any `.bat`) |
+| Console Host | File | `cmd.exe` console | ~180 ms |
+| Console Host | Folder (`explorer.exe` called directly) | `cmd.exe` console | ~600 ms |
+| Windows Terminal | any | a full Terminal window ~1 s after launch | 115-660 ms, and the target opens ~0.7 s later |
+
+- **Done: Folder and CLSID keycuts start `explorer.exe` through `START "" /B`** (`Runner.BuildCommand`). `cmd` no longer waits for `explorer.exe` to hand off, and the console drops from ~600 ms to ~70 ms, the same as an empty `.bat`. The same window opens, for a path with spaces, one with `&` and `()`, a `%VAR%` path and a CLSID target. Keycuts written before still have the direct call: they read the same, stay editable (`CanEditInForm` treats the two lines as equal, and a save writes the new one), and are migrated in #207.
+- **The ~70 ms floor stays.** No alternative covers File, Folder and URL keycuts:
+  - *App Paths* gives no console for an exe, but a folder target fails ("cannot find the file"), a `.bat` target still flashes, and it needs a registry entry per name.
+  - *`.lnk`* resolves from a bare name with **no `PATHEXT` change**, for exe and folder targets, with no console. A same-named `.bat` wins over a `.lnk` in the same folder. It isn't hand-editable, so it would give up "the `.bat` is the whole product". The only candidate worth revisiting.
+  - *`.url`, `.js` and `.vbs`* don't resolve from a bare name at all (also with `.JS` in `PATHEXT`), so Win+R can't run them. VBScript is also being deprecated.
+  - A windowless exe launcher was not tested; it needs one exe per name in the folder.
+- **Open: `PATHEXT`.** `NameConflicts` models Win+R as trying each `PATHEXT` extension in order. In these tests a `.bat` ran with `PATHEXT=.COM;.EXE`, and a `.js` did not run with `.JS` in it, so `ShellExecuteEx` seems to use a fixed list (`.bat` and `.lnk` resolved; `.js`, `.vbs` and `.url` did not). Worth confirming through the real Run dialog, since #153's name warnings depend on it.
+
 #### 2. Delete has no confirmation and no undo
 
 Issue: #179

@@ -30,11 +30,12 @@ namespace keycuts.Common
     /// <summary>A program, script or other file that a keycut's name already resolves to.</summary>
     public class NameConflict
     {
-        public NameConflict(string path, NameConflictEffect effect, NameConflictSource source)
+        public NameConflict(string path, NameConflictEffect effect, NameConflictSource source, Keycut keycut = null)
         {
             Path = path;
             Effect = effect;
             Source = source;
+            Keycut = keycut;
         }
 
         /// <summary>The full path of what the name opens besides the keycut.</summary>
@@ -43,6 +44,12 @@ namespace keycuts.Common
         public NameConflictEffect Effect { get; }
 
         public NameConflictSource Source { get; }
+
+        /// <summary>
+        /// What the file is, when it is a keycut (a .bat that keycuts wrote, in another keycuts folder on PATH), so the warning can say
+        /// what it opens instead of calling it a program. Null for anything else.
+        /// </summary>
+        public Keycut Keycut { get; }
 
         public override string ToString()
         {

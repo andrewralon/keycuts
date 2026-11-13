@@ -64,11 +64,6 @@ namespace keycuts.GUI.ViewModels
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();
-
-            if (welcome != null)
-            {
-                welcome.KeycutCreated += (sender, e) => _ = ReloadAsync();
-            }
             Manager.KeycutDeleted += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
             Manager.KeycutRestored += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
         }

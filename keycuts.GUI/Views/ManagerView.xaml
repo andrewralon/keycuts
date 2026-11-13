@@ -399,29 +399,43 @@
                                        Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown">
                     <controls:Icon Kind="More" Size="17" />
                     <Button.ContextMenu>
-                      <ContextMenu Width="190" Placement="Bottom" HorizontalOffset="-162" VerticalOffset="4"
+                      <!-- 250 wide for the key names beside the items; the offset keeps the menu's right edge under the button (250 - 28) -->
+                      <ContextMenu Width="250" Placement="Bottom" HorizontalOffset="-222" VerticalOffset="4"
                                    Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
-                        <MenuItem Header="Open keycut" Command="{Binding OpenCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Play" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Edit" Command="{Binding EditCommand}" Click="SafeItem_Click">
+                        <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
+                        <MenuItem Header="Edit" InputGestureText="Ctrl+E" Command="{Binding EditCommand}" Click="SafeItem_Click">
+                          <MenuItem.Style>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
+                              <Setter Property="ToolTip" Value="{Binding EditTooltip}" />
+                              <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+                              <Setter Property="ToolTipService.IsEnabled" Value="False" />
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanEditInForm}" Value="False">
+                                  <Setter Property="ToolTipService.IsEnabled" Value="True" />
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </MenuItem.Style>
                           <MenuItem.Icon>
                             <controls:Icon Kind="File" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Edit in Notepad" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Edit in Notepad" InputGestureText="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="External" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Open file location" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Open file location" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Folder" Size="16" />
                           </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Copy target" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Copy target" InputGestureText="Ctrl+C" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Copy" Size="16" />
                           </MenuItem.Icon>
@@ -429,7 +443,7 @@
                         <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
                         <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
                         <Separator />
-                        <MenuItem Header="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+                        <MenuItem Header="Delete" InputGestureText="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
                           <MenuItem.Icon>
                             <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
                           </MenuItem.Icon>

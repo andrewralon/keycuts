@@ -406,6 +406,15 @@ namespace keycuts.GUI.ViewModels
                 return;
             }
 
+            // Known when the keycuts loaded (#202): the menu item is greyed out, but Ctrl+E gets here, and a key press that
+            // does nothing is worse than a message
+            if (!keycut.CanEditInForm)
+            {
+                ShowStatusMessage(EditKeycutViewModel.NotEditableMessage, true);
+                return;
+            }
+
+            // The file may have changed since it was loaded (a hand edit in Notepad), so it is checked again
             bool editable;
 
             try

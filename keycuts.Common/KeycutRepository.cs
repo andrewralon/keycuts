@@ -153,6 +153,7 @@ namespace keycuts.Common
                     RawType = ShortcutType.Unknown,
                     Target = "",
                     FilePath = file,
+                    CanEditInForm = false,
                     Modified = File.GetLastWriteTime(file)
                 };
             }
@@ -271,6 +272,12 @@ namespace keycuts.Common
         {
             parsed = new ShortcutFile(path, lines);
 
+            return IsEditable(parsed, path, lines);
+        }
+
+        /// <summary><see cref="TryReadEditable"/> for lines that are already parsed, so loading a folder parses each file once.</summary>
+        private static bool IsEditable(ShortcutFile parsed, string path, string[] lines)
+        {
             if (parsed.Type == ShortcutType.Unknown || string.IsNullOrEmpty(parsed.Target))
             {
                 return false;
@@ -507,7 +514,23 @@ namespace keycuts.Common
         {
             try
             {
-                var shortcut = new ShortcutFile(file);
+                // Read as the Edit form reads it, strictly: a file that isn't valid UTF-8 is still listed (read leniently, as
+                // it always was), but the form would lose bytes of it, so it can't be edited there (#202). For valid UTF-8,
+                // with or without a BOM, the lines are the ones File.ReadAllLines gives.
+                string[] lines;
+                var strict = true;
+
+                try
+                {
+                    lines = ReadLinesStrict(file);
+                }
+                catch (System.Text.DecoderFallbackException)
+                {
+                    lines = File.ReadAllLines(file);
+                    strict = false;
+                }
+
+                var shortcut = new ShortcutFile(file, lines);
 
                 if (string.IsNullOrEmpty(shortcut.Shortcut) ||
                     string.IsNullOrEmpty(shortcut.Command) ||
@@ -527,6 +550,7 @@ namespace keycuts.Common
                     Program = shortcut.Program ?? "",
                     Arguments = shortcut.Arguments ?? "",
                     FilePath = file,
+                    CanEditInForm = strict && IsEditable(shortcut, file, lines),
                     Modified = File.GetLastWriteTime(file)
                 };
             }
@@ -669,6 +693,7 @@ namespace keycuts.Common
                     RawType = ShortcutType.Unknown,
                     Target = edit.Target,
                     FilePath = newPath,
+                    CanEditInForm = false,
                     Modified = File.GetLastWriteTime(newPath)
                 };
             }

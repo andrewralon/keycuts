@@ -21,7 +21,9 @@ namespace keycuts.GUI.ViewModels
             Keycut = keycut ?? throw new System.ArgumentNullException(nameof(keycut));
 
             OpenCommand = new RelayCommand(() => owner?.OpenKeycut(this));
-            EditCommand = new RelayCommand(() => _ = owner?.EditKeycutAsync(this));
+            // Greyed out in the menu for a keycut the form can't save (#202); the flag is read when the keycuts load, so it
+            // never changes for a row. Ctrl+E still goes to EditKeycutAsync, which says why.
+            EditCommand = new RelayCommand(() => _ = owner?.EditKeycutAsync(this), () => Keycut.CanEditInForm);
             EditInNotepadCommand = new RelayCommand(() => owner?.EditInNotepad(this));
             OpenFileLocationCommand = new RelayCommand(() => owner?.OpenFileLocation(this));
             CopyTargetCommand = new RelayCommand(() => owner?.CopyTarget(this));
@@ -80,6 +82,18 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>Edit: the form with target, name and description (#180).</summary>
         public ICommand EditCommand { get; }
+
+        /// <summary>False when the Edit form can't save this keycut without losing something: <see cref="EditCommand"/> can't run.</summary>
+        public bool CanEditInForm
+        {
+            get { return Keycut.CanEditInForm; }
+        }
+
+        /// <summary>Why Edit is greyed out, for its tooltip, and where to go instead. Empty when Edit works.</summary>
+        public string EditTooltip
+        {
+            get { return Keycut.CanEditInForm ? string.Empty : EditKeycutViewModel.NotEditableMessage; }
+        }
 
         /// <summary>Edit in Notepad: the raw .bat, for hand edits.</summary>
         public ICommand EditInNotepadCommand { get; }

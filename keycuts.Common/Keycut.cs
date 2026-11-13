@@ -37,6 +37,14 @@ namespace keycuts.Common
         public string FilePath { get; init; }
 
         /// <summary>
+        /// Whether the Edit form can save this keycut without losing anything (#202, from <see cref="KeycutRepository.CanEditInForm(string, string[])"/>),
+        /// worked out when the file is loaded so the menu can grey out Edit before it opens. False for a hand-edited launch
+        /// line, the 0.1.x format and a file that isn't valid UTF-8. A keycut built by hand, not read from a file, counts as
+        /// editable: the form checks the file again when it opens, and that check is the one that counts.
+        /// </summary>
+        public bool CanEditInForm { get; init; } = true;
+
+        /// <summary>
         /// When the .bat file was last written (local time), read when the keycut is loaded. Renaming rewrites the file,
         /// so it updates this. <c>default</c> when unknown (a keycut built by hand, not read from a file).
         /// </summary>

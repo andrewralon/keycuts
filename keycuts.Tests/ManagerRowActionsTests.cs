@@ -1219,6 +1219,98 @@ namespace keycuts.Tests
 
         #endregion Edit form (#180)
 
+        #region Edit when the form can't (#202)
+
+        static async Task<ManagerViewModel> LoadedKeycutsAsync(FakeActions actions, params Keycut[] keycuts)
+        {
+            var noop = new RelayCommand(() => { });
+            var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts.ToList()), null, actions)
+            {
+                StatusMessageDuration = TimeSpan.FromHours(1)
+            };
+            await manager.LoadAsync();
+            return manager;
+        }
+
+        [Fact]
+        public async Task EditCommand_CannotRun_ForAKeycutTheFormCantEdit()
+        {
+            var manager = await LoadedKeycutsAsync(new FakeActions(), NewKeycut("fine"), NewKeycut("handmade") with { CanEditInForm = false });
+
+            var fine = manager.Rows.Single(r => r.Name == "fine");
+            var handmade = manager.Rows.Single(r => r.Name == "handmade");
+
+            Assert.True(fine.EditCommand.CanExecute(null));
+            Assert.True(fine.CanEditInForm);
+            Assert.Equal(string.Empty, fine.EditTooltip);
+            Assert.False(handmade.EditCommand.CanExecute(null));
+            Assert.False(handmade.CanEditInForm);
+            Assert.Equal(EditKeycutViewModel.NotEditableMessage, handmade.EditTooltip);
+
+            // Edit in Notepad is how these are edited, so it stays available on every row
+            Assert.True(handmade.EditInNotepadCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task Edit_AKeycutKnownNotToBeEditable_SaysSoAtOnce_WithoutAskingTheFileOrShowingTheForm()
+        {
+            var actions = new FakeActions { CanEditError = new InvalidOperationException("must not be asked") };
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("handmade") with { CanEditInForm = false });
+            var shown = 0;
+            manager.ShowEditForm = form => { shown++; return false; };
+
+            // Ctrl+E goes here, not through the command: a key press that does nothing would be worse than a message
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(0, shown);
+            Assert.True(manager.StatusIsError);
+            Assert.Equal(EditKeycutViewModel.NotEditableMessage, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task Edit_TheMenuItemOfANotEditableKeycut_DoesNothingWhenRun()
+        {
+            var manager = await LoadedKeycutsAsync(new FakeActions(), NewKeycut("handmade") with { CanEditInForm = false });
+            var shown = 0;
+            manager.ShowEditForm = form => { shown++; return false; };
+
+            manager.Rows[0].EditCommand.Execute(null);
+
+            Assert.Equal(0, shown);
+            Assert.Equal(string.Empty, manager.StatusMessage);
+        }
+
+        // The file can change after the list loaded (Notepad); the check when Edit is chosen is the one that counts
+        [Fact]
+        public async Task Edit_AFileThatChangedAfterTheLoad_StillEndsInTheMessage_NotAForm()
+        {
+            var actions = new FakeActions { Editable = false };
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("fine"));
+            var shown = 0;
+            manager.ShowEditForm = form => { shown++; return false; };
+
+            Assert.True(manager.Rows[0].EditCommand.CanExecute(null));
+            await manager.EditKeycutAsync(manager.Rows[0]);
+
+            Assert.Equal(0, shown);
+            Assert.Equal(EditKeycutViewModel.NotEditableMessage, manager.StatusMessage);
+        }
+
+        [Fact]
+        public async Task TheNameCanStillBeChanged_OnAKeycutTheFormCantEdit()
+        {
+            var actions = new FakeActions();
+            var manager = await LoadedKeycutsAsync(actions, NewKeycut("handmade") with { CanEditInForm = false });
+
+            manager.BeginRename(manager.Rows[0]);
+            manager.Rows[0].EditName = "renamed";
+            await manager.CommitRenameAsync();
+
+            Assert.Equal(new[] { (@"C:\fixture\handmade.bat", "renamed") }, actions.Renamed);
+        }
+
+        #endregion Edit when the form can't (#202)
+
         #region Undo (#179)
 
         [Fact]

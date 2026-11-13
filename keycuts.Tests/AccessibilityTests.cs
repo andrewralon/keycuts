@@ -977,6 +977,64 @@ namespace keycuts.Tests
             });
         }
 
+        static MenuItem OpenRowMenuItem(Window window, string rowName, string header, out ContextMenu menu)
+        {
+            var button = Descendants<MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for " + rowName);
+            menu = button.ContextMenu;
+            menu.PlacementTarget = button;
+            menu.IsOpen = true;
+            Pump();
+            return menu.Items.OfType<MenuItem>().Single(i => i.Header as string == header);
+        }
+
+        // #202: Edit looks unavailable on a keycut the form can't save, UI Automation says so, and its tooltip points to Notepad
+        [Fact]
+        public void Manager_EditIsDisabled_ForAKeycutTheFormCantEdit_AndSaysWhy()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var noop = new RelayCommand(() => { });
+                var keycuts = new[] { ("alpha", true), ("bravo", false) }.Select(item => new Keycut
+                {
+                    Name = item.Item1,
+                    Kind = KeycutKind.File,
+                    RawType = ShortcutType.File,
+                    Target = @"C:\temp\" + item.Item1 + ".txt",
+                    FilePath = @"C:\Shortcuts\" + item.Item1 + ".bat",
+                    CanEditInForm = item.Item2
+                }).ToList();
+                var manager = new ManagerViewModel(noop, noop, ct => Task.FromResult<IReadOnlyList<Keycut>>(keycuts), null, new RecordingActions());
+                manager.LoadAsync().GetAwaiter().GetResult();
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var fine = OpenRowMenuItem(window, "alpha", "Edit", out var fineMenu);
+                    Assert.True(fine.IsEnabled);
+                    Assert.True(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(fine).IsEnabled());
+                    Assert.False(ToolTipService.GetIsEnabled(fine));
+                    fineMenu.IsOpen = false;
+
+                    var edit = OpenRowMenuItem(window, "bravo", "Edit", out var menu);
+                    Assert.False(edit.IsEnabled);
+                    Assert.False(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(edit).IsEnabled());
+                    Assert.Equal(EditKeycutViewModel.NotEditableMessage, edit.ToolTip);
+                    Assert.True(ToolTipService.GetIsEnabled(edit));
+                    Assert.True(ToolTipService.GetShowOnDisabled(edit));
+
+                    // Edit in Notepad is the way to edit it, so it stays available
+                    var notepad = menu.Items.OfType<MenuItem>().Single(i => i.Header as string == "Edit in Notepad");
+                    Assert.True(notepad.IsEnabled);
+                    Assert.True(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(notepad).IsEnabled());
+                    menu.IsOpen = false;
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         // #167: the Modified column is sortable and shows how long ago with the exact time in a tooltip, but it makes way for
         // the other columns when the table is narrow
         [Fact]

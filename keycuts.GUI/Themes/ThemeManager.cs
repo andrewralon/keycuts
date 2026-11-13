@@ -35,6 +35,12 @@ namespace keycuts.GUI.Themes
         public static ThemePreference Preference { get; private set; }
 
         /// <summary>
+        /// Raised after a palette is applied: a new theme, a Settings preview, or a change in Windows (high contrast included,
+        /// whose colors can change while the variant doesn't). The app icon follows it.
+        /// </summary>
+        public static event EventHandler? Applied;
+
+        /// <summary>
         /// High contrast always wins, because it is an accessibility need. Then the user's choice; with System,
         /// AppsUseLightTheme = 0 means dark and a missing value means light.
         /// </summary>
@@ -140,6 +146,8 @@ namespace keycuts.GUI.Themes
             {
                 ApplyWindowChrome(window);
             }
+
+            Applied?.Invoke(null, EventArgs.Empty);
         }
 
         static bool IsPalette(ResourceDictionary dictionary)

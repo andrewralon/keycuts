@@ -6,11 +6,19 @@
     <Nullable>enable</Nullable>
     <RootNamespace>keycuts.GUI</RootNamespace>
     <AssemblyName>keycuts.GUI</AssemblyName>
-    <!-- Windows without an Icon of their own take this one, so it covers the title bar and the taskbar too -->
-    <ApplicationIcon>Images\TR_256_ico.ico</ApplicationIcon>
+    <!-- The exe's own icon (Explorer, Installed apps): the default, Porcelain. The app sets each window's icon from the
+         Settings choice (Themes/AppIconManager), so the title bar and the taskbar follow that instead. -->
+    <ApplicationIcon>..\assets\icons\porcelain\porcelain.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <!-- The icons Settings offers (tools/New-AppIcons.ps1 makes them): built in for the windows, and copied to icons\ beside the
+       exe for the shortcuts that point at them (Common/ShortcutIcons). The installer takes the icons folder with the rest. -->
+  <ItemGroup>
+    <AppIconFile Include="..\assets\icons\porcelain\porcelain.ico;..\assets\icons\midnight\midnight.ico;..\assets\icons\cobalt\cobalt.ico;..\assets\icons\twilight\twilight.ico;..\assets\icons\classic\classic.ico" />
+    <Resource Include="@(AppIconFile)" Link="Images\AppIcons\%(Filename)%(Extension)" />
+    <Content Include="@(AppIconFile)" Link="icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />

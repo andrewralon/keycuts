@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Security;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using keycuts.Common;
 using keycuts.GUI.Mvvm;
+using keycuts.GUI.Themes;
 
 namespace keycuts.GUI.ViewModels
 {
@@ -33,7 +37,8 @@ namespace keycuts.GUI.ViewModels
 
     /// <summary>
     /// State and rules of the Settings window. Nothing is stored until <see cref="Save"/> passes validation;
-    /// closing the window any other way (Escape, the close button) leaves the store untouched.
+    /// closing the window any other way (Escape, the close button) leaves the store untouched. The icon is the exception:
+    /// a pick applies and is saved at once (<see cref="SelectedIcon"/>).
     /// </summary>
     public class SettingsViewModel : ObservableObject
     {
@@ -89,12 +94,21 @@ namespace keycuts.GUI.ViewModels
 
         private bool checkForUpdates;
 
+        private readonly IAppIconService appIcon;
+
+        private AppIconOption selectedIcon;
+
+        private bool isIconPickerOpen;
+
+        private string? iconError;
+
         /// <param name="pickFolder">Shows a folder picker seeded with the given folder; null when cancelled.</param>
         /// <param name="openFolder">Opens the folder in Explorer.</param>
         /// <param name="checkFolder">Creates the folder if needed and proves it is writable; returns an error message or null. Tests use temp folders.</param>
         /// <param name="directoryExists">Decides whether Launch is enabled.</param>
         /// <param name="updates">The update check behind Check now (#171), shared with the creator's notice. Null hides Check now.</param>
         /// <param name="openUrl">Opens a release page in the browser; tests pass a fake.</param>
+        /// <param name="appIcon">Reads and applies the app icon; a pick applies at once. Null keeps it in memory, as tests want.</param>
         public SettingsViewModel(
             ISettingsStore store,
             Func<string, string?>? pickFolder = null,
@@ -102,8 +116,17 @@ namespace keycuts.GUI.ViewModels
             Func<string, string?>? checkFolder = null,
             Func<string, bool>? directoryExists = null,
             UpdateChecker? updates = null,
-            Action<string>? openUrl = null)
+            Action<string>? openUrl = null,
+            IAppIconService? appIcon = null)
         {
+            this.appIcon = appIcon ?? new InMemoryAppIconService();
+            selectedIcon = AppIcons.Get(this.appIcon.Choice);
+            var view = new ListCollectionView(new List<AppIconOption>(AppIcons.Options));
+            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AppIconOption.Group)));
+            IconOptionsView = view;
+            OpenIconPickerCommand = new RelayCommand(() => IsIconPickerOpen = true);
+            CloseIconPickerCommand = new RelayCommand(() => IsIconPickerOpen = false);
+
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.pickFolder = pickFolder ?? (_ => null);
             this.openFolder = openFolder ?? (_ => { });
@@ -233,6 +256,88 @@ namespace keycuts.GUI.ViewModels
         {
             get { return theme; }
             set { SetProperty(ref theme, value); }
+        }
+
+        /// <summary>Opens the icon picker: the current icon is a button.</summary>
+        public RelayCommand OpenIconPickerCommand { get; }
+
+        /// <summary>Closes the icon picker. A pick is already applied and saved, so closing never undoes one.</summary>
+        public RelayCommand CloseIconPickerCommand { get; }
+
+        /// <summary>
+        /// The picker's list, every choice in order, grouped by <see cref="AppIconOption.Group"/>. A view of this window's own, because the default
+        /// view of the shared list would collect a group description per window.
+        /// </summary>
+        public ICollectionView IconOptionsView { get; }
+
+        /// <summary>
+        /// The icon. Setting it applies and saves it at once, unlike the rest of Settings, which waits for Save; Escape and
+        /// closing the window keep it.
+        /// </summary>
+        public AppIconOption SelectedIcon
+        {
+            get { return selectedIcon; }
+            set
+            {
+                // A list that loses its selection sets null; that isn't a pick
+                if (value == null || value == selectedIcon)
+                {
+                    return;
+                }
+
+                selectedIcon = value;
+                IconError = appIcon.Apply(value.Choice);
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IconButtonName));
+            }
+        }
+
+        /// <summary>The icon button's name for screen readers, which can't see the picture.</summary>
+        public string IconButtonName
+        {
+            get { return $"Icon: {selectedIcon.Name}. Change"; }
+        }
+
+        public bool IsIconPickerOpen
+        {
+            get { return isIconPickerOpen; }
+            set
+            {
+                if (SetProperty(ref isIconPickerOpen, value))
+                {
+                    OnPropertyChanged(nameof(IsBodyEnabled));
+                }
+            }
+        }
+
+        /// <summary>The rest of the window is disabled while the picker is open, so Tab stays in it and Enter can't Save.</summary>
+        public bool IsBodyEnabled
+        {
+            get { return !isIconPickerOpen; }
+        }
+
+        /// <summary>Shown in the picker when a pick couldn't be saved; it still applies until the app closes.</summary>
+        public string? IconError
+        {
+            get { return iconError; }
+            private set
+            {
+                if (SetProperty(ref iconError, value))
+                {
+                    OnPropertyChanged(nameof(IconPickerNote));
+                    OnPropertyChanged(nameof(HasIconError));
+                }
+            }
+        }
+
+        public bool HasIconError
+        {
+            get { return iconError != null; }
+        }
+
+        public string IconPickerNote
+        {
+            get { return iconError ?? "Applies as soon as you pick one."; }
         }
 
         /// <summary>Check GitHub for a newer release once a day when the app starts (#171).</summary>

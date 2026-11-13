@@ -31,7 +31,7 @@ namespace keycuts.GUI.DesignData
 
         public static CreatorViewModel CreatorUrl
         {
-            get { return NewCreator(SampleKeycuts.VickiTarget, SampleKeycuts.VickiName, 2, KeycutKind.Url); }
+            get { return NewCreator(SampleKeycuts.ArtTarget, SampleKeycuts.ArtName, 2, KeycutKind.Url); }
         }
 
         public static CreatorViewModel CreatorFolder
@@ -42,7 +42,7 @@ namespace keycuts.GUI.DesignData
         /// <summary>Target chosen, name not typed yet (Create disabled).</summary>
         public static CreatorViewModel CreatorSelected
         {
-            get { return NewCreator(SampleKeycuts.VickiTarget, string.Empty, 2, KeycutKind.Url); }
+            get { return NewCreator(SampleKeycuts.ArtTarget, string.Empty, 2, KeycutKind.Url); }
         }
 
         public static CreatorViewModel CreatorDragHover
@@ -59,7 +59,7 @@ namespace keycuts.GUI.DesignData
         {
             get
             {
-                var creator = NewCreator(SampleKeycuts.VickiTarget, SampleKeycuts.VickiName, 2, KeycutKind.Url);
+                var creator = NewCreator(SampleKeycuts.ArtTarget, SampleKeycuts.ArtName, 2, KeycutKind.Url);
                 creator.IsSaving = true;
                 return creator;
             }
@@ -69,9 +69,9 @@ namespace keycuts.GUI.DesignData
         {
             get
             {
-                var creator = NewCreator(SampleKeycuts.VickiTarget, SampleKeycuts.VickiName, 2, KeycutKind.Url);
-                var existing = new Keycut { Name = SampleKeycuts.VickiName, Target = SampleKeycuts.VickiTarget };
-                creator.SetNameWarning(new NameCheck(SampleKeycuts.VickiName, existing, null));
+                var creator = NewCreator(SampleKeycuts.ArtTarget, SampleKeycuts.ArtName, 2, KeycutKind.Url);
+                var existing = new Keycut { Name = SampleKeycuts.ArtName, Target = SampleKeycuts.ArtTarget };
+                creator.SetNameWarning(new NameCheck(SampleKeycuts.ArtName, existing, null));
                 return creator;
             }
         }
@@ -80,7 +80,7 @@ namespace keycuts.GUI.DesignData
         {
             get
             {
-                var creator = NewCreator(@"C:\does\not\exist\report.pdf", SampleKeycuts.VickiName, 2);
+                var creator = NewCreator(@"C:\does\not\exist\report.pdf", SampleKeycuts.ArtName, 2);
                 creator.TargetError = TargetError.NotFound;
                 return creator;
             }
@@ -96,7 +96,7 @@ namespace keycuts.GUI.DesignData
             get
             {
                 var creator = NewCreator(string.Empty, string.Empty, 3);
-                creator.SetSuccess(SampleKeycuts.VickiName);
+                creator.SetSuccess(SampleKeycuts.ArtName);
                 return creator;
             }
         }

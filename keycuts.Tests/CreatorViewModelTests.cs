@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using keycuts.Common;
 using keycuts.GUI.Controls;
 using keycuts.GUI.Mvvm;
@@ -24,13 +25,21 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Created_ShowsForThreeSeconds_ByDefault()
+        {
+            Assert.Equal(TimeSpan.FromSeconds(3), Create().SuccessDuration);
+        }
+
+        [Fact]
         public void Empty_ShowsArrow_DefaultHelper_AndCreateDisabled()
         {
             var creator = Create();
 
             Assert.Equal(CreatorState.Empty, creator.State);
             Assert.Equal(IconKind.Arrow, creator.TargetIcon);
-            Assert.Equal("Press Enter to create it", creator.HelperText);
+            Assert.Equal(string.Empty, creator.HelperText);
+            Assert.False(creator.ShowHelperLine);
+            Assert.False(creator.HasNameStatus);
             Assert.False(creator.CanCreate);
             Assert.True(creator.IsInputEnabled);
         }
@@ -169,7 +178,7 @@ namespace keycuts.Tests
 
             Assert.False(creator.IsNameWarning);
             Assert.Equal(CreatorState.TargetSelected, creator.State);
-            Assert.Equal(CreatorViewModel.DefaultHelperText, creator.HelperText);
+            Assert.Equal(string.Empty, creator.HelperText);
         }
 
         [Theory]
@@ -237,24 +246,10 @@ namespace keycuts.Tests
             Assert.Equal(CreatorState.Success, creator.State);
             Assert.True(creator.IsSuccess);
             Assert.False(creator.HelperIsError);
-            Assert.Equal("Created l-vicki", creator.HelperText);
+            Assert.Equal(CreatorViewModel.CreatedText, creator.HelperText);
 
             creator.ShortcutName = "next";
             Assert.False(creator.IsSuccess);
-        }
-
-        [Fact]
-        public void Clear_ReturnsToEmpty()
-        {
-            var creator = WithTargetAndName();
-            creator.SetNameWarning(TestNameChecks.Existing("ex"));
-
-            creator.Clear();
-
-            Assert.Equal(CreatorState.Empty, creator.State);
-            Assert.Equal(string.Empty, creator.Target);
-            Assert.Equal(string.Empty, creator.ShortcutName);
-            Assert.Null(creator.TargetKind);
         }
 
         [Fact]

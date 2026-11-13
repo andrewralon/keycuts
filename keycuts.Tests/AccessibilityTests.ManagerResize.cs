@@ -54,7 +54,7 @@ namespace keycuts.Tests
                     Content = new ManagerView(),
                     DataContext = manager,
                     Width = width,
-                    Height = 420,
+                    Height = 460,   // tall enough for the five rows beside the footer (#205), or a scroll bar takes the table's width
                     WindowStartupLocation = WindowStartupLocation.Manual,
                     Left = -20000,
                     Top = -20000,

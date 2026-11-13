@@ -216,7 +216,8 @@ namespace keycuts.GUI.Views
                 case Key.End when !SearchBoxHasText(e):
                     MoveSelection(e, model => model.SelectLast());
                     break;
-                case Key.Enter when e.OriginalSource is not ButtonBase:
+                // A button or a link (the footer's Download) acts on Enter itself; the key must not open the selected row instead
+                case Key.Enter when e.OriginalSource is not ButtonBase && e.OriginalSource is not System.Windows.Documents.Hyperlink:
                     e.Handled = ViewModel!.OpenSelected();
                     break;
                 case Key.Delete when !SearchBoxHasText(e) && ActionRow() is { } doomed:
@@ -458,6 +459,7 @@ namespace keycuts.GUI.Views
         {
             if (e.OldValue is ManagerViewModel oldViewModel)
             {
+                oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 oldViewModel.FocusRowRequested -= ViewModel_FocusRowRequested;
                 oldViewModel.ConfirmRename = null;
                 oldViewModel.ShowEditForm = null;
@@ -465,10 +467,20 @@ namespace keycuts.GUI.Views
 
             if (e.NewValue is ManagerViewModel newViewModel)
             {
+                newViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 newViewModel.FocusRowRequested += ViewModel_FocusRowRequested;
                 newViewModel.ConfirmRename = check => ConfirmWindow.Ask(Window.GetWindow(this), ConfirmViewModel.ForRename(check));
                 // The Edit form (#180) is a dialog over the window; the form saves itself, and its name checks use the same dialog
                 newViewModel.ShowEditForm = form => EditWindow.Show(Window.GetWindow(this), form);
+            }
+        }
+
+        // "4 of 355 shown" changes as the search is typed, with the focus in the search box: say so (LiveSetting alone doesn't)
+        private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ManagerViewModel.ShownText) && ViewModel?.HasShownText == true)
+            {
+                LiveRegion.Announce(ShownTextBlock);
             }
         }
 

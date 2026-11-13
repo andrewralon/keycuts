@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:keycuts.GUI.Controls"
              xmlns:themes="clr-namespace:keycuts.GUI.Themes"
+             xmlns:views="clr-namespace:keycuts.GUI.Views"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
@@ -167,33 +168,6 @@
       </Setter>
     </Style>
 
-    <!-- Small accent link for the status bar (Undo). -->
-    <Style x:Key="StatusLinkButton" TargetType="Button">
-      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
-      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Padding" Value="6,2" />
-      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
-                    CornerRadius="{StaticResource RadiusSm}">
-              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" RecognizesAccessKey="False" />
-            </Border>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-      <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-          <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-        </Trigger>
-      </Style.Triggers>
-    </Style>
-
     <!-- Rows take no keyboard focus: Up and Down move the selection while focus stays in the search box.
          The bar keeps the selection visible in high contrast, where the tint disappears. -->
     <Style x:Key="ManagerRow" TargetType="DataGridRow">
@@ -333,18 +307,21 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <TextBlock Text="Your keycuts" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+      <TextBlock Text="keycuts manager" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
                  VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
                  AutomationProperties.HeadingLevel="Level1" />
-      <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Margin="12,0,40,0"
+      <!-- Lowercase on purpose: the creator's link to this screen says "manager" -->
+      <Button x:Name="BtnCreator" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Margin="12,0,0,0"
+              AutomationProperties.Name="creator"
               Command="{Binding ShowCreatorCommand}">
         <StackPanel Orientation="Horizontal">
           <controls:Icon Kind="Spark" Size="15" />
-          <TextBlock Text="New keycut" Margin="8,0,0,0" />
+          <TextBlock Text="creator" Margin="8,0,0,0" />
         </StackPanel>
       </Button>
     </Grid>
 
+    <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
     <Grid Grid.Row="1" Margin="24,16,24,12">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
@@ -359,9 +336,10 @@
         <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
-      <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeBody}"
-                 Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding ResultCountText}"
-                 AutomationProperties.LiveSetting="Polite" />
+      <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                 FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
+                 Text="{Binding ShownText}" AutomationProperties.LiveSetting="Polite"
+                 Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
     </Grid>
 
     <Grid Grid.Row="2" Margin="24,0,24,12">
@@ -614,42 +592,12 @@
       </StackPanel>
     </Grid>
 
-    <Border Grid.Row="3" Height="34" Background="{DynamicResource SurfaceSubtleBrush}"
-            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="24,0">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <TextBlock VerticalAlignment="Center" FontSize="{StaticResource FontSizeCaption}"
-                   Foreground="{DynamicResource TextTertiaryBrush}" Text="{Binding StatusText}" />
-        <TextBlock Grid.Column="1" x:Name="StatusMessageText" Margin="16,0,0,0" HorizontalAlignment="Right"
-                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="{StaticResource FontSizeCaption}"
-                   Text="{Binding StatusMessage}" AutomationProperties.LiveSetting="Polite">
-          <TextBlock.Style>
-            <Style TargetType="TextBlock">
-              <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding StatusIsError}" Value="True">
-                  <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </TextBlock.Style>
-        </TextBlock>
-        <!-- #179: shown while the "Deleted" message is; Ctrl+Z does the same -->
-        <Button x:Name="UndoButton" Grid.Column="2" Style="{StaticResource StatusLinkButton}" Margin="12,0,0,0"
-                VerticalAlignment="Center" Content="Undo" Command="{Binding UndoDeleteCommand}"
-                ToolTip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="Undo delete"
-                Visibility="{Binding CanUndoDelete, Converter={StaticResource BoolToVisibility}}" />
-      </Grid>
-    </Border>
-
-    <!-- Declared last so Tab reaches it after the status bar; it sits visually at the top right. -->
-    <Button Style="{StaticResource IconButton}" HorizontalAlignment="Right" VerticalAlignment="Top"
-            Margin="0,24,24,0" Command="{Binding OpenSettingsCommand}" AutomationProperties.Name="Open settings">
-      <controls:Icon Kind="Settings" />
-    </Button>
+    <!-- #205: the footer both screens share. The status line (Deleted, errors) and Undo sit in it between the count and the
+         update line. -->
+    <views:FooterView Grid.Row="3">
+      <views:FooterView.Message>
+        <views:ManagerStatusView />
+      </views:FooterView.Message>
+    </views:FooterView>
   </Grid>
 </UserControl>

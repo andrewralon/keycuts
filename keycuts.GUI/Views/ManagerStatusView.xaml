@@ -1,0 +1,64 @@
+<UserControl x:Class="keycuts.GUI.Views.ManagerStatusView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- #205: Undo and the manager's status message (Deleted, Renamed, errors), shown in the footer between the count and the update
+       line. It binds to the ManagerViewModel the footer sits in. It is at most 300 wide (so a long error
+       can't crowd the update line out): the message trims with an ellipsis, and its tooltip is the whole text. -->
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+    <!-- Small accent link for the status line (Undo). -->
+    <Style x:Key="StatusLinkButton" TargetType="Button">
+      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Padding" Value="6,2" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+                    CornerRadius="{StaticResource RadiusSm}">
+              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" RecognizesAccessKey="False" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid MaxWidth="300" Margin="12,0,0,0">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <!-- #179, #205: Undo comes first, right after the count, so it is always in the same place whatever the message says. It is
+         shown while the "Deleted" message is; Ctrl+Z does the same. Its own column, so a long message is trimmed and Undo never is -->
+    <Button x:Name="UndoButton" Grid.Column="0" Style="{StaticResource StatusLinkButton}" Margin="0,0,6,0"
+            VerticalAlignment="Center" Content="Undo" Command="{Binding UndoDeleteCommand}"
+            ToolTip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="Undo delete"
+            Visibility="{Binding CanUndoDelete, Converter={StaticResource BoolToVisibility}}" />
+    <TextBlock x:Name="StatusMessageText" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+               FontSize="{StaticResource FontSizeCaption}" Text="{Binding StatusMessage}"
+               ToolTip="{Binding StatusMessage}" AutomationProperties.LiveSetting="Polite">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding StatusIsError}" Value="True">
+              <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
+  </Grid>
+</UserControl>

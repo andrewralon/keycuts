@@ -217,7 +217,9 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref keycutCount, value))
                 {
-                    OnPropertyChanged(nameof(StatusText));
+                    OnPropertyChanged(nameof(CountDescription));
+                    OnPropertyChanged(nameof(ShownText));
+                    OnPropertyChanged(nameof(HasShownText));
                 }
             }
         }
@@ -281,17 +283,28 @@ namespace keycuts.GUI.ViewModels
             get { return errorMessage ?? string.Empty; }
         }
 
-        /// <summary>Toolbar count: the filtered results.</summary>
-        public string ResultCountText
+        /// <summary>What a screen reader and the tooltip say for the footer's count pill, which shows just the total (#205): "355 keycuts".</summary>
+        public string CountDescription
         {
-            get { return Rows.Count + (Rows.Count == 1 ? " keycut" : " keycuts"); }
+            get { return keycutCount + (keycutCount == 1 ? " keycut" : " keycuts"); }
         }
 
-        /// <summary>Status bar text: the total count.</summary>
-        public string StatusText
+        /// <summary>
+        /// "4 of 355 shown", beside the search box, while a search hides some of the keycuts; empty when all of them are shown
+        /// (#205). The footer's pill always shows the total.
+        /// </summary>
+        public string ShownText
         {
-            get { return keycutCount + (keycutCount == 1 ? " item" : " items"); }
+            get { return Rows.Count == keycutCount ? string.Empty : Rows.Count + " of " + keycutCount + " shown"; }
         }
+
+        public bool HasShownText
+        {
+            get { return ShownText.Length > 0; }
+        }
+
+        /// <summary>The "new version is out" line in the footer (#171), shared with the creator; null without one (tests, design data).</summary>
+        public UpdateNoticeViewModel? UpdateNotice { get; init; }
 
         public string NoResultsMessage
         {
@@ -323,7 +336,7 @@ namespace keycuts.GUI.ViewModels
         public event EventHandler<KeycutRowViewModel?>? FocusRowRequested;
 
         /// <summary>How long a status message stays visible; errors stay twice as long.</summary>
-        public TimeSpan StatusMessageDuration { get; set; } = TimeSpan.FromSeconds(4);
+        public TimeSpan StatusMessageDuration { get; set; } = TimeSpan.FromSeconds(3);
 
         /// <summary>Brief confirmation or error shown in the status bar; empty when there is nothing to say.</summary>
         public string StatusMessage
@@ -1440,7 +1453,8 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(IsTableVisible));
             OnPropertyChanged(nameof(CanSearch));
             OnPropertyChanged(nameof(ErrorMessage));
-            OnPropertyChanged(nameof(ResultCountText));
+            OnPropertyChanged(nameof(ShownText));
+            OnPropertyChanged(nameof(HasShownText));
             OnPropertyChanged(nameof(NoResultsMessage));
         }
     }

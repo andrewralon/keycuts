@@ -52,6 +52,15 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void StatusMessages_ShowForThreeSeconds_ByDefault_AndDeletedWithItsUndoLongerSinceAButtonNeedsReaching()
+        {
+            var manager = NewManager(Returning());
+
+            Assert.Equal(TimeSpan.FromSeconds(3), manager.StatusMessageDuration);
+            Assert.Equal(TimeSpan.FromSeconds(8), manager.UndoDuration);
+        }
+
+        [Fact]
         public async Task LoadAsync_Populates_RowsCountsAndTexts()
         {
             var manager = NewManager(Returning(NewKeycut("a"), NewKeycut("b"), NewKeycut("c")));
@@ -61,8 +70,9 @@ namespace keycuts.Tests
             Assert.Equal(ManagerState.Populated, manager.State);
             Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
             Assert.Equal(3, manager.KeycutCount);
-            Assert.Equal("3 keycuts", manager.ResultCountText);
-            Assert.Equal("3 items", manager.StatusText);
+            Assert.Equal("3 keycuts", manager.CountDescription);
+            Assert.Equal(string.Empty, manager.ShownText);   // all of them are shown: nothing to say
+            Assert.False(manager.HasShownText);
             Assert.True(manager.IsTableVisible);
             Assert.True(manager.CanSearch);
             Assert.False(manager.IsLoading);
@@ -75,8 +85,7 @@ namespace keycuts.Tests
 
             await manager.LoadAsync();
 
-            Assert.Equal("1 keycut", manager.ResultCountText);
-            Assert.Equal("1 item", manager.StatusText);
+            Assert.Equal("1 keycut", manager.CountDescription);
         }
 
         [Fact]
@@ -89,8 +98,7 @@ namespace keycuts.Tests
             Assert.Equal(ManagerState.Empty, manager.State);
             Assert.True(manager.IsEmpty);
             Assert.False(manager.CanSearch);
-            Assert.Equal("0 keycuts", manager.ResultCountText);
-            Assert.Equal("0 items", manager.StatusText);
+            Assert.Equal("0 keycuts", manager.CountDescription);
         }
 
         [Fact]

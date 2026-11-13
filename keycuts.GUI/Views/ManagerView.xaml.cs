@@ -102,11 +102,11 @@ namespace keycuts.GUI.Views
             else if (modifiers == ModifierKeys.Shift)
             {
                 // Shift+F2 edits the description, as F2 edits the name
-                if (e.Key == Key.F2 && ViewModel.SelectedRow != null)
+                if (e.Key == Key.F2 && ActionRow() is { } describing)
                 {
                     e.Handled = true;
-                    Table.ScrollIntoView(ViewModel.SelectedRow);
-                    ViewModel.BeginEditDescription(ViewModel.SelectedRow);
+                    Table.ScrollIntoView(describing);
+                    ViewModel.BeginEditDescription(describing);
                 }
             }
             else if (modifiers == ModifierKeys.None)
@@ -187,10 +187,10 @@ namespace keycuts.GUI.Views
         {
             switch (e.Key)
             {
-                case Key.F2 when ViewModel!.SelectedRow != null:
+                case Key.F2 when ActionRow() is { } renaming:
                     e.Handled = true;
-                    Table.ScrollIntoView(ViewModel.SelectedRow);
-                    ViewModel.BeginRename(ViewModel.SelectedRow);
+                    Table.ScrollIntoView(renaming);
+                    ViewModel!.BeginRename(renaming);
                     break;
                 case Key.Up:
                 case Key.Down:
@@ -332,7 +332,8 @@ namespace keycuts.GUI.Views
                 }
 
                 // The click only saves; it doesn't also start another edit
-                _ = ViewModel.IsRenaming ? ViewModel.CommitRenameAsync() : ViewModel.CommitDescriptionAsync();
+                // (A description saved by a click elsewhere leaves the focus where that click put it)
+                _ = ViewModel.IsRenaming ? ViewModel.CommitRenameAsync() : ViewModel.CommitDescriptionAsync(restoreFocus: false);
                 return;
             }
 
@@ -414,7 +415,8 @@ namespace keycuts.GUI.Views
             if (e.NewFocus != null && sender is TextBox { DataContext: KeycutRowViewModel { IsEditingDescription: true } } box &&
                 !IsInContextMenuOf(box, e.NewFocus as DependencyObject))
             {
-                _ = ViewModel?.CommitDescriptionAsync();
+                // Tabbed or clicked away: the focus is already where the user put it
+                _ = ViewModel?.CommitDescriptionAsync(restoreFocus: false);
             }
         }
 

@@ -1414,6 +1414,36 @@ namespace keycuts.Tests
             Assert.Same(manager.Rows[0], requests.Single());
         }
 
+        // A click or Tab away saves the description, and leaves the focus where the user put it
+        [Fact]
+        public async Task EditDescription_CommitWithoutRestoringFocus_AsksForNoFocus_InAnyOutcome()
+        {
+            var requests = new List<KeycutRowViewModel?>();
+
+            // Saved
+            var actions = new FakeActions();
+            var manager = await LoadedOnDiskAsync(actions, "a");
+            manager.FocusRowRequested += (s, row) => requests.Add(row);
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "new";
+            await manager.CommitDescriptionAsync(restoreFocus: false);
+            Assert.Equal("new", manager.Rows[0].Description);
+
+            // Unchanged
+            manager.BeginEditDescription(manager.Rows[0]);
+            await manager.CommitDescriptionAsync(restoreFocus: false);
+
+            // Refused
+            actions.DescribeError = new KeycutRepositoryException(KeycutRepositoryError.Changed, "changed");
+            manager.BeginEditDescription(manager.Rows[0]);
+            manager.Rows[0].EditDescription = "other";
+            await manager.CommitDescriptionAsync(restoreFocus: false);
+            Assert.True(manager.StatusIsError);
+
+            Assert.Empty(requests);
+            Assert.Same(manager.Rows[0], manager.SelectedRow);
+        }
+
         [Fact]
         public async Task EditDescription_Cancel_ChangesNothing_AndGivesTheFocusBack()
         {

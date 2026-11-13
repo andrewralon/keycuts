@@ -133,6 +133,22 @@ namespace keycuts.Tests
             Assert.Equal(arguments, file.Arguments);
         }
 
+        // A program that says where it is isn't put in the start-in folder
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Work\" D:\\Apps\\tool.exe --flag", @"D:\Apps\tool.exe")]
+        [InlineData("START \"\" /D \"C:\\Work\" \"D:\\Apps\\tool.exe\" --flag", @"D:\Apps\tool.exe")]
+        [InlineData("START \"\" /D \"C:\\Work\" \"D:\\Apps\\tool.exe\"", @"D:\Apps\tool.exe")]
+        [InlineData("START \"\" /D \"C:\\Work\" \\\\server\\share\\tool.exe -x", @"\\server\share\tool.exe")]
+        [InlineData("START \"\" /D \"C:\\Work\" %ProgramFiles%\\Tools\\tool.exe -x", @"%ProgramFiles%\Tools\tool.exe")]
+        [InlineData("START \"\" /D \"C:\\Work\" tool.exe -x", @"C:\Work\tool.exe")]
+        public void StartInFolder_AProgramThatIsAlreadyAFullPath_IsNotPrefixedWithTheFolder(string line, string program)
+        {
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(program, file.Target);
+            Assert.Equal(program, file.Program);
+        }
+
         // Not read as a program: the other patterns (and the Unknown mark) deal with these as before
         [Theory]
         [InlineData("START \"\" /D \"C:\\Tools\" /MIN app.exe")]

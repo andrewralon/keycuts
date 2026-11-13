@@ -504,7 +504,7 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>Shows the saved keycut in place of the edited one, selected and focused. A reload that got there first leaves one row.</summary>
-        private void ReplaceEditedRow(Keycut before, Keycut saved)
+        private void ReplaceEditedRow(Keycut before, Keycut saved, bool requestFocus = true)
         {
             allRows.RemoveAll(r => string.Equals(r.Keycut.FilePath, before.FilePath, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(r.Keycut.FilePath, saved.FilePath, StringComparison.OrdinalIgnoreCase));
@@ -522,7 +522,11 @@ namespace keycuts.GUI.ViewModels
 
             ApplyFilter();
             SelectedRow = row;
-            FocusRowRequested?.Invoke(this, row);
+
+            if (requestFocus)
+            {
+                FocusRowRequested?.Invoke(this, row);
+            }
         }
 
         /// <summary>Shows the keycut's .bat file in Explorer. A file that is gone reloads the list, as Edit in Notepad does.</summary>
@@ -770,7 +774,9 @@ namespace keycuts.GUI.ViewModels
         /// selected and focused, with its new Modified date, and a reload follows; a failure (the file is gone, changed on
         /// disk since it loaded, isn't valid UTF-8, or is locked) ends the edit and says why in the status line.
         /// </summary>
-        public async Task CommitDescriptionAsync()
+        /// <param name="restoreFocus">True (Enter) gives the focus back to the row. A click or Tab that moved the focus
+        /// elsewhere passes false, so the save doesn't pull it back from where the user put it.</param>
+        public async Task CommitDescriptionAsync(bool restoreFocus = true)
         {
             var row = describingRow;
 
@@ -783,9 +789,17 @@ namespace keycuts.GUI.ViewModels
             var typed = row.EditDescription ?? string.Empty;
             EndDescriptionEdit();
 
+            void Refocus()
+            {
+                if (restoreFocus)
+                {
+                    FocusRowRequested?.Invoke(this, row);
+                }
+            }
+
             if (string.Equals(typed.Trim(), keycut.Description ?? string.Empty, StringComparison.Ordinal))
             {
-                FocusRowRequested?.Invoke(this, row);
+                Refocus();
                 _ = LoadAsync();
                 return;
             }
@@ -811,26 +825,26 @@ namespace keycuts.GUI.ViewModels
                 catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.Changed)
                 {
                     ShowStatusMessage("“" + row.Name + "” changed on disk, so its description wasn’t changed. It’s reloaded.", true);
-                    FocusRowRequested?.Invoke(this, row);
+                    Refocus();
                     _ = LoadAsync();
                     return;
                 }
                 catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotEditable)
                 {
                     ShowStatusMessage("Couldn’t change the description of “" + row.Name + "”: its file isn’t valid UTF-8. Edit it in Notepad.", true);
-                    FocusRowRequested?.Invoke(this, row);
+                    Refocus();
                     _ = LoadAsync();
                     return;
                 }
                 catch (Exception ex)
                 {
                     ShowStatusMessage("Couldn’t change the description of “" + row.Name + "”: " + ReasonOf(ex), true);
-                    FocusRowRequested?.Invoke(this, row);
+                    Refocus();
                     _ = LoadAsync();
                     return;
                 }
 
-                ReplaceEditedRow(keycut, saved);
+                ReplaceEditedRow(keycut, saved, restoreFocus);
                 ShowStatusMessage("Saved the description of “" + saved.Name + "”", false);
             }
             finally

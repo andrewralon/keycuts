@@ -120,6 +120,43 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
         }
 
+        // Only the supplied folders are searched: the output folder counts when it is on PATH, and not when it isn't
+        [Fact]
+        public async Task BareProgramName_ABatchFileInTheOutputFolderOnThePath_IsFound()
+        {
+            File.WriteAllText(Path.Combine(_folder, "tool.bat"), "@ECHO OFF\r\nSTART https://example.com\r\n");
+            WriteLaunch("alias", "START \"\" /D \"\" \"tool\"");
+
+            var keycut = await LoadAndCheck("alias", Lookup(_folder));
+
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task BareProgramName_InTheOutputFolderWhenItIsNotOnThePath_IsNotFound()
+        {
+            File.WriteAllText(Path.Combine(_folder, "tool.exe"), "x");
+            WriteLaunch("alias", "START \"\" /D \"\" \"tool.exe\"");
+
+            var keycut = await LoadAndCheck("alias", Lookup(_programs));
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task AQuestionMarkWildcard_IsNotMarked_ButAnExtendedPathPrefixIsNotOne()
+        {
+            WriteLaunch("wild", "START \"\" /B \"C:\\Tools\\app?.exe\"");
+            WriteLaunch("extended", "START \"\" /B \"\\\\?\\C:\\no-such-folder-for-keycuts-tests\\app.exe\"");
+            var repository = new KeycutRepository(_folder, new PermanentDeleter(), () => Lookup());
+            var all = await repository.LoadAllAsync();
+
+            await repository.CheckTargetsAsync(all);
+
+            Assert.Equal(TargetStatus.Unknown, all.Single(k => k.Name == "wild").TargetStatus);
+            Assert.Equal(TargetStatus.Missing, all.Single(k => k.Name == "extended").TargetStatus);
+        }
+
         // The program exists and the argument doesn't: an argument is the program's business, not a path we promise
         [Fact]
         public async Task QuotedArgument_ThatDoesNotExist_DoesNotMakeTheKeycutMissing()

@@ -1089,7 +1089,9 @@ namespace keycuts.Common
                     {
                         var environment = lookup.Value;
 
-                        if (NameConflicts.Find(path, _outputFolder, environment).Count > 0)
+                        // No output folder: that argument gives a name its conflict rules (the keycut's own .bat is skipped, the
+                        // folder is searched even when it isn't on PATH), and this only asks what Windows would find
+                        if (NameConflicts.Find(path, null, environment).Count > 0)
                         {
                             return new CheckResult(TargetStatus.Ok, path);
                         }
@@ -1127,7 +1129,15 @@ namespace keycuts.Common
         /// <summary>False for text that can't name a file: empty, with a quote, a wildcard or another character Windows paths can't hold.</summary>
         private static bool IsPlausiblePath(string path)
         {
-            return !string.IsNullOrWhiteSpace(path) && path.IndexOfAny(ImplausiblePathChars) < 0;
+            if (string.IsNullOrWhiteSpace(path) || path.IndexOfAny(ImplausiblePathChars) >= 0)
+            {
+                return false;
+            }
+
+            // ? is the other wildcard, except in the \\?\ prefix of an extended path
+            var body = path.StartsWith(@"\\?\", StringComparison.Ordinal) || path.StartsWith(@"\\.\", StringComparison.Ordinal) ? path.Substring(4) : path;
+
+            return body.IndexOf('?') < 0;
         }
 
         /// <summary>A program name with no folder in it, like <c>chrome</c> or <c>notepad.exe</c>: a file name, not a path.</summary>

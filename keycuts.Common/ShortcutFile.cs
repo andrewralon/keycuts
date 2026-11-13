@@ -395,9 +395,19 @@ namespace keycuts.Common
             return true;
         }
 
+        /// <summary>
+        /// The start-in folder and the program as one path. A program that already says where it is (<c>D:\Apps\tool.exe</c>,
+        /// a UNC path, or one that starts with an environment variable such as <c>%ProgramFiles%\...</c>) is left alone:
+        /// the folder is only where it starts, and prefixing it would make a path that doesn't exist.
+        /// </summary>
         private static string JoinFolder(string folder, string program)
         {
-            return folder.Length == 0 ? program : folder + "\\" + program;
+            if (folder.Length == 0 || program.StartsWith("%", StringComparison.Ordinal) || System.IO.Path.IsPathFullyQualified(program))
+            {
+                return program;
+            }
+
+            return folder + "\\" + program;
         }
 
         public static bool IsCommand(string line, out string command)

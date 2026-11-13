@@ -87,6 +87,47 @@ namespace keycuts.Tests
             });
         }
 
+        // As the other row keys: the row whose menu button has the focus is the one the user is on
+        [Theory]
+        [InlineData(ModifierKeys.None)]
+        [InlineData(ModifierKeys.Shift)]
+        public void Manager_F2AndShiftF2_ActOnTheRowWhoseMenuButtonHasTheFocus(ModifierKeys modifiers)
+        {
+            WithManager(new[] { "alpha", "bravo", "charlie" }, (window, manager, actions, search) =>
+            {
+                Assert.True(Press(search, Key.Down));
+                var button = Descendants<GUI.Controls.MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for charlie");
+                button.Focus();
+                Keyboard.Focus(button);
+                Pump();
+
+                Assert.True(Press(button, Key.F2, modifiers));
+
+                Assert.Equal("charlie", manager.SelectedRow?.Name);
+                Assert.Equal(modifiers == ModifierKeys.None, manager.IsRenaming);
+                Assert.Equal(modifiers == ModifierKeys.Shift, manager.IsEditingDescription);
+            });
+        }
+
+        // With nothing selected, a focused row button is enough to say which row
+        [Fact]
+        public void Manager_ShiftF2_WithNothingSelected_EditsTheRowOfTheFocusedButton()
+        {
+            WithManager(new[] { "alpha", "bravo" }, (window, manager, actions, search) =>
+            {
+                var button = Descendants<GUI.Controls.MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for bravo");
+                button.Focus();
+                Keyboard.Focus(button);
+                Pump();
+                Assert.Null(manager.SelectedRow);
+
+                Assert.True(Press(button, Key.F2, ModifierKeys.Shift));
+
+                Assert.Equal("bravo", manager.SelectedRow?.Name);
+                Assert.True(manager.IsEditingDescription);
+            });
+        }
+
         [Fact]
         public void Manager_RowKeys_StepAside_WhileTheDescriptionIsEdited()
         {

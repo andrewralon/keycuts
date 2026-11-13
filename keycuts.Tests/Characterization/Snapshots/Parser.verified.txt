@@ -201,12 +201,13 @@ Description: ||
 ## not-keycuts/chromep0.bat
 Shortcut:    |chromep0|
 Type:        File
-Target:      |%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default|
-Program:     ||
-Arguments:   ||
+Target:      |%programfiles(x86)%\Google\Chrome\Application\chrome.exe|
+Program:     |%programfiles(x86)%\Google\Chrome\Application\chrome.exe|
+Arguments:   |--profile-directory="Default"|
 OpenWithApp: <null>
 Command:     |START "" /D "%programfiles(x86)%\Google\Chrome\Application" chrome.exe --profile-directory="Default"|
 Description: ||
+Note:        Not written by keycuts, but a launcher the manager lists, so it is read as a File: the target is the program alone and --profile-directory is only on Arguments and Command. Re-emitting from Target would drop it (#203, #172).
 
 ## not-keycuts/dequote.bat
 Shortcut:    |dequote|

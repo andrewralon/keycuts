@@ -45,12 +45,12 @@ No `hostsfile` or `command` examples exist in either real-format group — consi
 
 ## `not-keycuts/` — 7 files
 
-Genuine hand-written batch scripts living alongside real keycuts output in the same folder, to make sure the parser correctly rejects them rather than misparsing them as a shortcut of some type:
+Genuine hand-written batch scripts living alongside real keycuts output in the same folder, to make sure the parser correctly rejects them rather than misparsing them as a shortcut of some type. The one exception is `chromep0.bat` below, which the parser has always read as a File and still does (#203):
 
 - `jira.bat`, `newjira.bat` — argument parsing, `GOTO` labels, `SETLOCAL`; `newjira.bat` also has triple-caret escaping (`^^^&`) worth noting against #91's escaping work
 - `regeditopen.bat`, `swaphosts.bat` — `SET /P`, delegation to PowerShell/`nircmdc.exe`
 - `ss.bat` — full control-flow script (`FOR`, `IF`, IF/GOTO), takes a numeric argument
-- `chromep0.bat` — lowercase `@echo OFF`/`exit`, no `REM` header at all, but structurally resembles a keycut (a `START`-style launch of Chrome with a profile arg)
+- `chromep0.bat` — lowercase `@echo OFF`/`exit`, no `REM` header at all, but structurally resembles a keycut (a `START`-style launch of Chrome with a profile arg). **Not rejected, on purpose**: it is a launcher the user wants to see in the manager, so it is read as a File, and rejecting it would make it vanish from the list. Its line is `START "" /D "<folder>" chrome.exe --profile-directory="Default"`, with an unquoted program and an argument; the target is the program (`<folder>\chrome.exe`) and the argument is only on `Arguments` and `Command`. It stays uneditable in the Edit form, since the emitter can't write the line back
 - `dequote.bat` — a general-purpose utility script
 
 ## `edge-cases/` — 10 files, hand-crafted

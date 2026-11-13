@@ -113,6 +113,57 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
+        // The hand-written Chrome launcher (tests/corpus/legacy/not-keycuts/chromep0.bat), with a program that exists here
+        [Fact]
+        public async Task UnquotedProgramAndArgument_InAStartInFolder_ChecksTheProgram()
+        {
+            Program("tool.exe");
+            WriteLaunch("chrome", $"START \"\" /D \"{_programs}\" tool.exe --profile-directory=\"Profile 2\"");
+
+            var keycut = await LoadAndCheck("chrome");
+
+            // The target is the program alone, a path, not the old string with a stray quote in the middle
+            Assert.Equal(Path.Combine(_programs, "tool.exe"), keycut.Target);
+            Assert.Equal(Path.Combine(_programs, "tool.exe"), keycut.Program);
+            Assert.Equal("--profile-directory=\"Profile 2\"", keycut.Arguments);
+            Assert.Equal(KeycutKind.File, keycut.Kind);
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task UnquotedProgramAndArgument_WithTheProgramGone_IsMissing()
+        {
+            WriteLaunch("chrome", $"START \"\" /D \"{_programs}\" tool.exe --profile-directory=\"Profile 2\"");
+
+            var keycut = await LoadAndCheck("chrome");
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+        }
+
+        // The start-in folder is what is missing, as for the maintainer's launchers: START doesn't launch anything then
+        [Fact]
+        public async Task UnquotedProgram_WithTheStartInFolderGone_IsMissing()
+        {
+            WriteLaunch("chrome", $"START \"\" /D \"{Path.Combine(_root, "no such folder")}\" tool.exe --x");
+
+            var keycut = await LoadAndCheck("chrome");
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+        }
+
+        // The emitter can't write these lines back as they are, so the Edit form must keep refusing them
+        [Theory]
+        [InlineData("START \"\" /D \"{0}\" tool.exe --profile-directory=\"Profile 2\"")]
+        [InlineData("START \"\" /D \"{0}\" \"tool.exe\" \"data.ini\"")]
+        [InlineData("START \"\" /D \"{0}\" \"tool.exe\" --flag")]
+        public void StartInFolderLaunchers_CannotBeEditedInTheForm(string line)
+        {
+            Program("tool.exe");
+            WriteLaunch("launcher", string.Format(line, _programs));
+
+            Assert.False(KeycutRepository.CanEditInForm(Path.Combine(_folder, "launcher.bat")));
+        }
+
         [Fact]
         public async Task PlainFile_HasItsTargetAsItsProgram()
         {

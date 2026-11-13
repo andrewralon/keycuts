@@ -291,11 +291,19 @@ namespace keycuts.Common
         }
 
         /// <summary>
-        /// Reads the 0.1.x launch line for a program, <c>START "" /D "&lt;folder&gt;" "&lt;program&gt;" ["&lt;argument&gt;" ...]</c>.
-        /// The folder and program are joined into one path (just the program when the folder is empty), and any quoted
-        /// arguments are kept after it, unquoted like a File target: <c>C:\Tools\app.exe" "arg</c>. The /B line the
-        /// emitter writes for that reads back the same. A line with an unquoted program, or any unquoted argument (even
-        /// one between quoted arguments), is left to the other patterns.
+        /// Reads the launch line for a program that starts in a folder, <c>START "" /D "&lt;folder&gt;" ...</c>, which is
+        /// the 0.1.x form and what people write by hand. The folder and program are joined into one path (just the program
+        /// when the folder is empty). What follows the program decides what the target holds:
+        /// <list type="bullet">
+        /// <item>Only quoted arguments (<c>"&lt;program&gt;" ["&lt;argument&gt;" ...]</c>): they are kept after the program,
+        /// unquoted like a File target, <c>C:\Tools\app.exe" "arg</c>. The /B line the emitter writes for that reads back
+        /// the same.</item>
+        /// <item>Anything else, an unquoted program or an argument that isn't quoted (<c>chrome.exe --profile-directory="Profile 2"</c>):
+        /// the target is the program alone, <c>C:\Tools\chrome.exe</c>. The arguments don't fit in a target that the
+        /// emitter wraps in one pair of quotes, so they are only on <see cref="Arguments"/> (see
+        /// <see cref="TryReadStartInFolder"/>).</item>
+        /// </list>
+        /// A line whose program starts with <c>/</c> (a START switch such as <c>/MIN</c>) is left to the other patterns.
         /// </summary>
         public static bool IsStartInFolder(string line, out string file)
         {
@@ -304,9 +312,9 @@ namespace keycuts.Common
 
         /// <summary>
         /// <see cref="IsStartInFolder"/> that also says where the program ends: <paramref name="program"/> is the folder
-        /// and program joined (the path to look for), and <paramref name="arguments"/> is the quoted arguments after it,
-        /// trimmed (empty if there are none). <paramref name="file"/> is the same text as always, program and arguments
-        /// in one string.
+        /// and program joined (the path to look for), and <paramref name="arguments"/> is what follows it on the line,
+        /// trimmed and as written (empty if there is nothing). <paramref name="file"/> is the target: for quoted arguments
+        /// the program and arguments in one string, as always; otherwise the same as <paramref name="program"/>.
         /// </summary>
         public static bool TryReadStartInFolder(string line, out string file, out string program, out string arguments)
         {
@@ -321,18 +329,69 @@ namespace keycuts.Common
             }
 
             var folder = match.Groups[1].Value;
-            var parts = regexProgramAndArguments.Match(match.Groups[2].Value);
+            var rest = match.Groups[2].Value;
+            var quoted = regexProgramAndArguments.Match(rest);
 
-            if (!parts.Success)
+            if (quoted.Success)
+            {
+                var quotedArguments = quoted.Groups[2].Value;
+                program = JoinFolder(folder, quoted.Groups[1].Value);
+                arguments = quotedArguments.Trim();
+                file = Unquote("\"" + program + "\"" + quotedArguments);
+                return true;
+            }
+
+            // More than one blank after the folder, or only blanks, is no program
+            rest = rest.Trim();
+
+            if (rest.Length == 0)
             {
                 return false;
             }
 
-            var quotedArguments = parts.Groups[2].Value;
-            program = folder.Length == 0 ? parts.Groups[1].Value : folder + "\\" + parts.Groups[1].Value;
-            arguments = quotedArguments.Trim();
-            file = Unquote("\"" + program + "\"" + quotedArguments);
+            string name;
+            string tail;
+
+            if (rest[0] == '"')
+            {
+                // A quoted program followed by something that isn't a quoted argument
+                var close = rest.IndexOf('"', 1);
+
+                if (close < 0 || (close + 1 < rest.Length && !char.IsWhiteSpace(rest[close + 1])))
+                {
+                    return false;
+                }
+
+                name = rest.Substring(1, close - 1);
+                tail = rest.Substring(close + 1);
+            }
+            else
+            {
+                // An unquoted program ends at the first blank, as START reads it
+                var end = rest.IndexOfAny(new[] { ' ', '\t' });
+                name = end < 0 ? rest : rest.Substring(0, end);
+                tail = end < 0 ? "" : rest.Substring(end);
+
+                if (name.Contains('"'))
+                {
+                    return false;
+                }
+            }
+
+            if (name.Length == 0 || name[0] == '/')
+            {
+                return false;
+            }
+
+            program = JoinFolder(folder, name);
+            arguments = tail.Trim();
+            file = program;
             return true;
+        }
+
+        private static string JoinFolder(string folder, string program)
+        {
+            return folder.Length == 0 ? program : folder + "\\" + program;
         }
 
         public static bool IsCommand(string line, out string command)

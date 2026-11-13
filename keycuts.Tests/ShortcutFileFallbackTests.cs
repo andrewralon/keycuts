@@ -109,12 +109,38 @@ namespace keycuts.Tests
             Assert.Contains("START \"\" /B \"C:\\Tools\\app.exe\" \"arg\"", emitted);
         }
 
+        // #203: a program that isn't quoted, or an argument that isn't, can't be joined into the target and re-emitted
+        // identically. The target is the program alone and the rest is its arguments. These lines used to go to the File
+        // pattern, whose greedy quotes gave a target with the folder in it and no backslash before the program.
         [Theory]
-        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag \"arg\"")]
-        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\" --flag")]
-        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag")]
-        [InlineData("START \"\" /D \"C:\\Tools\" app.exe")]
-        public void StartInFolder_WithAnUnquotedPart_IsLeftToTheOtherPatterns(string line)
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag \"arg\"", @"C:\Tools\app.exe", "--flag \"arg\"")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" \"arg\" --flag", @"C:\Tools\app.exe", "\"arg\" --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\" --flag", @"C:\Tools\app.exe", "--flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" app.exe", @"C:\Tools\app.exe", "")]
+        [InlineData("START \"\" /D \"%programfiles(x86)%\\Google\\Chrome\\Application\" chrome.exe --profile-directory=\"Profile 2\"", @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe", "--profile-directory=\"Profile 2\"")]
+        [InlineData("START \"\" /D \"\" notepad.exe C:\\Windows\\win.ini", "notepad.exe", @"C:\Windows\win.ini")]
+        [InlineData("START \"\" /D \"C:\\Tools\"   app.exe    --flag  ", @"C:\Tools\app.exe", "--flag")]
+        public void StartInFolder_WithAnUnquotedPart_IsTheProgramAloneAndItsArguments(string line, string program, string arguments)
+        {
+            Assert.True(ShortcutFile.IsStartInFolder(line, out var target));
+            Assert.Equal(program, target);
+
+            var file = new ShortcutFile(@"C:\Shortcuts\app.bat", new[] { line });
+
+            Assert.Equal(ShortcutType.File, file.Type);
+            Assert.Equal(program, file.Target);
+            Assert.Equal(program, file.Program);
+            Assert.Equal(arguments, file.Arguments);
+        }
+
+        // Not read as a program: the other patterns (and the Unknown mark) deal with these as before
+        [Theory]
+        [InlineData("START \"\" /D \"C:\\Tools\" /MIN app.exe")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe\"x --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\" app\"x.exe")]
+        [InlineData("START \"\" /D \"C:\\Tools\" \"app.exe --flag")]
+        [InlineData("START \"\" /D \"C:\\Tools\"    ")]
+        public void StartInFolder_WithNoReadableProgram_IsLeftToTheOtherPatterns(string line)
         {
             Assert.False(ShortcutFile.IsStartInFolder(line, out _));
         }

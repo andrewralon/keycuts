@@ -26,6 +26,7 @@ namespace keycuts.Tests.Characterization
             ["edge-cases/openwithapp.bat"] = "Read from the REM lines, so OpenWithApp is lost: the fallback has no File-with-app form, and without REM lines it would read the app and the file as one File target (the line between its first and last quote), which re-emits the same line (#89).",
             ["new-format/keypaste.bat"] = "The REM target wins, so the hand-added %* is only in Command, not Target (#91). Re-emitting from these fields would drop it.",
             ["new-format/kp.bat"] = "The REM target wins, so the hand-added %* is only in Command, not Target (#91). Re-emitting from these fields would drop it.",
+            ["not-keycuts/chromep0.bat"] = "Not written by keycuts, but a launcher the manager lists, so it is read as a File: the target is the program alone and --profile-directory is only on Arguments and Command. Re-emitting from Target would drop it (#203, #172).",
             ["not-keycuts/dequote.bat"] = "Not a keycut. No START or explorer.exe line, so Unknown.",
             ["not-keycuts/ss.bat"] = "Not a keycut. The explorer.exe argument is unquoted, so no pattern matches.",
             ["old-format/gg.bat"] = "Header says url, but the command is a hand-edited Chrome launcher; only the command line is read (#91).",

@@ -68,6 +68,9 @@ namespace keycuts.GUI.ViewModels
         /// <summary>An existing keycut that opens the very target being created: nothing would change but the file.</summary>
         public const string ReplaceSameMessage = "\u201c{0}\u201d already exists and opens this target.";
 
+        /// <summary>An existing keycut whose URL differs from the new one only in capitals or a trailing slash: left to the user.</summary>
+        public const string ReplaceSimilarMessage = "\u201c{0}\u201d already exists and opens {1}, a URL that differs from this one only in capitals or a trailing slash.";
+
         /// <summary>An existing keycut whose target couldn't be read.</summary>
         public const string ReplaceUnknownMessage = "\u201c{0}\u201d already exists.";
 
@@ -86,6 +89,9 @@ namespace keycuts.GUI.ViewModels
         /// <summary>A keycut in another keycuts folder on PATH that opens the very target being created.</summary>
         public const string KeycutSameMessage = "\u201c{0}\u201d already exists in {1} and opens this target.";
 
+        /// <summary>A keycut in another keycuts folder on PATH whose URL differs only in capitals or a trailing slash.</summary>
+        public const string KeycutSimilarMessage = "\u201c{0}\u201d already exists in {1} and opens {2}, a URL that differs from this one only in capitals or a trailing slash.";
+
         /// <summary>
         /// One line about a name conflict, as the creator, the manager and the confirmation show it. A conflict that is a keycut
         /// says so and what it opens, and when that is <paramref name="newTarget"/> (null for a rename, which has none) that it
@@ -99,9 +105,16 @@ namespace keycuts.GUI.ViewModels
             {
                 var folder = System.IO.Path.GetDirectoryName(conflict.Path) ?? conflict.Path;
 
-                if (TargetComparison.IsSame(keycut.Target, newTarget ?? string.Empty))
+                var match = TargetComparison.Compare(keycut.Target, newTarget ?? string.Empty);
+
+                if (match == TargetMatch.Same)
                 {
                     return string.Format(KeycutSameMessage, name, folder);
+                }
+
+                if (match == TargetMatch.Similar)
+                {
+                    return string.Format(KeycutSimilarMessage, name, folder, keycut.Target);
                 }
 
                 var keycutFormat = conflict.Effect == NameConflictEffect.Hidden ? KeycutHiddenMessage : KeycutShadowsMessage;
@@ -131,13 +144,16 @@ namespace keycuts.GUI.ViewModels
                 {
                     lines.Add(string.Format(ReplaceUnknownMessage, check.Name));
                 }
-                else if (TargetComparison.IsSame(check.Existing.Target, newTarget ?? string.Empty))
-                {
-                    lines.Add(string.Format(ReplaceSameMessage, check.Name));
-                }
                 else
                 {
-                    lines.Add(string.Format(ReplaceMessage, check.Name, check.Existing.Target));
+                    var match = TargetComparison.Compare(check.Existing.Target, newTarget ?? string.Empty);
+
+                    lines.Add(match switch
+                    {
+                        TargetMatch.Same => string.Format(ReplaceSameMessage, check.Name),
+                        TargetMatch.Similar => string.Format(ReplaceSimilarMessage, check.Name, check.Existing.Target),
+                        _ => string.Format(ReplaceMessage, check.Name, check.Existing.Target)
+                    });
                 }
             }
 

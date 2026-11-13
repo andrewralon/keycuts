@@ -37,12 +37,12 @@ namespace keycuts.Tests
         }
 
         // A keycut file in a folder, and a name check run against a user PATH that holds that folder but isn't the output folder
-        (string Folder, NameCheck Check) CheckAgainstAKeycutOnPath(string name, string target)
+        (string Folder, NameCheck Check) CheckAgainstAKeycutOnPath(string name, string target, ShortcutType type = ShortcutType.Folder)
         {
             var other = Path.Combine(root, "other");
             Directory.CreateDirectory(other);
             var file = Path.Combine(other, name + ".bat");
-            File.WriteAllLines(file, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Folder, target, file)));
+            File.WriteAllLines(file, Runner.BuildShortcutLines(Shortcut.FromParts(type, target, file)));
 
             var output = Path.Combine(root, "output");
             Directory.CreateDirectory(output);
@@ -68,6 +68,70 @@ namespace keycuts.Tests
         {
             Assert.Equal(same, TargetComparison.IsSame(first, second));
             Assert.Equal(same, TargetComparison.IsSame(second, first));
+        }
+
+        [Theory]
+        [InlineData("https://x.com/Path", "https://x.com/path", TargetMatch.Similar)]
+        [InlineData("https://x.com/path", "https://x.com/path/", TargetMatch.Similar)]
+        [InlineData("https://x.com/?q=Abc", "https://x.com/?q=abc", TargetMatch.Similar)]
+        [InlineData("https://x.com/watch?v=AbC", "https://x.com/watch?v=aBc", TargetMatch.Similar)]
+        [InlineData("https://x.com/path", "https://x.com/other", TargetMatch.Different)]
+        [InlineData("https://x.com/path", "https://x.com/path?x=1", TargetMatch.Different)]
+        [InlineData("https://x.com", "https://x.com/", TargetMatch.Same)]
+        [InlineData("https://X.COM/path", "https://x.com/path", TargetMatch.Same)]
+        [InlineData("https://x.com:443/path", "https://x.com/path", TargetMatch.Same)]
+        [InlineData("https://x.com/Path", "https://x.com/Path", TargetMatch.Same)]
+        public void Compare_TreatsUrlsAsCaseSensitive_BeyondTheHost_AndCallsTheRestSimilar(string first, string second, TargetMatch expected)
+        {
+            Assert.Equal(expected, TargetComparison.Compare(first, second));
+            Assert.Equal(expected, TargetComparison.Compare(second, first));
+            Assert.Equal(expected == TargetMatch.Same, TargetComparison.IsSame(first, second));
+        }
+
+        [Fact]
+        public void Compare_NeverCallsAPathSimilar_SinceWindowsPathsIgnoreCase()
+        {
+            Assert.Equal(TargetMatch.Same, TargetComparison.Compare(@"C:\Users\me\Downloads", @"c:\users\ME\downloads\"));
+            Assert.Equal(TargetMatch.Different, TargetComparison.Compare(@"C:\Users\me\Downloads", "https://x.com/Downloads"));
+        }
+
+        [Fact]
+        public void AnExistingKeycut_WithASimilarUrl_ShowsItsUrl_AndLeavesTheCallToTheUser()
+        {
+            var check = TestNameChecks.Existing("g", "https://x.com/Path");
+
+            Assert.Equal(
+                "\u201cg\u201d already exists and opens https://x.com/Path, a URL that differs from this one only in capitals or a trailing slash.",
+                CreatorViewModel.GetNameWarningMessage(check, "https://x.com/path"));
+            Assert.Equal(
+                "\u201cg\u201d already exists and opens https://x.com/Path, a URL that differs from this one only in capitals or a trailing slash.",
+                CreatorViewModel.GetNameWarningMessage(check, "https://x.com/Path/"));
+            Assert.Equal("\u201cg\u201d already exists and opens this target.", CreatorViewModel.GetNameWarningMessage(check, "https://X.com/Path"));
+        }
+
+        [Fact]
+        public void TheCreator_ShowsASimilarUrlAsAWarning()
+        {
+            var creator = NewCreator();
+            creator.ShortcutName = "g";
+            creator.Target = "https://x.com/path";
+            creator.SetNameWarning(TestNameChecks.Existing("g", "https://x.com/Path"));
+
+            Assert.True(creator.HelperIsWarning);
+            Assert.Contains("differs from this one only in capitals or a trailing slash", creator.HelperText);
+        }
+
+        [Fact]
+        public void AKeycutInAnotherFolder_WithASimilarUrl_IsDescribedWithItsUrl()
+        {
+            var (folder, check) = CheckAgainstAKeycutOnPath("g", "https://x.com/Path", ShortcutType.Url);
+
+            Assert.Equal(
+                $"\u201cg\u201d already exists in {folder} and opens https://x.com/Path, a URL that differs from this one only in capitals or a trailing slash.",
+                CreatorViewModel.GetConflictMessage("g", check.MainConflict!, "https://x.com/path"));
+            Assert.Equal(
+                $"\u201cg\u201d already exists in {folder} and opens this target.",
+                CreatorViewModel.GetConflictMessage("g", check.MainConflict!, "https://x.com/Path"));
         }
 
         [Fact]

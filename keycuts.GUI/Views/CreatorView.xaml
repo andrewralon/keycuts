@@ -204,6 +204,54 @@
       </Style.Triggers>
     </Style>
 
+    <!-- A welcome bubble (#213): a radio button drawn as a centered card. Picked (checked) gets the accent border, drawn thicker
+         with the padding taken in, so picking one never moves the layout. -->
+    <Style x:Key="WelcomeBubble" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="8,8" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                    CornerRadius="{StaticResource RadiusMd}">
+              <ContentPresenter HorizontalAlignment="Center" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}" />
+        </Trigger>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+          <Setter Property="BorderThickness" Value="2" />
+          <Setter Property="Padding" Value="7,7" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- The welcome panel's line under the bubbles (#213): the same size and color as the intro above it, which reads better than the
+         small tertiary helper text on the blue panel in the dark theme. Only a PATH problem changes it, to the error color. -->
+    <Style x:Key="WelcomeHelperText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
     <Style x:Key="BrowseMenuItem" TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
       <Setter Property="MinHeight" Value="46" />
     </Style>
@@ -243,31 +291,68 @@
         </Button>
       </Grid>
 
-      <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. It fills the example (np for notepad.exe)
-           into the fields below instead of having a form of its own. Collapsed without a Welcome. -->
+      <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. Its bubbles fill an example (a website, a
+           folder, keycuts itself) into the fields below instead of the panel having a form of its own. Collapsed without a Welcome. -->
       <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
               CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
               Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
         <StackPanel>
-          <TextBlock Text="Welcome to keycuts!" FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
-                     AutomationProperties.HeadingLevel="Level2" />
-          <TextBlock TextWrapping="Wrap" Margin="0,4,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Text="keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it." />
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Text="Start by creating a keycut named np for notepad.exe" TextWrapping="Wrap" FontWeight="SemiBold"
-                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
-            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" Height="34" Padding="12,0"
+            <TextBlock Text="Welcome to keycuts!" FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                       AutomationProperties.HeadingLevel="Level2" />
+            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="12,0,0,0" Height="32" Padding="12,0"
                     VerticalAlignment="Center" Command="{Binding DismissCommand}" Content="Got it"
                     AutomationProperties.Name="Dismiss welcome" />
           </Grid>
-          <!-- Empty until a keycut is created, then how to use it, or the PATH warning -->
-          <TextBlock x:Name="WelcomeHelperTextBlock" Margin="0,8,0,0" Text="{Binding HelperText}"
-                     Style="{StaticResource HelperText}" TextWrapping="Wrap" TextTrimming="None"
-                     Visibility="{Binding HasHelperText, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+          <TextBlock TextWrapping="Wrap" Margin="0,6,0,10" Foreground="{DynamicResource TextSecondaryBrush}"
+                     Text="keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it." />
+          <TextBlock Text="Start by creating one of these keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+          <!-- Three bubbles in a row: type badge, what it opens, an arrow to its name. Each fills the fields below. -->
+          <ItemsControl x:Name="WelcomeExamples" ItemsSource="{Binding Examples}" Margin="-4,8,-4,0" IsTabStop="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <RadioButton Style="{StaticResource WelcomeBubble}" Margin="4,0"
+                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                             Command="{Binding DataContext.SelectExampleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                             CommandParameter="{Binding}" AutomationProperties.Name="{Binding AutomationName}">
+                  <StackPanel HorizontalAlignment="Center">
+                    <controls:TypeBadge Kind="{Binding Kind}" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding Label}" Margin="0,6,0,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextBrush}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                      <controls:Icon Kind="Arrow" Size="20" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
+                      <TextBlock Text="{Binding Name}" Margin="6,0,0,0" FontWeight="Bold" FontSize="{StaticResource FontSizeInput}"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                    </StackPanel>
+                  </StackPanel>
+                </RadioButton>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <!-- Empty until a bubble is picked, then which button to click, then how to use the keycut, or the PATH warning -->
+          <Grid Margin="0,9,0,0" Visibility="{Binding HasHelperText, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <controls:Icon Kind="Rocket" Size="18" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"
+                           Visibility="{Binding ShowRocket, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+            <!-- The same place and size once the keycut is created (and Win+R can find it), in the success color -->
+            <controls:Icon Kind="Check" Size="18" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}"
+                           Visibility="{Binding IsSuccess, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}" />
+            <TextBlock x:Name="WelcomeHelperTextBlock" Grid.Column="1" Text="{Binding HelperText}"
+                       Style="{StaticResource WelcomeHelperText}" />
+          </Grid>
           <!-- Only after a create, when the keycuts folder isn't on PATH yet (a portable copy), so Win+R can't find it -->
           <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Height="34"
                   Padding="12,0" Command="{Binding AddToPathCommand}" Content="Add to PATH"

@@ -65,6 +65,9 @@ namespace keycuts.GUI.ViewModels
         /// <summary>An existing keycut the new one would replace, and what it opens now (#153).</summary>
         public const string ReplaceMessage = "\u201c{0}\u201d already exists and opens {1}.";
 
+        /// <summary>An existing keycut that opens the very target being created: nothing would change but the file.</summary>
+        public const string ReplaceSameMessage = "\u201c{0}\u201d already exists and opens this target.";
+
         /// <summary>An existing keycut whose target couldn't be read.</summary>
         public const string ReplaceUnknownMessage = "\u201c{0}\u201d already exists.";
 
@@ -74,15 +77,46 @@ namespace keycuts.GUI.ViewModels
         /// <summary>A program found after the keycut, which Win+R would no longer open by this name.</summary>
         public const string ShadowsMessage = "\u201c{0}\u201d already opens {1}. This keycut would replace it in Win+R.";
 
-        /// <summary>One line about a name conflict, as the creator, the manager and the confirmation show it.</summary>
-        public static string GetConflictMessage(string name, NameConflict conflict)
+        /// <summary>A keycut in another keycuts folder on PATH, found first: {1} is its folder, {2} what it opens.</summary>
+        public const string KeycutHiddenMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}, so this keycut would be ignored.";
+
+        /// <summary>A keycut in another keycuts folder on PATH, found after this one.</summary>
+        public const string KeycutShadowsMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}. This one would replace it in Win+R.";
+
+        /// <summary>A keycut in another keycuts folder on PATH that opens the very target being created.</summary>
+        public const string KeycutSameMessage = "\u201c{0}\u201d already exists in {1} and opens this target.";
+
+        /// <summary>
+        /// One line about a name conflict, as the creator, the manager and the confirmation show it. A conflict that is a keycut
+        /// says so and what it opens, and when that is <paramref name="newTarget"/> (null for a rename, which has none) that it
+        /// already exists one to one.
+        /// </summary>
+        public static string GetConflictMessage(string name, NameConflict conflict, string? newTarget = null)
         {
+            var keycut = conflict.Keycut;
+
+            if (keycut != null && !string.IsNullOrEmpty(keycut.Target))
+            {
+                var folder = System.IO.Path.GetDirectoryName(conflict.Path) ?? conflict.Path;
+
+                if (TargetComparison.IsSame(keycut.Target, newTarget ?? string.Empty))
+                {
+                    return string.Format(KeycutSameMessage, name, folder);
+                }
+
+                var keycutFormat = conflict.Effect == NameConflictEffect.Hidden ? KeycutHiddenMessage : KeycutShadowsMessage;
+                return string.Format(keycutFormat, name, folder, keycut.Target);
+            }
+
             var format = conflict.Effect == NameConflictEffect.Hidden ? HiddenMessage : ShadowsMessage;
             return string.Format(format, name, conflict.Path);
         }
 
-        /// <summary>The inline warning for a name (#153): the keycut it would replace, then the conflict that matters most.</summary>
-        public static string GetNameWarningMessage(NameCheck? check)
+        /// <summary>
+        /// The inline warning for a name (#153): the keycut it would replace, then the conflict that matters most.
+        /// <paramref name="newTarget"/> is what is being created, to tell "already exists" from "already exists, and does the same".
+        /// </summary>
+        public static string GetNameWarningMessage(NameCheck? check, string? newTarget = null)
         {
             if (check == null || !check.HasWarnings)
             {
@@ -93,14 +127,23 @@ namespace keycuts.GUI.ViewModels
 
             if (check.Existing != null)
             {
-                lines.Add(string.IsNullOrEmpty(check.Existing.Target)
-                    ? string.Format(ReplaceUnknownMessage, check.Name)
-                    : string.Format(ReplaceMessage, check.Name, check.Existing.Target));
+                if (string.IsNullOrEmpty(check.Existing.Target))
+                {
+                    lines.Add(string.Format(ReplaceUnknownMessage, check.Name));
+                }
+                else if (TargetComparison.IsSame(check.Existing.Target, newTarget ?? string.Empty))
+                {
+                    lines.Add(string.Format(ReplaceSameMessage, check.Name));
+                }
+                else
+                {
+                    lines.Add(string.Format(ReplaceMessage, check.Name, check.Existing.Target));
+                }
             }
 
             if (check.MainConflict is NameConflict conflict)
             {
-                lines.Add(GetConflictMessage(check.Name, conflict));
+                lines.Add(GetConflictMessage(check.Name, conflict, newTarget));
             }
 
             return string.Join(Environment.NewLine, lines);
@@ -333,9 +376,15 @@ namespace keycuts.GUI.ViewModels
             set { Target = value; }
         }
 
+        /// <summary>What a create would open: what the target resolved to, else the text as typed. Empty without one.</summary>
+        private string EffectiveTarget
+        {
+            get { return string.IsNullOrEmpty(resolvedTarget) ? target.Trim() : resolvedTarget; }
+        }
+
         /// <summary>
         /// The first-run panel shown above the form, or null when the app was started without one (tests, design data). It works
-        /// through this form (#213): when it shows, the example is filled into the fields below, Got it clears it again, and a
+        /// through this form (#213): its first bubble is filled into the fields below when it shows, a picked bubble replaces them, Got it clears them again, and a
         /// create tells it so it can say how to use the keycut.
         /// </summary>
         public WelcomeViewModel? Welcome
@@ -347,25 +396,32 @@ namespace keycuts.GUI.ViewModels
 
                 if (welcome != null)
                 {
-                    welcome.Shown += (sender, e) => FillExample();
+                    welcome.Shown += (sender, e) => PickFirstExample();
+                    welcome.ExampleSelected += (sender, example) => FillExample(example);
                     welcome.Dismissed += (sender, e) => ClearExample();
                 }
             }
         }
 
         /// <summary>
-        /// The welcome panel suggests <c>np</c> for Notepad: put it in the fields, so Enter in the name creates it. Only into an
-        /// empty form, so it never replaces what was typed or a target the Explorer verb passed in.
+        /// When the welcome panel opens, its first bubble is picked, but only into an empty form, so it never replaces what was
+        /// typed or a target the Explorer verb passed in.
         /// </summary>
-        private void FillExample()
+        private void PickFirstExample()
         {
-            if (HasTarget || shortcutName.Length > 0)
+            if (HasTarget || shortcutName.Length > 0 || welcome == null || welcome.Examples.Count == 0)
             {
                 return;
             }
 
-            Target = WelcomeViewModel.ExampleTarget;
-            ShortcutName = WelcomeViewModel.ExampleName;
+            welcome.Select(welcome.Examples[0]);
+        }
+
+        /// <summary>A bubble was picked (also by the user, over what is there): put its target and name in the fields.</summary>
+        private void FillExample(WelcomeExample example)
+        {
+            Target = example.Target;
+            ShortcutName = example.Name;
             exampleFilled = true;
             FocusRequested?.Invoke(this, CreatorFocusTarget.Name);
         }
@@ -715,7 +771,7 @@ namespace keycuts.GUI.ViewModels
 
                 if (nameWarning != null)
                 {
-                    return GetNameWarningMessage(nameWarning);
+                    return GetNameWarningMessage(nameWarning, EffectiveTarget);
                 }
 
                 return string.Empty;
@@ -997,7 +1053,7 @@ namespace keycuts.GUI.ViewModels
                 case CreateOutcome.Success:
                     SetSuccess(name);
                     NotifyKeycutCreated();
-                    welcome?.OnKeycutCreated(name);
+                    welcome?.OnKeycutCreated();
                     _ = HideSuccessAfterDelayAsync();
                     return;
                 case CreateOutcome.DuplicateName:

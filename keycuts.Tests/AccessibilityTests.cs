@@ -273,7 +273,12 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "manager", "Dismiss welcome", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" },
+                        new[]
+                        {
+                            "manager", "Dismiss welcome",
+                            "URL google.com, creates the keycut g", "Folder Downloads, creates the keycut dl", "File keycuts, creates the keycut kc",
+                            "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings"
+                        },
                         TabStops(window));
 
                     welcome.Dismiss();

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security;
 using keycuts.GUI.Mvvm;
@@ -6,27 +7,18 @@ using keycuts.GUI.Mvvm;
 namespace keycuts.GUI.ViewModels
 {
     /// <summary>
-    /// The first-run panel at the top of the creator (#61, #11, #213): says what keycuts does and suggests a first keycut,
-    /// <c>np</c> for <c>notepad.exe</c>, which it fills into the creator's own fields rather than offering a form of its
-    /// own. It shows on the first run (until it's dismissed or used, upgrades included), whenever the keycuts folder is
-    /// empty, and on demand from Settings (<see cref="Show"/>).
+    /// The first-run panel at the top of the creator (#61, #11, #213): says what keycuts does and offers a few keycuts to
+    /// start with, as bubbles. A bubble fills its target and name into the creator's own fields rather than the panel having
+    /// a form of its own, and the creator's Create button makes it. The panel shows on the first run (until it's dismissed or
+    /// used, upgrades included), whenever the keycuts folder is empty, and on demand from Settings (<see cref="Show"/>).
     /// </summary>
     public class WelcomeViewModel : ObservableObject
     {
-        /// <summary>The name of the suggested first keycut.</summary>
-        public const string ExampleName = "np";
+        /// <summary>The line under the bubbles once one is picked: the rocket is the creator's Create button.</summary>
+        public const string CreateHint = "Click the rocket button to create it";
 
-        /// <summary>The program the suggested keycut opens, as the panel says it.</summary>
-        public const string ExampleProgram = "notepad.exe";
-
-        /// <summary>
-        /// What the Target field gets. A bare program name isn't a target the creator accepts, so this is the full path of
-        /// Notepad in the Windows folder, which every Windows has.
-        /// </summary>
-        public static string ExampleTarget
-        {
-            get { return Path.Combine(Environment.SystemDirectory, ExampleProgram); }
-        }
+        /// <summary>The line after a create. It never names the keycut: the Name field does.</summary>
+        public const string CreatedHint = "Created. Now try it out! Press Win+R, type its name, and press Enter to open it.";
 
         private readonly Func<bool> isDismissed;
 
@@ -42,39 +34,53 @@ namespace keycuts.GUI.ViewModels
 
         private bool isVisible;
 
-        private string? createdName;
+        private bool created;
 
         private string? error;
+
+        private WelcomeExample? selected;
 
         /// <param name="isDismissed">Reads whether the panel was dismissed before (HKCU in production).</param>
         /// <param name="markDismissed">Records that it was dismissed. A failure is ignored: the panel just shows again next time.</param>
         /// <param name="isOnPath">Whether Win+R can find keycuts in the output folder (it's on the user or machine PATH). Null
         /// treats it as on PATH: tests, and the Debug folder override, which must never write PATH.</param>
         /// <param name="addToPath">Adds the output folder to the user PATH, as the installer and Settings do. False on failure.</param>
+        /// <param name="examples">The bubbles, first one first; defaults to <see cref="WelcomeExample.CreateDefaults"/>.</param>
         public WelcomeViewModel(
             Func<bool> isDismissed,
             Action markDismissed,
             Func<bool>? isOnPath = null,
-            Func<bool>? addToPath = null)
+            Func<bool>? addToPath = null,
+            IReadOnlyList<WelcomeExample>? examples = null)
         {
             this.isDismissed = isDismissed ?? throw new ArgumentNullException(nameof(isDismissed));
             this.markDismissed = markDismissed ?? throw new ArgumentNullException(nameof(markDismissed));
             this.isOnPath = isOnPath ?? (() => true);
             this.addToPath = addToPath ?? (() => true);
+            Examples = examples ?? WelcomeExample.CreateDefaults();
 
             DismissCommand = new RelayCommand(Dismiss);
             AddToPathCommand = new RelayCommand(AddToPath, () => needsPath);
+            SelectExampleCommand = new RelayCommand<WelcomeExample>(Select);
         }
 
-        /// <summary>Raised when the panel starts showing, so the creator can fill in the example.</summary>
+        /// <summary>Raised when the panel starts showing, so the creator can pick the first example if its form is empty.</summary>
         public event EventHandler? Shown;
 
-        /// <summary>Raised after Got it hid the panel, so the creator can clear the fields the example filled in.</summary>
+        /// <summary>Raised when an example is picked, so the creator can put it in its fields.</summary>
+        public event EventHandler<WelcomeExample>? ExampleSelected;
+
+        /// <summary>Raised after Got it hid the panel, so the creator can clear the fields an example filled in.</summary>
         public event EventHandler? Dismissed;
+
+        public IReadOnlyList<WelcomeExample> Examples { get; }
 
         public RelayCommand DismissCommand { get; }
 
         public RelayCommand AddToPathCommand { get; }
+
+        /// <summary>Picks a bubble; the parameter is the <see cref="WelcomeExample"/>.</summary>
+        public RelayCommand<WelcomeExample> SelectExampleCommand { get; }
 
         /// <summary>A keycut was created, but its folder isn't on PATH yet, so Win+R can't find it (a portable copy).</summary>
         public bool NeedsPath
@@ -91,7 +97,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>A keycut was created while the panel was showing and Win+R can find it; the panel then only shows how to use it.</summary>
         public bool IsSuccess
         {
-            get { return createdName != null && !needsPath && error == null; }
+            get { return created && !needsPath && error == null; }
         }
 
         /// <summary>A PATH update failure, or the PATH warning (which needs action, so it reads as one).</summary>
@@ -100,7 +106,16 @@ namespace keycuts.GUI.ViewModels
             get { return error != null || needsPath; }
         }
 
-        /// <summary>The line under the prompt: empty until a keycut is created, then how to use it, or why Win+R can't find it yet.</summary>
+        /// <summary>The rocket hint is showing, so the line gets a small rocket in front of it.</summary>
+        public bool ShowRocket
+        {
+            get { return selected != null && !created && !HelperIsError; }
+        }
+
+        /// <summary>
+        /// The line under the bubbles: empty until one is picked, then which button to click, then how to use the keycut once it
+        /// exists, or why Win+R can't find it yet.
+        /// </summary>
         public string HelperText
         {
             get
@@ -112,15 +127,15 @@ namespace keycuts.GUI.ViewModels
 
                 if (needsPath)
                 {
-                    return string.Format("Created {0}, but Win+R can’t find it yet: the keycuts folder isn’t on your PATH.", createdName);
+                    return "Created, but Win+R can’t find it yet: the keycuts folder isn’t on your PATH.";
                 }
 
-                if (createdName != null)
+                if (created)
                 {
-                    return string.Format("Created {0}. Press Win+R, type {0}, and press Enter to open it.", createdName);
+                    return CreatedHint;
                 }
 
-                return string.Empty;
+                return selected != null ? CreateHint : string.Empty;
             }
         }
 
@@ -155,10 +170,29 @@ namespace keycuts.GUI.ViewModels
             ShowPanel();
         }
 
+        /// <summary>
+        /// Picks a bubble: it is highlighted, its target and name go to the creator, and the line under the bubbles says to click
+        /// Create. Picking another one later does the same again, so each can be created in turn.
+        /// </summary>
+        public void Select(WelcomeExample example)
+        {
+            if (example == null)
+            {
+                throw new ArgumentNullException(nameof(example));
+            }
+
+            SetSelected(example);
+            created = false;
+            error = null;
+            RaiseStateChanged();
+            ExampleSelected?.Invoke(this, example);
+        }
+
         /// <summary>Got it: hides the panel for good and lets the creator clear the example.</summary>
         public void Dismiss()
         {
             IsVisible = false;
+            SetSelected(null);
             TryMarkDismissed();
             Dismissed?.Invoke(this, EventArgs.Empty);
         }
@@ -167,14 +201,14 @@ namespace keycuts.GUI.ViewModels
         /// A keycut was made in the creator. While the panel shows, that counts as using it: it is remembered, the panel says how to
         /// open the keycut, and a folder that isn't on PATH is flagged, since GUI creates never change PATH.
         /// </summary>
-        public void OnKeycutCreated(string name)
+        public void OnKeycutCreated()
         {
             if (!isVisible)
             {
                 return;
             }
 
-            createdName = name;
+            created = true;
             error = null;
             needsPath = !isOnPath();
             TryMarkDismissed();
@@ -183,12 +217,23 @@ namespace keycuts.GUI.ViewModels
 
         private void ShowPanel()
         {
-            createdName = null;
+            created = false;
             needsPath = false;
             error = null;
+            SetSelected(null);
             IsVisible = true;
             RaiseStateChanged();
             Shown?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetSelected(WelcomeExample? example)
+        {
+            selected = example;
+
+            foreach (var each in Examples)
+            {
+                each.IsSelected = ReferenceEquals(each, example);
+            }
         }
 
         /// <summary>Puts the output folder on the user PATH, then checks again; a failure keeps the button and says so.</summary>
@@ -242,6 +287,7 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(NeedsPath));
             OnPropertyChanged(nameof(IsSuccess));
             OnPropertyChanged(nameof(HelperIsError));
+            OnPropertyChanged(nameof(ShowRocket));
             OnPropertyChanged(nameof(HelperText));
             OnPropertyChanged(nameof(HasHelperText));
         }

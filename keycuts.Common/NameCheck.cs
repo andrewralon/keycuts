@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace keycuts.Common
 {
@@ -49,7 +50,22 @@ namespace keycuts.Common
                 ? new KeycutRepository(outputFolder).Find(name)
                 : null;
 
-            return new NameCheck(name, existing, NameConflicts.Find(name, outputFolder, environment));
+            var conflicts = NameConflicts.Find(name, outputFolder, environment).Select(AsKeycutIfOne).ToList();
+
+            return new NameCheck(name, existing, conflicts);
+        }
+
+        // A conflict that is a keycut (another keycuts folder on PATH) is described as one, with what it opens
+        private static NameConflict AsKeycutIfOne(NameConflict conflict)
+        {
+            if (!conflict.Path.EndsWith(ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return conflict;
+            }
+
+            var keycut = KeycutRepository.TryParse(conflict.Path);
+
+            return keycut == null ? conflict : new NameConflict(conflict.Path, conflict.Effect, conflict.Source, keycut);
         }
     }
 }

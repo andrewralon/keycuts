@@ -283,6 +283,71 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Unknown, all.Single().TargetStatus);
         }
 
+        // Step 4: don't claim what wasn't checked
+        [Theory]
+        // A quoted program and a quoted argument under /B: the parser holds them in one string and can't say where the program ends
+        [InlineData("START \"\" /B \"C:\\a b\\app.exe\" \"C:\\c d\\file.txt\"")]
+        // A START switch before the program: not read as a program, and its target has quotes in it
+        [InlineData("START \"\" /D \"C:\\Tools\" /MIN \"app.exe\"")]
+        // A wildcard isn't a file
+        [InlineData("START \"\" /B \"C:\\Tools\\*.exe\"")]
+        public async Task ProgramThatIsNotAPlausiblePath_IsNotMarked(string line)
+        {
+            WriteLaunch("odd", line);
+
+            var keycut = await LoadAndCheck("odd");
+
+            Assert.Equal(TargetStatus.Unknown, keycut.TargetStatus);
+            Assert.Equal("", keycut.CheckedPath);
+        }
+
+        // readme.txt is searched for as typed only if PATHEXT lists .txt, so coming up empty says nothing about it
+        [Fact]
+        public async Task BareName_WithAnExtensionPathExtDoesNotList_IsNotMarked()
+        {
+            Program("readme.txt");
+            WriteLaunch("bare", "START \"\" /D \"\" \"readme.txt\"");
+
+            var keycut = await LoadAndCheck("bare", Lookup(_programs));
+
+            Assert.Equal(TargetStatus.Unknown, keycut.TargetStatus);
+        }
+
+        // Step 5: say what was checked
+        [Fact]
+        public async Task Missing_RemembersTheExpandedPathThatWasLookedFor()
+        {
+            var systemRoot = Environment.GetEnvironmentVariable("SystemRoot");
+            WriteLaunch("gone", "START \"\" /D \"%SystemRoot%\" \"no-such-program-for-keycuts-tests.exe\" --flag");
+
+            var keycut = await LoadAndCheck("gone");
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Equal(Path.Combine(systemRoot, "no-such-program-for-keycuts-tests.exe"), keycut.CheckedPath);
+        }
+
+        [Fact]
+        public async Task Missing_ForABareName_RemembersTheName()
+        {
+            WriteLaunch("gone", "START \"\" /D \"\" \"no-such-program.exe\"");
+
+            var keycut = await LoadAndCheck("gone");
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Equal("no-such-program.exe", keycut.CheckedPath);
+        }
+
+        [Fact]
+        public async Task Ok_RemembersThePathItFound()
+        {
+            var tool = Program("tool.exe");
+            WriteLaunch("here", $"START \"\" /B \"{tool}\"");
+
+            var keycut = await LoadAndCheck("here");
+
+            Assert.Equal(tool, keycut.CheckedPath);
+        }
+
         [Fact]
         public async Task PlainFile_HasItsTargetAsItsProgram()
         {

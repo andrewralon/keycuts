@@ -42,7 +42,14 @@ namespace keycuts.Common
         /// </summary>
         public DateTime Modified { get; init; }
 
-        /// <summary>Set in the background by <see cref="KeycutRepository.CheckTargetsAsync"/>.</summary>
+        /// <summary>Set in the background by <see cref="KeycutRepository.CheckTargetsAsync"/>. Missing means a specific path was looked for and isn't there; anything else the check couldn't pin down stays Unknown.</summary>
         public TargetStatus TargetStatus { get; set; } = TargetStatus.Unknown;
+
+        /// <summary>
+        /// Set with <see cref="TargetStatus"/>: the path the check looked for, with environment variables expanded
+        /// (<c>C:\Program Files (x86)\Google\Chrome\Application\chrome.exe</c>), or the bare program name it searched
+        /// Windows' folders, PATH and App Paths for. Empty until a check has marked the keycut.
+        /// </summary>
+        public string CheckedPath { get; set; } = "";
     }
 }

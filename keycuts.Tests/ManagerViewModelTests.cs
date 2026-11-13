@@ -230,6 +230,38 @@ namespace keycuts.Tests
             Assert.Contains(nameof(KeycutRowViewModel.IsTargetMissing), raised);
         }
 
+        // #203: the tooltip names the path the check looked for, expanded, so a stale (x86) folder is plain to see
+        [Fact]
+        public void MissingTooltip_NamesThePathThatWasLookedFor()
+        {
+            var keycut = NewKeycut("chrome") with { Target = @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe" };
+            keycut.CheckedPath = @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
+            keycut.TargetStatus = TargetStatus.Missing;
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.Equal(@"Not found: C:\Program Files (x86)\Google\Chrome\Application\chrome.exe", row.MissingTooltip);
+        }
+
+        [Fact]
+        public void MissingTooltip_ForABareName_SaysWhereItWasSearched()
+        {
+            var keycut = NewKeycut("n") with { Target = "notepad.exe" };
+            keycut.CheckedPath = "notepad.exe";
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.Equal("Not found: notepad.exe (searched the Windows folder, System32, PATH and App Paths)", row.MissingTooltip);
+        }
+
+        [Fact]
+        public void MissingTooltip_BeforeACheckHasSaid_FallsBackToTheTarget()
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a"));
+
+            Assert.Equal(@"Not found: C:\temp\a.txt", row.MissingTooltip);
+        }
+
         [Fact]
         public async Task LoadAsync_TargetCheckFailure_IsIgnored()
         {

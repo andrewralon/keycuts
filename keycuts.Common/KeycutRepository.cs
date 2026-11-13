@@ -445,11 +445,12 @@ namespace keycuts.Common
                     try
                     {
                         // The program, not the whole target: arguments after it aren't part of any path
-                        var status = await CheckOneAsync(string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program, keycut.RawType, lookup, timeout, ct).ConfigureAwait(false);
+                        var result = await CheckOneAsync(string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program, keycut.RawType, lookup, timeout, ct).ConfigureAwait(false);
 
-                        if (status != TargetStatus.Unknown)
+                        if (result.Status != TargetStatus.Unknown)
                         {
-                            keycut.TargetStatus = status;
+                            keycut.CheckedPath = result.LookedFor;
+                            keycut.TargetStatus = result.Status;
                         }
                     }
                     finally
@@ -883,7 +884,7 @@ namespace keycuts.Common
                  keycut.RawType == ShortcutType.HostsFile);
         }
 
-        private async Task<TargetStatus> CheckOneAsync(string target, ShortcutType type, Lazy<NameConflictEnvironment> lookup, TimeSpan timeout, CancellationToken ct)
+        private async Task<CheckResult> CheckOneAsync(string target, ShortcutType type, Lazy<NameConflictEnvironment> lookup, TimeSpan timeout, CancellationToken ct)
         {
             var work = Task.Run(() =>
             {
@@ -891,22 +892,38 @@ namespace keycuts.Common
                 {
                     var path = Environment.ExpandEnvironmentVariables(target);
 
+                    // Missing means "we looked for this and it isn't there". Text that can't be a path (a quote in it, a
+                    // wildcard) was never looked for, so the keycut is left unmarked rather than claimed missing.
+                    if (!IsPlausiblePath(path))
+                    {
+                        return new CheckResult(TargetStatus.Unknown, path);
+                    }
+
                     // A program with no folder (chrome, notepad.exe) is found where Windows finds it, not in this process's
                     // current directory, which is all File.Exists looks at
                     if (type == ShortcutType.File && IsBareName(path))
                     {
-                        return NameConflicts.Find(path, _outputFolder, lookup.Value).Count > 0 ?
-                            TargetStatus.Ok :
-                            TargetStatus.Missing;
+                        var environment = lookup.Value;
+
+                        if (NameConflicts.Find(path, _outputFolder, environment).Count > 0)
+                        {
+                            return new CheckResult(TargetStatus.Ok, path);
+                        }
+
+                        // A name like readme.txt is searched for as typed only when PATHEXT lists its extension, so a
+                        // search that came up empty says nothing about it
+                        return HasUnlistedExtension(path, environment) ?
+                            new CheckResult(TargetStatus.Unknown, path) :
+                            new CheckResult(TargetStatus.Missing, path);
                     }
 
                     return File.Exists(path) || Directory.Exists(path) ?
-                        TargetStatus.Ok :
-                        TargetStatus.Missing;
+                        new CheckResult(TargetStatus.Ok, path) :
+                        new CheckResult(TargetStatus.Missing, path);
                 }
                 catch (Exception)
                 {
-                    return TargetStatus.Unknown;
+                    return new CheckResult(TargetStatus.Unknown, string.Empty);
                 }
             });
 
@@ -914,13 +931,33 @@ namespace keycuts.Common
 
             ct.ThrowIfCancellationRequested();
 
-            return finished == work ? await work.ConfigureAwait(false) : TargetStatus.Unknown;
+            return finished == work ? await work.ConfigureAwait(false) : new CheckResult(TargetStatus.Unknown, string.Empty);
+        }
+
+        /// <summary>What a check found out, and the path (expanded) or name it looked for.</summary>
+        private readonly record struct CheckResult(TargetStatus Status, string LookedFor);
+
+        // GetInvalidPathChars() is only | and the control characters in .NET (not the quote, < and >, which Windows paths can't hold either), and a wildcard names no one file
+        private static readonly char[] ImplausiblePathChars = Path.GetInvalidPathChars().Concat(new[] { '"', '<', '>', '*' }).Distinct().ToArray();
+
+        /// <summary>False for text that can't name a file: empty, with a quote, a wildcard or another character Windows paths can't hold.</summary>
+        private static bool IsPlausiblePath(string path)
+        {
+            return !string.IsNullOrWhiteSpace(path) && path.IndexOfAny(ImplausiblePathChars) < 0;
         }
 
         /// <summary>A program name with no folder in it, like <c>chrome</c> or <c>notepad.exe</c>: a file name, not a path.</summary>
         private static bool IsBareName(string path)
         {
             return path.Trim('.').Length > 0 && path.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+        }
+
+        private static bool HasUnlistedExtension(string name, NameConflictEnvironment environment)
+        {
+            var extension = Path.GetExtension(name);
+
+            return extension.Length > 0 && !NameConflicts.ParsePathExt(environment.PathExt)
+                .Contains(extension, StringComparer.OrdinalIgnoreCase);
         }
 
         private static KeycutRepositoryException Translate(Exception ex, string message)

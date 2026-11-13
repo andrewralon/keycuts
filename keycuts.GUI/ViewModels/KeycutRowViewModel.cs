@@ -145,9 +145,20 @@ namespace keycuts.GUI.ViewModels
             get { return Keycut.TargetStatus == TargetStatus.Missing; }
         }
 
+        /// <summary>
+        /// Says what the check looked for (#203): the path with its environment variables expanded, so a stale
+        /// <c>Program Files (x86)</c> is plain to see, or the bare program name with where it was searched for. Before a
+        /// check has said (a keycut built by hand) it falls back to the target as written.
+        /// </summary>
         public string MissingTooltip
         {
-            get { return "Target not found: " + Target; }
+            get
+            {
+                var lookedFor = string.IsNullOrEmpty(Keycut.CheckedPath) ? Target : Keycut.CheckedPath;
+                var searched = Keycut.RawType == ShortcutType.File && lookedFor.IndexOfAny(new[] { '\\', '/', ':' }) < 0;
+
+                return "Not found: " + lookedFor + (searched ? " (searched the Windows folder, System32, PATH and App Paths)" : string.Empty);
+            }
         }
 
         /// <summary>True while this row's actions menu is open; the row keeps its hover tint.</summary>

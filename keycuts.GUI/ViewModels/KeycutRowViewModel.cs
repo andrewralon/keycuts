@@ -223,9 +223,9 @@ namespace keycuts.GUI.ViewModels
             get
             {
                 var lookedFor = string.IsNullOrEmpty(Keycut.CheckedPath) ? Target : Keycut.CheckedPath;
-                var searched = Keycut.RawType == ShortcutType.File && lookedFor.IndexOfAny(new[] { '\\', '/', ':' }) < 0;
 
-                return "Not found: " + lookedFor + (searched ? " (searched the Windows folder, System32, PATH and App Paths)" : string.Empty);
+                // What was searched is the check's to say: a bare name, or a program with a start-in folder, isn't one place
+                return "Not found: " + lookedFor + (string.IsNullOrEmpty(Keycut.CheckedDetail) ? string.Empty : " (" + Keycut.CheckedDetail + ")");
             }
         }
 

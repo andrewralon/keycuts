@@ -248,10 +248,25 @@ namespace keycuts.Tests
         {
             var keycut = NewKeycut("n") with { Target = "notepad.exe" };
             keycut.CheckedPath = "notepad.exe";
+            keycut.CheckedDetail = "searched the Windows folder, System32, PATH and App Paths";
 
             var row = new KeycutRowViewModel(keycut);
 
             Assert.Equal("Not found: notepad.exe (searched the Windows folder, System32, PATH and App Paths)", row.MissingTooltip);
+        }
+
+        [Fact]
+        public void MissingTooltip_ForAStartInFolder_SaysWhatWasSearched()
+        {
+            var keycut = NewKeycut("h") with { Target = @"%programfiles(x86)%\Google\Chrome\Application\chrome.exe" };
+            keycut.CheckedPath = @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
+            keycut.CheckedDetail = "the start-in folder doesn't exist, and START only gets past that for a program that is in App Paths";
+
+            var row = new KeycutRowViewModel(keycut);
+
+            Assert.Equal(
+                @"Not found: C:\Program Files (x86)\Google\Chrome\Application\chrome.exe (the start-in folder doesn't exist, and START only gets past that for a program that is in App Paths)",
+                row.MissingTooltip);
         }
 
         [Fact]

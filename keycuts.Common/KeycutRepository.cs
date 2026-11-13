@@ -469,12 +469,12 @@ namespace keycuts.Common
 
                     try
                     {
-                        // The program, not the whole target: arguments after it aren't part of any path
-                        var result = await CheckOneAsync(string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program, keycut.RawType, lookup, timeout, ct).ConfigureAwait(false);
+                        var result = await CheckOneAsync(keycut, lookup, timeout, ct).ConfigureAwait(false);
 
                         if (result.Status != TargetStatus.Unknown)
                         {
                             keycut.CheckedPath = result.LookedFor;
+                            keycut.CheckedDetail = result.Detail;
                             keycut.TargetStatus = result.Status;
                         }
                     }
@@ -1070,8 +1070,12 @@ namespace keycuts.Common
                  keycut.RawType == ShortcutType.HostsFile);
         }
 
-        private async Task<CheckResult> CheckOneAsync(string target, ShortcutType type, Lazy<NameConflictEnvironment> lookup, TimeSpan timeout, CancellationToken ct)
+        private async Task<CheckResult> CheckOneAsync(Keycut keycut, Lazy<NameConflictEnvironment> lookup, TimeSpan timeout, CancellationToken ct)
         {
+            // The program, not the whole target: arguments after it aren't part of any path
+            var target = string.IsNullOrEmpty(keycut.Program) ? keycut.Target : keycut.Program;
+            var type = keycut.RawType;
+
             var work = Task.Run(() =>
             {
                 try
@@ -1083,6 +1087,20 @@ namespace keycuts.Common
                     if (!IsPlausiblePath(path))
                     {
                         return new CheckResult(TargetStatus.Unknown, path);
+                    }
+
+                    // START "" /D "<folder>" <program>, with a program that has no folder of its own: Windows doesn't just join
+                    // the two (see CheckStartIn)
+                    var programName = Environment.ExpandEnvironmentVariables(keycut.ProgramName ?? string.Empty);
+
+                    if (type == ShortcutType.File && programName.Length > 0 && IsBareName(programName))
+                    {
+                        var startIn = Environment.ExpandEnvironmentVariables(keycut.StartInFolder ?? string.Empty);
+
+                        if (startIn.Length == 0 || IsPlausiblePath(startIn))
+                        {
+                            return CheckStartIn(startIn, programName, lookup.Value);
+                        }
                     }
 
                     // A program with no folder (chrome, notepad.exe) is found where Windows finds it, not in this process's
@@ -1102,7 +1120,7 @@ namespace keycuts.Common
                         // search that came up empty says nothing about it
                         return HasUnlistedExtension(path, environment) ?
                             new CheckResult(TargetStatus.Unknown, path) :
-                            new CheckResult(TargetStatus.Missing, path);
+                            new CheckResult(TargetStatus.Missing, path, SearchedByName);
                     }
 
                     return File.Exists(path) || Directory.Exists(path) ?
@@ -1122,8 +1140,74 @@ namespace keycuts.Common
             return finished == work ? await work.ConfigureAwait(false) : new CheckResult(TargetStatus.Unknown, string.Empty);
         }
 
-        /// <summary>What a check found out, and the path (expanded) or name it looked for.</summary>
-        private readonly record struct CheckResult(TargetStatus Status, string LookedFor);
+        private const string SearchedByName = "searched the Windows folder, System32, PATH and App Paths";
+
+        private const string SearchedStartInFolderToo = "searched the start-in folder, the Windows folder, System32, PATH and App Paths";
+
+        private const string StartInFolderIsGone = "the start-in folder doesn't exist, and START only gets past that for a program that is in App Paths";
+
+        /// <summary>
+        /// Whether Windows finds <paramref name="programName"/> for <c>START "" /D "&lt;folder&gt;" &lt;program&gt;</c> (#203). This
+        /// is what experiments with a throwaway program showed, by both <c>cmd /c file.bat</c> and ShellExecute (Win+R):
+        /// <list type="bullet">
+        /// <item>A <c>/D</c> folder that exists is searched for the program, so a program only there is found.</item>
+        /// <item>A program found by name in the Windows folder, System32 or PATH is found, but only if the folder exists:
+        /// with a missing one START stops with "The current directory is invalid".</item>
+        /// <item>A program that is only in App Paths is found whatever the folder is: START hands the name it can't
+        /// resolve to ShellExecute, which finds it there and does without the working directory. This is why a launcher
+        /// for Chrome that names a <c>Program Files (x86)</c> folder that doesn't exist still works.</item>
+        /// </list>
+        /// Missing is "none of those finds it". An empty folder (<c>/D ""</c>) is the same without the first two limits.
+        /// </summary>
+        private static CheckResult CheckStartIn(string startIn, string programName, NameConflictEnvironment environment)
+        {
+            var lookedFor = startIn.Length == 0 ? programName : startIn.TrimEnd('\\') + "\\" + programName;
+            var folderExists = startIn.Length == 0 || Directory.Exists(startIn);
+
+            if (startIn.Length > 0 && folderExists && FileInFolder(startIn, programName, environment))
+            {
+                return new CheckResult(TargetStatus.Ok, lookedFor);
+            }
+
+            // No output folder: that argument gives a name its conflict rules, and this only asks what Windows would find
+            var found = NameConflicts.Find(programName, null, environment);
+
+            if (found.Any(c => c.Source != NameConflictSource.AppPaths) && folderExists)
+            {
+                return new CheckResult(TargetStatus.Ok, lookedFor);
+            }
+
+            if (found.Any(c => c.Source == NameConflictSource.AppPaths))
+            {
+                return new CheckResult(TargetStatus.Ok, lookedFor);
+            }
+
+            // A name like readme.txt is searched for as typed only when PATHEXT lists its extension, so a search that came
+            // up empty says nothing about it
+            if (HasUnlistedExtension(programName, environment))
+            {
+                return new CheckResult(TargetStatus.Unknown, lookedFor);
+            }
+
+            var detail = !folderExists ? StartInFolderIsGone : startIn.Length == 0 ? SearchedByName : SearchedStartInFolderToo;
+
+            return new CheckResult(TargetStatus.Missing, lookedFor, detail);
+        }
+
+        /// <summary>Whether the program is in the folder, as typed or with a PATHEXT extension added.</summary>
+        private static bool FileInFolder(string folder, string programName, NameConflictEnvironment environment)
+        {
+            if (environment.FileExists(Path.Combine(folder, programName)))
+            {
+                return true;
+            }
+
+            return NameConflicts.ParsePathExt(environment.PathExt)
+                .Any(extension => environment.FileExists(Path.Combine(folder, programName + extension.ToLowerInvariant())));
+        }
+
+        /// <summary>What a check found out, the path (expanded) or name it looked for, and for Missing what was searched.</summary>
+        private readonly record struct CheckResult(TargetStatus Status, string LookedFor, string Detail = "");
 
         // GetInvalidPathChars() is only | and the control characters in .NET (not the quote, < and >, which Windows paths can't hold either), and a wildcard names no one file
         private static readonly char[] ImplausiblePathChars = Path.GetInvalidPathChars().Concat(new[] { '"', '<', '>', '*' }).Distinct().ToArray();

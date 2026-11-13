@@ -196,16 +196,143 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
         }
 
-        // The start-in folder is what is missing, as for the maintainer's launchers: START doesn't launch anything then
-        [Fact]
-        public async Task UnquotedProgram_WithTheStartInFolderGone_IsMissing()
-        {
-            WriteLaunch("chrome", $"START \"\" /D \"{Path.Combine(_root, "no such folder")}\" tool.exe --x");
+        #region START "" /D "<folder>" <program>: where Windows finds the program (#203)
 
-            var keycut = await LoadAndCheck("chrome");
+        // What experiments with a throwaway program showed, through cmd /c file.bat and ShellExecute (Win+R) alike: the /D
+        // folder is a place the program is looked for, a bad one stops START for a program found by name on PATH or in System32
+        // ("The current directory is invalid"), and a program that is only in App Paths is found whatever the folder is,
+        // because START hands a name it can't resolve itself to ShellExecute. The maintainer's Chrome launchers name a
+        // "Program Files (x86)" folder that doesn't exist and work, because Chrome registers itself in App Paths.
+
+        private string GoneFolder() => Path.Combine(_root, "no such folder");
+
+        // The case that was wrong: the folder is missing, and the program is in App Paths. Not Missing.
+        [Fact]
+        public async Task StartInFolderGone_ProgramInAppPaths_IsNotMissing()
+        {
+            var chrome = Program("chrome.exe");
+            WriteLaunch("h", $"START \"\" /D \"{GoneFolder()}\" chrome.exe --profile-directory=\"Default\"");
+
+            var keycut = await LoadAndCheck("h", Lookup(appPath: chrome));
+
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+            Assert.Equal("", keycut.CheckedDetail);
+        }
+
+        [Fact]
+        public async Task StartInFolderGone_ProgramFoundNowhere_IsMissing_AndSaysWhatWasSearched()
+        {
+            WriteLaunch("h", $"START \"\" /D \"{GoneFolder()}\" chrome.exe --profile-directory=\"Default\"");
+
+            var keycut = await LoadAndCheck("h", Lookup(_programs));
 
             Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Equal(Path.Combine(GoneFolder(), "chrome.exe"), keycut.CheckedPath);
+            Assert.Contains("start-in folder doesn't exist", keycut.CheckedDetail);
+            Assert.Contains("App Paths", keycut.CheckedDetail);
         }
+
+        // Found by name on PATH, but START stops at the missing folder before it gets to launch it
+        [Fact]
+        public async Task StartInFolderGone_ProgramOnlyOnThePath_IsMissing()
+        {
+            Program("tool.exe");
+            WriteLaunch("h", $"START \"\" /D \"{GoneFolder()}\" tool.exe");
+
+            var keycut = await LoadAndCheck("h", Lookup(_programs));
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Contains("start-in folder doesn't exist", keycut.CheckedDetail);
+        }
+
+        // The case that already passed: the program is in the start-in folder, on neither PATH nor App Paths
+        [Fact]
+        public async Task ProgramInTheStartInFolder_IsOk()
+        {
+            Program("tool.exe");
+            WriteLaunch("h", $"START \"\" /D \"{_programs}\" tool.exe --x");
+
+            var keycut = await LoadAndCheck("h", Lookup());
+
+            Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
+        }
+
+        [Fact]
+        public async Task ProgramInTheStartInFolder_WithoutItsExtension_IsOk()
+        {
+            Program("tool.exe");
+            WriteLaunch("h", $"START \"\" /D \"{_programs}\" tool");
+
+            Assert.Equal(TargetStatus.Ok, (await LoadAndCheck("h", Lookup())).TargetStatus);
+        }
+
+        // An existing folder that doesn't hold the program: it is found by name, as without a folder
+        [Fact]
+        public async Task StartInFolderThere_ProgramOnThePathOrInAppPaths_IsOk()
+        {
+            var elsewhere = Program("tool.exe");
+            WriteLaunch("onpath", $"START \"\" /D \"{_folder}\" tool.exe");
+            WriteLaunch("inapps", $"START \"\" /D \"{_folder}\" registered.exe");
+            var registered = Program("registered.exe");
+
+            Assert.Equal(TargetStatus.Ok, (await LoadAndCheck("onpath", Lookup(_programs))).TargetStatus);
+            Assert.Equal(TargetStatus.Ok, (await LoadAndCheck("inapps", Lookup(appPath: registered))).TargetStatus);
+            Assert.True(File.Exists(elsewhere));
+        }
+
+        [Fact]
+        public async Task StartInFolderThere_ProgramFoundNowhere_IsMissing_AndSaysItSearchedTheFolderToo()
+        {
+            WriteLaunch("h", $"START \"\" /D \"{_programs}\" nothere.exe");
+
+            var keycut = await LoadAndCheck("h", Lookup());
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Equal(Path.Combine(_programs, "nothere.exe"), keycut.CheckedPath);
+            Assert.Equal("searched the start-in folder, the Windows folder, System32, PATH and App Paths", keycut.CheckedDetail);
+        }
+
+        // /D "" has no folder to be wrong
+        [Fact]
+        public async Task NoStartInFolder_ProgramFoundNowhere_SaysItSearchedByName()
+        {
+            WriteLaunch("h", "START \"\" /D \"\" nothere.exe");
+
+            var keycut = await LoadAndCheck("h", Lookup());
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Equal("nothere.exe", keycut.CheckedPath);
+            Assert.Equal("searched the Windows folder, System32, PATH and App Paths", keycut.CheckedDetail);
+        }
+
+        // A program given as a full path isn't searched for, so it's the plain check, whatever /D says (and App Paths can't help)
+        [Fact]
+        public async Task AFullPathProgram_IsAPlainExistsCheck_WhateverTheStartInFolderIs()
+        {
+            var tool = Program("tool.exe");
+            WriteLaunch("there", $"START \"\" /D \"{GoneFolder()}\" {tool} --x");
+            WriteLaunch("gone", $"START \"\" /D \"{GoneFolder()}\" {Path.Combine(_root, "missing", "tool.exe")} --x");
+
+            Assert.Equal(TargetStatus.Ok, (await LoadAndCheck("there", Lookup(appPath: tool))).TargetStatus);
+
+            var gone = await LoadAndCheck("gone", Lookup(appPath: tool));
+            Assert.Equal(TargetStatus.Missing, gone.TargetStatus);
+            Assert.Equal("", gone.CheckedDetail);
+        }
+
+        // START "" /B "<full path>" has no folder and no search either
+        [Fact]
+        public async Task AFullPathWithNoStartInFolder_IsAPlainExistsCheck()
+        {
+            WriteLaunch("gone", $"START \"\" /B \"{Path.Combine(_root, "missing", "tool.exe")}\"");
+
+            var keycut = await LoadAndCheck("gone", Lookup());
+
+            Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
+            Assert.Equal("", keycut.CheckedDetail);
+        }
+
+        #endregion START "" /D "<folder>" <program>: where Windows finds the program (#203)
 
         // The emitter can't write these lines back as they are, so the Edit form must keep refusing them
         [Theory]

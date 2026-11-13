@@ -65,5 +65,11 @@ namespace keycuts.Common
         /// Windows' folders, PATH and App Paths for. Empty until a check has marked the keycut.
         /// </summary>
         public string CheckedPath { get; set; } = "";
+
+        /// <summary>
+        /// Set with <see cref="CheckedPath"/> for a Missing keycut: what was searched, for the tooltip ("searched the start-in
+        /// folder, the Windows folder, System32, PATH and App Paths"). Empty when a single path was looked for.
+        /// </summary>
+        public string CheckedDetail { get; set; } = "";
     }
 }

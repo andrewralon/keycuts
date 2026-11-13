@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -47,7 +48,25 @@ namespace keycuts.GUI.Views
             var radius = TableHost.CornerRadius.TopLeft;
             TableHost.Clip = new RectangleGeometry(new Rect(0, 0, TableHost.ActualWidth, TableHost.ActualHeight), radius, radius);
 
-            ModifiedColumn.Visibility = TableHost.ActualWidth < ModifiedColumnMinTableWidth ? Visibility.Collapsed : Visibility.Visible;
+            var modifiedVisibility = TableHost.ActualWidth < ModifiedColumnMinTableWidth ? Visibility.Collapsed : Visibility.Visible;
+
+            if (ModifiedColumn.Visibility != modifiedVisibility)
+            {
+                ModifiedColumn.Visibility = modifiedVisibility;
+
+                // The grid works out the widths from the change in the space it has, one step at a time, and a big step
+                // (a window snapped or restored) leaves the star columns short of the table with nothing to fill it.
+                // Giving each its own star width back makes it work them out from the space there is.
+                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(RefillStarColumns));
+            }
+        }
+
+        private void RefillStarColumns()
+        {
+            foreach (var column in Table.Columns.Where(c => c.Width.IsStar))
+            {
+                column.Width = new DataGridLength(column.Width.Value, DataGridLengthUnitType.Star);
+            }
         }
 
         // Up, Down and Enter work from anywhere in the view, so typing in the search box can go straight on to picking a row.

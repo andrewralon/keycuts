@@ -27,6 +27,34 @@
       </Style.Triggers>
     </Style>
 
+    <!-- The divider between two column headers, to drag (#202). Wider than it looks, so it's easy to hit; the line shows on
+         hover and turns to the accent while dragging. Mouse only: the full values are in the cells' tooltips. -->
+    <Style x:Key="ColumnGripper" TargetType="Thumb">
+      <Setter Property="Width" Value="9" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="SizeWE" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Thumb">
+            <Border Background="{TemplateBinding Background}">
+              <Rectangle x:Name="Line" Width="2" Margin="0,9" HorizontalAlignment="Center"
+                         Fill="{DynamicResource BorderStrongBrush}" Opacity="0" SnapsToDevicePixels="True" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Line" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="IsDragging" Value="True">
+                <Setter TargetName="Line" Property="Opacity" Value="1" />
+                <Setter TargetName="Line" Property="Fill" Value="{DynamicResource AccentBrush}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="ManagerHeader" TargetType="DataGridColumnHeader">
       <Setter Property="Height" Value="34" />
       <Setter Property="Padding" Value="10,0" />
@@ -39,13 +67,42 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="DataGridColumnHeader">
-            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-              <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left" RecognizesAccessKey="False"
-                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-            </Border>
+            <Grid>
+              <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left" RecognizesAccessKey="False"
+                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+              </Border>
+              <!-- The grid finds these two by name and hides the one a column can't use (a fixed column, the first one's left).
+                   It sets the thumb's own Visibility, so a header that must not offer one (see Tag, below) collapses its host. -->
+              <Border x:Name="LeftGripperHost" HorizontalAlignment="Left">
+                <Thumb x:Name="PART_LeftHeaderGripper" Style="{StaticResource ColumnGripper}" />
+              </Border>
+              <Border x:Name="RightGripperHost" HorizontalAlignment="Right">
+                <Thumb x:Name="PART_RightHeaderGripper" Style="{StaticResource ColumnGripper}" />
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Tag" Value="NoRightGripper">
+                <Setter TargetName="RightGripperHost" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="Tag" Value="NoGrippers">
+                <Setter TargetName="LeftGripperHost" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="RightGripperHost" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+    </Style>
+
+    <!-- The last column that gives way: the divider on its right can't move, since the fixed columns beside it are pinned -->
+    <Style x:Key="ManagerHeaderPinnedRight" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ManagerHeader}">
+      <Setter Property="Tag" Value="NoRightGripper" />
+    </Style>
+
+    <!-- The fixed columns (Modified, the menu): their left divider would resize the column before them, whose right edge is pinned -->
+    <Style x:Key="ManagerHeaderFixed" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ManagerHeader}">
+      <Setter Property="Tag" Value="NoGrippers" />
     </Style>
 
     <!-- Sortable column header: label plus a chevron that shows on hover and for the active column. -->
@@ -199,7 +256,8 @@
       <Setter Property="CanUserAddRows" Value="False" />
       <Setter Property="CanUserDeleteRows" Value="False" />
       <Setter Property="CanUserResizeRows" Value="False" />
-      <Setter Property="CanUserResizeColumns" Value="False" />
+      <!-- Name, Description and Target can be dragged (#202); the others say CanUserResize="False" -->
+      <Setter Property="CanUserResizeColumns" Value="True" />
       <Setter Property="CanUserReorderColumns" Value="False" />
       <Setter Property="CanUserSortColumns" Value="False" />
       <Setter Property="ClipboardCopyMode" Value="None" />
@@ -349,7 +407,10 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="110">
+            <!-- Type, Modified and the menu are fixed: the same MinWidth as Width, or the grid squeezes them to its default 20
+                 when the table jumps narrower than all the columns need (a snap, a restore), and keeps them squeezed after the
+                 Modified column has made way again -->
+            <DataGridTemplateColumn Width="110" MinWidth="110" CanUserResize="False">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Type" Content="Type" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -388,7 +449,9 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="2.8*" MinWidth="120">
+            <!-- Target is resizable, and the columns to its left give way to it. Its right edge is pinned by the fixed columns
+                 beside it, which the grid can't move, so there is no gripper there (#202) -->
+            <DataGridTemplateColumn Width="2.8*" MinWidth="120" HeaderStyle="{StaticResource ManagerHeaderPinnedRight}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Target" Content="Target" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -399,7 +462,8 @@
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
             <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
-            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="110">
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="110" MinWidth="110" CanUserResize="False"
+                                    HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -410,7 +474,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="44">
+            <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <controls:MenuButton Style="{StaticResource IconButton}" Width="28" Height="28"

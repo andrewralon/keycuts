@@ -29,7 +29,7 @@ $Big = 1024
 $RowY = 1032
 $Gap = 8
 # The page lays the icons out the same way: 1024 px at (0,0), then each size on one row (see app-icon.html)
-$KeycapIcons = 'porcelain', 'midnight', 'cobalt', 'twilight', 'key-white', 'key-charcoal', 'key-blue'
+$KeycapIcons = 'porcelain', 'onyx', 'cobalt', 'twilight', 'key-white', 'key-charcoal', 'key-blue'
 
 $OutDir = [System.IO.Path]::GetFullPath($OutDir)
 

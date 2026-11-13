@@ -4,8 +4,8 @@ The app icon is a single keycap with a K, lying on the table. `tools/New-AppIcon
 
 | Folder | What it is | In the app |
 |---|---|---|
-| `porcelain` | White keycap on a dark background | Porcelain; Black & White in light mode; the exe's and the installer's icon |
-| `midnight` | Charcoal keycap on a light background | Midnight; Black & White in dark mode |
+| `porcelain` | Charcoal keycap on a light background | Porcelain; Black & White in light mode; the exe's and the installer's icon |
+| `onyx` | White keycap on a dark background | Onyx; Black & White in dark mode |
 | `cobalt` | Blue keycap on a light background | Cobalt; Accent in light mode |
 | `twilight` | Blue keycap on a dark background | Twilight; Accent in dark mode |
 | `classic` | The original Team Ralon monogram on a white square (`source.ico` is keycuts' old icon) | Classic |

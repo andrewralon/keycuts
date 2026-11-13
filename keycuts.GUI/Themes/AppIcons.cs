@@ -11,7 +11,7 @@ namespace keycuts.GUI.Themes
     public enum AppIconArt
     {
         Porcelain,
-        Midnight,
+        Onyx,
         Cobalt,
         Twilight,
         Classic
@@ -72,10 +72,10 @@ namespace keycuts.GUI.Themes
         /// <summary>In the picker's order.</summary>
         public static IReadOnlyList<AppIconOption> Options { get; } = new[]
         {
-            new AppIconOption(AppIconChoice.BlackAndWhite, "Black & White", "Porcelain in light mode, Midnight in dark mode.", AppIconArt.Porcelain, AppIconArt.Midnight),
+            new AppIconOption(AppIconChoice.BlackAndWhite, "Black & White", "Porcelain in light mode, Onyx in dark mode.", AppIconArt.Porcelain, AppIconArt.Onyx),
             new AppIconOption(AppIconChoice.Accent, "Accent", "Cobalt in light mode, Twilight in dark mode.", AppIconArt.Cobalt, AppIconArt.Twilight),
-            new AppIconOption(AppIconChoice.Porcelain, "Porcelain", "White keycap on a dark background.", AppIconArt.Porcelain, AppIconArt.Porcelain),
-            new AppIconOption(AppIconChoice.Midnight, "Midnight", "Charcoal keycap on a light background.", AppIconArt.Midnight, AppIconArt.Midnight),
+            new AppIconOption(AppIconChoice.Porcelain, "Porcelain", "Charcoal keycap on a light background.", AppIconArt.Porcelain, AppIconArt.Porcelain),
+            new AppIconOption(AppIconChoice.Onyx, "Onyx", "White keycap on a dark background.", AppIconArt.Onyx, AppIconArt.Onyx),
             new AppIconOption(AppIconChoice.Cobalt, "Cobalt", "Blue keycap on a light background.", AppIconArt.Cobalt, AppIconArt.Cobalt),
             new AppIconOption(AppIconChoice.Twilight, "Twilight", "Blue keycap on a dark background.", AppIconArt.Twilight, AppIconArt.Twilight),
             new AppIconOption(AppIconChoice.Classic, "Classic", "Team Ralon FTW!", AppIconArt.Classic, AppIconArt.Classic),

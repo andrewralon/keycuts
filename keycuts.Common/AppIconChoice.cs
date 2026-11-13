@@ -9,7 +9,7 @@ namespace keycuts.Common
     /// </summary>
     public enum AppIconChoice
     {
-        /// <summary>Porcelain in light mode, Midnight in dark mode.</summary>
+        /// <summary>Porcelain in light mode, Onyx in dark mode.</summary>
         BlackAndWhite,
 
         /// <summary>Cobalt in light mode, Twilight in dark mode.</summary>
@@ -17,7 +17,7 @@ namespace keycuts.Common
 
         Porcelain,
 
-        Midnight,
+        Onyx,
 
         Cobalt,
 

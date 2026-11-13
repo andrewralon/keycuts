@@ -16,7 +16,7 @@
   <!-- The icons Settings offers (tools/New-AppIcons.ps1 makes them): built in for the windows, and copied to icons\ beside the
        exe for the shortcuts that point at them (Common/ShortcutIcons). The installer takes the icons folder with the rest. -->
   <ItemGroup>
-    <AppIconFile Include="..\assets\icons\porcelain\porcelain.ico;..\assets\icons\midnight\midnight.ico;..\assets\icons\cobalt\cobalt.ico;..\assets\icons\twilight\twilight.ico;..\assets\icons\classic\classic.ico" />
+    <AppIconFile Include="..\assets\icons\porcelain\porcelain.ico;..\assets\icons\onyx\onyx.ico;..\assets\icons\cobalt\cobalt.ico;..\assets\icons\twilight\twilight.ico;..\assets\icons\classic\classic.ico" />
     <Resource Include="@(AppIconFile)" Link="Images\AppIcons\%(Filename)%(Extension)" />
     <Content Include="@(AppIconFile)" Link="icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

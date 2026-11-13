@@ -43,7 +43,7 @@ namespace keycuts.Tests
         [InlineData("BlackAndWhite", AppIconChoice.BlackAndWhite)]
         [InlineData("accent", AppIconChoice.Accent)]
         [InlineData("PORCELAIN", AppIconChoice.Porcelain)]
-        [InlineData("Midnight", AppIconChoice.Midnight)]
+        [InlineData("Onyx", AppIconChoice.Onyx)]
         [InlineData("Cobalt", AppIconChoice.Cobalt)]
         [InlineData("Twilight", AppIconChoice.Twilight)]
         [InlineData("Classic", AppIconChoice.Classic)]
@@ -66,13 +66,13 @@ namespace keycuts.Tests
             }
         }
 
-        // The owner's mapping (2026-11-13): Black & White is Porcelain in light mode and Midnight in dark mode; Accent is Cobalt in
+        // The owner's mapping (2026-11-13): Black & White is Porcelain in light mode and Onyx in dark mode; Accent is Cobalt in
         // light mode and Twilight in dark mode. The rest never change.
         [Theory]
-        [InlineData(AppIconChoice.BlackAndWhite, AppIconArt.Porcelain, AppIconArt.Midnight)]
+        [InlineData(AppIconChoice.BlackAndWhite, AppIconArt.Porcelain, AppIconArt.Onyx)]
         [InlineData(AppIconChoice.Accent, AppIconArt.Cobalt, AppIconArt.Twilight)]
         [InlineData(AppIconChoice.Porcelain, AppIconArt.Porcelain, AppIconArt.Porcelain)]
-        [InlineData(AppIconChoice.Midnight, AppIconArt.Midnight, AppIconArt.Midnight)]
+        [InlineData(AppIconChoice.Onyx, AppIconArt.Onyx, AppIconArt.Onyx)]
         [InlineData(AppIconChoice.Cobalt, AppIconArt.Cobalt, AppIconArt.Cobalt)]
         [InlineData(AppIconChoice.Twilight, AppIconArt.Twilight, AppIconArt.Twilight)]
         [InlineData(AppIconChoice.Classic, AppIconArt.Classic, AppIconArt.Classic)]
@@ -101,10 +101,10 @@ namespace keycuts.Tests
             Assert.Equal(
                 new[]
                 {
-                    "Black & White: Porcelain in light mode, Midnight in dark mode.",
+                    "Black & White: Porcelain in light mode, Onyx in dark mode.",
                     "Accent: Cobalt in light mode, Twilight in dark mode.",
-                    "Porcelain: White keycap on a dark background.",
-                    "Midnight: Charcoal keycap on a light background.",
+                    "Porcelain: Charcoal keycap on a light background.",
+                    "Onyx: White keycap on a dark background.",
                     "Cobalt: Blue keycap on a light background.",
                     "Twilight: Blue keycap on a dark background.",
                     "Classic: Team Ralon FTW!",
@@ -127,7 +127,7 @@ namespace keycuts.Tests
         // with 256 as PNG and the rest as bitmaps (tools/New-AppIcons.ps1)
         [Theory]
         [InlineData("porcelain")]
-        [InlineData("midnight")]
+        [InlineData("onyx")]
         [InlineData("cobalt")]
         [InlineData("twilight")]
         [InlineData("classic")]
@@ -375,7 +375,7 @@ namespace keycuts.Tests
                     var themes = (Panel)window.FindName("ThemeChoices");
                     Assert.True(button.TranslatePoint(new Point(0, 0), window).Y < themes.TranslatePoint(new Point(0, 0), window).Y);
                     Assert.Equal("Icon: Black & White. Change", AutomationProperties.GetName(button));
-                    Assert.Equal("Porcelain in light mode, Midnight in dark mode.", ((TextBlock)window.FindName("IconDescription")).Text);
+                    Assert.Equal("Porcelain in light mode, Onyx in dark mode.", ((TextBlock)window.FindName("IconDescription")).Text);
 
                     // A theme option shows both drawings, light at the top left and dark smaller over it at the bottom right
                     var images = Descendants<Image>(button).Where(i => i.IsVisible).ToList();
@@ -383,7 +383,7 @@ namespace keycuts.Tests
                     var back = images.Single(i => i.ActualWidth > 33);
                     var front = images.Single(i => i.ActualWidth <= 33);
                     Assert.Same(AppIcons.GetPreview(AppIconArt.Porcelain), back.Source);
-                    Assert.Same(AppIcons.GetPreview(AppIconArt.Midnight), front.Source);
+                    Assert.Same(AppIcons.GetPreview(AppIconArt.Onyx), front.Source);
                     Assert.True(front.TranslatePoint(new Point(0, 0), back).X > 0);
                     Assert.True(front.TranslatePoint(new Point(0, 0), back).Y > 0);
                 }

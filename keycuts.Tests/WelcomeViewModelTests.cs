@@ -460,6 +460,47 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Creator_KeepsALoneDescription_WhenTheWelcomeShows_AndGotItLeavesItAlone()
+        {
+            var welcome = new Fakes().Create();
+            var creator = NewCreator(welcome);
+            creator.Description = "Notes";
+
+            welcome.OnKeycutCountLoaded(0);
+
+            Assert.Equal(string.Empty, creator.Target);
+            Assert.Equal(string.Empty, creator.ShortcutName);
+            Assert.All(welcome.Examples, e => Assert.False(e.IsSelected));
+
+            welcome.Dismiss();
+
+            Assert.Equal("Notes", creator.Description);
+        }
+
+        [Fact]
+        public void Select_ClearsThePathWarningOfAnEarlierCreate_AndTheNextCreateBringsItBack()
+        {
+            var fakes = new Fakes { OnPath = false };
+            var welcome = fakes.Create();
+            welcome.OnKeycutCountLoaded(0);
+            welcome.OnKeycutCreated(@"D:\Portable\Shortcuts");
+            Assert.True(welcome.NeedsPath);
+
+            welcome.Select(welcome.Examples[1]);
+
+            Assert.False(welcome.NeedsPath);
+            Assert.False(welcome.HelperIsError);
+            Assert.False(welcome.AddToPathCommand.CanExecute(null));
+            Assert.Equal("Click the rocket button to create it", welcome.HelperText);
+            Assert.True(welcome.ShowRocket);
+
+            welcome.OnKeycutCreated(@"D:\Portable\Shortcuts");
+
+            Assert.True(welcome.NeedsPath);
+            Assert.True(welcome.AddToPathCommand.CanExecute(null));
+        }
+
+        [Fact]
         public void Creator_ReplacesTheFields_WhenABubbleIsPicked_EvenOverATypedForm()
         {
             var welcome = new Fakes().Create();

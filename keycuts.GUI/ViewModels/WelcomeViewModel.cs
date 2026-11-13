@@ -177,7 +177,8 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>
         /// Picks a bubble: it is highlighted, its target and name go to the creator, and the line under the bubbles says to click
-        /// Create. Picking another one later does the same again, so each can be created in turn.
+        /// Create. Picking another one later does the same again, so each can be created in turn, and clears a PATH warning left by
+        /// an earlier create.
         /// </summary>
         public void Select(WelcomeExample example)
         {
@@ -189,6 +190,10 @@ namespace keycuts.GUI.ViewModels
             SetSelected(example);
             created = false;
             error = null;
+
+            // The warning was about the keycut made before; the next create checks its folder again and brings it back if need be
+            needsPath = false;
+            createdFolder = null;
             RaiseStateChanged();
             ExampleSelected?.Invoke(this, example);
         }

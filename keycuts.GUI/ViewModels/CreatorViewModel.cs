@@ -315,6 +315,11 @@ namespace keycuts.GUI.ViewModels
             {
                 resolvedTarget = value;
                 RaiseTargetDisplayChanged();
+
+                // The name warning compares with it ("opens this target"), and it is set after TargetKind, so the text can be stale
+                OnPropertyChanged(nameof(HelperText));
+                OnPropertyChanged(nameof(NameHelpText));
+                OnPropertyChanged(nameof(ShowHelperLine));
             }
         }
 
@@ -404,12 +409,12 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// When the welcome panel opens, its first bubble is picked, but only into an empty form, so it never replaces what was
-        /// typed or a target the Explorer verb passed in.
+        /// When the welcome panel opens, its first bubble is picked, but only into an empty form (no target, name or description), so it
+        /// never replaces what was typed or a target the Explorer verb passed in.
         /// </summary>
         private void PickFirstExample()
         {
-            if (HasTarget || shortcutName.Length > 0 || welcome == null || welcome.Examples.Count == 0)
+            if (HasTarget || shortcutName.Length > 0 || description.Length > 0 || welcome == null || welcome.Examples.Count == 0)
             {
                 return;
             }
@@ -955,6 +960,9 @@ namespace keycuts.GUI.ViewModels
             // The command's CanExecute is rechecked here; the target text may be unresolved, so KeycutCreator validates it again
             var name = shortcutName.Trim();
             var trimmedTarget = target.Trim();
+            // What the confirmation compares and shows, as the inline warning does: the resolved target (a typed .lnk or .url
+            // resolves to its destination); the create itself still gets what was typed and resolves it again
+            var confirmTarget = EffectiveTarget;
             // A hidden box is out of sight, so what it still holds isn't saved
             var trimmedDescription = isDescriptionVisible ? description.Trim() : string.Empty;
 
@@ -976,7 +984,7 @@ namespace keycuts.GUI.ViewModels
 
                     if (check.HasWarnings)
                     {
-                        if (!Confirm(check, trimmedTarget))
+                        if (!Confirm(check, confirmTarget))
                         {
                             return;
                         }
@@ -997,7 +1005,7 @@ namespace keycuts.GUI.ViewModels
                     var again = await RunCheckAsync(name);
                     var existing = again.Existing ?? new Keycut { Name = name, Target = string.Empty };
 
-                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), trimmedTarget))
+                    if (!Confirm(new NameCheck(name, existing, again.Conflicts), confirmTarget))
                     {
                         return;
                     }

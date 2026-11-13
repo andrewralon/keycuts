@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using keycuts.Common;
@@ -186,6 +187,55 @@ namespace keycuts.Tests
 
             Assert.Null(check.Existing);
             Assert.Equal(Downloads, check.MainConflict!.Keycut!.Target);
+        }
+
+        [Fact]
+        public async Task TheConfirmation_GetsTheResolvedTarget_WhileTheCreateGetsWhatWasTyped()
+        {
+            // A typed shortcut file whose destination the inline warning already compares with the existing keycut's target
+            string? confirmed = null;
+            string? created = null;
+            var creator = new CreatorViewModel(
+                new RelayCommand(() => { }),
+                new RelayCommand(() => { }),
+                (target, name, description, useEnvironmentVariables, replace, ct) =>
+                {
+                    created = target;
+                    return Task.FromResult(CreateResult.Success(null!));
+                },
+                name => TestNameChecks.Existing(name, Downloads))
+            {
+                ConfirmName = (check, target) =>
+                {
+                    confirmed = target;
+                    return true;
+                }
+            };
+            creator.ShortcutName = "dl";
+            creator.Target = @"C:\typed\Downloads.lnk";
+            creator.ResolvedTarget = Downloads;
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(Downloads, confirmed);
+            Assert.Equal(@"C:\typed\Downloads.lnk", created);
+        }
+
+        [Fact]
+        public void TheNameWarning_IsRefreshed_WhenTheTargetResolves()
+        {
+            var creator = NewCreator();
+            creator.ShortcutName = "dl";
+            creator.Target = @"C:\typed\Downloads.lnk";
+            creator.SetNameWarning(TestNameChecks.Existing("dl", Downloads));
+            var changed = new List<string?>();
+            creator.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            creator.ResolvedTarget = Downloads;
+
+            Assert.Contains(nameof(CreatorViewModel.HelperText), changed);
+            Assert.Contains(nameof(CreatorViewModel.NameHelpText), changed);
+            Assert.Equal("\u201cdl\u201d already exists and opens this target.", creator.HelperText);
         }
 
         [Fact]

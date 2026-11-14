@@ -86,7 +86,7 @@ namespace keycuts.Tests
         {
             var settings = new Settings { OutputFolder = "   " };
 
-            Assert.Equal(Settings.InvalidOutputFolderMessage, settings.SaveSettings());
+            Assert.Equal(new FolderSaveResult(false, Settings.InvalidOutputFolderMessage), settings.SaveOutputFolder());
         }
     }
 

@@ -237,9 +237,20 @@ namespace keycuts.GUI
             }
         }
 
+        // The cap is measured again here, after the window went back to where the Creator was: that can be a shorter monitor
+        // than the Manager's, and a cap from the old one would leave the footer below the screen (PR #225 review)
         private void KeepOnScreen()
         {
-            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, ActualWidth, ActualHeight), WindowLayout.GetWorkAreaInDips(this));
+            if (shownMode != ShellMode.Settings)
+            {
+                return;
+            }
+
+            var workArea = WindowLayout.GetWorkAreaInDips(this);
+            MaxHeight = workArea.Height;
+            UpdateLayout();
+
+            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, ActualWidth, ActualHeight), workArea);
             Left = bounds.Left;
             Top = bounds.Top;
         }

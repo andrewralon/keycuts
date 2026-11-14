@@ -42,6 +42,9 @@ namespace keycuts.GUI.ViewModels
 
         private SettingsViewModel? settings;
 
+        /// <summary>Counts the reloads started, so a reload that a later one overtook drops its result.</summary>
+        private int reloadVersion;
+
         public ShellViewModel(
             Func<Task<int>> countProvider,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
@@ -240,13 +243,22 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>
         /// Reloads the keycuts. While the manager is showing it loads the rows (and the count follows from them);
-        /// otherwise only the count is read. A missing or unreadable folder counts as zero.
+        /// otherwise only the count is read. A missing or unreadable folder counts as zero. Reloads can overlap (a screen
+        /// switch, then a new output folder), and only the latest one started may show its count or reach the welcome panel:
+        /// an older one finishing last would show the old folder's total (PR #225 review).
         /// </summary>
         public async Task ReloadAsync()
         {
+            var version = ++reloadVersion;
+
             if (mode == ShellMode.Manager && Manager.CanLoad)
             {
                 await Manager.LoadAsync();
+                if (version != reloadVersion)
+                {
+                    return;
+                }
+
                 Creator.KeycutCount = Manager.KeycutCount;
                 Creator.Welcome?.OnKeycutCountLoaded(Manager.KeycutCount);
                 return;
@@ -260,6 +272,11 @@ namespace keycuts.GUI.ViewModels
             catch (Exception)
             {
                 count = 0;
+            }
+
+            if (version != reloadVersion)
+            {
+                return;
             }
 
             Creator.KeycutCount = count;

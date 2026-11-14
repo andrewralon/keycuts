@@ -115,11 +115,16 @@ namespace keycuts.Tests
                 return Stored;
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 Saves++;
                 Stored = settings;
                 return null;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                return new FolderSaveResult(true, null);
             }
         }
 
@@ -232,6 +237,56 @@ namespace keycuts.Tests
 
             shell.Settings.UseEnvironmentVariables = false;
             Assert.False(shell.Creator.UseEnvironmentVariablesSetting);
+        }
+
+        // Reloads overlap (a screen switch, then a new folder); one that started earlier and finishes last must not put back
+        // the old folder's count (PR #225 review)
+        [Fact]
+        public async Task AnOlderReloadThatFinishesLast_DoesntShowItsCount()
+        {
+            var pending = new List<TaskCompletionSource<int>>();
+            var shell = new ShellViewModel(() =>
+            {
+                var answer = new TaskCompletionSource<int>();
+                pending.Add(answer);
+                return answer.Task;
+            });
+
+            var older = shell.ReloadAsync();
+            var newer = shell.ReloadAsync();
+
+            pending[1].SetResult(9);
+            await newer;
+            pending[0].SetResult(3);
+            await older;
+
+            Assert.Equal(9, shell.Creator.KeycutCount);
+            Assert.Equal(9, shell.Manager.KeycutCount);
+        }
+
+        [Fact]
+        public async Task AnOlderReloadThatFinishesLast_DoesntReachTheWelcomePanel()
+        {
+            var pending = new List<TaskCompletionSource<int>>();
+            // A first run (never dismissed): the panel decides from the first count it is given
+            var welcome = new WelcomeViewModel(() => false, () => { });
+            var shell = new ShellViewModel(() =>
+            {
+                var answer = new TaskCompletionSource<int>();
+                pending.Add(answer);
+                return answer.Task;
+            }, welcome: welcome);
+
+            var older = shell.ReloadAsync();
+            var newer = shell.ReloadAsync();
+            pending[1].SetResult(5);
+            await newer;
+            var shownAfterNewer = welcome.IsVisible;
+            pending[0].SetResult(0);
+            await older;
+
+            Assert.Equal(shownAfterNewer, welcome.IsVisible);
+            Assert.Equal(5, shell.Creator.KeycutCount);
         }
 
         [Fact]

@@ -38,8 +38,7 @@
           <Image x:Name="AppIcon" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
         </Border>
         <TextBlock Text="keycuts" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
-                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
-                   AutomationProperties.HeadingLevel="None" />
+                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
       </StackPanel>
 
       <controls:RailTabControl x:Name="TabStrip" Grid.Column="1" Style="{StaticResource RailTabControl}"

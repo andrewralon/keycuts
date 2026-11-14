@@ -414,7 +414,7 @@ namespace keycuts.Tests
                 menu.IsOpen = false;
 
                 Assert.Equal("Enter", keys["Open keycut"]);
-                Assert.Equal("Ctrl+E", keys["Edit"]);
+                Assert.Equal("Ctrl+E", keys["Edit…"]);
                 Assert.Equal("Ctrl+Shift+E", keys["Edit in Notepad"]);
                 Assert.Equal("Ctrl+Shift+O", keys["Open file location"]);
                 Assert.Equal("Ctrl+C", keys["Copy target"]);

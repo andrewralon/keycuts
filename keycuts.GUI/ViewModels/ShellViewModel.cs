@@ -10,7 +10,8 @@ namespace keycuts.GUI.ViewModels
     public enum ShellMode
     {
         Creator,
-        Manager
+        Manager,
+        Settings
     }
 
     public enum EscapeResult
@@ -18,11 +19,12 @@ namespace keycuts.GUI.ViewModels
         CloseWindow,
         ClosedMenu,
         ClearedSearch,
-        ReturnedToCreator
+        ReturnedToCreator,
+        ClosedIconPicker
     }
 
     /// <summary>
-    /// Owns the single window's current view (creator or manager) and the navigation between them.
+    /// Owns the single window's current view (creator, manager or settings, #218) and the navigation between them.
     /// </summary>
     public class ShellViewModel : ObservableObject
     {
@@ -36,6 +38,10 @@ namespace keycuts.GUI.ViewModels
 
         private object currentView;
 
+        private readonly Func<SettingsViewModel>? settingsFactory;
+
+        private SettingsViewModel? settings;
+
         public ShellViewModel(
             Func<Task<int>> countProvider,
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? keycutLoader = null,
@@ -43,13 +49,15 @@ namespace keycuts.GUI.ViewModels
             IKeycutActions? actions = null,
             WelcomeViewModel? welcome = null,
             UpdateNoticeViewModel? updateNotice = null,
-            IDescriptionVisibilityStore? descriptionStore = null)
+            IDescriptionVisibilityStore? descriptionStore = null,
+            Func<SettingsViewModel>? settingsFactory = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
+            this.settingsFactory = settingsFactory;
 
             ShowManagerCommand = new RelayCommand(ShowManager);
             ShowCreatorCommand = new RelayCommand(ShowCreator);
-            OpenSettingsCommand = new RelayCommand(() => SettingsRequested?.Invoke(this, EventArgs.Empty));
+            OpenSettingsCommand = new RelayCommand(ShowSettings, () => settingsFactory != null);
 
             Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, descriptionStore: descriptionStore)
             {
@@ -68,9 +76,6 @@ namespace keycuts.GUI.ViewModels
             Manager.KeycutRestored += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
         }
 
-        /// <summary>Raised when a settings button is pressed. The window opens the dialog and then calls <see cref="ReloadAsync"/>.</summary>
-        public event EventHandler? SettingsRequested;
-
         public CreatorViewModel Creator { get; }
 
         public ManagerViewModel Manager { get; }
@@ -80,6 +85,52 @@ namespace keycuts.GUI.ViewModels
         public RelayCommand ShowCreatorCommand { get; }
 
         public RelayCommand OpenSettingsCommand { get; }
+
+        /// <summary>
+        /// The Settings screen's view model while it is showing (#218), made fresh each time the screen opens, so it shows what is
+        /// stored now. Null on the other screens.
+        /// </summary>
+        public SettingsViewModel? Settings
+        {
+            get { return settings; }
+            private set
+            {
+                if (ReferenceEquals(settings, value))
+                {
+                    return;
+                }
+
+                if (settings != null)
+                {
+                    settings.PropertyChanged -= Settings_PropertyChanged;
+                    settings.Stored -= Settings_Stored;
+                    settings.OutputFolderChanged -= Settings_OutputFolderChanged;
+                    settings.ShowWelcomeRequested -= Settings_ShowWelcomeRequested;
+                    // UpdateChecked stays: check now can answer after the screen was left, and the footer must still follow it.
+                    // The handler doesn't keep the old screen alive; only the running check does, until it ends.
+                }
+
+                settings = value;
+
+                if (settings != null)
+                {
+                    settings.PropertyChanged += Settings_PropertyChanged;
+                    settings.Stored += Settings_Stored;
+                    settings.OutputFolderChanged += Settings_OutputFolderChanged;
+                    settings.ShowWelcomeRequested += Settings_ShowWelcomeRequested;
+                    settings.UpdateChecked += Settings_UpdateChecked;
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(AreTabsEnabled));
+            }
+        }
+
+        /// <summary>The tabs are off while Settings' icon picker is open, as the page behind it is; the caption buttons never are.</summary>
+        public bool AreTabsEnabled
+        {
+            get { return settings?.IsIconPickerOpen != true; }
+        }
 
         public ShellMode Mode
         {
@@ -108,6 +159,7 @@ namespace keycuts.GUI.ViewModels
             Manager.SelectedRow = null;
             Manager.IsMenuOpen = false;
             SetMode(ShellMode.Manager, Manager);
+            Settings = null;
             _ = ReloadAsync();
         }
 
@@ -127,17 +179,47 @@ namespace keycuts.GUI.ViewModels
 
             Manager.IsMenuOpen = false;
             SetMode(ShellMode.Creator, Creator);
+            Settings = null;
+            _ = ReloadAsync();
+        }
+
+        /// <summary>The Settings screen (#218), with what is stored now. Does nothing without a way to make its view model.</summary>
+        public void ShowSettings()
+        {
+            if (mode == ShellMode.Settings || settingsFactory == null)
+            {
+                return;
+            }
+
+            Manager.IsMenuOpen = false;
+            var screen = settingsFactory();
+            screen.Footer = Creator;
+            Settings = screen;
+            SetMode(ShellMode.Settings, screen);
             _ = ReloadAsync();
         }
 
         /// <summary>
         /// Creator: close the window. Manager: close an open menu, else clear a non-empty search, else return to the creator.
+        /// Settings: close the icon picker if it is open, else return to the creator. Nothing on Settings is unsaved (#218).
         /// </summary>
         public EscapeResult HandleEscape()
         {
             if (mode == ShellMode.Creator)
             {
                 return EscapeResult.CloseWindow;
+            }
+
+            if (mode == ShellMode.Settings)
+            {
+                if (settings?.IsIconPickerOpen == true)
+                {
+                    settings.IsIconPickerOpen = false;
+                    return EscapeResult.ClosedIconPicker;
+                }
+
+                ShowCreator();
+                return EscapeResult.ReturnedToCreator;
             }
 
             if (Manager.IsMenuOpen)
@@ -183,6 +265,42 @@ namespace keycuts.GUI.ViewModels
             Creator.KeycutCount = count;
             Manager.KeycutCount = count;
             Creator.Welcome?.OnKeycutCountLoaded(count);
+        }
+
+        private void Settings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.IsIconPickerOpen))
+            {
+                OnPropertyChanged(nameof(AreTabsEnabled));
+            }
+        }
+
+        // What the old dialog's close refreshed now follows each change: the environment-variables preview and the update line
+        private void Settings_Stored(object? sender, EventArgs e)
+        {
+            if (sender is SettingsViewModel stored)
+            {
+                Creator.UseEnvironmentVariablesSetting = stored.UseEnvironmentVariables;
+            }
+
+            Creator.UpdateNotice?.Refresh();
+        }
+
+        // The count is the new folder's
+        private void Settings_OutputFolderChanged(object? sender, EventArgs e)
+        {
+            _ = ReloadAsync();
+        }
+
+        private void Settings_ShowWelcomeRequested(object? sender, EventArgs e)
+        {
+            ShowWelcome();
+        }
+
+        // Check now can answer after the screen was left; the footer's line follows whenever it does
+        private void Settings_UpdateChecked(object? sender, EventArgs e)
+        {
+            Creator.UpdateNotice?.Refresh();
         }
 
         private void SetMode(ShellMode newMode, object view)

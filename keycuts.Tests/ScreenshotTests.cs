@@ -109,17 +109,54 @@ namespace keycuts.Tests
             creator.Target = "https://mail.google.com/mail/u/0/#inbox";
             creator.TargetKind = KeycutKind.Url;
             creator.ShortcutName = "gmail";
-            Render(HideCarets(Host(new CreatorView(), creator, 440, null)), folder, "creator-" + suffix);
+            Render(HideCarets(HostWithTabs(new CreatorView(), creator, rail => rail.CreatorItem, null)), folder, "creator-" + suffix);
 
+            // The Manager's table keeps the height it had before the tab bar (#218): 560 under the bar
             var manager = new ManagerViewModel(noop, noop);
             manager.ShowKeycuts(SampleKeycuts());
-            Render(HideCarets(Host(new ManagerView(), manager, 960, 560)), folder, "manager-" + suffix);
+            Render(HideCarets(HostWithTabs(new ManagerView(), manager, rail => rail.ManagerItem, 960, 560 + RailHeight)), folder, "manager-" + suffix);
 
-            // Settings, with the update row the real app has (#171)
-            // without the version row (the version and Check now), so the screenshot doesn't go stale at every release
+            // Settings (#218, a screen of the main window), with the update row the real app has (#171) but without the version
+            // row (the version and check now), so the screenshot doesn't go stale at every release. Its footer is the creator's.
             var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState());
-            var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersionRow = false };
-            Render(Show(new SettingsWindow(settings)), folder, "settings-" + suffix);
+            var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersionRow = false, Footer = creator };
+            Render(HideCarets(HostWithTabs(new SettingsView(), settings, rail => rail.SettingsItem, null)), folder, "settings-" + suffix);
+        }
+
+        private const double RailHeight = 48;
+
+        /// <summary>
+        /// A screen under the tab bar, as the main window shows it (#218), with its tab selected. Not the main window itself: that
+        /// would make the shell's own view models, and the creator's name check would read the real PATH. The fixed-size screens are
+        /// MainWidth wide and have maximize off, as in the app.
+        /// </summary>
+        private static Window HostWithTabs(FrameworkElement view, object viewModel, Func<RailView, TabItem> tab, double? width, double? height = null)
+        {
+            var rail = new RailView { DataContext = new { AreTabsEnabled = true } };
+            rail.Tabs.SelectedItem = tab(rail);
+            view.DataContext = viewModel;
+
+            // The frame has the size, not the window: a test window keeps its Windows frame, which would take 16 of the width
+            var frame = new Grid { Width = width ?? WindowLayout.CreatorWidth };
+            frame.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            frame.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            Grid.SetRow(view, 1);
+            frame.Children.Add(rail);
+            frame.Children.Add(view);
+
+            if (height.HasValue)
+            {
+                frame.Height = height.Value;
+            }
+
+            var window = new Window
+            {
+                Content = frame,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                ResizeMode = width.HasValue ? ResizeMode.CanResize : ResizeMode.CanMinimize
+            };
+
+            return Show(window);
         }
 
         #region Walkthrough

@@ -1,0 +1,228 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: one window, folder tabs (v2)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI",system-ui,sans-serif;color:#1a2233}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#4a5468;margin-top:12px}
+.cap:first-child{margin-top:0}
+.note{font-size:12.5px;color:#4a5468;line-height:1.45}
+.note b{color:#1a2233}
+
+/* ---------- theme tokens (Themes/Light.xaml, Themes/Dark.xaml) ---------- */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#818b9d;--accent:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--glow:#cfdcfb;
+  --uB:#ece3fb;--uF:#5b2fa8;--fB:#fdf1d4;--fF:#7a5200;--iB:#e1eefb;--iF:#164f87;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--brush:rgba(255,255,255,.45);--ledge:#b3bccb;
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabEdge:#aab3c2;--tabText:#5d687b;--tabOn:#172033;
+  --dots:rgba(23,32,51,.16);--socket1:#f9fafb;--socket2:#e2e7ee;--socketEdge:#bdc5d2;--capGlyph:#3a4458;--capHot:rgba(23,32,51,.08);--shadow:rgba(23,32,51,.22)}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;--accent:#4f8cff;--accentSoft:#182a4d;--onAccent:#06090f;--glow:rgba(79,140,255,.32);
+  --uB:#33254c;--uF:#c4a1ff;--fB:#41351e;--fF:#f0c365;--iB:#18354e;--iF:#86c8ff;
+  --rail1:#1c2029;--rail2:#111318;--brush:rgba(255,255,255,.025);--ledge:#363d48;
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabEdge:#3d4553;--tabText:#8d97a8;--tabOn:#f3f5f8;
+  --dots:rgba(255,255,255,.10);--socket1:#14171d;--socket2:#20242c;--socketEdge:#363d48;--capGlyph:#d5dbe5;--capHot:rgba(255,255,255,.08);--shadow:rgba(0,0,0,.55)}
+
+/* ---------- window ---------- */
+.win{background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+.w-small{width:620px}
+.w-wide{width:840px;height:470px}
+
+/* ---------- the rail: brushed metal, a ledge the tabs stand on, a dot grip where it drags ---------- */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--brush) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.rail::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--ledge);z-index:2}
+.brand{display:flex;align-items:center;gap:9px;height:48px;padding:0 14px 0 10px;align-self:stretch;font-weight:700;font-size:15px;letter-spacing:.4px;color:var(--tabOn)}
+.socket{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--socket2),var(--socket1));border:1px solid var(--socketEdge);box-shadow:inset 0 1px 3px var(--shadow)}
+.socket img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;height:48px;padding-left:2px}
+
+/* a folder tab: square left side with a cut corner, slanted right side; each tucks under the one before it */
+.tw{position:relative;margin-left:-10px}
+.tw:first-child{margin-left:0}
+.tw:nth-child(1){z-index:3}.tw:nth-child(2){z-index:2}.tw:nth-child(3){z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--shadow))}
+.tab{--cut:7px;--slant:16px;position:relative;height:33px;padding:0 calc(var(--slant) + 10px) 0 14px;display:flex;align-items:center;gap:7px;
+  font-size:14px;font-weight:600;color:var(--tabText);background:var(--tabEdge);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.10));z-index:0}
+.tw.on .tab{height:38px;color:var(--tabOn);background:var(--strong)}
+.tw.on .tab::before{background:linear-gradient(180deg,var(--surface),var(--surface));inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.tab.gear{padding:0 calc(var(--slant) + 6px) 0 13px}
+.drag{flex:1;align-self:stretch;margin:7px 8px 9px 6px;border-radius:4px;
+  background-image:radial-gradient(var(--dots) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.hot{background:var(--capHot)}
+.cb.close-hot{background:#c42b1c;color:#fff}
+
+/* ---------- page content ---------- */
+.body{padding:20px 22px;flex:1;display:flex;flex-direction:column}
+.btn{border:1px solid var(--ctl);border-radius:6px;background:var(--surface);color:var(--text);height:34px;padding:0 14px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;flex:none}
+.ibtn{width:40px;height:40px;border:1px solid var(--ctl);border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--text)}
+.drop{border:1.5px dashed var(--strong);border-radius:10px;background:var(--subtle);padding:14px;display:flex;gap:12px;align-items:center}
+.tbadge{width:36px;height:36px;border-radius:8px;background:var(--accentSoft);display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent)}
+.tl{font-weight:600;font-size:13px}
+.tv{font-size:13px;color:var(--text2);word-break:break-all;margin-top:2px;line-height:1.35}
+.lbl{margin-top:16px;font-weight:600;font-size:13px}
+.row{display:flex;gap:8px;margin-top:6px}
+.inp{flex:1;height:40px;border:1.5px solid var(--accent);border-radius:6px;box-shadow:0 0 0 3px var(--glow);padding:0 10px;display:flex;align-items:center;font-size:15px}
+.go{width:40px;height:40px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none;color:var(--onAccent)}
+.desc2{margin-top:6px;border:1px solid var(--strong);border-radius:6px;height:34px;padding:0 10px;display:flex;align-items:center;color:var(--text3);font-size:13px}
+.foot{height:44px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:13px;color:var(--text2);flex:none}
+.pill{border:1px solid var(--strong);border-radius:999px;background:var(--surface);padding:1px 11px;font-weight:600;font-size:13px;color:var(--text)}
+a{color:var(--accent);font-weight:600}
+.x{margin-left:10px;color:var(--text3)}
+.srch{flex:1;height:36px;border:1.5px solid var(--accent);border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th{text-align:left;color:var(--text3);padding:8px 10px;background:var(--subtle);border-bottom:1px solid var(--border);font-weight:600}
+td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.b{font-weight:700}
+.pillt{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
+.u{background:var(--uB);color:var(--uF)}.f{background:var(--fB);color:var(--fF)}.fi{background:var(--iB);color:var(--iF)}
+
+/* settings page */
+.sec{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);margin-top:18px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--border)}
+.set .t{font-size:14px;font-weight:600}
+.set .n{font-size:12px;color:var(--text2);margin-top:1px}
+.tog{width:40px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1.5px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:2px;width:12px;height:12px;background:var(--text2)}
+.field{flex:1;height:34px;border:1px solid var(--ctl);border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px}
+.radio{display:flex;gap:14px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:5px}
+.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ctl)}
+.dot.on{border:4px solid var(--accent)}
+.iconpick{width:42px;height:42px;border:1px solid var(--ctl);border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none}
+.iconpick img{width:28px;height:28px}
+.saved{font-size:12px;color:var(--text3);margin-top:12px;display:flex;align-items:center;gap:6px}
+.endrow{display:flex;justify-content:space-between;margin-top:16px}
+
+/* ---------- close-up ---------- */
+.anno .brand,.anno .drag{outline:1.5px dashed #2563eb;outline-offset:-1.5px;background-color:rgba(37,99,235,.14)}
+.anno .drag{-webkit-mask-image:none}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:rgba(37,99,235,.3);outline:1px dashed #2563eb}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+ </defs>
+</svg>
+
+<div class="grid">
+ <div class="stack" id="c1"></div>
+ <div class="stack" id="c2"></div>
+ <div class="stack" id="c3"></div>
+</div>
+
+<script>
+const icon = t => `../../assets/icons/${t === 'dark' ? 'onyx/onyx' : 'porcelain/porcelain'}-32.png`;
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+
+function rail(theme, active, hot) {
+  const tab = (key, inner, extra = '') =>
+    `<div class="tw${active === key ? ' on' : ''}"><div class="tab${extra}">${inner}</div></div>`;
+  return `<div class="rail">
+   <div class="brand"><span class="socket"><img src="${icon(theme)}" alt=""></span>keycuts</div>
+   <div class="tabs">
+    ${tab('creator', `${use('i-spark', 15)}<span>creator</span>`)}
+    ${tab('manager', `${use('i-table', 15)}<span>manager</span>`)}
+    ${tab('settings', use('i-gear', 17), ' gear')}
+   </div>
+   <div class="drag"></div>
+   <div class="caps">
+    <div class="cb">${use('i-min', 10)}</div>
+    <div class="cb${hot ? ' hot' : ''}">${use('i-max', 10)}</div>
+    <div class="cb${hot ? ' close-hot' : ''}">${use('i-close', 10)}</div>
+   </div></div>`;
+}
+
+const footer = `<div class="foot"><span class="pill">355</span>
+  <span>keycuts 1.3.0 is available &middot; <a>Download</a><span class="x">&#10005;</span></span></div>`;
+
+const creator = `<div class="body">
+  <div class="drop">
+   <div class="tbadge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/></svg></div>
+   <div style="flex:1;min-width:0"><div class="tl">Target</div>
+    <div class="tv">%USERPROFILE%\\Documents\\Projects\\2026\\Gallery Submissions\\spring-collection-final-v3.xlsx</div></div>
+   <div class="ibtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg></div>
+  </div>
+  <div class="lbl">Name</div>
+  <div class="row"><div class="inp">art</div>
+   <div class="go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></svg></div></div>
+  <div class="lbl">Description (optional)</div>
+  <div class="desc2">e.g. Recent paintings</div>
+ </div>${footer}`;
+
+const manager = `<div class="body">
+  <div style="display:flex;gap:10px;align-items:center"><div class="srch">&#128269; Search names, types, descriptions, or targets</div><span style="font-size:13px;color:var(--text2)">4 of 355 shown</span></div>
+  <table>
+   <tr><th>Name</th><th>Type</th><th>Description</th><th>Target</th><th>Modified</th><th></th></tr>
+   <tr><td class="b">art</td><td><span class="pillt u">URL</span></td><td>Paintings gallery</td><td>https://gallery.example.com/art</td><td>12 minutes ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">db</td><td><span class="pillt f">Folder</span></td><td>Dropbox folder</td><td>%USERPROFILE%\\Dropbox</td><td>1 month ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">gmail</td><td><span class="pillt u">URL</span></td><td>Work email</td><td>https://mail.google.com/mail/u/0/#inbox</td><td>5 hours ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">npp</td><td><span class="pillt fi">File</span></td><td>Notepad++</td><td>C:\\Program Files\\Notepad++\\notepad++.exe</td><td>3 days ago</td><td>&middot;&middot;&middot;</td></tr>
+  </table>
+  <div style="flex:1"></div>
+ </div>${footer}`;
+
+const settings = theme => `<div class="body">
+  <div class="sec">OUTPUT</div>
+  <div style="font-size:14px;font-weight:600;margin-top:8px">Output folder</div>
+  <div class="row"><div class="field">%USERPROFILE%\\Shortcuts</div><div class="btn">Browse</div></div>
+  <div class="sec">BEHAVIOR</div>
+  <div class="set"><div class="t">Ask before replacing a keycut</div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Right-click context menus</div><div class="n">Add “keycut this!” to File Explorer menus.</div></div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Use environment variables in paths</div><div class="n">Save paths as %USERPROFILE%\\… or similar. Hold Shift to preview.</div></div><div class="tog off"></div></div>
+  <div class="sec">APPEARANCE</div>
+  <div class="set"><div><div class="t">Icon <span style="font-weight:400;color:var(--text2)">&middot; Black &amp; White</span></div><div class="n">Porcelain in light mode, Onyx in dark mode.</div></div><div class="iconpick"><img src="${icon(theme)}" alt=""></div></div>
+  <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>
+  <div class="sec">UPDATES</div>
+  <div class="set"><div><div class="t">Check for updates</div><div class="n">Once a day, ask GitHub whether a newer version is out.</div></div><div class="tog"></div></div>
+  <div class="set" style="border:none"><div><div class="t">keycuts 1.2.0</div><div class="n">1.3.0 is available &middot; <a>Download</a></div></div><div class="btn">Check now</div></div>
+  <div class="saved">${use('i-check', 13)}Changes are saved as you make them.</div>
+  <div class="endrow"><div class="btn">show welcome</div><div class="btn">restore defaults</div></div>
+ </div>${footer}`;
+
+const win = (theme, active, size, content, extra = '') =>
+  `<div class="win ${theme} ${size} ${extra}">${rail(theme, active, false)}${content}</div>`;
+
+const c1 = document.getElementById('c1'), c2 = document.getElementById('c2'), c3 = document.getElementById('c3');
+
+c1.innerHTML = `
+ <div class="cap">1. creator, light</div>${win('light', 'creator', 'w-small', creator)}
+ <div class="cap">creator, dark</div>${win('dark', 'creator', 'w-small', creator)}
+ <div class="cap">Notes</div>
+ <div class="note"><b>Tabs.</b> Folder tabs with a cut corner and a slanted edge, each tucked under the one to its left like folders in a drawer. The selected one is pulled up, filled with the page colour so it runs straight into it, and casts a shadow on the next. The others are brushed with fine diagonal lines and shaded darker toward the ledge they stand on. No accent line.</div>
+ <div class="note"><b>The rail.</b> A brushed-metal strip. The icon sits in a recessed socket. The empty space carries a faint dot grid that fades at both ends, a grip that says "grab here" without a word.</div>
+ <div class="note"><b>Settings.</b> Every change saves as it is made, so there is no Save button. <b>show welcome</b> (left) and <b>restore defaults</b> (right) share the last row. restore defaults puts every setting back to its default <b>except the output folder</b>, which it never touches, and asks first.</div>`;
+
+c2.innerHTML = `
+ <div class="cap">2. manager, light (same window, grown to the Manager's size; the tabs don't move)</div>${win('light', 'manager', 'w-wide', manager)}
+ <div class="cap">manager, dark</div>${win('dark', 'manager', 'w-wide', manager)}
+ <div class="cap">4. The rail up close, at the Creator's width and zoomed in: what you can grab (maximize and close hovered)</div>
+ <div class="win light anno" style="width:620px;zoom:1.35">${rail('light', 'manager', true)}<div style="height:20px"></div></div>
+ <div class="win dark anno" style="width:620px;zoom:1.35">${rail('dark', 'manager', true)}<div style="height:20px;background:var(--surface)"></div></div>
+ <div class="note"><span class="k"></span><b>Grab areas</b> (the icon and name, and the gripped space): drag to move, double-click to maximize or restore, right-click for the window menu. Dragging a maximized window down restores it, and dragging to an edge snaps it. Tabs only switch screens. Hovering maximize still opens Windows 11's snap layouts.</div>`;
+
+c3.innerHTML = `
+ <div class="cap">3. settings, light (the icon picker stays an overlay)</div>${win('light', 'settings', 'w-small', settings('light'))}
+ <div class="cap">settings, dark</div>${win('dark', 'settings', 'w-small', settings('dark'))}`;
+</script>
+</body></html>

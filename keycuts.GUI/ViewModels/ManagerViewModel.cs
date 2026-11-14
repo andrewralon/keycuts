@@ -441,7 +441,7 @@ namespace keycuts.GUI.ViewModels
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Couldn't edit \u201C" + row.Name + "\u201D: " + ex.Message, true);
+                ShowStatusMessage("Couldn’t edit \u201C" + row.Name + "\u201D: " + ex.Message, true);
             }
         }
 
@@ -575,7 +575,7 @@ namespace keycuts.GUI.ViewModels
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Couldn't open the file location of “" + row.Name + "”: " + ex.Message, true);
+                ShowStatusMessage("Couldn’t open the file location of “" + row.Name + "”: " + ex.Message, true);
             }
         }
 
@@ -631,7 +631,7 @@ namespace keycuts.GUI.ViewModels
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Couldn't delete \u201C" + row.Name + "\u201D: " + ReasonOf(ex), true);
+                ShowStatusMessage("Couldn’t delete \u201C" + row.Name + "\u201D: " + ReasonOf(ex), true);
             }
             finally
             {
@@ -961,7 +961,7 @@ namespace keycuts.GUI.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    ShowStatusMessage("Couldn't rename “" + oldName + "”: " + ReasonOf(ex), true);
+                    ShowStatusMessage("Couldn’t rename “" + oldName + "”: " + ReasonOf(ex), true);
                     FocusRowRequested?.Invoke(this, row);
                     _ = LoadAsync();
                     return;
@@ -1099,7 +1099,7 @@ namespace keycuts.GUI.ViewModels
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Couldn't " + verb + " \u201C" + row.Name + "\u201D: " + ex.Message, true);
+                ShowStatusMessage("Couldn’t " + verb + " \u201C" + row.Name + "\u201D: " + ex.Message, true);
                 return false;
             }
         }
@@ -1288,7 +1288,7 @@ namespace keycuts.GUI.ViewModels
         public void ShowError(string message)
         {
             allRows.Clear();
-            errorMessage = string.IsNullOrWhiteSpace(message) ? "The keycuts folder can't be read." : message;
+            errorMessage = string.IsNullOrWhiteSpace(message) ? "The keycuts folder can’t be read." : message;
             isLoading = false;
             hasLoaded = true;
             KeycutCount = 0;

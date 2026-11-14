@@ -411,7 +411,8 @@ namespace keycuts.Tests
                     ((Button)window.FindName("BtnIcon")).Command.Execute(null);
                     Pump();
                     Assert.True(picker.IsVisible);
-                    Assert.False(((Button)window.FindName("BtnSave")).IsEnabled);
+                    // The page behind is off, so Tab stays in the picker
+                    Assert.False(((FrameworkElement)window.FindName("BodyScroller")).IsEnabled);
 
                     var cards = Descendants<ListBoxItem>(picker).ToList();
                     Assert.Equal(AppIcons.Options.Select(o => o.Name), cards.Select(AutomationProperties.GetName));
@@ -422,7 +423,7 @@ namespace keycuts.Tests
                     // Two cards to a row, and Classic alone on the last one
                     Assert.Equal(cards[2].TranslatePoint(new Point(0, 0), picker).Y, cards[3].TranslatePoint(new Point(0, 0), picker).Y, 1);
                     Assert.True(cards[6].TranslatePoint(new Point(0, 0), picker).Y > cards[5].TranslatePoint(new Point(0, 0), picker).Y);
-                    Assert.Equal(cards[2].ActualWidth * 2 + 10, cards[6].ActualWidth, 1);
+                    Assert.Equal(cards[2].ActualWidth * 2 + 8, cards[6].ActualWidth, 1);
 
                     cards[4].IsSelected = true;
                     Pump();
@@ -506,6 +507,8 @@ namespace keycuts.Tests
             });
         }
 
+        // Escape is the main window's (the shell's) since Settings became a screen (#218): with the picker open it closes only the
+        // picker, and the focus goes back to the icon button; the screen stays
         [Fact]
         public void Window_EscapeClosesOnlyThePicker_AndGivesTheFocusBackToTheIconButton()
         {
@@ -513,13 +516,27 @@ namespace keycuts.Tests
             {
                 EnsureApplication();
                 var viewModel = new SettingsViewModel(new FakeStore());
-                var window = ShowOffscreen(viewModel);
+                var shell = new ShellViewModel(() => System.Threading.Tasks.Task.FromResult(3), settingsFactory: () => viewModel);
+                var window = new MainWindow(shell)
+                {
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    Left = -20000,
+                    Top = -20000,
+                    ShowInTaskbar = false,
+                    ShowActivated = false
+                };
+                window.Show();
+                Pump();
+                shell.ShowSettings();
+                Pump();
+                window.UpdateLayout();
                 var closed = false;
                 window.Closed += (_, _) => closed = true;
                 try
                 {
                     viewModel.OpenIconPickerCommand.Execute(null);
                     Pump();
+                    Assert.False(shell.AreTabsEnabled);
                     var card = Descendants<ListBoxItem>(window).Single(c => c.IsSelected);
 
                     card.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(card), 0, Key.Escape)
@@ -530,8 +547,9 @@ namespace keycuts.Tests
 
                     Assert.False(viewModel.IsIconPickerOpen);
                     Assert.False(closed);
-                    Assert.True(((Button)window.FindName("BtnIcon")).IsKeyboardFocused);
-                    Assert.True(((Button)window.FindName("BtnSave")).IsEnabled);
+                    Assert.Equal(ShellMode.Settings, shell.Mode);
+                    Assert.True(shell.AreTabsEnabled);
+                    Assert.True(Descendants<Button>(window).Single(b => b.Name == "BtnIcon").IsKeyboardFocused);
                 }
                 finally
                 {
@@ -586,9 +604,28 @@ namespace keycuts.Tests
             });
         }
 
-        static SettingsWindow ShowOffscreen(SettingsViewModel viewModel)
+        /// <summary>The Settings screen (#218) in a window of its own, MainWidth wide; its names are in the view's name scope.</summary>
+        private sealed class SettingsHost : Window
         {
-            var window = new SettingsWindow(viewModel)
+            public SettingsHost(SettingsViewModel viewModel)
+            {
+                View = new keycuts.GUI.Views.SettingsView { DataContext = viewModel };
+                Content = View;
+                Width = WindowLayout.CreatorWidth;
+                SizeToContent = SizeToContent.Height;
+            }
+
+            public keycuts.GUI.Views.SettingsView View { get; }
+
+            public new object FindName(string name)
+            {
+                return View.FindName(name)!;
+            }
+        }
+
+        static SettingsHost ShowOffscreen(SettingsViewModel viewModel)
+        {
+            var window = new SettingsHost(viewModel)
             {
                 WindowStartupLocation = WindowStartupLocation.Manual,
                 Left = -20000,

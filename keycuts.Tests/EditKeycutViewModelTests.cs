@@ -68,7 +68,7 @@ namespace keycuts.Tests
             Assert.False(form.HasChanges);
             Assert.True(form.CanSave);
             Assert.True(form.IsInputEnabled);
-            Assert.Equal("Edit keycut", form.Title);
+            Assert.Equal("edit keycut", form.Title);
             Assert.Null(form.Saved);
         }
 

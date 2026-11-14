@@ -11,7 +11,8 @@ namespace keycuts.GUI
     /// </summary>
     public static class WindowLayout
     {
-        public const double CreatorWidth = 440;
+        /// <summary>The Creator's width, and Settings' once it is a screen: what the tab bar needs plus about 60 of empty bar. A test keeps it equal to <c>MainWidth</c> in Tokens.xaml.</summary>
+        public const double CreatorWidth = 600;
 
         public const double ManagerDefaultWidth = 960;
 
@@ -53,9 +54,33 @@ namespace keycuts.GUI
                 (info.Work.Bottom - info.Work.Top) / dpi.DpiScaleY);
         }
 
+        /// <summary>
+        /// The thickness of the frame Windows gives a resizable window (the sizing border plus its padding), in DIPs, at the window's
+        /// DPI: 8 at 100%. <c>SystemParameters.WindowResizeBorderThickness</c> leaves the padding out (4), and so is not what a maximized
+        /// window overhangs by.
+        /// </summary>
+        public static Thickness GetFrameThickness(Window window)
+        {
+            var dpi = VisualTreeHelper.GetDpi(window);
+            var pixelsX = (uint)Math.Round(dpi.PixelsPerInchX);
+            var pixelsY = (uint)Math.Round(dpi.PixelsPerInchY);
+            var horizontal = (GetSystemMetricsForDpi(SmCxSizeFrame, pixelsX) + GetSystemMetricsForDpi(SmCxPaddedBorder, pixelsX)) / dpi.DpiScaleX;
+            var vertical = (GetSystemMetricsForDpi(SmCySizeFrame, pixelsY) + GetSystemMetricsForDpi(SmCxPaddedBorder, pixelsY)) / dpi.DpiScaleY;
+            return new Thickness(horizontal, vertical, horizontal, vertical);
+        }
+
         #region External Methods
 
         private const int MonitorDefaultToNearest = 2;
+
+        private const int SmCxSizeFrame = 32;
+
+        private const int SmCySizeFrame = 33;
+
+        private const int SmCxPaddedBorder = 92;
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetricsForDpi(int index, uint dpi);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct NativeRect

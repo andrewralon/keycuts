@@ -27,7 +27,7 @@ namespace keycuts.Tests
 
             Assert.True(notice.IsVisible);
             Assert.Equal("keycuts 1.2.0 is available", notice.Message);
-            Assert.Equal("Download keycuts 1.2.0", notice.DownloadName);
+            Assert.Equal("download keycuts 1.2.0", notice.DownloadName);
             Assert.True(notice.DownloadCommand.CanExecute(null));
         }
 
@@ -167,14 +167,14 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Settings_LoadsAndSavesTheToggle()
+        public void Settings_LoadsTheToggle_AndStoresItAtOnce()
         {
             var store = new Store { Stored = new Settings { OutputFolder = @"C:\Shortcuts", CheckForUpdates = false } };
             var vm = NewSettings(null, store);
             Assert.False(vm.CheckForUpdates);
 
+            // Stored the moment it changes (#218)
             vm.CheckForUpdates = true;
-            Assert.True(vm.Save());
 
             Assert.True(Assert.Single(store.Saves).CheckForUpdates);
         }

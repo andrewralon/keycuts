@@ -1,5 +1,7 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using keycuts.GUI;
@@ -100,18 +102,199 @@ namespace keycuts.Tests
             Assert.False(shell.Manager.IsMenuOpen);
         }
 
-        [Fact]
-        public void SettingsCommand_RaisesSettingsRequested_FromBothViews()
+        #region Settings as a screen (#218)
+
+        private sealed class SettingsStore : ISettingsStore
         {
-            var shell = CreateShell();
-            var requests = 0;
-            shell.SettingsRequested += (sender, e) => requests++;
+            public Settings Stored { get; set; } = new Settings { OutputFolder = @"C:\Shortcuts", CheckForUpdates = true };
+
+            public int Saves { get; private set; }
+
+            public Settings Load()
+            {
+                return Stored;
+            }
+
+            public string? Save(Settings settings)
+            {
+                Saves++;
+                Stored = settings;
+                return null;
+            }
+        }
+
+        static (ShellViewModel Shell, SettingsStore Store, List<SettingsViewModel> Made) CreateShellWithSettings(Func<Task<int>>? countProvider = null)
+        {
+            var store = new SettingsStore();
+            var made = new List<SettingsViewModel>();
+            var shell = new ShellViewModel(countProvider ?? (() => Task.FromResult(3)), settingsFactory: () =>
+            {
+                var screen = new SettingsViewModel(store, checkFolder: _ => null);
+                made.Add(screen);
+                return screen;
+            });
+            return (shell, store, made);
+        }
+
+        [Fact]
+        public void SettingsCommand_ShowsTheSettingsScreen_FromBothViews()
+        {
+            var (shell, _, made) = CreateShellWithSettings();
 
             shell.Creator.OpenSettingsCommand.Execute(null);
-            shell.Manager.OpenSettingsCommand.Execute(null);
 
-            Assert.Equal(2, requests);
+            Assert.Equal(ShellMode.Settings, shell.Mode);
+            Assert.Same(shell.Settings, shell.CurrentView);
+            Assert.Same(made.Single(), shell.Settings);
+            Assert.Equal("keycuts", shell.Title);
+
+            shell.ShowManager();
+            Assert.Null(shell.Settings);
+            shell.Manager.OpenSettingsCommand.Execute(null);
+            Assert.Equal(ShellMode.Settings, shell.Mode);
         }
+
+        [Fact]
+        public void TheSettingsScreen_IsMadeFreshEachTimeItOpens_AndShowsTheCreatorsFooter()
+        {
+            var (shell, store, made) = CreateShellWithSettings();
+
+            shell.ShowSettings();
+            shell.ShowSettings();
+            Assert.Single(made);
+
+            store.Stored = new Settings { OutputFolder = @"D:\Other" };
+            shell.ShowCreator();
+            shell.ShowSettings();
+
+            Assert.Equal(2, made.Count);
+            Assert.Equal(@"D:\Other", shell.Settings!.OutputFolder);
+            Assert.Same(shell.Creator, shell.Settings.Footer);
+        }
+
+        [Fact]
+        public void WithoutAWayToMakeIt_SettingsCantOpen()
+        {
+            var shell = CreateShell();
+
+            Assert.False(shell.OpenSettingsCommand.CanExecute(null));
+            shell.ShowSettings();
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.Null(shell.Settings);
+        }
+
+        [Fact]
+        public void Escape_OnSettings_ClosesTheIconPickerFirst_ThenReturnsToTheCreator()
+        {
+            var (shell, _, _) = CreateShellWithSettings();
+            shell.ShowSettings();
+            shell.Settings!.IsIconPickerOpen = true;
+
+            Assert.Equal(EscapeResult.ClosedIconPicker, shell.HandleEscape());
+            Assert.Equal(ShellMode.Settings, shell.Mode);
+            Assert.False(shell.Settings.IsIconPickerOpen);
+
+            // Nothing on the screen is unsaved, so leaving it loses nothing
+            Assert.Equal(EscapeResult.ReturnedToCreator, shell.HandleEscape());
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+        }
+
+        [Fact]
+        public void TheTabs_AreOff_OnlyWhileTheIconPickerIsOpen()
+        {
+            var (shell, _, _) = CreateShellWithSettings();
+            var changed = new List<string?>();
+            shell.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+            Assert.True(shell.AreTabsEnabled);
+
+            shell.ShowSettings();
+            Assert.True(shell.AreTabsEnabled);
+
+            shell.Settings!.IsIconPickerOpen = true;
+            Assert.False(shell.AreTabsEnabled);
+            Assert.Contains(nameof(ShellViewModel.AreTabsEnabled), changed);
+
+            shell.Settings.IsIconPickerOpen = false;
+            Assert.True(shell.AreTabsEnabled);
+        }
+
+        [Fact]
+        public void AStoredChange_ReachesTheCreatorAtOnce()
+        {
+            // What closing the old dialog refreshed now follows each change: the environment-variables preview
+            var (shell, _, _) = CreateShellWithSettings();
+            shell.Creator.UseEnvironmentVariablesSetting = false;
+            shell.ShowSettings();
+
+            shell.Settings!.UseEnvironmentVariables = true;
+            Assert.True(shell.Creator.UseEnvironmentVariablesSetting);
+
+            shell.Settings.UseEnvironmentVariables = false;
+            Assert.False(shell.Creator.UseEnvironmentVariablesSetting);
+        }
+
+        [Fact]
+        public async Task ANewOutputFolder_ReloadsTheCount()
+        {
+            var count = 3;
+            var (shell, _, _) = CreateShellWithSettings(() => Task.FromResult(count));
+            shell.ShowSettings();
+            await shell.ReloadAsync();
+            Assert.Equal(3, shell.Creator.KeycutCount);
+
+            count = 9;
+            shell.Settings!.OutputFolder = @"C:\Elsewhere";
+            Assert.True(shell.Settings.CommitOutputFolder());
+            await Task.Yield();
+            await shell.ReloadAsync();
+
+            Assert.Equal(9, shell.Creator.KeycutCount);
+        }
+
+        // Check now can answer after Settings was left; the footer's update line still follows (PR #225 review)
+        [Fact]
+        public async Task ACheckThatEndsAfterLeavingSettings_StillRefreshesTheFooter()
+        {
+            var answer = new TaskCompletionSource<keycuts.Common.LatestRelease>();
+            var source = new FakeReleaseSource { NextAsync = () => answer.Task };
+            var checker = UpdateFakes.Checker(source, new FakeUpdateState(), "1.1.1.0");
+            var notice = new UpdateNoticeViewModel(checker, _ => { });
+            var store = new SettingsStore();
+            var shell = new ShellViewModel(() => Task.FromResult(3), updateNotice: notice,
+                settingsFactory: () => new SettingsViewModel(store, checkFolder: _ => null, updates: checker));
+            notice.Refresh();
+            Assert.False(notice.IsVisible);
+
+            shell.ShowSettings();
+            var check = shell.Settings!.CheckNowCommand.ExecuteAsync();
+            shell.ShowCreator();
+
+            answer.SetResult(FakeReleaseSource.Release("v1.2.0"));
+            await check;
+
+            Assert.True(notice.IsVisible);
+            Assert.Equal("keycuts 1.2.0 is available", notice.Message);
+        }
+
+        [Fact]
+        public void ShowWelcome_OnSettings_GoesBackToTheCreator()
+        {
+            var (shell, _, _) = CreateShellWithSettings();
+            shell.ShowSettings();
+            var screen = shell.Settings!;
+
+            screen.ShowWelcomeCommand.Execute(null);
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.Null(shell.Settings);
+
+            // The old screen is let go: its events no longer reach the shell
+            screen.UseEnvironmentVariables = !screen.UseEnvironmentVariables;
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+        }
+
+        #endregion
 
         [Fact]
         public async Task ReloadAsync_UpdatesCountOnBothViews()
@@ -278,7 +461,8 @@ namespace keycuts.Tests
         [Fact]
         public void Sizes_MatchTheSpec()
         {
-            Assert.Equal(440, WindowLayout.CreatorWidth);
+            // What the tab bar needs plus about 60 of empty bar (#218); RailWindowTests checks it against MainWidth in Tokens.xaml
+            Assert.Equal(600, WindowLayout.CreatorWidth);
             Assert.Equal(960, WindowLayout.ManagerDefaultWidth);
             Assert.Equal(700, WindowLayout.ManagerDefaultHeight);
             Assert.Equal(720, WindowLayout.ManagerMinWidth);

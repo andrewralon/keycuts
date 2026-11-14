@@ -2,7 +2,7 @@
 
 How the keycuts app looks and reads: spacing, layout, type, color, control sizes, corner radii, icons, headings and accessibility, and writing. It covers every screen and dialog: the main window's tab bar and its three screens (the Creator, the Manager and Settings, with its icon picker), the Edit and Confirm dialogs, the shared footer and the welcome panel.
 
-**It describes the app as it will be after #218**, which makes Settings a third screen in the main window, behind folder tabs that replace the title bar. Rules for the Settings dialog, the screen headings and the footer's gear apply until #218 removes them; the [Tabbed window](#tabbed-window-218) section says what changes. #218's mockup (`window-tabs-v5`) is a picture of the layout; where its sizes, colors or type differ from this guide, the guide wins.
+**It describes the app after #218**, which made Settings a third screen in the main window, behind folder tabs that replace the title bar; the [Tabbed window](#tabbed-window-218) section describes them. #218's mockup (`window-tabs-v5`) is a picture of the layout; where its sizes, colors or type differ from this guide, the guide wins.
 
 Each rule names the token or shared style that carries it. A view uses those, never a literal number, font size or color. Where the app doesn't follow a rule yet, #219 lists the change (see [Tracking](#tracking)).
 
@@ -44,7 +44,7 @@ Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 | `ShadowColor` | `#0F172A` literal on the icon picker | **new `Color`**: Light `#0F172A`, Dark `#000000`, high contrast `Transparent` | Same |
 | `RadiusMdValue`, `RadiusLgValue` | none | **new `sys:Double`**: 8, 12 | `Rectangle.RadiusX/Y` (the dashed drop and empty-state outlines) take a number, not a `CornerRadius` |
 | `MainWidth`, `ConfirmWidth`, `EditWidth` | literals 440 (`WindowLayout.CreatorWidth`, Confirm), 480 (Edit), 500 (Settings) | **new `sys:Double`**: `MainWidth` is what the tab bar needs (about 600; #218 measures it), for the Creator and Settings; `ConfirmWidth` 440; `EditWidth` 480 | [Window widths](#window-widths) |
-| `RailHeight`, `TabHeight`, `CaptionButtonWidth` | none | **new** (#218): 48, 40, 46 | [Tabbed window](#tabbed-window-218) |
+| `RailHeight`, `TabHeight`, `CaptionButtonWidth`, `TabCut`, `TabSlant` | none | **new** (#218): 48, 40, 46, 8, 16 | [Tabbed window](#tabbed-window-218) |
 | `Rail*`, `Tab*`, `Socket*`, `Caption*` brushes | none | **new** (#218), in all three palettes | The tab bar's colors come from the palettes, not literals |
 | `TileSize` | none | **new**: 40 | The inline icon tile ([decision](#decisions)) |
 | `TextTertiaryBrush` (Light) | `#818b9d`, 3.0-3.4:1 | **`#646e80`**, 4.54:1 or better on every light surface | Placeholders are text, and WCAG 1.4.3 covers them ([decision](#decisions)); `ControlBorderBrush` keeps `#818b9d` |
@@ -96,7 +96,7 @@ Every screen and dialog body has **16 at the top and 24 at the sides and bottom*
 
 ### Dialog footer
 
-Edit and Confirm end in the same footer, one shared style, `DialogFooter`: `SurfaceSubtleBrush` background, a 1px top border in `BorderBrush`, `Padding="24,12"` (`DialogFooterPadding`), buttons right-aligned with 8 between them. The primary button is **last, at the far right**, and cancel comes before it ([decision](#decisions)). A secondary action that isn't cancel sits at the left edge. Enter presses the primary button (`IsDefault`) and Escape cancels (`IsCancel`). Until #218, the Settings dialog uses it too, with show welcome at the left and save at the right. The body above the footer scrolls when the window is capped to the screen, and the footer never does.
+Edit and Confirm end in the same footer, one shared style, `DialogFooter`: `SurfaceSubtleBrush` background, a 1px top border in `BorderBrush`, `Padding="24,12"` (`DialogFooterPadding`), buttons right-aligned with 8 between them. The primary button is **last, at the far right**, and cancel comes before it ([decision](#decisions)). A secondary action that isn't cancel sits at the left edge. Enter presses the primary button (`IsDefault`) and Escape cancels (`IsCancel`). The body above the footer scrolls when the window is capped to the screen, and the footer never does.
 
 ### Window widths
 
@@ -104,13 +104,9 @@ Edit and Confirm end in the same footer, one shared style, `DialogFooter`: `Surf
 - **The Manager**: resizable, and remembers its size.
 - **Confirm**: 440 (`ConfirmWidth`); **Edit**: 480 (`EditWidth`). They keep their widths while the main window grows ([decision](#decisions)). Dialogs size to their content's height (`SizeToContent="Height"`) and can't be resized.
 
-Until #218 the main window is 440 and the Settings dialog 500.
-
 ### The app footer
 
 All three screens end in `FooterView`. It is 48 high at least (`MinHeight`, today 46), with `Padding="24,0"` and a top border in `BorderBrush`, on `SurfaceSubtleBrush`. Left to right: the count pill, the screen's message (the Manager's undo and status line), and the update line, right-aligned. Gaps are 8 between controls and 12 before the message.
-
-Until #218, the footer starts with the Settings gear (a 32 ghost button) and its padding is 16, so the gear's glyph, 6 inside its button, lines up with the content at about 24.
 
 ### Inset panels
 
@@ -182,7 +178,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | `ErrorText` | 12, Regular, `DangerBrush`, wraps | 4 above (16 when it closes a form) | `LiveSetting="Assertive"` |
 | `Caption` | 12, Regular, `TextSecondaryBrush` | none | For notes beside a label, status lines and the count |
 
-`HelperText` has state triggers for warning (`WarningBrush` with a 12 `Warning` icon before it), error (`DangerBrush`) and success (`SuccessBrush` with a 12 `Check` icon). It never uses `TextTertiaryBrush`.
+`HelperText` has states for warning (`WarningBrush` with a 12 `Warning` icon before it), error (`DangerBrush`) and success (`SuccessBrush` with a 12 `Check` icon). A style can't add the icon, so it is a control too (`Controls/HelperText`, with `Text` and `State`), like `SectionLabel`. It never uses `TextTertiaryBrush`.
 
 **The section label is a control** (`Controls/SectionLabel`, like `TypeBadge`). WPF has no text-transform, so typing `OUTPUT` into the XAML is the only way to get capitals from a `TextBlock`, and screen readers then get capitals too. The control takes sentence-case text (`Text="Output"`), draws it in capitals, and gives sentence case to the automation name, so the source, the tests and Narrator all see "Output". The icon picker's group names (`AppIcons.FollowsThemeGroup`, `AlwaysTheSameGroup`) become sentence case for the same reason.
 
@@ -228,7 +224,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | Text box | 36 high | `AppTextBox`, `InputHeight` (views stop setting `Height="38"`) |
 | Text button (primary or secondary) | 36 high, `Padding="12,0"` | `BaseButton`, `ControlHeight` |
 | Icon-only button with a border or fill, beside a text box or in the drop area (Create, Browse, and Settings' choose a folder and open the output folder, which never show text; [decision](#decisions)) | 36 × 36 | `SquareButton` (new, based on `SecondaryButton`/`PrimaryButton`), `ControlHeight` |
-| Ghost icon button (no border: dismiss, sheet close, row menu; the footer's Settings until #218) | 32 × 32 | `IconButton`, `IconButtonSize` |
+| Ghost icon button (no border: dismiss, sheet close, row menu) | 32 × 32 | `IconButton`, `IconButtonSize` |
 | Text box editing inside a Manager row (rename, description) | 30 high | The **only** 30; it has to fit a 36 row |
 | Manager table: header / row | 36 / 36 (40 if a name plus a 12px marker doesn't fit; #219 checks) | `ManagerTable` |
 | Menu item: one line / two lines (Browse menu) | 32 / 48 min | `AppMenuItem`, `BrowseMenuItem` |
@@ -266,7 +262,7 @@ Icons are the app's own `controls:Icon` glyphs (`Themes/Icons.xaml`), drawn in t
 | 12 | Beside 12px text: row markers (Missing, Warning), helper-line status icons, the sort chevron, the check badge's tick |
 | 10 | Only the caption buttons' glyphs (Windows' size) |
 | 16 | **The default**: in buttons with text, ghost icon buttons (dismiss, close, the row menu), menu items, list warnings, the tabs (the gear included) |
-| 20 | Square buttons (Create's rocket, Browse, choose a folder, open the output folder), the app icon in the tab bar, the footer's Settings gear until #218, the welcome bubbles' arrow and the welcome helper line |
+| 20 | Square buttons (Create's rocket, Browse, choose a folder, open the output folder), the app icon in the tab bar, the welcome bubbles' arrow and the welcome helper line |
 | 24 | In a 40 icon tile |
 | 32 | In the 56 empty-state illustration |
 
@@ -299,7 +295,7 @@ Follow the Microsoft Writing Style Guide: plain, short, friendly, second person 
 
 ### Capitalization
 
-- **Titles and tabs are lowercase**, in the brand style ([decision](#decisions)): the tabs `creator`, `manager` and `settings` (the gear tab's name and tooltip), and the dialog titles, window title and heading alike: `edit keycut`, and Confirm's `replace keycut`, `name already in use` and `restore defaults`. Until #218, `keycuts creator`, `keycuts manager`, `settings` and the nav buttons `creator` and `manager` are lowercase too. A heading that is a sentence or a question rather than a title, such as Confirm's "Replace “npp”?", is sentence case.
+- **Titles and tabs are lowercase**, in the brand style ([decision](#decisions)): the tabs `creator`, `manager` and `settings` (the gear tab's name and tooltip), and the dialog titles, window title and heading alike: `edit keycut`, and Confirm's `replace keycut`, `name already in use` and `restore defaults`. A heading that is a sentence or a question rather than a title, such as Confirm's "Replace “npp”?", is sentence case.
 - **Button text is lowercase** ([decision](#decisions)), for text buttons and link buttons and their automation names: `cancel`, `save`, `replace`, `create anyway`, `rename anyway`, `check now`, `show welcome`, `restore defaults`, `got it`, `clear search`, `open settings`, `create a keycut`, `undo`, the footer's `download`. Proper names keep their case: `add to PATH`.
 - **Sentence case** for everything else: menu items, labels, setting names, level 2 headings, section labels' source text, tooltips, column headers, messages. Capitalize the first word and proper nouns only: "Edit in Notepad", "Open file location", "Use environment variables in paths".
 - **The words keycuts and keycut are always lowercase**, the app's name and the noun alike, even at the start of a sentence or label ([decision](#decisions)): "keycuts lets you open your apps…", "keycuts 1.4.1 is available", "keycut name", and "keycuts" as the table's automation name. Today "Keycut name" (two automation names) and "Keycuts" (the table) break this.
@@ -389,16 +385,16 @@ Small, mostly invisible changes #219 makes along with the rest (by file):
 - **`ManagerStatusView.xaml`**: Undo padding `6,2` → `8,4`, gap 6 → 8.
 - **`FooterView.xaml`**: min height 46 → 48; count pill padding `9,0` → `8,0`; dismiss glyph 14 → 16; padding 16 → 24 once #218 removes the gear.
 - **`SettingsViewModel.cs`**: the output folder's helper "New keycuts files are saved here." → "New keycuts are saved here."
-- **`SettingsWindow.xaml`** (#218 moves it into a screen; build that screen to these values rather than restyling the dialog): heading gap 22 → 16; section gap 28 → 24; setting-name-to-note gap 2 → 4; toggle and button left margin 20 → 16; save error 14 above → 16; Choose and Open folder become 36 square buttons with 16 → 20 glyphs; the icon button padding 5 → 4; icon picker per the sheet pattern (radius 10 → 12, header margin `18,16,12,8` → `16,16,16,8`, 14 below → 16, card padding 10 → 12 and margins `5,0,5,10` → `4,0,4,8`, the check badge 7 in → 8).
+- **`SettingsWindow.xaml`** (done in #218: the dialog became `Views/SettingsView`, built to these values): heading gap 22 → 16; section gap 28 → 24; setting-name-to-note gap 2 → 4; toggle and button left margin 20 → 16; save error 14 above → 16; Choose and Open folder become 36 square buttons with 16 → 20 glyphs; the icon button padding 5 → 4; icon picker per the sheet pattern (radius 10 → 12, header margin `18,16,12,8` → `16,16,16,8`, 14 below → 16, card padding 10 → 12 and margins `5,0,5,10` → `4,0,4,8`, the check badge 7 in → 8).
 - **`ConfirmWindow.xaml`**: header 18 below → 16, text 14 from the tile → 12; targets box padding `14,12` → 16 and 14 below → 16; second section label 12 above → 12 (kept) and 4 below → 8; warning icons 15 → 16.
 - **`EditWindow.xaml`**: heading gap 20 → 16; label gap 6 → 8; error gap 6 → 4; save error 14 above → 16.
-- **Edit and Confirm** (and Settings until #218): body margin 24 → `PagePadding` (16 at the top); footer `Padding="24,13"` → the shared `DialogFooter` (`24,12`).
+- **Edit and Confirm**: body margin 24 → `PagePadding` (16 at the top); footer `Padding="24,13"` → the shared `DialogFooter` (`24,12`).
 
 ## Tracking
 
 - #211 wrote this guide.
 - #218 (the tabbed window) follows it: its tab bar, the Settings screen and the footer are built to these rules from the start.
-- #219, "Update the app to follow the style guide", holds the checklist of changes by screen and an enforcement test that reads the GUI's XAML and fails on a literal font size, a hex color outside the palettes, a margin, padding or radius off the grid or outside the tokens, `FontWeight="Bold"`, or a heading or section label without its `HeadingLevel`.
+- #219, "Update the app to follow the style guide", holds the checklist of changes by screen and an enforcement test (`StyleGuideTests`) that reads the GUI's XAML and fails on a literal font size, a hex color outside the palettes, a margin, padding or radius off the grid or outside the tokens, `FontWeight="Bold"`, or a heading or section label without its `HeadingLevel`. A file not converted yet is on its `NotYetConverted` list, and the guide's exceptions are in its `Exceptions`, each with its reason.
 
 **Order of work**: (1) #219 Part 1, the foundation: tokens, shared styles, `SectionLabel` and the contrast tests, which change little on screen; (2) #218, in two PRs, first the window frame and tabs, then Settings as a screen, both built with those styles; (3) #219 Part 2, the screen-by-screen cleanup of what #218 doesn't rebuild (the Creator's body, the Manager, Edit, Confirm, the footer), then the enforcement test switched on and the screenshots regenerated once.
 

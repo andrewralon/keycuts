@@ -50,49 +50,47 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheDialog_IsBuiltLikeTheSettingsWindow_AndNamesItsFields()
+        public void TheDialog_IsBuiltFromTheSharedStyles_AndNamesItsFields()
         {
             RunSta(() =>
             {
                 EnsureApplication();
-                var settings = new SettingsWindow(new SettingsViewModel(new NoStore()));
                 var window = ShowOffscreen(NewForm());
                 try
                 {
                     Assert.Equal(SizeToContent.Height, window.SizeToContent);
                     Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
-                    Assert.Equal(settings.FontFamily, window.FontFamily);
-                    Assert.Equal(settings.FontSize, window.FontSize);
-                    Assert.Same(settings.Background, window.Background);
-                    Assert.Same(settings.Foreground, window.Foreground);
+                    Assert.Equal(Application.Current.FindResource("AppFontFamily"), window.FontFamily);
+                    Assert.Equal(Application.Current.FindResource("FontSizeBody"), window.FontSize);
+                    Assert.Same(Application.Current.FindResource("SurfaceBrush"), window.Background);
+                    Assert.Same(Application.Current.FindResource("TextBrush"), window.Foreground);
                     Assert.False(window.ShowInTaskbar);
-                    Assert.Equal("Edit keycut", window.Title);
+                    Assert.Equal("edit keycut", window.Title);
 
                     var save = (Button)window.FindName("BtnSave");
                     var cancel = (Button)window.FindName("BtnCancel");
                     Assert.True(save.IsDefault);
                     Assert.True(cancel.IsCancel);
-                    Assert.Same(((Button)settings.FindName("BtnSave")).Style, save.Style);
-                    Assert.Same(((Button)settings.FindName("BtnShowWelcome")).Style, cancel.Style);
-                    Assert.Equal("Save", AutomationProperties.GetName(save));
+                    Assert.Same(Application.Current.FindResource("PrimaryButton"), save.Style);
+                    Assert.Same(Application.Current.FindResource("SecondaryButton"), cancel.Style);
+                    Assert.Equal("save", AutomationProperties.GetName(save));
 
                     var fields = Descendants<TextBox>(window).ToList();
-                    Assert.Equal(new[] { "Target", "Keycut name", "Description" }, fields.Select(AutomationProperties.GetName));
+                    Assert.Equal(new[] { "Target", "keycut name", "Description" }, fields.Select(AutomationProperties.GetName));
                     Assert.Equal(new[] { "https://mail.google.com", "gmail", "Work email" }, fields.Select(f => f.Text));
 
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Edit keycut");
+                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "edit keycut");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     // The target is the usual reason to open the form
                     Assert.Same(fields[0], FocusManager.GetFocusedElement(window));
 
                     // Cancel's text is its accessible name; the helper prints a nameless button as Button:<text>
-                    Assert.Equal(new[] { "Target", "Keycut name", "Description", "Button:Cancel", "Save" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "keycut name", "Description", "Button:cancel", "save" }, TabStops(window));
                 }
                 finally
                 {
                     window.Close();
-                    settings.Close();
                 }
             });
         }
@@ -118,7 +116,7 @@ namespace keycuts.Tests
                     Assert.Equal(CreatorViewModel.GetTargetErrorMessage(TargetError.NotFound), AutomationProperties.GetHelpText(target));
                     Assert.False(((TextBlock)window.FindName("NameErrorText")).IsVisible);
                     Assert.False(((TextBlock)window.FindName("SaveErrorText")).IsVisible);
-                    Assert.False(TextBoxChrome.GetHasError(Field(window, "Keycut name")));
+                    Assert.False(TextBoxChrome.GetHasError(Field(window, "keycut name")));
 
                     // Typing again takes it away
                     target.Text = @"C:\somewhere";
@@ -148,7 +146,7 @@ namespace keycuts.Tests
                     Pump();
 
                     Assert.True(((TextBlock)window.FindName("NameErrorText")).IsVisible);
-                    Assert.True(TextBoxChrome.GetHasError(Field(window, "Keycut name")));
+                    Assert.True(TextBoxChrome.GetHasError(Field(window, "keycut name")));
                     Assert.False(((TextBlock)window.FindName("TargetErrorText")).IsVisible);
 
                     var other = NewForm(Fails(KeycutRepositoryError.NotEditable));
@@ -192,7 +190,7 @@ namespace keycuts.Tests
                     form.Name = "  ";
                     Pump();
                     Assert.False(save.IsEnabled);
-                    Assert.DoesNotContain("Save", TabStops(window));
+                    Assert.DoesNotContain("save", TabStops(window));
 
                     form.Name = "gmail";
                     form.Target = "";
@@ -291,7 +289,7 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(form);
                 try
                 {
-                    Field(window, "Keycut name").Focus();
+                    Field(window, "keycut name").Focus();
                     form.Description = "x";
                     form.SaveAsync().GetAwaiter().GetResult();
                     Pump();
@@ -349,19 +347,6 @@ namespace keycuts.Tests
         }
 
         #region Helpers
-
-        private sealed class NoStore : ISettingsStore
-        {
-            public Settings Load()
-            {
-                return new Settings { OutputFolder = @"C:\Shortcuts" };
-            }
-
-            public string? Save(Settings settings)
-            {
-                return null;
-            }
-        }
 
         static TextBox Field(Window window, string automationName)
         {

@@ -25,7 +25,7 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/creator-dark.png">
-  <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="424">
+  <img src="docs/images/creator-light.png" alt="The creator, ready to create." width="580">
 </picture>
 
 **Manager.** The **manager** tab shows a table you can search and sort by any column, including **Modified**; while a search hides some keycuts, **X of Y shown** appears at the right of the search box. Up/Down, Home/End and Page Up/Page Down move the selection, Enter opens the row, and from the search box Ctrl+E edits it, Ctrl+Shift+E edits it in Notepad, Ctrl+Shift+O shows its file, Ctrl+C copies its target, F2 renames it, Delete deletes it and Ctrl+F searches. Delete and Home/End are the search box's while it holds text, and Ctrl+C while text is selected in it. The `...` menu has **Open**, **Edit**, **Edit in Notepad**, **Open file location**, **Copy target** and **Delete**, each with its key. Missing targets are flagged in red, and a hand-written launcher that still starts but names a start-in folder that doesn't exist gets a yellow warning.
@@ -40,13 +40,13 @@ The screenshots follow your GitHub theme; the app follows Windows, or the choice
 * **Edit** changes the target, name and description. It's offered only for a keycut the app would have written itself; one you've changed by hand says to use **Edit in Notepad**, so your edits are never lost.
 * **Delete** moves the file to the Recycle Bin (drives without one, such as network shares, delete for good). **Undo** (or Ctrl+Z) shows in the footer for a few seconds and restores the file's contents and modified date.
 
-**Settings.** The gear tab in the bar at the top of the window opens it. The output folder, **Ask before replacing a keycut**, the right-click menu (on Windows 11 under **Show more options**), the theme and update checks. **Use environment variables in paths** (off by default) saves paths like `%USERPROFILE%\Desktop`, so a keycuts folder still works on another PC; hold Shift in the Creator to flip it for one keycut.
+**Settings.** The gear tab in the bar at the top of the window opens it, and every change is saved as you make it: there is no Save button. The output folder (saved when you press Enter, leave the box, or pick one with the folder button), **Ask before replacing a keycut**, the right-click menu (on Windows 11 under **Show more options**), the theme and update checks. **Use environment variables in paths** (off by default) saves paths like `%USERPROFILE%\Desktop`, so a keycuts folder still works on another PC; hold Shift in the Creator to flip it for one keycut. **restore defaults** puts every setting back as a new install has it, except the output folder, after asking; **show welcome** brings back the first-run panel. In the folder box, Escape undoes a change you haven't saved; otherwise Escape goes back to the creator.
 
 **Icon.** Click the icon in Settings to pick another: **Black & White** (the default) and **Accent** switch with the light and dark theme, and Porcelain, Onyx, Cobalt, Twilight and the original Classic stay the same. A pick applies at once to the window, the taskbar and Alt+Tab, and to the app's Start menu, desktop and pinned taskbar shortcuts (Windows can take a moment to redraw a pinned one). The icons, in every size and with transparent versions, are in [assets/icons](assets/icons).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
-  <img src="docs/images/settings-light.png" alt="The Settings window." width="484">
+  <img src="docs/images/settings-light.png" alt="Settings: the output folder, the toggles, the icon and the theme, saved as you change them." width="580">
 </picture>
 
 **Updates.** When a newer release exists, the footer of both screens says so and **Download** opens the release page. The app checks at most once a day, with one unauthenticated request to GitHub and no telemetry; the CLI never checks. Turn it off in Settings.

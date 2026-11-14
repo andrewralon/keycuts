@@ -38,6 +38,26 @@ namespace keycuts.GUI
             runner = new Runner();
         }
 
+        /// <summary>The icon a new install shows (#218, restore defaults).</summary>
+        public const AppIconChoice DefaultAppIcon = AppIconChoice.BlackAndWhite;
+
+        /// <summary>
+        /// What a new install has, for Settings' restore defaults (#218): ask before replacing, the right-click menu on (the
+        /// installer adds it), no environment variables, the system theme, and update checks on. The output folder isn't a
+        /// default here: restore defaults never touches it.
+        /// </summary>
+        public static Settings Defaults()
+        {
+            return new Settings
+            {
+                AskBeforeReplacing = Runner.DefaultAskBeforeReplacing,
+                RightClickContextMenus = true,
+                UseEnvironmentVariables = false,
+                Theme = ThemePreference.System,
+                CheckForUpdates = true
+            };
+        }
+
         public void LoadSettings()
         {
             OutputFolder = runner.GetOutputFolder();
@@ -86,8 +106,21 @@ namespace keycuts.GUI
             }
             catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
             {
-                return $"Couldn\u2019t save settings: {e.Message}";
+                return SaveFailedPrefix + e.Message;
             }
+        }
+
+        /// <summary>The start of the message for a save that stopped before anything was stored (the registry refused).</summary>
+        public const string SaveFailedPrefix = "Couldn\u2019t save settings: ";
+
+        /// <summary>
+        /// Whether a save that returned this message stored the output folder. A PATH or right-click menu failure comes after the
+        /// folder is stored (the PATH message says so); an exception, or an invalid folder, means it wasn't.
+        /// </summary>
+        public static bool StoredTheFolder(string? message)
+        {
+            return message == null
+                || (!message.StartsWith(SaveFailedPrefix, StringComparison.Ordinal) && message != InvalidOutputFolderMessage);
         }
     }
 }

@@ -167,14 +167,14 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Settings_LoadsAndSavesTheToggle()
+        public void Settings_LoadsTheToggle_AndStoresItAtOnce()
         {
             var store = new Store { Stored = new Settings { OutputFolder = @"C:\Shortcuts", CheckForUpdates = false } };
             var vm = NewSettings(null, store);
             Assert.False(vm.CheckForUpdates);
 
+            // Stored the moment it changes (#218)
             vm.CheckForUpdates = true;
-            Assert.True(vm.Save());
 
             Assert.True(Assert.Single(store.Saves).CheckForUpdates);
         }

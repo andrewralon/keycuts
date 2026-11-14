@@ -43,6 +43,7 @@
 
       <controls:RailTabControl x:Name="TabStrip" Grid.Column="1" Style="{StaticResource RailTabControl}"
                                shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                               IsEnabled="{Binding AreTabsEnabled, FallbackValue=True}"
                                AutomationProperties.Name="Screens">
         <TabItem x:Name="CreatorTab" AutomationProperties.Name="creator" ToolTip="creator">
           <TabItem.Header>

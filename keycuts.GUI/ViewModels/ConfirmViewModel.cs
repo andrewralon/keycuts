@@ -99,6 +99,15 @@ namespace keycuts.GUI.ViewModels
                 "Create anyway", null, null, warnings);
         }
 
+        public const string RestoreDefaultsIntro = "Every setting on this page goes back to how a new install has it. The output folder stays as it is.";
+
+        /// <summary>Settings' restore defaults (#218), which stores at once like any other change, so it asks first.</summary>
+        public static ConfirmViewModel ForRestoreDefaults()
+        {
+            return new ConfirmViewModel("Restore defaults", "Restore the default settings?", RestoreDefaultsIntro, "Restore defaults",
+                null, null, Array.Empty<string>());
+        }
+
         /// <summary>For a rename to a name other commands have. A taken keycut name is refused, never confirmed.</summary>
         public static ConfirmViewModel ForRename(NameCheck check)
         {

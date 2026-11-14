@@ -320,7 +320,12 @@ namespace keycuts.Tests
                     Assert.False(panel.IsEnabled);
 
                     pending.SetResult(CreateResult.Success(null!));
-                    Pump();
+                    // The save's continuation can take more than one pump on a slow runner (it failed once on CI with one)
+                    for (var i = 0; i < 50 && creator.IsSaving; i++)
+                    {
+                        Pump();
+                    }
+
                     Assert.False(creator.IsSaving);
                     Assert.True(panel.IsEnabled);
                 }

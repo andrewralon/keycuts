@@ -28,7 +28,6 @@ namespace keycuts.Tests
         {
             "ConfirmWindow.xaml",
             "EditWindow.xaml",
-            "SettingsWindow.xaml",
             "Views/CreatorView.xaml",
             "Views/FooterView.xaml",
             "Views/ManagerStatusView.xaml",
@@ -49,6 +48,9 @@ namespace keycuts.Tests
         {
             // The app's name in the tab bar is drawn at the level 2 size, but it names the app, not a section of the screen
             new("Views/RailView.xaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
+
+            // An icon preview that follows the theme sets the dark-mode drawing over the light one in a 1 ring of what it sits on
+            new("Views/SettingsView.xaml", "Border", "Padding", "1", "the ring around the dark-mode drawing in an icon preview"),
 
             // Focus rings and glows sit outside the control and follow its radius plus their offset
             new("Themes/Controls.xaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),

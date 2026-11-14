@@ -36,9 +36,9 @@ namespace keycuts.GUI.ViewModels
     }
 
     /// <summary>
-    /// State and rules of the Settings window. Nothing is stored until <see cref="Save"/> passes validation;
-    /// closing the window any other way (Escape, the close button) leaves the store untouched. The icon is the exception:
-    /// a pick applies and is saved at once (<see cref="SelectedIcon"/>).
+    /// State and rules of the Settings screen (#218). Every change is stored the moment it is made: a toggle, the theme and the
+    /// icon at once, the output folder when it is committed (Enter, leaving the box, or a pick from the folder button) and only
+    /// after it passes validation. Nothing waits for a Save button, so leaving the screen never loses or undoes anything.
     /// </summary>
     public class SettingsViewModel : ObservableObject
     {
@@ -55,6 +55,9 @@ namespace keycuts.GUI.ViewModels
         public const string UpToDateFormat = "You\u2019re up to date ({0}).";
 
         public const string UpdateCheckFailedMessage = "Couldn\u2019t check for updates.";
+
+        /// <summary>The note near the bottom of the screen, since there is no Save button.</summary>
+        public const string SavedAsYouGoNote = "Changes are saved as you make them.";
 
         private readonly ISettingsStore store;
 
@@ -74,7 +77,12 @@ namespace keycuts.GUI.ViewModels
 
         private string updateStatus = string.Empty;
 
-        private bool storeChanged;
+        private readonly Action<ThemePreference> applyTheme;
+
+        private readonly Func<bool> confirmRestoreDefaults;
+
+        /// <summary>The output folder as stored: what a toggle's save writes, whatever the box holds while it is being edited.</summary>
+        private string committedFolder;
 
         private bool showVersionRow = true;
 
@@ -109,6 +117,8 @@ namespace keycuts.GUI.ViewModels
         /// <param name="updates">The update check behind Check now (#171), shared with the creator's notice. Null hides Check now.</param>
         /// <param name="openUrl">Opens a release page in the browser; tests pass a fake.</param>
         /// <param name="appIcon">Reads and applies the app icon; a pick applies at once. Null keeps it in memory, as tests want.</param>
+        /// <param name="applyTheme">Shows a theme on every window (the app's is <c>ThemeManager.SetPreference</c>). Null does nothing, as tests want.</param>
+        /// <param name="confirmRestoreDefaults">Asks before restore defaults; true goes ahead. Null always goes ahead.</param>
         public SettingsViewModel(
             ISettingsStore store,
             Func<string, string?>? pickFolder = null,
@@ -117,7 +127,9 @@ namespace keycuts.GUI.ViewModels
             Func<string, bool>? directoryExists = null,
             UpdateChecker? updates = null,
             Action<string>? openUrl = null,
-            IAppIconService? appIcon = null)
+            IAppIconService? appIcon = null,
+            Action<ThemePreference>? applyTheme = null,
+            Func<bool>? confirmRestoreDefaults = null)
         {
             this.appIcon = appIcon ?? new InMemoryAppIconService();
             selectedIcon = AppIcons.Get(this.appIcon.Choice);
@@ -134,14 +146,19 @@ namespace keycuts.GUI.ViewModels
             this.directoryExists = directoryExists ?? Directory.Exists;
             this.updates = updates;
             this.openUrl = openUrl ?? UpdateNoticeViewModel.OpenInBrowser;
+            this.applyTheme = applyTheme ?? (_ => { });
+            this.confirmRestoreDefaults = confirmRestoreDefaults ?? (() => true);
 
             ChooseCommand = new RelayCommand(Choose);
             LaunchCommand = new RelayCommand(Launch, () => CanLaunch);
             CheckNowCommand = new AsyncRelayCommand(CheckNowAsync, () => updates != null);
             DownloadUpdateCommand = new RelayCommand(DownloadUpdate, () => IsUpdateAvailable);
+            RestoreDefaultsCommand = new RelayCommand(RestoreDefaults);
+            ShowWelcomeCommand = new RelayCommand(() => ShowWelcomeRequested?.Invoke(this, EventArgs.Empty));
 
             var loaded = store.Load();
             outputFolder = loaded.OutputFolder ?? string.Empty;
+            committedFolder = outputFolder;
             askBeforeReplacing = loaded.AskBeforeReplacing;
             rightClickContextMenus = loaded.RightClickContextMenus;
             useEnvironmentVariables = loaded.UseEnvironmentVariables;
@@ -156,8 +173,28 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Raised after a successful save; the window closes with a true result.</summary>
-        public event EventHandler? Saved;
+        /// <summary>
+        /// Raised after every store, a partial failure included (the values may be stored even when PATH or the menu wasn't
+        /// updated), so the rest of the app can follow: the environment-variables preview and the update line.
+        /// </summary>
+        public event EventHandler? Stored;
+
+        /// <summary>Raised after a new output folder was stored; the keycut count is the new folder's.</summary>
+        public event EventHandler? OutputFolderChanged;
+
+        /// <summary>Show welcome: the shell goes back to the creator with the first-run panel showing.</summary>
+        public event EventHandler? ShowWelcomeRequested;
+
+        /// <summary>Puts every setting on the page back as a new install has it, after asking. Never the output folder.</summary>
+        public RelayCommand RestoreDefaultsCommand { get; }
+
+        public RelayCommand ShowWelcomeCommand { get; }
+
+        /// <summary>
+        /// What the screen's footer shows (the count and the update line): the creator's view model, set by the shell, so all three
+        /// screens show the same footer. Null leaves the footer empty.
+        /// </summary>
+        public object? Footer { get; set; }
 
         public RelayCommand ChooseCommand { get; }
 
@@ -214,7 +251,7 @@ namespace keycuts.GUI.ViewModels
             get { return outputFolderError ?? DefaultHelperText; }
         }
 
-        /// <summary>A problem after validation, such as PATH not updating. The window stays open.</summary>
+        /// <summary>A problem storing a change, such as PATH not updating. Shown on the page until the next change.</summary>
         public string? SaveError
         {
             get { return saveError; }
@@ -236,26 +273,51 @@ namespace keycuts.GUI.ViewModels
         public bool AskBeforeReplacing
         {
             get { return askBeforeReplacing; }
-            set { SetProperty(ref askBeforeReplacing, value); }
+            set
+            {
+                if (SetProperty(ref askBeforeReplacing, value))
+                {
+                    Store();
+                }
+            }
         }
 
         public bool RightClickContextMenus
         {
             get { return rightClickContextMenus; }
-            set { SetProperty(ref rightClickContextMenus, value); }
+            set
+            {
+                if (SetProperty(ref rightClickContextMenus, value))
+                {
+                    Store();
+                }
+            }
         }
 
         /// <summary>Save new file and folder keycuts as %USERPROFILE%\... and the like (#31). Shift flips it per keycut.</summary>
         public bool UseEnvironmentVariables
         {
             get { return useEnvironmentVariables; }
-            set { SetProperty(ref useEnvironmentVariables, value); }
+            set
+            {
+                if (SetProperty(ref useEnvironmentVariables, value))
+                {
+                    Store();
+                }
+            }
         }
 
         public ThemePreference Theme
         {
             get { return theme; }
-            set { SetProperty(ref theme, value); }
+            set
+            {
+                if (SetProperty(ref theme, value))
+                {
+                    applyTheme(value);
+                    Store();
+                }
+            }
         }
 
         /// <summary>Opens the icon picker: the current icon is a button.</summary>
@@ -270,10 +332,7 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public ICollectionView IconOptionsView { get; }
 
-        /// <summary>
-        /// The icon. Setting it applies and saves it at once, unlike the rest of Settings, which waits for Save; Escape and
-        /// closing the window keep it.
-        /// </summary>
+        /// <summary>The icon. Setting it applies and saves it at once, as every setting is; closing the picker keeps it.</summary>
         public AppIconOption SelectedIcon
         {
             get { return selectedIcon; }
@@ -310,7 +369,7 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>The rest of the window is disabled while the picker is open, so Tab stays in it and Enter can't Save.</summary>
+        /// <summary>The page (and the tabs, through the shell) is disabled while the picker is open, so Tab stays in it.</summary>
         public bool IsBodyEnabled
         {
             get { return !isIconPickerOpen; }
@@ -344,7 +403,13 @@ namespace keycuts.GUI.ViewModels
         public bool CheckForUpdates
         {
             get { return checkForUpdates; }
-            set { SetProperty(ref checkForUpdates, value); }
+            set
+            {
+                if (SetProperty(ref checkForUpdates, value))
+                {
+                    Store();
+                }
+            }
         }
 
         /// <summary>"Version 1.1.1": the running version in three parts.</summary>
@@ -412,18 +477,19 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// True once a save reached the store, even when it then reported a problem (for example PATH not updating):
-        /// the folder and other values may already be stored, so the main window must refresh however the dialog closes.
+        /// Stores the folder in the box, after the same validation as before: Enter, leaving the box, and a pick from the folder
+        /// button call this. An invalid folder shows its error and stores nothing; the folder already stored is kept. An unchanged
+        /// folder stores nothing. Returns false when the folder was refused.
         /// </summary>
-        public bool StoreChanged
-        {
-            get { return storeChanged; }
-        }
-
-        /// <summary>Validates, saves and raises <see cref="Saved"/>. Failures show inline and nothing closes.</summary>
-        public bool Save()
+        public bool CommitOutputFolder()
         {
             var folder = outputFolder.Trim().Trim('"');
+
+            if (folder.Length > 0 && string.Equals(folder, committedFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                OutputFolderError = null;
+                return true;
+            }
 
             var error = Validate(folder);
             if (error != null)
@@ -432,11 +498,51 @@ namespace keycuts.GUI.ViewModels
                 return false;
             }
 
-            OutputFolderError = null;
+            var previous = committedFolder;
+            committedFolder = folder;
+            OutputFolder = folder;
+            Store();
 
+            // A PATH or menu failure comes after the folder is stored, so it still counts; a refused registry write doesn't. Then
+            // the stored folder is still the old one, and the box keeps the new text as an edit that Enter tries again.
+            if (!Settings.StoredTheFolder(SaveError))
+            {
+                committedFolder = previous;
+                return false;
+            }
+
+            OutputFolderChanged?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+
+        /// <summary>Whether the folder box holds something other than the stored folder: an edit not committed yet.</summary>
+        public bool HasUncommittedFolder
+        {
+            get { return !string.Equals(outputFolder, committedFolder, StringComparison.Ordinal); }
+        }
+
+        /// <summary>
+        /// Escape in the folder box: puts the stored folder back and clears its error, storing nothing. Returns false when there
+        /// was no edit to drop, so Escape can go on to leave the screen.
+        /// </summary>
+        public bool RevertOutputFolder()
+        {
+            if (!HasUncommittedFolder && !HasOutputFolderError)
+            {
+                return false;
+            }
+
+            OutputFolder = committedFolder;
+            OutputFolderError = null;
+            return true;
+        }
+
+        /// <summary>Stores every value, with the folder as last committed. A partial failure shows on the page (<see cref="SaveError"/>).</summary>
+        private void Store()
+        {
             var settings = new Settings
             {
-                OutputFolder = folder,
+                OutputFolder = committedFolder,
                 AskBeforeReplacing = askBeforeReplacing,
                 RightClickContextMenus = rightClickContextMenus,
                 UseEnvironmentVariables = useEnvironmentVariables,
@@ -444,17 +550,49 @@ namespace keycuts.GUI.ViewModels
                 CheckForUpdates = checkForUpdates
             };
 
-            storeChanged = true;
-            var message = store.Save(settings);
-            if (message != null)
+            SaveError = store.Save(settings);
+            Stored?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Every setting on the page back to a new install's value, stored at once: the toggles, the theme and the icon. The output
+        /// folder is never touched (so neither is PATH), and an unsaved edit in its box stays as it is.
+        /// </summary>
+        private void RestoreDefaults()
+        {
+            if (!confirmRestoreDefaults())
             {
-                SaveError = message;
-                return false;
+                return;
             }
 
-            SaveError = null;
-            Saved?.Invoke(this, EventArgs.Empty);
-            return true;
+            var defaults = Settings.Defaults();
+            askBeforeReplacing = defaults.AskBeforeReplacing;
+            rightClickContextMenus = defaults.RightClickContextMenus;
+            useEnvironmentVariables = defaults.UseEnvironmentVariables;
+            checkForUpdates = defaults.CheckForUpdates;
+            var themeChanged = theme != defaults.Theme;
+            theme = defaults.Theme;
+
+            OnPropertyChanged(nameof(AskBeforeReplacing));
+            OnPropertyChanged(nameof(RightClickContextMenus));
+            OnPropertyChanged(nameof(UseEnvironmentVariables));
+            OnPropertyChanged(nameof(CheckForUpdates));
+            OnPropertyChanged(nameof(Theme));
+
+            if (themeChanged)
+            {
+                applyTheme(theme);
+            }
+
+            var iconChanged = selectedIcon.Choice != Settings.DefaultAppIcon;
+            SelectedIcon = AppIcons.Get(Settings.DefaultAppIcon);
+            Store();
+
+            // An icon that couldn't be saved says so in the picker, which is closed now: the page says it too, after any other problem
+            if (iconChanged && HasIconError)
+            {
+                SaveError = SaveError == null ? IconError : SaveError + Environment.NewLine + IconError;
+            }
         }
 
         private string? Validate(string folder)
@@ -524,6 +662,7 @@ namespace keycuts.GUI.ViewModels
             if (!string.IsNullOrWhiteSpace(picked))
             {
                 OutputFolder = picked;
+                CommitOutputFolder();
             }
         }
 

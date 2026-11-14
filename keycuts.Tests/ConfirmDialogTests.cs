@@ -95,31 +95,29 @@ namespace keycuts.Tests
         #region Dialog
 
         [Fact]
-        public void TheDialog_IsBuiltLikeTheSettingsWindow()
+        public void TheDialog_IsBuiltFromTheSharedStyles()
         {
             RunSta(() =>
             {
                 EnsureApplication();
-                var settings = new SettingsWindow(new SettingsViewModel(new NoStore()));
                 var window = ShowOffscreen(ConfirmViewModel.ForCreate(TestNameChecks.Existing("gmail"), "https://new.example.com"));
                 try
                 {
-                    // Not the width: Settings is wider since #192, for its label-and-control rows, and this dialog has none
+                    // Settings was the dialog this one was built like; since #218 it is a screen, so the shared styles are the yardstick
                     Assert.Equal(SizeToContent.Height, window.SizeToContent);
                     Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
-                    Assert.Equal(settings.FontFamily, window.FontFamily);
-                    Assert.Equal(settings.FontSize, window.FontSize);
-                    Assert.Same(settings.Background, window.Background);
-                    Assert.Same(settings.Foreground, window.Foreground);
+                    Assert.Equal(Application.Current.FindResource("AppFontFamily"), window.FontFamily);
+                    Assert.Equal(Application.Current.FindResource("FontSizeBody"), window.FontSize);
+                    Assert.Same(Application.Current.FindResource("SurfaceBrush"), window.Background);
+                    Assert.Same(Application.Current.FindResource("TextBrush"), window.Foreground);
                     Assert.False(window.ShowInTaskbar);
 
                     var confirm = (Button)window.FindName("BtnConfirm");
                     var cancel = (Button)window.FindName("BtnCancel");
                     Assert.True(confirm.IsDefault);
                     Assert.True(cancel.IsCancel);
-                    Assert.Same(((Button)settings.FindName("BtnSave")).Style, confirm.Style);
-                    // Settings has no Cancel button since #192; the footer's secondary button there is Show welcome
-                    Assert.Same(((Button)settings.FindName("BtnShowWelcome")).Style, cancel.Style);
+                    Assert.Same(Application.Current.FindResource("PrimaryButton"), confirm.Style);
+                    Assert.Same(Application.Current.FindResource("SecondaryButton"), cancel.Style);
                     Assert.Equal("Replace", AutomationProperties.GetName(confirm));
                     Assert.Contains("Opens now", AutomationProperties.GetHelpText(confirm));
 
@@ -138,7 +136,6 @@ namespace keycuts.Tests
                 finally
                 {
                     window.Close();
-                    settings.Close();
                 }
             });
         }
@@ -166,19 +163,6 @@ namespace keycuts.Tests
         #endregion Dialog
 
         #region Helpers
-
-        private sealed class NoStore : ISettingsStore
-        {
-            public Settings Load()
-            {
-                return new Settings { OutputFolder = @"C:\Shortcuts" };
-            }
-
-            public string? Save(Settings settings)
-            {
-                return null;
-            }
-        }
 
         static ConfirmWindow ShowOffscreen(ConfirmViewModel viewModel)
         {

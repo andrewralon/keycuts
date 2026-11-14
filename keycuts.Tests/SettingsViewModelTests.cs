@@ -25,7 +25,7 @@ using Xunit;
 
 namespace keycuts.Tests
 {
-    /// <summary>The Settings window's rules. The store is a fake and folders live under a temp root: nothing touches HKCU or the real output folder.</summary>
+    /// <summary>The Settings screen's rules (#218). The store is a fake and folders live under a temp root: nothing touches HKCU or the real output folder.</summary>
     public class SettingsViewModelTests : IDisposable
     {
         private readonly string root = Path.Combine(Path.GetTempPath(), "keycuts-settings-tests-" + Guid.NewGuid().ToString("N"));
@@ -72,7 +72,7 @@ namespace keycuts.Tests
             return new SettingsViewModel(store, pick, open);
         }
 
-        #region Load and save mapping
+        #region Load, and storing each change (#218)
 
         [Fact]
         public void Load_MapsEveryStoredValue()
@@ -89,79 +89,379 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Save_WritesEveryValueToTheStore_AndRaisesSaved()
+        public void Opening_StoresNothing()
+        {
+            var store = new FakeStore();
+            var themes = new List<ThemePreference>();
+
+            _ = new SettingsViewModel(store, applyTheme: themes.Add);
+
+            Assert.Empty(store.Saves);
+            Assert.Empty(themes);
+        }
+
+        [Fact]
+        public void EachToggle_IsStoredTheMomentItChanges_WithTheStoredFolder()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+            var stored = 0;
+            vm.Stored += (sender, e) => stored++;
+
+            vm.AskBeforeReplacing = true;
+            Assert.True(Assert.Single(store.Saves).AskBeforeReplacing);
+
+            vm.RightClickContextMenus = true;
+            vm.UseEnvironmentVariables = false;
+            vm.CheckForUpdates = false;
+
+            Assert.Equal(4, store.Saves.Count);
+            var last = store.Saves[^1];
+            Assert.True(last.AskBeforeReplacing);
+            Assert.True(last.RightClickContextMenus);
+            Assert.False(last.UseEnvironmentVariables);
+            Assert.False(last.CheckForUpdates);
+            Assert.All(store.Saves, s => Assert.Equal(@"C:\Shortcuts", s.OutputFolder));
+            Assert.Equal(4, stored);
+        }
+
+        [Fact]
+        public void SettingAToggleToTheValueItHas_StoresNothing()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+
+            vm.AskBeforeReplacing = vm.AskBeforeReplacing;
+            vm.Theme = vm.Theme;
+
+            Assert.Empty(store.Saves);
+        }
+
+        [Fact]
+        public void TheTheme_IsAppliedAndStoredAtOnce()
+        {
+            var store = new FakeStore();
+            var themes = new List<ThemePreference>();
+            var vm = new SettingsViewModel(store, applyTheme: themes.Add);
+
+            vm.Theme = ThemePreference.Light;
+
+            Assert.Equal(new[] { ThemePreference.Light }, themes);
+            Assert.Equal(ThemePreference.Light, Assert.Single(store.Saves).Theme);
+        }
+
+        [Fact]
+        public void EditingTheFolder_StoresNothing_UntilItIsCommitted()
         {
             var store = new FakeStore();
             var vm = NewViewModel(store);
             var folder = Path.Combine(root, "keys");
-            var saved = 0;
-            vm.Saved += (sender, e) => saved++;
+            var changed = 0;
+            vm.OutputFolderChanged += (sender, e) => changed++;
 
-            vm.OutputFolder = "  " + folder + "  ";
+            vm.OutputFolder = "  \"" + folder + "\"  ";
+            Assert.Empty(store.Saves);
+            Assert.False(Directory.Exists(folder));
+
+            // A toggle changed meanwhile stores the folder that was stored, not the half-typed one
             vm.AskBeforeReplacing = true;
-            vm.RightClickContextMenus = true;
-            vm.UseEnvironmentVariables = false;
-            vm.Theme = ThemePreference.Light;
+            Assert.Equal(@"C:\Shortcuts", Assert.Single(store.Saves).OutputFolder);
 
-            Assert.True(vm.Save());
+            Assert.True(vm.CommitOutputFolder());
 
-            var result = Assert.Single(store.Saves);
-            Assert.Equal(folder, result.OutputFolder);
-            Assert.True(result.AskBeforeReplacing);
-            Assert.True(result.RightClickContextMenus);
-            Assert.False(result.UseEnvironmentVariables);
-            Assert.Equal(ThemePreference.Light, result.Theme);
-            Assert.Equal(1, saved);
+            Assert.Equal(folder, store.Saves[^1].OutputFolder);
+            Assert.True(store.Saves[^1].AskBeforeReplacing);
+            Assert.Equal(folder, vm.OutputFolder);
             Assert.True(Directory.Exists(folder));
+            Assert.Equal(1, changed);
+
+            // ...and after that, a toggle stores the new folder
+            vm.RightClickContextMenus = true;
+            Assert.Equal(folder, store.Saves[^1].OutputFolder);
         }
 
         [Fact]
-        public void EditingWithoutSaving_NeverReachesTheStore()
+        public void RevertOutputFolder_DropsAnEdit_AndItsError_StoringNothing()
         {
-            // Cancel and Escape just close the window, so an unsaved view model must leave the store alone
             var store = new FakeStore();
             var vm = NewViewModel(store);
+            Assert.False(vm.HasUncommittedFolder);
+            Assert.False(vm.RevertOutputFolder());
 
-            vm.OutputFolder = Path.Combine(root, "elsewhere");
-            vm.AskBeforeReplacing = true;
-            vm.RightClickContextMenus = true;
-            vm.Theme = ThemePreference.Light;
+            vm.OutputFolder = @"relative\folder";
+            Assert.True(vm.HasUncommittedFolder);
+            Assert.False(vm.CommitOutputFolder());
+            Assert.True(vm.HasOutputFolderError);
+
+            Assert.True(vm.RevertOutputFolder());
+
+            Assert.Equal(@"C:\Shortcuts", vm.OutputFolder);
+            Assert.False(vm.HasUncommittedFolder);
+            Assert.False(vm.HasOutputFolderError);
+            Assert.Empty(store.Saves);
+
+            // Nothing left to drop: Escape can go on to leave the screen
+            Assert.False(vm.RevertOutputFolder());
+        }
+
+        [Fact]
+        public void RevertOutputFolder_GoesBackToTheLastCommittedFolder_NotTheLoadedOne()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+            var folder = Path.Combine(root, "keys");
+            vm.OutputFolder = folder;
+            Assert.True(vm.CommitOutputFolder());
+            Assert.False(vm.HasUncommittedFolder);
+
+            vm.OutputFolder = Path.Combine(root, "typo");
+            Assert.True(vm.RevertOutputFolder());
+
+            Assert.Equal(folder, vm.OutputFolder);
+            Assert.Single(store.Saves);
+        }
+
+        [Fact]
+        public void CommittingTheFolderItAlreadyHas_StoresNothing()
+        {
+            var store = new FakeStore { Stored = new Settings { OutputFolder = root } };
+            var vm = NewViewModel(store);
+            var changed = 0;
+            vm.OutputFolderChanged += (sender, e) => changed++;
+
+            Assert.True(vm.CommitOutputFolder());
+            vm.OutputFolder = " " + root.ToUpperInvariant() + " ";
+            Assert.True(vm.CommitOutputFolder());
 
             Assert.Empty(store.Saves);
-            Assert.False(Directory.Exists(Path.Combine(root, "elsewhere")));
+            Assert.Equal(0, changed);
         }
 
         [Fact]
-        public void Save_ReportsAStoreMessageInline_AndStaysOpen()
+        public void AStoreMessage_ShowsOnThePage_UntilAChangeStoresCleanly()
         {
+            var store = new FakeStore { SaveMessage = Settings.ContextMenuFailedMessage };
+            var vm = NewViewModel(store);
+            var stored = 0;
+            vm.Stored += (sender, e) => stored++;
+
+            vm.RightClickContextMenus = true;
+
+            Assert.Equal(Settings.ContextMenuFailedMessage, vm.SaveError);
+            Assert.True(vm.HasSaveError);
+            // The values may be stored even so, so the rest of the app still follows
+            Assert.Equal(1, stored);
+
+            store.SaveMessage = null;
+            vm.AskBeforeReplacing = true;
+            Assert.Null(vm.SaveError);
+        }
+
+        [Fact]
+        public void APathFailure_StillCountsAsANewFolder()
+        {
+            // Settings.SaveSettings stores the folder before PATH fails, so the count must follow it
             var store = new FakeStore { SaveMessage = Settings.PathUpdateFailedMessage };
             var vm = NewViewModel(store);
-            vm.OutputFolder = Path.Combine(root, "keys");
-            var saved = 0;
-            vm.Saved += (sender, e) => saved++;
+            var changed = 0;
+            vm.OutputFolderChanged += (sender, e) => changed++;
 
-            Assert.False(vm.Save());
+            vm.OutputFolder = Path.Combine(root, "keys");
+            Assert.True(vm.CommitOutputFolder());
 
             Assert.Equal(Settings.PathUpdateFailedMessage, vm.SaveError);
-            Assert.True(vm.HasSaveError);
-            Assert.Equal(0, saved);
+            Assert.Equal(1, changed);
+        }
+
+        // A refused registry write stores nothing: the folder stays the old one, and Enter can try again (PR #225 review)
+        [Fact]
+        public void ARefusedRegistryWrite_KeepsTheOldFolder_AndEnterTriesAgain()
+        {
+            var store = new FakeStore { SaveMessage = Settings.SaveFailedPrefix + "Access is denied." };
+            var vm = NewViewModel(store);
+            var folder = Path.Combine(root, "keys");
+            var changed = 0;
+            vm.OutputFolderChanged += (sender, e) => changed++;
+
+            vm.OutputFolder = folder;
+            Assert.False(vm.CommitOutputFolder());
+
+            Assert.Equal(Settings.SaveFailedPrefix + "Access is denied.", vm.SaveError);
+            Assert.Equal(0, changed);
+            Assert.Equal(folder, vm.OutputFolder);
+            Assert.True(vm.HasUncommittedFolder);
+
+            // A toggle meanwhile writes the folder that is really stored
+            store.SaveMessage = null;
+            vm.AskBeforeReplacing = true;
+            Assert.Equal(@"C:\Shortcuts", store.Saves[^1].OutputFolder);
+
+            // The same folder again is not "unchanged": it was never stored
+            Assert.True(vm.CommitOutputFolder());
+            Assert.Equal(folder, store.Saves[^1].OutputFolder);
+            Assert.Equal(1, changed);
+            Assert.False(vm.HasUncommittedFolder);
+        }
+
+        [Theory]
+        [InlineData(null, true)]
+        [InlineData(Settings.PathUpdateFailedMessage, true)]
+        [InlineData(Settings.ContextMenuFailedMessage, true)]
+        [InlineData(Settings.InvalidOutputFolderMessage, false)]
+        [InlineData(Settings.SaveFailedPrefix + "Access is denied.", false)]
+        public void StoredTheFolder_TellsAPathFailureFromARefusedWrite(string? message, bool stored)
+        {
+            Assert.Equal(stored, Settings.StoredTheFolder(message));
+        }
+
+        private sealed class FailingIconService : IAppIconService
+        {
+            public AppIconChoice Choice { get; private set; } = AppIconChoice.Classic;
+
+            public string? Apply(AppIconChoice choice)
+            {
+                Choice = choice;
+                return AppIconService.SaveFailedMessage;
+            }
+        }
+
+        // The picker, where an icon error shows, is closed during restore defaults, so the page says it (PR #225 review)
+        [Fact]
+        public void RestoreDefaults_ShowsAnIconThatCouldntBeSaved_OnThePage_AfterAnyOtherProblem()
+        {
+            var store = new FakeStore { SaveMessage = Settings.ContextMenuFailedMessage };
+            var vm = new SettingsViewModel(store, appIcon: new FailingIconService());
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.Equal(Settings.ContextMenuFailedMessage + Environment.NewLine + AppIconService.SaveFailedMessage, vm.SaveError);
+
+            // Alone, it is the whole message
+            store.SaveMessage = null;
+            var alone = new SettingsViewModel(store, appIcon: new FailingIconService());
+            alone.RestoreDefaultsCommand.Execute(null);
+            Assert.Equal(AppIconService.SaveFailedMessage, alone.SaveError);
         }
 
         [Fact]
-        public void StoreChanged_IsSetOnceASaveReachesTheStore_EvenWhenItReportsAProblem()
+        public void ShowWelcome_AsksTheShell()
         {
-            // The folder can be stored before PATH fails, so the main window must refresh even if the dialog is then cancelled
-            var store = new FakeStore { SaveMessage = Settings.PathUpdateFailedMessage };
-            var vm = NewViewModel(store);
-            Assert.False(vm.StoreChanged);
+            var vm = NewViewModel(new FakeStore());
+            var asked = 0;
+            vm.ShowWelcomeRequested += (sender, e) => asked++;
 
-            vm.OutputFolder = string.Empty;
-            vm.Save();
-            Assert.False(vm.StoreChanged);
+            vm.ShowWelcomeCommand.Execute(null);
 
-            vm.OutputFolder = Path.Combine(root, "keys");
-            Assert.False(vm.Save());
-            Assert.True(vm.StoreChanged);
+            Assert.Equal(1, asked);
+        }
+
+        #endregion
+
+        #region Restore defaults (#218)
+
+        [Fact]
+        public void RestoreDefaults_PutsEverySettingBack_ButNeverTheFolder_AndStoresOnce()
+        {
+            var store = new FakeStore
+            {
+                Stored = new Settings
+                {
+                    OutputFolder = @"D:\Elsewhere",
+                    AskBeforeReplacing = false,
+                    RightClickContextMenus = false,
+                    UseEnvironmentVariables = true,
+                    Theme = ThemePreference.Dark,
+                    CheckForUpdates = false
+                }
+            };
+            var icon = new InMemoryAppIconService(AppIconChoice.Classic);
+            var themes = new List<ThemePreference>();
+            var vm = new SettingsViewModel(store, appIcon: icon, applyTheme: themes.Add);
+            // An edit in the box that wasn't committed stays an edit
+            vm.OutputFolder = @"E:\Typing";
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            var saved = Assert.Single(store.Saves);
+            var defaults = Settings.Defaults();
+            Assert.Equal(@"D:\Elsewhere", saved.OutputFolder);
+            Assert.Equal(defaults.AskBeforeReplacing, saved.AskBeforeReplacing);
+            Assert.True(saved.AskBeforeReplacing);
+            Assert.True(saved.RightClickContextMenus);
+            Assert.False(saved.UseEnvironmentVariables);
+            Assert.Equal(ThemePreference.System, saved.Theme);
+            Assert.True(saved.CheckForUpdates);
+
+            Assert.True(vm.AskBeforeReplacing);
+            Assert.True(vm.RightClickContextMenus);
+            Assert.False(vm.UseEnvironmentVariables);
+            Assert.Equal(ThemePreference.System, vm.Theme);
+            Assert.True(vm.CheckForUpdates);
+            Assert.Equal(@"E:\Typing", vm.OutputFolder);
+
+            Assert.Equal(new[] { ThemePreference.System }, themes);
+            Assert.Equal(Settings.DefaultAppIcon, icon.Choice);
+            Assert.Equal(Settings.DefaultAppIcon, vm.SelectedIcon.Choice);
+        }
+
+        [Fact]
+        public void RestoreDefaults_AsksFirst_AndANoChangesNothing()
+        {
+            var store = new FakeStore();
+            var asked = 0;
+            var vm = new SettingsViewModel(store, confirmRestoreDefaults: () =>
+            {
+                asked++;
+                return false;
+            });
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.Equal(1, asked);
+            Assert.Empty(store.Saves);
+            Assert.False(vm.AskBeforeReplacing);
+            Assert.Equal(ThemePreference.Dark, vm.Theme);
+        }
+
+        [Fact]
+        public void RestoreDefaults_NotifiesEveryValueItChanged()
+        {
+            var vm = NewViewModel(new FakeStore());
+            var changed = new List<string?>();
+            vm.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.Contains(nameof(SettingsViewModel.AskBeforeReplacing), changed);
+            Assert.Contains(nameof(SettingsViewModel.RightClickContextMenus), changed);
+            Assert.Contains(nameof(SettingsViewModel.UseEnvironmentVariables), changed);
+            Assert.Contains(nameof(SettingsViewModel.CheckForUpdates), changed);
+            Assert.Contains(nameof(SettingsViewModel.Theme), changed);
+        }
+
+        [Fact]
+        public void Defaults_AreWhatANewInstallHas()
+        {
+            var defaults = Settings.Defaults();
+
+            Assert.Equal(Runner.DefaultAskBeforeReplacing, defaults.AskBeforeReplacing);
+            Assert.True(defaults.RightClickContextMenus);
+            Assert.False(defaults.UseEnvironmentVariables);
+            Assert.Equal(ThemePreference.System, defaults.Theme);
+            Assert.True(defaults.CheckForUpdates);
+            Assert.Equal(AppIconChoice.BlackAndWhite, Settings.DefaultAppIcon);
+            Assert.Equal(string.Empty, defaults.OutputFolder);
+        }
+
+        [Fact]
+        public void TheConfirmation_SaysTheFolderStays()
+        {
+            var confirm = ConfirmViewModel.ForRestoreDefaults();
+
+            Assert.Equal("Restore defaults", confirm.ConfirmText);
+            Assert.Contains("output folder stays", confirm.Intro);
+            Assert.False(confirm.ShowTargets);
+            Assert.False(confirm.ShowWarnings);
         }
 
         #endregion
@@ -171,13 +471,13 @@ namespace keycuts.Tests
         [Theory]
         [InlineData("")]
         [InlineData("   ")]
-        public void Save_RejectsAnEmptyFolder(string folder)
+        public void Commit_RejectsAnEmptyFolder(string folder)
         {
             var store = new FakeStore();
             var vm = NewViewModel(store);
             vm.OutputFolder = folder;
 
-            Assert.False(vm.Save());
+            Assert.False(vm.CommitOutputFolder());
 
             Assert.Equal(SettingsViewModel.EmptyFolderMessage, vm.OutputFolderError);
             Assert.True(vm.HasOutputFolderError);
@@ -188,20 +488,20 @@ namespace keycuts.Tests
         [Theory]
         [InlineData(@"relative\folder")]
         [InlineData(@"C:folder")]
-        public void Save_RejectsAFolderThatIsNotAFullPath(string folder)
+        public void Commit_RejectsAFolderThatIsNotAFullPath(string folder)
         {
             var store = new FakeStore();
             var vm = NewViewModel(store);
             vm.OutputFolder = folder;
 
-            Assert.False(vm.Save());
+            Assert.False(vm.CommitOutputFolder());
 
             Assert.Equal(Settings.InvalidOutputFolderMessage, vm.OutputFolderError);
             Assert.Empty(store.Saves);
         }
 
         [Fact]
-        public void Save_RejectsAFolderThatCannotBeCreated()
+        public void Commit_RejectsAFolderThatCannotBeCreated()
         {
             // A file where the parent folder should be
             var blocker = Path.Combine(root, "blocker");
@@ -210,14 +510,14 @@ namespace keycuts.Tests
             var vm = NewViewModel(store);
             vm.OutputFolder = Path.Combine(blocker, "keys");
 
-            Assert.False(vm.Save());
+            Assert.False(vm.CommitOutputFolder());
 
             Assert.Equal(SettingsViewModel.UnwritableFolderMessage, vm.OutputFolderError);
             Assert.Empty(store.Saves);
         }
 
         [Fact]
-        public void Save_RejectsAPathThatIsAFile()
+        public void Commit_RejectsAPathThatIsAFile()
         {
             var store = new FakeStore();
             var vm = NewViewModel(store);
@@ -225,14 +525,14 @@ namespace keycuts.Tests
             File.WriteAllText(file, "x");
             vm.OutputFolder = file;
 
-            Assert.False(vm.Save());
+            Assert.False(vm.CommitOutputFolder());
 
             Assert.Equal(SettingsViewModel.UnwritableFolderMessage, vm.OutputFolderError);
             Assert.Empty(store.Saves);
         }
 
         [Fact]
-        public void Save_RejectsAnExistingFolderThatIsNotWritable()
+        public void Commit_RejectsAnExistingFolderThatIsNotWritable()
         {
             // A temp folder that denies the current user file creation; the rule is removed before cleanup
             var folder = Directory.CreateDirectory(Path.Combine(root, "readonly"));
@@ -248,7 +548,7 @@ namespace keycuts.Tests
                 var vm = NewViewModel(store);
                 vm.OutputFolder = folder.FullName;
 
-                Assert.False(vm.Save());
+                Assert.False(vm.CommitOutputFolder());
 
                 Assert.Equal(SettingsViewModel.UnwritableFolderMessage, vm.OutputFolderError);
                 Assert.Empty(store.Saves);
@@ -259,6 +559,19 @@ namespace keycuts.Tests
                 security.RemoveAccessRule(deny);
                 folder.SetAccessControl(security);
             }
+        }
+
+        [Fact]
+        public void ARefusedFolder_KeepsTheStoredOne_ForTheNextToggle()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+            vm.OutputFolder = @"relative\folder";
+            Assert.False(vm.CommitOutputFolder());
+
+            vm.AskBeforeReplacing = true;
+
+            Assert.Equal(@"C:\Shortcuts", Assert.Single(store.Saves).OutputFolder);
         }
 
         [Fact]
@@ -276,7 +589,7 @@ namespace keycuts.Tests
         {
             var vm = NewViewModel(new FakeStore());
             vm.OutputFolder = string.Empty;
-            vm.Save();
+            vm.CommitOutputFolder();
             Assert.True(vm.HasOutputFolderError);
 
             var changed = new List<string?>();
@@ -357,7 +670,8 @@ namespace keycuts.Tests
         {
             string? seed = null;
             var picked = Path.Combine(root, "picked");
-            var vm = NewViewModel(new FakeStore(), pick: current =>
+            var store = new FakeStore();
+            var vm = NewViewModel(store, pick: current =>
             {
                 seed = current;
                 return picked;
@@ -368,25 +682,29 @@ namespace keycuts.Tests
 
             Assert.Equal(root, seed);
             Assert.Equal(picked, vm.OutputFolder);
+            // A pick from the folder button is a commit: stored at once (#218)
+            Assert.Equal(picked, Assert.Single(store.Saves).OutputFolder);
         }
 
         [Fact]
         public void Choose_KeepsTheFolder_WhenThePickerIsCancelled()
         {
-            var vm = NewViewModel(new FakeStore(), pick: _ => null);
+            var store = new FakeStore();
+            var vm = NewViewModel(store, pick: _ => null);
             vm.OutputFolder = root;
 
             vm.ChooseCommand.Execute(null);
 
             Assert.Equal(root, vm.OutputFolder);
+            Assert.Empty(store.Saves);
         }
 
         #endregion
     }
 
-    /// <summary>The toggle switch and the Settings window, hosted offscreen like the other accessibility tests.</summary>
+    /// <summary>The toggle switch and the Settings screen (#218), hosted offscreen like the other accessibility tests.</summary>
     [Collection(WpfCollection.Name)]
-    public class SettingsWindowTests
+    public class SettingsScreenTests
     {
         static void RunSta(Action action)
         {
@@ -451,9 +769,32 @@ namespace keycuts.Tests
             }
         }
 
-        static SettingsWindow ShowOffscreen(SettingsViewModel viewModel)
+        /// <summary>The Settings screen in a window of its own, MainWidth wide and as tall as its content, as the main window shows it.</summary>
+        private sealed class SettingsHost : Window
         {
-            var window = new SettingsWindow(viewModel)
+            public SettingsHost(SettingsViewModel viewModel)
+            {
+                ViewModel = viewModel;
+                View = new keycuts.GUI.Views.SettingsView { DataContext = viewModel };
+                Content = View;
+                Width = WindowLayout.CreatorWidth;
+                SizeToContent = SizeToContent.Height;
+            }
+
+            public SettingsViewModel ViewModel { get; }
+
+            public keycuts.GUI.Views.SettingsView View { get; }
+
+            /// <summary>The names belong to the view's name scope, not the window's.</summary>
+            public new object FindName(string name)
+            {
+                return View.FindName(name)!;
+            }
+        }
+
+        static SettingsHost ShowOffscreen(SettingsViewModel viewModel)
+        {
+            var window = new SettingsHost(viewModel)
             {
                 WindowStartupLocation = WindowStartupLocation.Manual,
                 Left = -20000,
@@ -481,6 +822,8 @@ namespace keycuts.Tests
 
             public int Saves { get; private set; }
 
+            public Settings? Last { get; private set; }
+
             public Settings Load()
             {
                 return Stored;
@@ -489,6 +832,7 @@ namespace keycuts.Tests
             public string? Save(Settings settings)
             {
                 Saves++;
+                Last = settings;
                 return SaveMessage;
             }
         }
@@ -622,30 +966,42 @@ namespace keycuts.Tests
 
         #endregion
 
-        #region Window
+        #region Screen (#218)
 
         [Fact]
-        public void Window_IsAModalDialogWithTheDocumentedBehavior()
+        public void Screen_HasNoHeadingNoSaveButton_AndSaysChangesAreSaved()
         {
             RunSta(() =>
             {
                 EnsureApplication();
-
-                // Read before ShowOffscreen moves the window off the screen
-                var fresh = new SettingsWindow(NewViewModel(Path.GetTempPath()));
-                Assert.Equal(WindowStartupLocation.CenterOwner, fresh.WindowStartupLocation);
-                fresh.Close();
-
                 var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
                 try
                 {
-                    Assert.Equal(500, window.Width);
-                    Assert.Equal(SizeToContent.Height, window.SizeToContent);
-                    Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
-                    Assert.True(((Button)window.FindName("BtnSave")).IsDefault);
-                    // Escape and the close button leave without saving (#192); see Window_Escape_ClosesWithoutSaving
-                    Assert.Null(window.FindName("BtnCancel"));
-                    Assert.NotEqual(18, window.FontSize);
+                    var texts = Descendants<TextBlock>(window).Where(t => t.IsVisible).Select(t => t.Text).ToList();
+
+                    // The selected tab names the screen, and nothing waits for a Save button
+                    Assert.DoesNotContain("Settings", texts);
+                    Assert.DoesNotContain(texts, t => t is "Save" or "Cancel");
+                    Assert.Null(window.FindName("BtnSave"));
+                    Assert.DoesNotContain(Descendants<Button>(window), b => b.IsDefault || b.IsCancel);
+
+                    var note = (FrameworkElement)window.FindName("SavedNote");
+                    Assert.True(note.IsVisible);
+                    Assert.Contains(SettingsViewModel.SavedAsYouGoNote, texts);
+                    Assert.Equal(12, Descendants<keycuts.GUI.Controls.Icon>(note).Single().Size);
+                    var noteText = Descendants<TextBlock>(note).Single();
+                    Assert.Same(Application.Current.FindResource("Caption"), noteText.Style);
+
+                    // The last row: show welcome at the left, restore defaults at the right, both lowercase
+                    var welcome = (Button)window.FindName("BtnShowWelcome");
+                    var restore = (Button)window.FindName("BtnRestoreDefaults");
+                    Assert.Equal("show welcome", welcome.Content);
+                    Assert.Equal("restore defaults", restore.Content);
+                    var root = (FrameworkElement)window.Content;
+                    Assert.True(BoundsIn(welcome, root).Right < BoundsIn(restore, root).Left);
+                    Assert.Equal(BoundsIn((FrameworkElement)window.FindName("BtnLaunch"), root).Right, BoundsIn(restore, root).Right, 1);
+                    Assert.Equal(Math.Round(BoundsIn(welcome, root).Top), Math.Round(BoundsIn(restore, root).Top));
+                    Assert.Equal("check now", ((Button)window.FindName("BtnCheckNow")).Content);
                 }
                 finally
                 {
@@ -655,7 +1011,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_FocusesTheFolderField_AndFollowsTheDocumentedTabOrder()
+        public void Screen_FocusesTheFolderField_AndFollowsTheDocumentedTabOrder()
         {
             RunSta(() =>
             {
@@ -667,7 +1023,7 @@ namespace keycuts.Tests
                     Assert.True(folder.IsKeyboardFocused || folder.IsFocused || folder.IsKeyboardFocusWithin);
 
                     // Tab visits controls in document order (no TabIndex is used), so the visual tree order is the tab order
-                    var stops = Descendants<Control>(window)
+                    var stops = Descendants<Control>(window.View)
                         .Where(c => c.IsTabStop && c.Focusable && c.IsEnabled && c.IsVisible && c is not ScrollViewer)
                         .Select(c => AutomationProperties.GetName(c) is { Length: > 0 } name ? name : c is ContentControl { Content: string s } ? s : c.GetType().Name)
                         .ToList();
@@ -675,9 +1031,9 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "Output folder", "Choose", "Launch", "Ask before replacing a keycut", "Right-click context menus",
+                            "Output folder", "Choose a folder", "Open the output folder", "Ask before replacing a keycut", "Right-click context menus",
                             "Use environment variables in paths", "Icon: Black & White. Change", "System theme", "Light theme", "Dark theme",
-                            "Check for updates", "Show the welcome panel", "Save"
+                            "Check for updates", "show the welcome panel", "restore defaults"
                         },
                         stops);
                 }
@@ -687,8 +1043,6 @@ namespace keycuts.Tests
                 }
             });
         }
-
-        #region Shorter layout (#192)
 
         static Rect BoundsIn(FrameworkElement element, FrameworkElement root)
         {
@@ -703,52 +1057,172 @@ namespace keycuts.Tests
             };
         }
 
-        // The Cancel button's IsCancel used to do this. The key starts in a control and bubbles up to the window, as a typed one does,
-        // so it has to work from wherever the focus is: the folder box, a switch, and the footer buttons
-        [Theory]
-        [InlineData("TextboxOutputFolder")]
-        [InlineData("ToggleAskBeforeReplacing")]
-        [InlineData("BtnShowWelcome")]
-        [InlineData("BtnSave")]
-        public void Window_Escape_ClosesWithoutSaving(string focusedControl)
+        // The folder is stored when it is committed: Enter, or leaving the box. Typing alone stores nothing.
+        [Fact]
+        public void Screen_StoresTheFolderOnEnter_AndWhenTheBoxLosesTheFocus()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
+                var first = Path.Combine(Path.GetTempPath(), "keycuts-screen-" + Guid.NewGuid().ToString("N"));
+                var second = first + "-2";
+                var window = ShowOffscreen(new SettingsViewModel(store));
+                try
+                {
+                    var box = (TextBox)window.FindName("TextboxOutputFolder");
+                    box.Focus();
+                    Keyboard.Focus(box);
+                    box.Text = first;
+                    Pump();
+                    Assert.Equal(0, store.Saves);
+
+                    var enter = KeyDown(box, Key.Enter);
+                    box.RaiseEvent(enter);
+                    Assert.True(enter.Handled);
+                    Assert.Equal(1, store.Saves);
+                    Assert.Equal(first, store.Last!.OutputFolder);
+
+                    box.Text = second;
+                    Keyboard.Focus((ToggleButton)window.FindName("ToggleAskBeforeReplacing"));
+                    Pump();
+                    Assert.Equal(2, store.Saves);
+                    Assert.Equal(second, store.Last!.OutputFolder);
+                }
+                finally
+                {
+                    window.Close();
+                    Directory.Delete(first, true);
+                    Directory.Delete(second, true);
+                }
+            });
+        }
+
+        // Escape in the folder box drops an edit and stays; with nothing to drop it goes on to the window (which leaves the screen)
+        [Fact]
+        public void Screen_EscapeInTheFolderBox_DropsTheEdit_AndStoresNothing()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var stored = Path.GetTempPath();
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = stored } };
+                var window = ShowOffscreen(new SettingsViewModel(store));
+                try
+                {
+                    var box = (TextBox)window.FindName("TextboxOutputFolder");
+                    box.Focus();
+                    Keyboard.Focus(box);
+                    box.Text = Path.Combine(stored, "typed-but-not-wanted");
+                    Pump();
+
+                    var escape = KeyDown(box, Key.Escape);
+                    box.RaiseEvent(escape);
+                    Pump();
+
+                    Assert.True(escape.Handled);
+                    Assert.Equal(stored, box.Text);
+                    Assert.Equal(0, store.Saves);
+                    Assert.True(box.IsKeyboardFocused);
+
+                    var again = KeyDown(box, Key.Escape);
+                    box.RaiseEvent(again);
+                    Assert.False(again.Handled);
+                    Assert.Equal(0, store.Saves);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // The whole path in the main window: the first Escape drops the edit and stays on Settings, the second returns to the
+        // creator, and leaving the box on the way out has nothing to store
+        [Fact]
+        public void MainWindow_EscapeTwiceFromAnEditedFolderBox_LeavesSettings_WithoutStoringTheFolder()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var stored = Path.GetTempPath();
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = stored } };
+                var shell = new ShellViewModel(() => System.Threading.Tasks.Task.FromResult(3), settingsFactory: () => new SettingsViewModel(store));
+                var window = new MainWindow(shell)
+                {
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    Left = -20000,
+                    Top = -20000,
+                    ShowInTaskbar = false,
+                    ShowActivated = false
+                };
+                window.Show();
+                Pump();
+                try
+                {
+                    shell.ShowSettings();
+                    Pump();
+                    window.UpdateLayout();
+                    var box = Descendants<TextBox>(window).Single(t => t.Name == "TextboxOutputFolder");
+                    box.Focus();
+                    Keyboard.Focus(box);
+                    box.Text = Path.Combine(stored, "typed-but-not-wanted");
+                    Pump();
+
+                    box.RaiseEvent(KeyDown(box, Key.Escape));
+                    Pump();
+                    Assert.Equal(ShellMode.Settings, shell.Mode);
+                    Assert.Equal(stored, box.Text);
+
+                    box.RaiseEvent(KeyDown(box, Key.Escape));
+                    Pump();
+                    Assert.Equal(ShellMode.Creator, shell.Mode);
+                    Assert.Equal(0, store.Saves);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Screen_AnInvalidFolder_ShowsItsErrorUnderTheBox_AndStoresNothing()
         {
             RunSta(() =>
             {
                 EnsureApplication();
                 var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
                 var window = ShowOffscreen(new SettingsViewModel(store));
-                var closed = false;
-                window.Closed += (_, _) => closed = true;
                 try
                 {
-                    // A change that Save would have stored
-                    window.ViewModel.OutputFolder = Path.Combine(Path.GetTempPath(), "changed");
-                    var control = (UIElement)window.FindName(focusedControl);
+                    var message = (keycuts.GUI.Controls.HelperText)window.FindName("OutputFolderMessage");
+                    var box = (TextBox)window.FindName("TextboxOutputFolder");
+                    var root = (FrameworkElement)window.Content;
 
-                    control.RaiseEvent(KeyDown(control, Key.A));
-                    Assert.False(closed);
+                    Assert.Equal(SettingsViewModel.DefaultHelperText, message.Text);
+                    Assert.Equal(keycuts.GUI.Controls.HelperTextState.Normal, message.State);
+                    // The helper line sits under the box, 4 below it
+                    Assert.Equal(BoundsIn(box, root).Bottom + 4, BoundsIn(message, root).Top, 1);
 
-                    var escape = KeyDown(control, Key.Escape);
-                    control.RaiseEvent(escape);
+                    box.Text = @"relative\folder";
+                    box.RaiseEvent(KeyDown(box, Key.Enter));
                     Pump();
 
-                    Assert.True(closed);
-                    Assert.True(escape.Handled);
                     Assert.Equal(0, store.Saves);
-                    Assert.False(window.ViewModel.StoreChanged);
+                    Assert.Equal(Settings.InvalidOutputFolderMessage, message.Text);
+                    Assert.Equal(keycuts.GUI.Controls.HelperTextState.Error, message.State);
+                    Assert.True(keycuts.GUI.Themes.TextBoxChrome.GetHasError(box));
                 }
                 finally
                 {
-                    if (!closed)
-                    {
-                        window.Close();
-                    }
+                    window.Close();
                 }
             });
         }
 
         [Fact]
-        public void Window_IconOnlyButtons_HaveTooltips_AndKeepTheirAutomationNames()
+        public void Screen_TheFolderButtons_AreIconOnlySquares_WithNamesAndTooltips()
         {
             RunSta(() =>
             {
@@ -758,17 +1232,25 @@ namespace keycuts.Tests
                 {
                     var choose = (Button)window.FindName("BtnChoose");
                     var launch = (Button)window.FindName("BtnLaunch");
+                    var box = (TextBox)window.FindName("TextboxOutputFolder");
 
                     Assert.Equal("Choose a folder", choose.ToolTip);
                     Assert.Equal("Open the output folder", launch.ToolTip);
-                    Assert.Equal("Choose", AutomationProperties.GetName(choose));
-                    Assert.Equal("Launch", AutomationProperties.GetName(launch));
+                    Assert.Equal("Choose a folder", AutomationProperties.GetName(choose));
+                    Assert.Equal("Open the output folder", AutomationProperties.GetName(launch));
                     // Launch is disabled for a missing folder, and a bare icon should still say what it is
                     Assert.True(ToolTipService.GetShowOnDisabled(launch));
 
-                    // Icon only: no visible text is left in either
-                    Assert.Empty(Descendants<TextBlock>(choose));
-                    Assert.Empty(Descendants<TextBlock>(launch));
+                    foreach (var button in new[] { choose, launch })
+                    {
+                        Assert.Same(Application.Current.FindResource("SquareButton"), button.Style);
+                        Assert.Equal(36, button.ActualWidth);
+                        Assert.Equal(36, button.ActualHeight);
+                        Assert.Empty(Descendants<TextBlock>(button));
+                        Assert.Equal(20, Descendants<keycuts.GUI.Controls.Icon>(button).Single().Size);
+                    }
+
+                    Assert.Equal(36, box.ActualHeight);
                 }
                 finally
                 {
@@ -778,51 +1260,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_FolderMessage_SitsOnTheLabelsLine_AndALongErrorWrapsWithoutLeavingTheWindow()
-        {
-            RunSta(() =>
-            {
-                EnsureApplication();
-                var longError = "Choose a folder you have permission to write to. Ask your administrator if this folder is on a shared drive.";
-                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath() } };
-                var window = ShowOffscreen(new SettingsViewModel(store, checkFolder: _ => longError));
-                try
-                {
-                    var root = (FrameworkElement)window.Content;
-                    var label = Descendants<TextBlock>(window).Single(t => t.Text == "Output folder");
-                    var message = (TextBlock)window.FindName("OutputFolderMessage");
-                    var box = (TextBox)window.FindName("TextboxOutputFolder");
-                    var launch = (Button)window.FindName("BtnLaunch");
-
-                    Assert.Equal("New keycuts files are saved here.", message.Text);
-                    var oneLine = BoundsIn(message, root);
-                    Assert.True(Math.Abs(oneLine.Top - BoundsIn(label, root).Top) < 4, "The message is on the label's line");
-                    Assert.True(oneLine.Bottom <= BoundsIn(box, root).Top, "...and above the box, not beside it");
-                    Assert.Equal(BoundsIn(launch, root).Right, oneLine.Right, 1);
-
-                    // The same text block shows the validation error, in the danger color, and wraps it to the right of the label
-                    window.ViewModel.OutputFolder = Path.GetTempPath();
-                    Assert.False(window.ViewModel.Save());
-                    Pump();
-                    window.UpdateLayout();
-
-                    var wrapped = BoundsIn(message, root);
-                    Assert.Equal(longError, message.Text);
-                    Assert.True(wrapped.Height > oneLine.Height * 1.5, "A long error takes more than one line");
-                    Assert.True(wrapped.Left >= BoundsIn(label, root).Right, "...beside the label, not over it");
-                    Assert.Equal(BoundsIn(launch, root).Right, wrapped.Right, 1);
-                    Assert.True(wrapped.Bottom <= BoundsIn(box, root).Top, "...and still above the box");
-                    Assert.Equal(TextAlignment.Right, message.TextAlignment);
-                }
-                finally
-                {
-                    window.Close();
-                }
-            });
-        }
-
-        [Fact]
-        public void Window_ThemeChoices_ShareTheLabelsLine_AtTheRightEdge()
+        public void Screen_ThemeChoices_ShareTheLabelsLine_AtTheRightEdge()
         {
             RunSta(() =>
             {
@@ -850,7 +1288,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_SectionsHaveNoDividers_ButTheFooterKeepsItsBorder()
+        public void Screen_SectionsAreLabels_WithNoDividers_24Apart()
         {
             RunSta(() =>
             {
@@ -859,9 +1297,13 @@ namespace keycuts.Tests
                 try
                 {
                     var body = (StackPanel)((ScrollViewer)window.FindName("BodyScroller")).Content;
+                    var labels = body.Children.OfType<keycuts.GUI.Controls.SectionLabel>().ToList();
 
-                    Assert.DoesNotContain(body.Children.Cast<UIElement>(), child => child is Border);
-                    Assert.Contains(Descendants<Border>(window), border => border.BorderThickness == new Thickness(0, 1, 0, 0));
+                    Assert.DoesNotContain(body.Children.Cast<UIElement>(), child => child is Border or Separator);
+                    Assert.Equal(new[] { "Output", "Behavior", "Appearance", "Updates" }, labels.Select(l => l.Text));
+                    Assert.Equal(0, labels[0].Margin.Top);
+                    Assert.All(labels.Skip(1), l => Assert.Equal(new Thickness(0, 24, 0, 8), l.Margin));
+                    Assert.Equal((Thickness)Application.Current.FindResource("PagePadding"), body.Margin);
                 }
                 finally
                 {
@@ -871,7 +1313,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_ShowsOnlyTheShortenedText_ButKeepsTheHelpTextForScreenReaders()
+        public void Screen_ShowsTheShortenedText_ButKeepsTheHelpTextForScreenReaders()
         {
             RunSta(() =>
             {
@@ -881,17 +1323,10 @@ namespace keycuts.Tests
                 {
                     var texts = Descendants<TextBlock>(window).Where(t => t.IsVisible).Select(t => t.Text).ToList();
 
-                    Assert.Contains("Settings", texts);
-                    Assert.DoesNotContain(texts, t => t.Contains("Choose how keycuts creates"));
-                    Assert.DoesNotContain(texts, t => t.Contains("Nothing about you"));
                     Assert.DoesNotContain(texts, t => t.StartsWith("Confirm before a new keycut", StringComparison.Ordinal));
-                    Assert.DoesNotContain(texts, t => t is "Cancel" or "Choose" or "Launch" or "Save changes");
                     Assert.Contains("Once a day, ask GitHub whether a newer version is out.", texts);
-                    Assert.Contains("Save", texts);
                     Assert.Contains(@"Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.", texts);
 
-                    // A switch whose note is still shown has the same help text; the one whose note went keeps its help text,
-                    // which is all a screen reader has for "Ask before replacing a keycut" now
                     Assert.Equal("Once a day, ask GitHub whether a newer version is out.",
                         AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleCheckForUpdates")));
                     Assert.Equal("Confirm before a new keycut replaces one with the same name.",
@@ -900,7 +1335,7 @@ namespace keycuts.Tests
                     // "Flip" is right whichever way the setting is: Shift turns it on for one keycut, or off
                     var variables = AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleEnvironmentVariables"));
                     Assert.Contains("Hold Shift while creating to flip it for one keycut", variables);
-                    Assert.Equal("Save", AutomationProperties.GetName((DependencyObject)window.FindName("BtnSave")));
+                    Assert.Equal(ConfirmViewModel.RestoreDefaultsIntro, AutomationProperties.GetHelpText((DependencyObject)window.FindName("BtnRestoreDefaults")));
                 }
                 finally
                 {
@@ -909,10 +1344,8 @@ namespace keycuts.Tests
             });
         }
 
-        #endregion
-
         [Fact]
-        public void Window_DisablesLaunch_ForAFolderThatDoesNotExist()
+        public void Screen_DisablesLaunch_ForAFolderThatDoesNotExist()
         {
             RunSta(() =>
             {
@@ -936,26 +1369,32 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_ShowsTheErrorStateInlineWithoutClosing()
+        public void Screen_Opening_NeitherAppliesNorStoresATheme_AndAClickDoes()
         {
             RunSta(() =>
             {
                 EnsureApplication();
-                var window = ShowOffscreen(NewViewModel(string.Empty));
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath(), Theme = ThemePreference.Dark } };
+                var themes = new List<ThemePreference>();
+                var window = ShowOffscreen(new SettingsViewModel(store, applyTheme: themes.Add));
                 try
                 {
-                    var message = (TextBlock)window.FindName("OutputFolderMessage");
-                    var danger = ((SolidColorBrush)Application.Current.FindResource("DangerBrush")).Color;
+                    var choices = ((StackPanel)window.FindName("ThemeChoices")).Children.OfType<RadioButton>().ToList();
+                    Assert.True(choices.Single(c => (ThemePreference)c.Tag == ThemePreference.Dark).IsChecked);
+                    Assert.Empty(themes);
+                    Assert.Equal(0, store.Saves);
 
-                    Assert.Equal(SettingsViewModel.DefaultHelperText, message.Text);
+                    choices.Single(c => (ThemePreference)c.Tag == ThemePreference.Light).IsChecked = true;
 
-                    Assert.False(window.ViewModel.Save());
+                    Assert.Equal(new[] { ThemePreference.Light }, themes);
+                    Assert.Equal(1, store.Saves);
+                    Assert.Equal(ThemePreference.Light, store.Last!.Theme);
+
+                    // Restore defaults moves the radio buttons too, without storing the theme a second time
+                    window.ViewModel.RestoreDefaultsCommand.Execute(null);
                     Pump();
-
-                    Assert.True(window.IsVisible);
-                    Assert.Equal(SettingsViewModel.EmptyFolderMessage, message.Text);
-                    Assert.Equal(danger, ((SolidColorBrush)message.Foreground).Color);
-                    Assert.True(Themes_HasError((TextBox)window.FindName("TextboxOutputFolder")));
+                    Assert.True(choices.Single(c => (ThemePreference)c.Tag == ThemePreference.System).IsChecked);
+                    Assert.Equal(2, store.Saves);
                 }
                 finally
                 {
@@ -965,35 +1404,16 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_OpeningAndClosing_DoesNotPreviewOrRestoreATheme()
+        public void Screen_ScrollsAStoreErrorIntoView_WhenThePageIsCapped()
         {
-            RunSta(() =>
-            {
-                EnsureApplication();
-                var before = keycuts.GUI.Themes.ThemeManager.Preference;
-                var other = before == ThemePreference.Dark ? ThemePreference.Light : ThemePreference.Dark;
-                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = Path.GetTempPath(), Theme = other } };
-
-                var window = ShowOffscreen(new SettingsViewModel(store));
-                Assert.Equal(other, window.ViewModel.Theme);
-                Assert.Equal(before, keycuts.GUI.Themes.ThemeManager.Preference);
-
-                window.Close();
-                Assert.Equal(before, keycuts.GUI.Themes.ThemeManager.Preference);
-            });
-        }
-
-        [Fact]
-        public void Window_ScrollsASaveErrorIntoView_WhenTheBodyIsCapped()
-        {
-            // The save error is the last thing in the scrolling body, so a capped window scrolled to the top would hide it
+            // The error sits low on the page, so a capped window scrolled to the top would hide it
             RunSta(() =>
             {
                 EnsureApplication();
                 var store = new FakeSettingsStore
                 {
                     Stored = new Settings { OutputFolder = Path.GetTempPath() },
-                    SaveMessage = Settings.PathUpdateFailedMessage
+                    SaveMessage = Settings.ContextMenuFailedMessage
                 };
                 var window = ShowOffscreen(new SettingsViewModel(store));
                 try
@@ -1007,13 +1427,14 @@ namespace keycuts.Tests
                     scroller.ScrollToTop();
                     Pump();
 
-                    Assert.False(window.ViewModel.Save());
+                    window.ViewModel.RightClickContextMenus = !window.ViewModel.RightClickContextMenus;
                     Pump();
                     window.UpdateLayout();
                     Pump();
 
                     var top = message.TranslatePoint(new Point(0, 0), scroller).Y;
                     var bottom = message.TranslatePoint(new Point(0, message.ActualHeight), scroller).Y;
+                    Assert.Equal(Settings.ContextMenuFailedMessage, message.Text);
                     Assert.True(scroller.VerticalOffset > 0);
                     Assert.True(top >= 0 && bottom <= scroller.ViewportHeight, $"Message spans {top}-{bottom}, viewport is {scroller.ViewportHeight}");
                 }
@@ -1025,9 +1446,9 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_CappedBelowItsContent_ScrollsTheBody_AndKeepsTheFooterVisible()
+        public void Screen_CappedBelowItsContent_ScrollsThePage_AndKeepsTheFooterVisible()
         {
-            // What a 1080p screen at 200% scaling (540 DIPs high) does to the ~670 DIP window
+            // What a 1080p screen at 200% scaling (540 DIPs high) does to the screen
             RunSta(() =>
             {
                 EnsureApplication();
@@ -1039,13 +1460,13 @@ namespace keycuts.Tests
                     window.UpdateLayout();
 
                     var scroller = (ScrollViewer)window.FindName("BodyScroller");
-                    var save = (Button)window.FindName("BtnSave");
+                    var footer = (FrameworkElement)window.FindName("Footer");
                     var content = (FrameworkElement)window.Content;
-                    var saveBottom = save.TranslatePoint(new Point(0, save.ActualHeight), content).Y;
+                    var footerBottom = footer.TranslatePoint(new Point(0, footer.ActualHeight), content).Y;
 
                     Assert.True(window.ActualHeight <= 400);
                     Assert.True(scroller.ScrollableHeight > 0);
-                    Assert.True(saveBottom <= content.ActualHeight, $"Save ends at {saveBottom}, content is {content.ActualHeight}");
+                    Assert.True(footerBottom <= content.ActualHeight + 0.5, $"The footer ends at {footerBottom}, content is {content.ActualHeight}");
                 }
                 finally
                 {
@@ -1054,33 +1475,10 @@ namespace keycuts.Tests
             });
         }
 
-        [Fact]
-        public void Window_CapsItsHeightToTheWorkArea()
-        {
-            RunSta(() =>
-            {
-                EnsureApplication();
-                var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
-                try
-                {
-                    Assert.Equal(WindowLayout.GetWorkAreaInDips(window).Height, window.MaxHeight);
-                }
-                finally
-                {
-                    window.Close();
-                }
-            });
-        }
-
-        static bool Themes_HasError(TextBox box)
-        {
-            return keycuts.GUI.Themes.TextBoxChrome.GetHasError(box);
-        }
-
-        // The README's screenshots leave the version row out (the version and Check now), so they don't go stale at each
+        // The README's screenshots leave the version row out (the version and check now), so they don't go stale at each
         // release (tools/New-Screenshots.ps1). The button never stays behind without its label.
         [Fact]
-        public void Window_ShowsTheVersionRowUnlessToldNotTo_AsAWhole()
+        public void Screen_ShowsTheVersionRowUnlessToldNotTo_AsAWhole()
         {
             RunSta(() =>
             {
@@ -1116,9 +1514,9 @@ namespace keycuts.Tests
             });
         }
 
-        // #171: Check now and the version show with a checker; Download only while a newer release is known
+        // #171: check now and the version show with a checker; download only while a newer release is known
         [Fact]
-        public void Window_WithAnUpdateChecker_ShowsCheckNow_AndDownloadOnlyWhenAnUpdateIsKnown()
+        public void Screen_WithAnUpdateChecker_ShowsCheckNow_AndDownloadOnlyWhenAnUpdateIsKnown()
         {
             RunSta(() =>
             {
@@ -1131,7 +1529,7 @@ namespace keycuts.Tests
                 {
                     var checkNow = (Button)window.FindName("BtnCheckNow");
                     Assert.True(checkNow.IsVisible);
-                    Assert.Equal("Check for updates now", AutomationProperties.GetName(checkNow));
+                    Assert.Equal("check for updates now", AutomationProperties.GetName(checkNow));
                     Assert.Equal("Version 1.1.1", ((TextBlock)window.FindName("CurrentVersionText")).Text);
                     Assert.False(((TextBlock)window.FindName("UpdateStatusMessage")).IsVisible);
                     Assert.False(((Hyperlink)window.FindName("SettingsDownloadLink")).IsEnabled);
@@ -1157,7 +1555,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_WithoutAnUpdateChecker_HidesCheckNow()
+        public void Screen_WithoutAnUpdateChecker_HidesCheckNow()
         {
             RunSta(() =>
             {
@@ -1175,7 +1573,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_TogglesAreNamedForScreenReaders()
+        public void Screen_TogglesAreNamedForScreenReaders()
         {
             RunSta(() =>
             {
@@ -1190,6 +1588,32 @@ namespace keycuts.Tests
                         new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Check for updates" },
                         toggles.Select(AutomationProperties.GetName));
                     Assert.All(toggles, toggle => Assert.NotNull(UIElementAutomationPeer.CreatePeerForElement(toggle).GetPattern(PatternInterface.Toggle)));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Screen_EndsInTheSameFooter_AsTheOtherScreens()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var viewModel = NewViewModel(Path.GetTempPath());
+                var footerSource = new CreatorViewModel(new keycuts.GUI.Mvvm.RelayCommand(() => { }), new keycuts.GUI.Mvvm.RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings)
+                {
+                    KeycutCount = 355
+                };
+                viewModel.Footer = footerSource;
+                var window = ShowOffscreen(viewModel);
+                try
+                {
+                    var footer = (keycuts.GUI.Views.FooterView)window.FindName("Footer");
+                    Assert.Same(footerSource, footer.DataContext);
+                    Assert.Equal("355", ((TextBlock)footer.FindName("CountText")).Text);
                 }
                 finally
                 {

@@ -279,25 +279,101 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheSettingsTab_OpensSettings_AndTheScreensTabStaysSelected()
+        public void TheSettingsTab_ShowsTheSettingsScreen_FixedSize_CappedToTheWorkArea()
+        {
+            WithWindow((window, shell) =>
+            {
+                var rail = (RailTabControl)Named(window, "TabStrip");
+                var settings = (TabItem)Named(window, "SettingsTab");
+                var maximize = (Button)Named(window, "BtnMaximize");
+
+                // From the Manager, so the window has a size of its own to give up
+                shell.ShowManager();
+                Settle(window);
+                rail.SelectedItem = settings;
+                Settle(window);
+
+                Assert.Equal(ShellMode.Settings, shell.Mode);
+                Assert.Same(settings, rail.SelectedItem);
+                Assert.Contains(Descendants<keycuts.GUI.Views.SettingsView>(window), v => ReferenceEquals(v.DataContext, shell.Settings));
+
+                // Like the Creator: MainWidth, its content's height, and no resizing or maximize; unlike it, never taller than the screen
+                Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
+                Assert.Equal(SizeToContent.Height, window.SizeToContent);
+                Assert.Equal(ResizeMode.CanMinimize, window.ResizeMode);
+                Assert.False(maximize.IsEnabled);
+                Assert.Equal(WindowLayout.GetWorkAreaInDips(window).Height, window.MaxHeight);
+                Assert.True(window.ActualHeight <= window.MaxHeight);
+
+                // The Manager can be as tall as any screen it is moved to (PR #225 review), and so is the Creator
+                shell.ShowManager();
+                Settle(window);
+                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+                shell.ShowSettings();
+                Settle(window);
+                shell.ShowCreator();
+                Settle(window);
+                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+                Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void TheManager_KeepsItsOwnSize_AcrossSettings()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+                window.Width = 1000;
+                window.Height = 640;
+                Settle(window);
+
+                // Settings from the Manager, then the Creator, then the Manager again: the Creator and Settings don't overwrite its size
+                shell.ShowSettings();
+                Settle(window);
+                shell.ShowCreator();
+                Settle(window);
+                shell.ShowManager();
+                Settle(window);
+
+                Assert.Equal(1000, window.ActualWidth, 0.5);
+                Assert.Equal(640, window.ActualHeight, 0.5);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void WhileTheIconPickerIsOpen_TheTabsAreOff_ButTheCaptionButtonsArent()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Settle(window);
+                shell.Settings!.IsIconPickerOpen = true;
+                Settle(window);
+
+                Assert.False(((RailTabControl)Named(window, "TabStrip")).IsEnabled);
+                Assert.True(((Button)Named(window, "BtnMinimize")).IsEnabled);
+                Assert.True(((Button)Named(window, "BtnClose")).IsEnabled);
+                // Dragging is the bar's, which the tabs being off doesn't change
+                Assert.Equal(WindowCaptionHook.HtCaption, HitTest(window, "Bar", 400, 24));
+
+                shell.Settings.IsIconPickerOpen = false;
+                Settle(window);
+                Assert.True(((RailTabControl)Named(window, "TabStrip")).IsEnabled);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void TheSettingsTab_WithoutASettingsScreen_KeepsTheScreensTab()
         {
             WithWindow((window, shell) =>
             {
                 var rail = (RailTabControl)Named(window, "TabStrip");
                 var creator = (TabItem)Named(window, "CreatorTab");
-                var settings = (TabItem)Named(window, "SettingsTab");
-                var opened = 0;
 
-                // Settings is still a dialog until its screen lands (#218, second part). The window's own handler would open it, with
-                // the real registry behind it, so it is taken off and the request is only counted
-                var handler = typeof(MainWindow).GetMethod("Shell_SettingsRequested", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                Assert.NotNull(handler);
-                shell.SettingsRequested -= (EventHandler)Delegate.CreateDelegate(typeof(EventHandler), window, handler!);
-                shell.SettingsRequested += (sender, e) => opened++;
+                rail.SelectedItem = (TabItem)Named(window, "SettingsTab");
 
-                rail.SelectedItem = settings;
-
-                Assert.Equal(1, opened);
                 Assert.Same(creator, rail.SelectedItem);
                 Assert.Equal(ShellMode.Creator, shell.Mode);
             });
@@ -610,7 +686,20 @@ namespace keycuts.Tests
             }
         }
 
-        private static void WithWindow(Action<MainWindow, ShellViewModel> body, bool withKeycuts = false)
+        private sealed class MemorySettingsStore : ISettingsStore
+        {
+            public Settings Load()
+            {
+                return new Settings { OutputFolder = Path.GetTempPath() };
+            }
+
+            public string? Save(Settings settings)
+            {
+                return null;
+            }
+        }
+
+        private static void WithWindow(Action<MainWindow, ShellViewModel> body, bool withKeycuts = false, bool withSettings = false)
         {
             RunSta(() =>
             {
@@ -623,7 +712,9 @@ namespace keycuts.Tests
                         new Keycut { Name = "gmail", Kind = KeycutKind.Url, RawType = ShortcutType.Url, Target = "https://mail.google.com", FilePath = @"C:\fixture\gmail.bat" }
                     })
                     : null;
-                var shell = new ShellViewModel(() => Task.FromResult(3), loader);
+                // A Settings screen over a store in memory: nothing reads or writes the registry
+                Func<SettingsViewModel>? settings = withSettings ? () => new SettingsViewModel(new MemorySettingsStore()) : null;
+                var shell = new ShellViewModel(() => Task.FromResult(3), loader, settingsFactory: settings);
                 var window = new MainWindow(shell)
                 {
                     WindowStartupLocation = WindowStartupLocation.Manual,

@@ -50,21 +50,20 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheDialog_IsBuiltLikeTheSettingsWindow_AndNamesItsFields()
+        public void TheDialog_IsBuiltFromTheSharedStyles_AndNamesItsFields()
         {
             RunSta(() =>
             {
                 EnsureApplication();
-                var settings = new SettingsWindow(new SettingsViewModel(new NoStore()));
                 var window = ShowOffscreen(NewForm());
                 try
                 {
                     Assert.Equal(SizeToContent.Height, window.SizeToContent);
                     Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
-                    Assert.Equal(settings.FontFamily, window.FontFamily);
-                    Assert.Equal(settings.FontSize, window.FontSize);
-                    Assert.Same(settings.Background, window.Background);
-                    Assert.Same(settings.Foreground, window.Foreground);
+                    Assert.Equal(Application.Current.FindResource("AppFontFamily"), window.FontFamily);
+                    Assert.Equal(Application.Current.FindResource("FontSizeBody"), window.FontSize);
+                    Assert.Same(Application.Current.FindResource("SurfaceBrush"), window.Background);
+                    Assert.Same(Application.Current.FindResource("TextBrush"), window.Foreground);
                     Assert.False(window.ShowInTaskbar);
                     Assert.Equal("Edit keycut", window.Title);
 
@@ -72,8 +71,8 @@ namespace keycuts.Tests
                     var cancel = (Button)window.FindName("BtnCancel");
                     Assert.True(save.IsDefault);
                     Assert.True(cancel.IsCancel);
-                    Assert.Same(((Button)settings.FindName("BtnSave")).Style, save.Style);
-                    Assert.Same(((Button)settings.FindName("BtnShowWelcome")).Style, cancel.Style);
+                    Assert.Same(Application.Current.FindResource("PrimaryButton"), save.Style);
+                    Assert.Same(Application.Current.FindResource("SecondaryButton"), cancel.Style);
                     Assert.Equal("Save", AutomationProperties.GetName(save));
 
                     var fields = Descendants<TextBox>(window).ToList();
@@ -92,7 +91,6 @@ namespace keycuts.Tests
                 finally
                 {
                     window.Close();
-                    settings.Close();
                 }
             });
         }
@@ -349,19 +347,6 @@ namespace keycuts.Tests
         }
 
         #region Helpers
-
-        private sealed class NoStore : ISettingsStore
-        {
-            public Settings Load()
-            {
-                return new Settings { OutputFolder = @"C:\Shortcuts" };
-            }
-
-            public string? Save(Settings settings)
-            {
-                return null;
-            }
-        }
 
         static TextBox Field(Window window, string automationName)
         {

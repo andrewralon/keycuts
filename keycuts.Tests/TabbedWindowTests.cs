@@ -318,6 +318,25 @@ namespace keycuts.Tests
             }, withSettings: true);
         }
 
+        // Settings measures its cap once the window has moved back (another monitor can be shorter); a switch to the Creator
+        // before that runs must not leave the Creator capped (PR #225 review)
+        [Fact]
+        public void AQuickSwitchFromSettingsToTheCreator_LeavesTheCreatorUncapped()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+
+                shell.ShowSettings();
+                shell.ShowCreator();
+                Settle(window);
+
+                Assert.Equal(ShellMode.Creator, shell.Mode);
+                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+            }, withSettings: true);
+        }
+
         [Fact]
         public void TheManager_KeepsItsOwnSize_AcrossSettings()
         {
@@ -693,9 +712,14 @@ namespace keycuts.Tests
                 return new Settings { OutputFolder = Path.GetTempPath() };
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 return null;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                return new FolderSaveResult(true, null);
             }
         }
 

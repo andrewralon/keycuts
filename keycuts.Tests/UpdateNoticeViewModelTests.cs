@@ -153,10 +153,15 @@ namespace keycuts.Tests
                 return Stored;
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 Saves.Add(settings);
                 return null;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                return new FolderSaveResult(true, null);
             }
         }
 

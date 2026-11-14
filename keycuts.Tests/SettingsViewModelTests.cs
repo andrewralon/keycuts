@@ -181,6 +181,47 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void RevertOutputFolder_DropsAnEdit_AndItsError_StoringNothing()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+            Assert.False(vm.HasUncommittedFolder);
+            Assert.False(vm.RevertOutputFolder());
+
+            vm.OutputFolder = @"relative\folder";
+            Assert.True(vm.HasUncommittedFolder);
+            Assert.False(vm.CommitOutputFolder());
+            Assert.True(vm.HasOutputFolderError);
+
+            Assert.True(vm.RevertOutputFolder());
+
+            Assert.Equal(@"C:\Shortcuts", vm.OutputFolder);
+            Assert.False(vm.HasUncommittedFolder);
+            Assert.False(vm.HasOutputFolderError);
+            Assert.Empty(store.Saves);
+
+            // Nothing left to drop: Escape can go on to leave the screen
+            Assert.False(vm.RevertOutputFolder());
+        }
+
+        [Fact]
+        public void RevertOutputFolder_GoesBackToTheLastCommittedFolder_NotTheLoadedOne()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+            var folder = Path.Combine(root, "keys");
+            vm.OutputFolder = folder;
+            Assert.True(vm.CommitOutputFolder());
+            Assert.False(vm.HasUncommittedFolder);
+
+            vm.OutputFolder = Path.Combine(root, "typo");
+            Assert.True(vm.RevertOutputFolder());
+
+            Assert.Equal(folder, vm.OutputFolder);
+            Assert.Single(store.Saves);
+        }
+
+        [Fact]
         public void CommittingTheFolderItAlreadyHas_StoresNothing()
         {
             var store = new FakeStore { Stored = new Settings { OutputFolder = root } };
@@ -230,6 +271,76 @@ namespace keycuts.Tests
 
             Assert.Equal(Settings.PathUpdateFailedMessage, vm.SaveError);
             Assert.Equal(1, changed);
+        }
+
+        // A refused registry write stores nothing: the folder stays the old one, and Enter can try again (PR #225 review)
+        [Fact]
+        public void ARefusedRegistryWrite_KeepsTheOldFolder_AndEnterTriesAgain()
+        {
+            var store = new FakeStore { SaveMessage = Settings.SaveFailedPrefix + "Access is denied." };
+            var vm = NewViewModel(store);
+            var folder = Path.Combine(root, "keys");
+            var changed = 0;
+            vm.OutputFolderChanged += (sender, e) => changed++;
+
+            vm.OutputFolder = folder;
+            Assert.False(vm.CommitOutputFolder());
+
+            Assert.Equal(Settings.SaveFailedPrefix + "Access is denied.", vm.SaveError);
+            Assert.Equal(0, changed);
+            Assert.Equal(folder, vm.OutputFolder);
+            Assert.True(vm.HasUncommittedFolder);
+
+            // A toggle meanwhile writes the folder that is really stored
+            store.SaveMessage = null;
+            vm.AskBeforeReplacing = true;
+            Assert.Equal(@"C:\Shortcuts", store.Saves[^1].OutputFolder);
+
+            // The same folder again is not "unchanged": it was never stored
+            Assert.True(vm.CommitOutputFolder());
+            Assert.Equal(folder, store.Saves[^1].OutputFolder);
+            Assert.Equal(1, changed);
+            Assert.False(vm.HasUncommittedFolder);
+        }
+
+        [Theory]
+        [InlineData(null, true)]
+        [InlineData(Settings.PathUpdateFailedMessage, true)]
+        [InlineData(Settings.ContextMenuFailedMessage, true)]
+        [InlineData(Settings.InvalidOutputFolderMessage, false)]
+        [InlineData(Settings.SaveFailedPrefix + "Access is denied.", false)]
+        public void StoredTheFolder_TellsAPathFailureFromARefusedWrite(string? message, bool stored)
+        {
+            Assert.Equal(stored, Settings.StoredTheFolder(message));
+        }
+
+        private sealed class FailingIconService : IAppIconService
+        {
+            public AppIconChoice Choice { get; private set; } = AppIconChoice.Classic;
+
+            public string? Apply(AppIconChoice choice)
+            {
+                Choice = choice;
+                return AppIconService.SaveFailedMessage;
+            }
+        }
+
+        // The picker, where an icon error shows, is closed during restore defaults, so the page says it (PR #225 review)
+        [Fact]
+        public void RestoreDefaults_ShowsAnIconThatCouldntBeSaved_OnThePage_AfterAnyOtherProblem()
+        {
+            var store = new FakeStore { SaveMessage = Settings.ContextMenuFailedMessage };
+            var vm = new SettingsViewModel(store, appIcon: new FailingIconService());
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.Equal(Settings.ContextMenuFailedMessage + Environment.NewLine + AppIconService.SaveFailedMessage, vm.SaveError);
+
+            // Alone, it is the whole message
+            store.SaveMessage = null;
+            var alone = new SettingsViewModel(store, appIcon: new FailingIconService());
+            alone.RestoreDefaultsCommand.Execute(null);
+            Assert.Equal(AppIconService.SaveFailedMessage, alone.SaveError);
         }
 
         [Fact]
@@ -983,6 +1094,94 @@ namespace keycuts.Tests
                     window.Close();
                     Directory.Delete(first, true);
                     Directory.Delete(second, true);
+                }
+            });
+        }
+
+        // Escape in the folder box drops an edit and stays; with nothing to drop it goes on to the window (which leaves the screen)
+        [Fact]
+        public void Screen_EscapeInTheFolderBox_DropsTheEdit_AndStoresNothing()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var stored = Path.GetTempPath();
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = stored } };
+                var window = ShowOffscreen(new SettingsViewModel(store));
+                try
+                {
+                    var box = (TextBox)window.FindName("TextboxOutputFolder");
+                    box.Focus();
+                    Keyboard.Focus(box);
+                    box.Text = Path.Combine(stored, "typed-but-not-wanted");
+                    Pump();
+
+                    var escape = KeyDown(box, Key.Escape);
+                    box.RaiseEvent(escape);
+                    Pump();
+
+                    Assert.True(escape.Handled);
+                    Assert.Equal(stored, box.Text);
+                    Assert.Equal(0, store.Saves);
+                    Assert.True(box.IsKeyboardFocused);
+
+                    var again = KeyDown(box, Key.Escape);
+                    box.RaiseEvent(again);
+                    Assert.False(again.Handled);
+                    Assert.Equal(0, store.Saves);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // The whole path in the main window: the first Escape drops the edit and stays on Settings, the second returns to the
+        // creator, and leaving the box on the way out has nothing to store
+        [Fact]
+        public void MainWindow_EscapeTwiceFromAnEditedFolderBox_LeavesSettings_WithoutStoringTheFolder()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var stored = Path.GetTempPath();
+                var store = new FakeSettingsStore { Stored = new Settings { OutputFolder = stored } };
+                var shell = new ShellViewModel(() => System.Threading.Tasks.Task.FromResult(3), settingsFactory: () => new SettingsViewModel(store));
+                var window = new MainWindow(shell)
+                {
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    Left = -20000,
+                    Top = -20000,
+                    ShowInTaskbar = false,
+                    ShowActivated = false
+                };
+                window.Show();
+                Pump();
+                try
+                {
+                    shell.ShowSettings();
+                    Pump();
+                    window.UpdateLayout();
+                    var box = Descendants<TextBox>(window).Single(t => t.Name == "TextboxOutputFolder");
+                    box.Focus();
+                    Keyboard.Focus(box);
+                    box.Text = Path.Combine(stored, "typed-but-not-wanted");
+                    Pump();
+
+                    box.RaiseEvent(KeyDown(box, Key.Escape));
+                    Pump();
+                    Assert.Equal(ShellMode.Settings, shell.Mode);
+                    Assert.Equal(stored, box.Text);
+
+                    box.RaiseEvent(KeyDown(box, Key.Escape));
+                    Pump();
+                    Assert.Equal(ShellMode.Creator, shell.Mode);
+                    Assert.Equal(0, store.Saves);
+                }
+                finally
+                {
+                    window.Close();
                 }
             });
         }

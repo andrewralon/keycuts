@@ -305,7 +305,12 @@ namespace keycuts.Tests
                 Assert.Equal(WindowLayout.GetWorkAreaInDips(window).Height, window.MaxHeight);
                 Assert.True(window.ActualHeight <= window.MaxHeight);
 
-                // The Creator is as tall as it needs, however tall the screen
+                // The Manager can be as tall as any screen it is moved to (PR #225 review), and so is the Creator
+                shell.ShowManager();
+                Settle(window);
+                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+                shell.ShowSettings();
+                Settle(window);
                 shell.ShowCreator();
                 Settle(window);
                 Assert.Equal(double.PositiveInfinity, window.MaxHeight);

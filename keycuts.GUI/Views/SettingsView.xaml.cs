@@ -134,16 +134,27 @@ namespace keycuts.GUI.Views
 
         #region UI Handlers
 
-        // Enter stores the folder; an invalid one keeps the focus in the box with its error
+        // Enter stores the folder; an invalid one keeps the focus in the box with its error. Escape drops an edit and puts the
+        // stored folder back, storing nothing; with no edit to drop it goes on to the window, which returns to the creator.
         private void OutputFolder_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter && viewModel != null)
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            if (e.Key == Key.Enter)
             {
                 e.Handled = true;
                 if (viewModel.CommitOutputFolder())
                 {
                     TextboxOutputFolder.SelectAll();
                 }
+            }
+            else if (e.Key == Key.Escape && viewModel.RevertOutputFolder())
+            {
+                e.Handled = true;
+                TextboxOutputFolder.SelectAll();
             }
         }
 

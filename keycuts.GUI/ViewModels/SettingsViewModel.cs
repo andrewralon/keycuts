@@ -498,10 +498,42 @@ namespace keycuts.GUI.ViewModels
                 return false;
             }
 
+            var previous = committedFolder;
             committedFolder = folder;
             OutputFolder = folder;
             Store();
+
+            // A PATH or menu failure comes after the folder is stored, so it still counts; a refused registry write doesn't. Then
+            // the stored folder is still the old one, and the box keeps the new text as an edit that Enter tries again.
+            if (!Settings.StoredTheFolder(SaveError))
+            {
+                committedFolder = previous;
+                return false;
+            }
+
             OutputFolderChanged?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+
+        /// <summary>Whether the folder box holds something other than the stored folder: an edit not committed yet.</summary>
+        public bool HasUncommittedFolder
+        {
+            get { return !string.Equals(outputFolder, committedFolder, StringComparison.Ordinal); }
+        }
+
+        /// <summary>
+        /// Escape in the folder box: puts the stored folder back and clears its error, storing nothing. Returns false when there
+        /// was no edit to drop, so Escape can go on to leave the screen.
+        /// </summary>
+        public bool RevertOutputFolder()
+        {
+            if (!HasUncommittedFolder && !HasOutputFolderError)
+            {
+                return false;
+            }
+
+            OutputFolder = committedFolder;
+            OutputFolderError = null;
             return true;
         }
 
@@ -552,8 +584,15 @@ namespace keycuts.GUI.ViewModels
                 applyTheme(theme);
             }
 
+            var iconChanged = selectedIcon.Choice != Settings.DefaultAppIcon;
             SelectedIcon = AppIcons.Get(Settings.DefaultAppIcon);
             Store();
+
+            // An icon that couldn't be saved says so in the picker, which is closed now: the page says it too, after any other problem
+            if (iconChanged && HasIconError)
+            {
+                SaveError = SaveError == null ? IconError : SaveError + Environment.NewLine + IconError;
+            }
         }
 
         private string? Validate(string folder)

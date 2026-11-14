@@ -106,8 +106,21 @@ namespace keycuts.GUI
             }
             catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
             {
-                return $"Couldn\u2019t save settings: {e.Message}";
+                return SaveFailedPrefix + e.Message;
             }
+        }
+
+        /// <summary>The start of the message for a save that stopped before anything was stored (the registry refused).</summary>
+        public const string SaveFailedPrefix = "Couldn\u2019t save settings: ";
+
+        /// <summary>
+        /// Whether a save that returned this message stored the output folder. A PATH or right-click menu failure comes after the
+        /// folder is stored (the PATH message says so); an exception, or an invalid folder, means it wasn't.
+        /// </summary>
+        public static bool StoredTheFolder(string? message)
+        {
+            return message == null
+                || (!message.StartsWith(SaveFailedPrefix, StringComparison.Ordinal) && message != InvalidOutputFolderMessage);
         }
     }
 }

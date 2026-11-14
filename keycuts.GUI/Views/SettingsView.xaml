@@ -135,7 +135,7 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <!-- Stored when committed: Enter or leaving the box (SettingsView.xaml.cs), or a pick from the folder button -->
+          <!-- Stored when committed: Enter or leaving the box (SettingsView.xaml.cs), or a pick from the folder button. Escape drops an edit. -->
           <TextBox x:Name="TextboxOutputFolder" Grid.Column="0" Style="{StaticResource OutputFolderBox}"
                    Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
                    themes:TextBoxChrome.Placeholder="Choose where keycuts are saved"

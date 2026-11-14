@@ -184,6 +184,8 @@ namespace keycuts.GUI
             creatorLocation = new Point(Left, Top);
 
             SizeToContent = SizeToContent.Manual;
+            // Settings caps the height to its monitor's work area; the Manager can be as tall as any screen it is moved to
+            MaxHeight = double.PositiveInfinity;
             ResizeMode = ResizeMode.CanResize;
             SetResizeBorder(WindowLayout.GetFrameThickness(this));
             MinWidth = WindowLayout.ManagerMinWidth;

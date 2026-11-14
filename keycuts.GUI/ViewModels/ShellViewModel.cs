@@ -106,7 +106,8 @@ namespace keycuts.GUI.ViewModels
                     settings.Stored -= Settings_Stored;
                     settings.OutputFolderChanged -= Settings_OutputFolderChanged;
                     settings.ShowWelcomeRequested -= Settings_ShowWelcomeRequested;
-                    settings.UpdateChecked -= Settings_UpdateChecked;
+                    // UpdateChecked stays: check now can answer after the screen was left, and the footer must still follow it.
+                    // The handler doesn't keep the old screen alive; only the running check does, until it ends.
                 }
 
                 settings = value;

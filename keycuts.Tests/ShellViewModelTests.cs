@@ -252,6 +252,31 @@ namespace keycuts.Tests
             Assert.Equal(9, shell.Creator.KeycutCount);
         }
 
+        // Check now can answer after Settings was left; the footer's update line still follows (PR #225 review)
+        [Fact]
+        public async Task ACheckThatEndsAfterLeavingSettings_StillRefreshesTheFooter()
+        {
+            var answer = new TaskCompletionSource<keycuts.Common.LatestRelease>();
+            var source = new FakeReleaseSource { NextAsync = () => answer.Task };
+            var checker = UpdateFakes.Checker(source, new FakeUpdateState(), "1.1.1.0");
+            var notice = new UpdateNoticeViewModel(checker, _ => { });
+            var store = new SettingsStore();
+            var shell = new ShellViewModel(() => Task.FromResult(3), updateNotice: notice,
+                settingsFactory: () => new SettingsViewModel(store, checkFolder: _ => null, updates: checker));
+            notice.Refresh();
+            Assert.False(notice.IsVisible);
+
+            shell.ShowSettings();
+            var check = shell.Settings!.CheckNowCommand.ExecuteAsync();
+            shell.ShowCreator();
+
+            answer.SetResult(FakeReleaseSource.Release("v1.2.0"));
+            await check;
+
+            Assert.True(notice.IsVisible);
+            Assert.Equal("keycuts 1.2.0 is available", notice.Message);
+        }
+
         [Fact]
         public void ShowWelcome_OnSettings_GoesBackToTheCreator()
         {

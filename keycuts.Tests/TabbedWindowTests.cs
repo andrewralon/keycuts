@@ -26,21 +26,23 @@ namespace keycuts.Tests
     /// <summary>
     /// #218: the tab bar that replaces the title bar. The window has to do everything its frame did, so these ask the real window the
     /// question Windows asks (<c>WM_NCHITTEST</c>) and look at what it answers: caption over the icon, name and empty bar, client over
-    /// the tabs and caption buttons, the maximize button over ours on the Manager only (for Windows 11's snap layouts), and a resize
-    /// edge only where the window can be resized.
+    /// the tabs and caption buttons, and a resize edge only where the window can be resized. The window is never maximized, on any screen.
     /// </summary>
     [Collection(WpfCollection.Name)]
     public class TabbedWindowTests
     {
         private const int WmNcHitTest = 0x0084;
-        private const int WmNcMouseMove = 0x00A0;
-        private const int WmNcLButtonDown = 0x00A1;
-        private const int WmNcLButtonUp = 0x00A2;
-        private const int WmNcMouseLeave = 0x02A2;
+        private const int HtClient = 1;
+        private const int HtCaption = 2;
+        private const int HtMaxButton = 9;
         private const int HtLeft = 10;
+        private const int GwlStyle = -16;
 
         [DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
+        private static extern int GetWindowLong(IntPtr hwnd, int index);
 
         #region Hit testing
 
@@ -49,35 +51,30 @@ namespace keycuts.Tests
         {
             WithWindow((window, shell) =>
             {
-                Assert.Equal(WindowCaptionHook.HtCaption, HitTest(window, "Bar", 30, 24));   // the icon and name
-                Assert.Equal(WindowCaptionHook.HtCaption, HitTest(window, "Bar", 400, 24));  // the empty bar
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "CreatorTab", 20, 20));
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "ManagerTab", 20, 20));
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "SettingsTab", 20, 20));
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "BtnMinimize", 23, 24));
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "BtnClose", 23, 24));
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "Frame", 100, 200));  // the page
+                Assert.Equal(HtCaption, HitTest(window, "Bar", 30, 24));   // the icon and name
+                Assert.Equal(HtCaption, HitTest(window, "Bar", 400, 24));  // the empty bar
+                Assert.Equal(HtClient, HitTest(window, "CreatorTab", 20, 20));
+                Assert.Equal(HtClient, HitTest(window, "ManagerTab", 20, 20));
+                Assert.Equal(HtClient, HitTest(window, "SettingsTab", 20, 20));
+                Assert.Equal(HtClient, HitTest(window, "BtnMinimize", 23, 24));
+                Assert.Equal(HtClient, HitTest(window, "BtnClose", 23, 24));
+                Assert.Equal(HtClient, HitTest(window, "Frame", 100, 200));  // the page
             });
         }
 
         [Fact]
-        public void TheMaximizeButton_AnswersHtMaxButton_OnTheManagerOnly()
+        public void TheMaximizeButton_IsNeverTheMaximizeButtonToWindows()
         {
             WithWindow((window, shell) =>
             {
-                // The Creator is fixed-size: maximize is disabled, so the bar is a plain caption there and a click is a click on a dead button
-                Assert.NotEqual(WindowCaptionHook.HtMaxButton, HitTest(window, "BtnMaximize", 23, 24));
-
-                shell.ShowManager();
-                Settle(window);
-                Assert.Equal(WindowCaptionHook.HtMaxButton, HitTest(window, "BtnMaximize", 23, 24));
-                Assert.Equal(WindowCaptionHook.HtMaxButton, HitTest(window, "BtnMaximize", 1, 1));
-                Assert.Equal(WindowCaptionHook.HtMaxButton, HitTest(window, "BtnMaximize", 44, 46));
-
-                shell.ShowCreator();
-                Settle(window);
-                Assert.NotEqual(WindowCaptionHook.HtMaxButton, HitTest(window, "BtnMaximize", 23, 24));
-            });
+                // Windows 11 would open its snap layouts over a point that answers HTMAXBUTTON, and a click there would maximize
+                foreach (var show in new Action[] { shell.ShowCreator, shell.ShowManager, shell.ShowSettings })
+                {
+                    show();
+                    Settle(window);
+                    Assert.NotEqual(HtMaxButton, HitTest(window, "BtnMaximize", 23, 24));
+                }
+            }, withSettings: true);
         }
 
         [Fact]
@@ -86,7 +83,7 @@ namespace keycuts.Tests
             WithWindow((window, shell) =>
             {
                 // The Creator is ResizeMode.CanMinimize: WindowChrome would still answer a resize edge (cursor and all) at its border
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "Frame", 1, 200));
+                Assert.Equal(HtClient, HitTest(window, "Frame", 1, 200));
 
                 shell.ShowManager();
                 Settle(window);
@@ -94,132 +91,73 @@ namespace keycuts.Tests
 
                 shell.ShowCreator();
                 Settle(window);
-                Assert.Equal(WindowCaptionHook.HtClient, HitTest(window, "Frame", 1, 200));
-            });
-        }
-
-        [Fact]
-        public void WhenMaximized_TheWindowLiesInsideTheWorkArea_AndTheWholeBarStaysTheCaption()
-        {
-            WithWindow((window, shell) =>
-            {
-                shell.ShowManager();
-                Settle(window);
-                window.WindowState = WindowState.Maximized;
-                Settle(window);
-
-                try
-                {
-                    // Windows places a maximized window as if its frame were still there, so it overhangs the work area unless the content is pulled in
-                    var frame = (FrameworkElement)Named(window, "Frame");
-                    var topLeft = frame.PointToScreen(new Point(0, 0));
-                    var bottomRight = frame.PointToScreen(new Point(frame.ActualWidth, frame.ActualHeight));
-                    var dpi = VisualTreeHelper.GetDpi(window);
-                    var work = WindowLayout.GetWorkAreaInDips(window);
-
-                    Assert.Equal(work.Left * dpi.DpiScaleX, topLeft.X, 1.0);
-                    Assert.Equal(work.Top * dpi.DpiScaleY, topLeft.Y, 1.0);
-                    Assert.Equal(work.Right * dpi.DpiScaleX, bottomRight.X, 1.0);
-                    Assert.Equal(work.Bottom * dpi.DpiScaleY, bottomRight.Y, 1.0);
-
-                    // The bottom of the empty bar is still the caption, not the first row of the page
-                    var bar = (FrameworkElement)Named(window, "Bar");
-                    Assert.Equal(WindowCaptionHook.HtCaption, HitTest(window, "Bar", 400, bar.ActualHeight - 1));
-
-                    Assert.Equal("Restore", AutomationProperties.GetName((Button)Named(window, "BtnMaximize")));
-                }
-                finally
-                {
-                    window.WindowState = WindowState.Normal;
-                    Settle(window);
-                }
-
-                Assert.Equal("Maximize", AutomationProperties.GetName((Button)Named(window, "BtnMaximize")));
-                Assert.Equal(new Thickness(0), ((FrameworkElement)Named(window, "Frame")).Margin);
+                Assert.Equal(HtClient, HitTest(window, "Frame", 1, 200));
             });
         }
 
         #endregion Hit testing
 
-        #region The maximize button, as Windows sees it
+        #region Never maximized
 
         [Fact]
-        public void OverTheMaximizeButton_TheNonClientMouseMessages_DriveItsLook_AndAClickMaximizes()
+        public void TheWindow_IsNeverMaximized_OnAnyScreen()
         {
             WithWindow((window, shell) =>
             {
+                var hwnd = new WindowInteropHelper(window).Handle;
+                foreach (var show in new Action[] { shell.ShowCreator, shell.ShowManager, shell.ShowSettings, shell.ShowManager, shell.ShowCreator })
+                {
+                    show();
+                    Settle(window);
+                    var screen = shell.Mode.ToString();
+
+                    // No maximize box, though the Manager is resizable: Windows offers no maximize (double click, Win+Up, a drag to the top, the window menu)
+                    Assert.True((GetWindowLong(hwnd, GwlStyle) & NoMaximizeHook.WsMaximizeBox) == 0, screen);
+
+                    // The command itself is refused, both the plain one and the caption double click's (SC_MAXIMIZE | HTCAPTION)
+                    SendMessage(hwnd, NoMaximizeHook.WmSysCommand, (IntPtr)NoMaximizeHook.ScMaximize, IntPtr.Zero);
+                    Settle(window);
+                    Assert.Equal(WindowState.Normal, window.WindowState);
+                    SendMessage(hwnd, NoMaximizeHook.WmSysCommand, (IntPtr)(NoMaximizeHook.ScMaximize | HtCaption), IntPtr.Zero);
+                    Settle(window);
+                    Assert.Equal(WindowState.Normal, window.WindowState);
+
+                    // And setting the state directly is undone
+                    window.WindowState = WindowState.Maximized;
+                    Settle(window);
+                    Assert.Equal(WindowState.Normal, window.WindowState);
+                }
+
+                // The Manager is still resizable, from its edges
                 shell.ShowManager();
                 Settle(window);
-                var hwnd = new WindowInteropHelper(window).Handle;
-                var button = (Button)Named(window, "BtnMaximize");
-                var over = (IntPtr)WindowCaptionHook.HtMaxButton;
-
-                SendMessage(hwnd, WmNcMouseMove, over, IntPtr.Zero);
-                Assert.True(CaptionButtonState.GetIsHot(button));
-                Assert.False(CaptionButtonState.GetIsPressed(button));
-
-                SendMessage(hwnd, WmNcLButtonDown, over, IntPtr.Zero);
-                Assert.True(CaptionButtonState.GetIsPressed(button));
-
-                // Moving off it, or leaving the window, lets go
-                SendMessage(hwnd, WmNcMouseMove, (IntPtr)WindowCaptionHook.HtCaption, IntPtr.Zero);
-                Assert.False(CaptionButtonState.GetIsHot(button));
-                Assert.False(CaptionButtonState.GetIsPressed(button));
-
-                SendMessage(hwnd, WmNcMouseMove, over, IntPtr.Zero);
-                SendMessage(hwnd, WmNcLButtonDown, over, IntPtr.Zero);
-                SendMessage(hwnd, WmNcMouseLeave, IntPtr.Zero, IntPtr.Zero);
-                Assert.False(CaptionButtonState.GetIsHot(button));
-                Assert.False(CaptionButtonState.GetIsPressed(button));
-
-                // A release with no press on the button (the press began elsewhere) does nothing
-                SendMessage(hwnd, WmNcLButtonUp, over, IntPtr.Zero);
-                Settle(window);
-                Assert.Equal(WindowState.Normal, window.WindowState);
-
-                SendMessage(hwnd, WmNcLButtonDown, over, IntPtr.Zero);
-                SendMessage(hwnd, WmNcLButtonUp, over, IntPtr.Zero);
-                Settle(window);
-
-                try
-                {
-                    Assert.Equal(WindowState.Maximized, window.WindowState);
-                    Assert.False(CaptionButtonState.GetIsPressed(button));
-                }
-                finally
-                {
-                    window.WindowState = WindowState.Normal;
-                    Settle(window);
-                }
-            });
+                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+                Assert.Equal(HtLeft, HitTest(window, "Frame", 1, 200));
+            }, withSettings: true);
         }
 
         [Theory]
-        [InlineData(0, 0, 46, 48, true)]
-        [InlineData(45.9, 47.9, 46, 48, true)]
-        [InlineData(46, 10, 46, 48, false)]
-        [InlineData(10, 48, 46, 48, false)]
-        [InlineData(-0.1, 10, 46, 48, false)]
-        [InlineData(10, -0.1, 46, 48, false)]
-        public void IsOver_IsHalfOpen(double x, double y, double width, double height, bool expected)
+        [InlineData(0x16CF0000, 0x16CE0000)]   // WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN: the box comes off
+        [InlineData(0x16CE0000, 0x16CE0000)]   // already without it
+        [InlineData(unchecked((int)0x96CF0000), unchecked((int)0x96CE0000))]  // WS_POPUP, the top bit, survives
+        public void WithoutMaximizeBox_TakesOffOnlyThatBit(int style, int expected)
         {
-            Assert.Equal(expected, WindowCaptionHook.IsOver(new Point(x, y), width, height));
+            Assert.Equal(expected, NoMaximizeHook.WithoutMaximizeBox(style));
         }
 
         [Theory]
-        [InlineData(100, 200)]
-        [InlineData(-20000, -20000)]
-        [InlineData(-1, 5)]
-        [InlineData(2559, 1439)]
-        public void ScreenPoint_ReadsTwoSigned16BitHalves(int x, int y)
+        [InlineData(0xF030, true)]    // SC_MAXIMIZE
+        [InlineData(0xF032, true)]    // a double click on the caption
+        [InlineData(0xF120, false)]   // SC_RESTORE
+        [InlineData(0xF020, false)]   // SC_MINIMIZE
+        [InlineData(0xF012, false)]   // SC_MOVE from the caption (a drag)
+        [InlineData(0xF000, false)]   // SC_SIZE
+        public void IsMaximizeCommand_ReadsTheCommandWithoutItsLowBits(int command, bool expected)
         {
-            // A second monitor to the left or above makes the coordinates negative, which a plain mask and shift would turn into 65535 - |n|
-            var lParam = (IntPtr)(((y & 0xFFFF) << 16) | (x & 0xFFFF));
-
-            Assert.Equal(new Point(x, y), WindowCaptionHook.ScreenPoint(lParam));
+            Assert.Equal(expected, NoMaximizeHook.IsMaximizeCommand((IntPtr)command));
         }
 
-        #endregion The maximize button, as Windows sees it
+        #endregion Never maximized
 
         #region The tabs
 
@@ -297,7 +235,7 @@ namespace keycuts.Tests
                 Assert.Same(settings, rail.SelectedItem);
                 Assert.Contains(Descendants<keycuts.GUI.Views.SettingsView>(window), v => ReferenceEquals(v.DataContext, shell.Settings));
 
-                // Like the Creator: MainWidth, its content's height, and no resizing or maximize; unlike it, never taller than the screen
+                // Like the Creator: MainWidth, its content's height, and no resizing; unlike it, never taller than the screen
                 Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
                 Assert.Equal(SizeToContent.Height, window.SizeToContent);
                 Assert.Equal(ResizeMode.CanMinimize, window.ResizeMode);
@@ -356,7 +294,7 @@ namespace keycuts.Tests
                 Assert.True(((Button)Named(window, "BtnMinimize")).IsEnabled);
                 Assert.True(((Button)Named(window, "BtnClose")).IsEnabled);
                 // Dragging is the bar's, which the tabs being off doesn't change
-                Assert.Equal(WindowCaptionHook.HtCaption, HitTest(window, "Bar", 400, 24));
+                Assert.Equal(HtCaption, HitTest(window, "Bar", 400, 24));
 
                 shell.Settings.IsIconPickerOpen = false;
                 Settle(window);
@@ -477,47 +415,31 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Maximize_IsDisabledOnTheFixedSizeScreens_AsResizeModeCanMinimizeMakesItOnAStandardWindow()
+        public void Maximize_IsDisabledOnEveryScreen_TheResizableManagerToo()
         {
             WithWindow((window, shell) =>
             {
                 var button = (Button)Named(window, "BtnMaximize");
-                Assert.Equal(ResizeMode.CanMinimize, window.ResizeMode);
                 Assert.False(button.IsEnabled);
 
                 shell.ShowManager();
                 Settle(window);
                 Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
-                Assert.True(button.IsEnabled);
+                Assert.False(button.IsEnabled);
+                Assert.False(UIElementAutomationPeer.CreatePeerForElement(button).IsEnabled());
+
+                shell.ShowSettings();
+                Settle(window);
+                Assert.False(button.IsEnabled);
 
                 shell.ShowCreator();
                 Settle(window);
                 Assert.False(button.IsEnabled);
-            });
-        }
 
-        [Fact]
-        public void TheCaptionButtons_Work_ThroughUiAutomation()
-        {
-            WithWindow((window, shell) =>
-            {
-                shell.ShowManager();
-                Settle(window);
-                var maximize = (Button)Named(window, "BtnMaximize");
-
-                ((IInvokeProvider)UIElementAutomationPeer.CreatePeerForElement(maximize).GetPattern(PatternInterface.Invoke)).Invoke();
-                Settle(window);
-
-                try
-                {
-                    Assert.Equal(WindowState.Maximized, window.WindowState);
-                }
-                finally
-                {
-                    window.WindowState = WindowState.Normal;
-                    Settle(window);
-                }
-            });
+                // Minimize and close still work
+                Assert.True(((Button)Named(window, "BtnMinimize")).IsEnabled);
+                Assert.True(((Button)Named(window, "BtnClose")).IsEnabled);
+            }, withSettings: true);
         }
 
         #endregion The caption buttons

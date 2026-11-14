@@ -86,9 +86,10 @@
                 AutomationProperties.Name="Minimize" Click="Minimize_Click">
           <Path Style="{StaticResource CaptionGlyph}" Data="M0,5.5 H10" />
         </Button>
+        <!-- Always disabled: the window is never maximized, on any screen (NoMaximizeHook) -->
         <Button x:Name="BtnMaximize" Style="{StaticResource CaptionButton}" ToolTip="Maximize"
-                AutomationProperties.Name="Maximize" Click="Maximize_Click">
-          <Path x:Name="MaximizeGlyph" Style="{StaticResource CaptionGlyph}" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z" />
+                AutomationProperties.Name="Maximize" IsEnabled="False">
+          <Path Style="{StaticResource CaptionGlyph}" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z" />
         </Button>
         <Button x:Name="BtnClose" Style="{StaticResource CaptionCloseButton}" ToolTip="Close"
                 AutomationProperties.Name="Close" Click="Close_Click">

@@ -1117,8 +1117,7 @@
     </Style>
 
     <!-- Minimize, maximize or restore, and close: CaptionButtonWidth by RailHeight, a 10px glyph in the text color. They are not Tab stops,
-         as the standard ones aren't (the window menu, Alt+Space, has the same commands). Maximize also answers to the window's
-         non-client mouse messages (CaptionButtonState), which is how Windows 11 shows its snap layouts over it. -->
+         as the standard ones aren't (the window menu, Alt+Space, has the same commands). Maximize is always disabled. -->
     <Style x:Key="CaptionButton" TargetType="Button">
         <Setter Property="Width" Value="{StaticResource CaptionButtonWidth}" />
         <Setter Property="Height" Value="{StaticResource RailHeight}" />
@@ -1140,15 +1139,7 @@
                 <Setter Property="Background" Value="{DynamicResource CaptionHoverBrush}" />
                 <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
             </Trigger>
-            <Trigger Property="controls:CaptionButtonState.IsHot" Value="True">
-                <Setter Property="Background" Value="{DynamicResource CaptionHoverBrush}" />
-                <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
-            </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource CaptionPressedBrush}" />
-                <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
-            </Trigger>
-            <Trigger Property="controls:CaptionButtonState.IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource CaptionPressedBrush}" />
                 <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
             </Trigger>

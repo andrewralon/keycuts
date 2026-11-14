@@ -128,7 +128,7 @@ namespace keycuts.Tests
         /// <summary>
         /// A screen under the tab bar, as the main window shows it (#218), with its tab selected. Not the main window itself: that
         /// would make the shell's own view models, and the creator's name check would read the real PATH. The fixed-size screens are
-        /// MainWidth wide and have maximize off, as in the app.
+        /// MainWidth wide. Maximize is off on every screen, as in the app.
         /// </summary>
         private static Window HostWithTabs(FrameworkElement view, object viewModel, Func<RailView, TabItem> tab, double? width, double? height = null)
         {

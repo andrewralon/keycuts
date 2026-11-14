@@ -1,4 +1,6 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Automation;
@@ -8,7 +10,9 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using keycuts.GUI.Controls;
+using keycuts.GUI.Views;
 using Xunit;
 
 namespace keycuts.Tests
@@ -130,6 +134,38 @@ namespace keycuts.Tests
                 }
                 finally
                 {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void HelperText_AnnouncesEachNewText_OnceItIsShown()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var announced = new List<UIElement>();
+                Action<UIElement> record = announced.Add;
+                LiveRegion.Announced += record;
+                var helper = new HelperText { Text = "Opens Notepad." };
+                var window = HostElements(helper);
+                try
+                {
+                    // The text it starts with isn't news
+                    Assert.Empty(announced);
+
+                    helper.State = HelperTextState.Warning;
+                    helper.Text = "Windows opens “npp” from System32 first.";
+                    Assert.Equal(new UIElement[] { helper }, announced);
+
+                    // An emptied line has nothing to say
+                    helper.Text = string.Empty;
+                    Assert.Single(announced);
+                }
+                finally
+                {
+                    LiveRegion.Announced -= record;
                     window.Close();
                 }
             });
@@ -312,6 +348,47 @@ namespace keycuts.Tests
                     Assert.Equal((Color)AppResource("ShadowColor"), effect.Color);
                     Assert.Equal(new CornerRadius(12), ((Border)sheet.Template.FindName("Sheet", sheet)).CornerRadius);
                     Assert.Equal(KeyboardNavigationMode.Cycle, KeyboardNavigation.GetTabNavigation(sheet));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // High contrast turns the shadow off with a transparent ShadowColor. DropShadowEffect honours the color's alpha (this
+        // passes with the effect's Opacity still 0.3), so no separate opacity is needed. Rendered, since only the pixels show it.
+        [Theory]
+        [InlineData("Light", true)]
+        [InlineData("Dark", true)]
+        [InlineData("HighContrast", false)]
+        public void OverlaySheet_CastsAShadow_ExceptInHighContrast(string palette, bool expectShadow)
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var sheet = new ContentControl
+                {
+                    Style = (Style)AppResource("OverlaySheet"),
+                    Content = new Border { Width = 200, Height = 100 }
+                };
+                var page = new Grid { Background = Brushes.White };
+                page.Resources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/keycuts.GUI;component/Themes/" + palette + ".xaml")
+                });
+                page.Children.Add(sheet);
+                var window = Host(page, new object());
+                try
+                {
+                    var bottom = sheet.TranslatePoint(new Point(sheet.ActualWidth / 2, sheet.ActualHeight), page);
+                    var bitmap = new RenderTargetBitmap((int)page.ActualWidth, (int)page.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(page);
+                    var pixel = new byte[4];
+                    bitmap.CopyPixels(new Int32Rect((int)bottom.X, (int)bottom.Y + 4, 1, 1), pixel, 4, 0);
+
+                    // 4 below the sheet, inside the 8 deep shadow: darker than the white page only when there is a shadow
+                    Assert.Equal(expectShadow, pixel[0] < 250 || pixel[1] < 250 || pixel[2] < 250);
                 }
                 finally
                 {

@@ -175,7 +175,8 @@ namespace keycuts.Tests
                 return;
             }
 
-            if (level != null)
+            // "None" takes the heading away, the same as leaving the level out
+            if (level != null && level.Trim() != "None")
             {
                 return;
             }
@@ -193,13 +194,18 @@ namespace keycuts.Tests
             }
         }
 
-        /// <summary>The properties an element sets: its attributes, or a Setter's Property and Value.</summary>
+        /// <summary>
+        /// The properties an element sets: its attributes and property elements (<c>&lt;TextBlock.FontSize&gt;</c>), or a Setter's
+        /// Property and its Value, written either way.
+        /// </summary>
         static IEnumerable<(string Property, string Value)> Settings(XElement element)
         {
-            if (element.Name.LocalName == "Setter")
+            var name = element.Name.LocalName;
+            if (name == "Setter")
             {
                 var property = (string)element.Attribute("Property");
-                var value = (string)element.Attribute("Value");
+                var value = (string)element.Attribute("Value")
+                    ?? element.Elements().Where(e => e.Name.LocalName == "Setter.Value").Select(PropertyElementValue).FirstOrDefault();
                 if (property != null && value != null)
                 {
                     // "Control.Template", "TextElement.Foreground": the owner type doesn't matter here, except for attached ones
@@ -228,6 +234,43 @@ namespace keycuts.Tests
             {
                 yield return (attribute.Name.LocalName, attribute.Value);
             }
+
+            foreach (var child in element.Elements().Where(e => e.Name.LocalName.StartsWith(name + ".", StringComparison.Ordinal)))
+            {
+                var value = PropertyElementValue(child);
+                if (value != null)
+                {
+                    yield return (child.Name.LocalName.Substring(name.Length + 1), value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A property element's value as the attribute would hold it: its text (<c>11</c>), a single value element's text
+        /// (<c>&lt;Thickness&gt;14,12&lt;/Thickness&gt;</c>), or a resource reference written as an element, which counts as a markup
+        /// extension. Null for anything else (a template, a list of rows), which no rule here is about.
+        /// </summary>
+        static string PropertyElementValue(XElement propertyElement)
+        {
+            var text = string.Concat(propertyElement.Nodes().OfType<XText>().Select(t => t.Value)).Trim();
+            if (text.Length > 0)
+            {
+                return text;
+            }
+
+            var children = propertyElement.Elements().ToList();
+            if (children.Count != 1)
+            {
+                return null;
+            }
+
+            var only = children[0];
+            if (only.Name.LocalName is "StaticResource" or "DynamicResource")
+            {
+                return "{" + only.Name.LocalName + " " + (string)only.Attribute("ResourceKey") + "}";
+            }
+
+            return only.HasElements ? null : only.Value.Trim();
         }
 
         static bool IsMarkupExtension(string value)
@@ -356,6 +399,15 @@ namespace keycuts.Tests
         [InlineData("<TextBlock FontSize=\"{DynamicResource FontSizeSubheading}\" />", "FontSize")]
         [InlineData("<TextBlock Text=\"OUTPUT\" Style=\"{StaticResource SectionLabel}\" />", "Style")]
         [InlineData("<controls:SectionLabel Text=\"Output\" AutomationProperties.HeadingLevel=\"None\" />", "AutomationProperties.HeadingLevel")]
+        [InlineData("<TextBlock FontSize=\"{StaticResource FontSizeHeading}\" AutomationProperties.HeadingLevel=\"None\" />", "FontSize")]
+        [InlineData("<Style TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"{StaticResource FontSizeSubheading}\" /><Setter Property=\"AutomationProperties.HeadingLevel\" Value=\"None\" /></Style>", "FontSize")]
+        [InlineData("<TextBlock><TextBlock.FontSize>11</TextBlock.FontSize></TextBlock>", "FontSize")]
+        [InlineData("<Style TargetType=\"TextBlock\"><Setter Property=\"FontSize\"><Setter.Value>22</Setter.Value></Setter></Style>", "FontSize")]
+        [InlineData("<Border><Border.Padding><Thickness>14,12</Thickness></Border.Padding></Border>", "Padding")]
+        [InlineData("<Style TargetType=\"Border\"><Setter Property=\"Margin\"><Setter.Value><Thickness>0,6,0,0</Thickness></Setter.Value></Setter></Style>", "Margin")]
+        [InlineData("<Border><Border.CornerRadius><CornerRadius>10</CornerRadius></Border.CornerRadius></Border>", "CornerRadius")]
+        [InlineData("<Style TargetType=\"Border\"><Setter Property=\"CornerRadius\"><Setter.Value>9</Setter.Value></Setter></Style>", "CornerRadius")]
+        [InlineData("<TextBlock><TextBlock.FontWeight>Bold</TextBlock.FontWeight></TextBlock>", "FontWeight")]
         public void Check_FindsEachBrokenRule(string xaml, string property)
         {
             Assert.Contains(CheckSnippet(xaml), v => v.Property == property);
@@ -372,6 +424,9 @@ namespace keycuts.Tests
         [InlineData("<controls:SectionLabel Text=\"Output\" />")]
         [InlineData("<controls:SectionLabel Text=\"Follows the theme\" AutomationProperties.HeadingLevel=\"Level3\" />")]
         [InlineData("<TextBlock Text=\"&#x2026; C# #1\" />")]
+        [InlineData("<Border><Border.Padding><StaticResource ResourceKey=\"PagePadding\" /></Border.Padding></Border>")]
+        [InlineData("<Style TargetType=\"Border\"><Setter Property=\"Margin\"><Setter.Value><Thickness>0,8,0,16</Thickness></Setter.Value></Setter></Style>")]
+        [InlineData("<Border><Border.Effect><DropShadowEffect BlurRadius=\"28\" /></Border.Effect></Border>")]
         [InlineData("<Style TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"{StaticResource FontSizeSubheading}\" /><Setter Property=\"AutomationProperties.HeadingLevel\" Value=\"Level2\" /></Style>")]
         public void Check_PassesWhatTheGuideAllows(string xaml)
         {

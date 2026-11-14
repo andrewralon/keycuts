@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
+using keycuts.GUI.Views;
 
 namespace keycuts.GUI.Controls
 {
@@ -18,14 +19,15 @@ namespace keycuts.GUI.Controls
     /// The line under a field (docs/styleguide.md, Type: Shared text styles): 12px secondary text, 4 below the control, that
     /// wraps. Its states change the color and, for a warning or a success, put a 12px icon before it, so color is never the only
     /// cue; a style alone can't add the icon, which is why this is a control. Normal and Success are polite live regions, Warning
-    /// and Error assertive. The look comes from the default style in Themes/Controls.xaml.
+    /// and Error assertive, and a new text is announced (<see cref="LiveRegion.Announce"/>): a live setting alone raises nothing
+    /// in WPF. So a view that uses it doesn't announce the line itself. The look comes from the default style in Themes/Controls.xaml.
     /// </summary>
     public class HelperText : Control
     {
         #region Dependency properties
 
         public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
-            nameof(Text), typeof(string), typeof(HelperText), new FrameworkPropertyMetadata(string.Empty));
+            nameof(Text), typeof(string), typeof(HelperText), new FrameworkPropertyMetadata(string.Empty, OnTextChanged));
 
         public static readonly DependencyProperty StateProperty = DependencyProperty.Register(
             nameof(State), typeof(HelperTextState), typeof(HelperText), new FrameworkPropertyMetadata(HelperTextState.Normal),
@@ -50,6 +52,16 @@ namespace keycuts.GUI.Controls
         {
             get => (HelperTextState)GetValue(StateProperty);
             set => SetValue(StateProperty, value);
+        }
+
+        // Not while the view is being built (the first text isn't news), and not when the line empties
+        private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var helper = (HelperText)d;
+            if (helper.IsLoaded && !string.IsNullOrEmpty((string)e.NewValue))
+            {
+                LiveRegion.Announce(helper);
+            }
         }
 
         protected override AutomationPeer OnCreateAutomationPeer()

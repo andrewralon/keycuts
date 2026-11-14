@@ -4,6 +4,7 @@
     <SolidColorBrush x:Key="AccentHoverBrush" Color="#75a5ff" />
     <SolidColorBrush x:Key="AccentPressedBrush" Color="#3f76da" />
     <SolidColorBrush x:Key="AccentSoftBrush" Color="#182a4d" />
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#6a9eff" />
     <SolidColorBrush x:Key="CanvasBrush" Color="#14171d" />
     <SolidColorBrush x:Key="SidebarBrush" Color="#191c23" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="#20242c" />
@@ -33,4 +34,6 @@
     <SolidColorBrush x:Key="BadgeCommandForegroundBrush" Color="#75dca8" />
     <SolidColorBrush x:Key="BadgeCommandBackgroundBrush" Color="#193c2c" />
     <SolidColorBrush x:Key="BadgeCommandBorderBrush" Color="#285e45" />
+    <SolidColorBrush x:Key="ScrimBrush" Color="#99000000" />
+    <Color x:Key="ShadowColor">#000000</Color>
 </ResourceDictionary>

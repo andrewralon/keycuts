@@ -40,7 +40,7 @@
         <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="24">
-                <TextBlock Text="Edit keycut" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+                <TextBlock Text="Edit keycut" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
                            Margin="0,0,0,20" AutomationProperties.HeadingLevel="Level1" />
 
                 <TextBlock Text="Target" Style="{StaticResource FieldLabel}" />

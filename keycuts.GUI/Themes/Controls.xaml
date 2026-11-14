@@ -42,7 +42,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="MinHeight" Value="{StaticResource ControlHeight}" />
-        <Setter Property="Padding" Value="13,0" />
+        <Setter Property="Padding" Value="12,0" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -118,12 +118,31 @@
     <!-- Unstyled buttons (for example in the Settings window) get the secondary look. -->
     <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}" />
 
+    <!-- An icon-only button with a border or fill: square at the height of the text box beside it, with a 20px glyph (Create,
+         Browse, choose a folder, open the output folder). Ghost icon buttons with no border are IconButton, 32. -->
+    <Style x:Key="SquareButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+        <Setter Property="Width" Value="{StaticResource ControlHeight}" />
+        <Setter Property="Height" Value="{StaticResource ControlHeight}" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <!-- A disabled icon-only button keeps its tooltip, so its bare icon can still be identified -->
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+    </Style>
+
+    <Style x:Key="PrimarySquareButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+        <Setter Property="Width" Value="{StaticResource ControlHeight}" />
+        <Setter Property="Height" Value="{StaticResource ControlHeight}" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+    </Style>
+
     <!-- TextBox: 36px, accent border plus soft glow on focus; ErrorTextBox (or Validation.HasError) shows the danger state. -->
     <Style x:Key="AppTextBox" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeInput}" />
         <Setter Property="MinHeight" Value="{StaticResource InputHeight}" />
-        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Padding" Value="12,0" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -207,6 +226,118 @@
 
     <Style x:Key="ErrorTextBox" TargetType="TextBox" BasedOn="{StaticResource AppTextBox}">
         <Setter Property="themes:TextBoxChrome.HasError" Value="True" />
+    </Style>
+
+    <!--
+        Shared text styles (docs/styleguide.md, Type). Every window uses these rather than a copy of its own. Each carries the
+        gap below it that the guide gives it; a view sets Margin only where the layout needs something else.
+    -->
+
+    <!-- A dialog's title heading: 20 SemiBold, 16 above the content, level 1 -->
+    <Style x:Key="Heading" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeHeading}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="Level1" />
+    </Style>
+
+    <!-- A level 2 heading: the welcome panel, empty and error states, a sheet's title -->
+    <Style x:Key="Subheading" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSubheading}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="Level2" />
+    </Style>
+
+    <!-- A field's label, 8 above its control; the control's automation name starts with this text -->
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- An error under a field, 4 below it (a view sets 16 above when it closes a form) -->
+    <Style x:Key="ErrorText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+    </Style>
+
+    <!-- Notes beside a label, status lines, the count: 12 secondary, no spacing of its own -->
+    <Style x:Key="Caption" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- Section label (Controls/SectionLabel): 12 ExtraBold accent capitals, 8 above its first row, a level 2 heading -->
+    <Style TargetType="controls:SectionLabel">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="Level2" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:SectionLabel">
+                    <TextBlock Text="{TemplateBinding DisplayText}" TextWrapping="Wrap" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Helper text (Controls/HelperText): 12 secondary, 4 below its control. A warning or a success adds a 12px icon, 4 from
+         the text; it never uses TextTertiaryBrush, which is for hints only. -->
+    <Style TargetType="controls:HelperText">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:HelperText">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <!-- The icon is lowered 2 to sit on the first line's text: an optical offset -->
+                        <controls:Icon x:Name="StateIcon" Kind="Warning" Size="12" Margin="0,2,4,0" VerticalAlignment="Top"
+                                       Visibility="Collapsed" />
+                        <TextBlock Grid.Column="1" Text="{TemplateBinding Text}" TextWrapping="Wrap" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="State" Value="Warning">
+                            <Setter TargetName="StateIcon" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="State" Value="Success">
+                            <Setter TargetName="StateIcon" Property="Kind" Value="Check" />
+                            <Setter TargetName="StateIcon" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="State" Value="Warning">
+                <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+            </Trigger>
+            <Trigger Property="State" Value="Error">
+                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+            </Trigger>
+            <Trigger Property="State" Value="Success">
+                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- WPF's default Label style sets the system control-text color, so it doesn't inherit the window's Foreground. -->
@@ -380,7 +511,7 @@
         <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="5" />
+        <Setter Property="Padding" Value="4" />
         <Setter Property="MinWidth" Value="166" />
         <Setter Property="Template">
             <Setter.Value>
@@ -400,7 +531,7 @@
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="Template">
             <Setter.Value>
@@ -541,25 +672,45 @@
 
     <!--
         ToggleSwitch: a 36x20 track with a 14px thumb for ToggleButton. Off is a plain outlined track; on fills with the accent.
-        ToggleButton's automation peer already exposes the Toggle pattern; set AutomationProperties.Name where it is used.
+        The track sits in a transparent area 24 high, so the switch is a 24px pointer target by its own size (WCAG 2.5.8),
+        wherever it is placed. ToggleButton's automation peer already exposes the Toggle pattern; set AutomationProperties.Name
+        where it is used.
     -->
+    <!-- The focus ring follows the track, not the hit area: 2px outside it, at its radius plus 2 (a ring, an exception to the grid) -->
+    <Style x:Key="ToggleFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-4,-2" StrokeThickness="2" RadiusX="12" RadiusY="12" SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource AccentBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="ToggleSwitch" TargetType="ToggleButton">
         <!-- Space toggles; Enter passes through to the dialog's default button, as with CheckBox (a bare ToggleButton takes Enter) -->
         <Setter Property="KeyboardNavigation.AcceptsReturn" Value="False" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource ToggleFocusVisual}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Width" Value="36" />
-        <Setter Property="Height" Value="20" />
+        <Setter Property="Height" Value="24" />
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="Track" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" SnapsToDevicePixels="True">
-                        <Ellipse x:Name="Thumb" Width="14" Height="14" HorizontalAlignment="Left" Margin="2,0,0,0"
-                                 Fill="{DynamicResource TextSecondaryBrush}" />
+                    <!-- The hit area: transparent, not null, so a click above or below the track still toggles -->
+                    <Border x:Name="HitArea" Background="Transparent">
+                        <!-- Fully round: the radius is half the track's height -->
+                        <Border x:Name="Track" Height="20" VerticalAlignment="Center" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10" SnapsToDevicePixels="True">
+                            <!-- The thumb sits 2 inside the track: an optical offset -->
+                            <Ellipse x:Name="Thumb" Width="14" Height="14" HorizontalAlignment="Left" Margin="2,0,0,0"
+                                     Fill="{DynamicResource TextSecondaryBrush}" />
+                        </Border>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -632,11 +783,11 @@
     <!-- Type badge: 22px tall, icon + label. Colors per kind come from the Badge*Brush palette entries. -->
     <Style TargetType="controls:TypeBadge">
         <Setter Property="Height" Value="22" />
-        <Setter Property="Padding" Value="5,0,7,0" />
+        <Setter Property="Padding" Value="4,0,8,0" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}" />
-        <Setter Property="FontSize" Value="{DynamicResource FontSizeEyebrow}" />
-        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{DynamicResource BadgeCommandForegroundBrush}" />
@@ -676,5 +827,196 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource BadgeFolderBorderBrush}" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!--
+        Layout pieces (docs/styleguide.md, Layout and Control sizes).
+    -->
+
+    <!-- The inline icon tile: 40, RadiusLg, accent on AccentSoftBrush; the glyph inside is 24 -->
+    <Style x:Key="IconTile" TargetType="Border">
+        <Setter Property="Width" Value="{StaticResource TileSize}" />
+        <Setter Property="Height" Value="{StaticResource TileSize}" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- A panel set into a page (Confirm's targets box): RadiusLg, 16 inside and 16 below. The welcome panel is the one
+         exception: AccentSoftBrush with no border. -->
+    <Style x:Key="InsetPanel" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
+        <Setter Property="Padding" Value="{StaticResource PanelPadding}" />
+        <Setter Property="Margin" Value="0,0,0,16" />
+    </Style>
+
+    <!-- The footer every dialog ends in: buttons right-aligned, 8 apart, the primary one last; cancel comes before it, and a
+         secondary action that isn't cancel sits at the left edge -->
+    <Style x:Key="DialogFooter" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="{StaticResource DialogFooterPadding}" />
+    </Style>
+
+    <!--
+        Overlay sheets (the icon picker, and any picker after it): an OverlayScrim over the page and an OverlaySheet on it, in
+        one Grid cell that spans the window. The page behind is disabled meanwhile, so Tab stays in the sheet; Escape, the
+        close button and a click on the scrim close it.
+    -->
+    <Style x:Key="OverlayScrim" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource ScrimBrush}" />
+    </Style>
+
+    <!-- 40 from the top of the window and 16 from the bottom, centered, at most the window's width less 2 x 16. The shadow sits
+         on a border behind the sheet, not on it, so the sheet's text keeps ClearType. Give the content a ScrollViewer when it
+         can be taller than the window. -->
+    <Style x:Key="OverlaySheet" TargetType="ContentControl">
+        <Setter Property="Margin" Value="16,40,16,16" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Grid>
+                        <Border x:Name="Shadow" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource SurfaceRaisedBrush}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="{DynamicResource ShadowColor}" />
+                            </Border.Effect>
+                        </Border>
+                        <Border x:Name="Sheet" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource SurfaceRaisedBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" SnapsToDevicePixels="True">
+                            <ContentPresenter />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A sheet's header: the title (Subheading), an optional Caption note 4 under it, and an IconButton with a 16 Close glyph
+         at the top right, whose automation name starts with "Close" -->
+    <Style x:Key="OverlaySheetHeader" TargetType="Grid">
+        <Setter Property="Margin" Value="16,16,16,8" />
+    </Style>
+
+    <!-- The check badge of a selected card: an 18 round accent badge with a 12 check, 8 in from the card's top right corner -->
+    <Style x:Key="CheckBadge" TargetType="ContentControl">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Margin" Value="0,8,8,0" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <!-- Fully round: the radius is half its size -->
+                    <Border CornerRadius="9" Background="{DynamicResource AccentBrush}" SnapsToDevicePixels="True">
+                        <controls:Icon Kind="Check" Size="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource OnAccentBrush}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Cards in a sheet or panel: SurfaceBrush, a 1px border, RadiusMd, 12 inside, 4 at the sides and 8 below (so cards in a
+        row are 8 apart), SurfaceHoverBrush on hover. The selected card gets a 2px accent border with 1 less padding, so nothing
+        moves, and the check badge; the background doesn't change, and the badge means selection never relies on color alone.
+        CardItem is for a ListBox (the icon picker), CardRadio for radio buttons (the welcome bubbles); give either content of
+        its own.
+    -->
+    <Style x:Key="CardItem" TargetType="ListBoxItem">
+        <Setter Property="Margin" Value="4,0,4,8" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <!-- A ListBox's own Foreground is the system text color, not the palette's -->
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid>
+                        <Border x:Name="Card" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                                CornerRadius="{StaticResource RadiusMd}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ContentControl x:Name="Check" Style="{StaticResource CheckBadge}" Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Card" Property="BorderThickness" Value="2" />
+                            <!-- The selection border's extra 1 comes off the padding: an exception to the grid -->
+                            <Setter TargetName="Card" Property="Padding" Value="11" />
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CardRadio" TargetType="RadioButton">
+        <Setter Property="Margin" Value="4,0,4,8" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid>
+                        <Border x:Name="Card" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                                CornerRadius="{StaticResource RadiusMd}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+                        </Border>
+                        <ContentControl x:Name="Check" Style="{StaticResource CheckBadge}" Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Card" Property="BorderThickness" Value="2" />
+                            <!-- The selection border's extra 1 comes off the padding: an exception to the grid -->
+                            <Setter TargetName="Card" Property="Padding" Value="11" />
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 </ResourceDictionary>

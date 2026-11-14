@@ -17,7 +17,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
         <Style x:Key="SectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeEyebrow}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
             <Setter Property="FontWeight" Value="ExtraBold" />
             <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
             <Setter Property="Margin" Value="0,0,0,10" />
@@ -160,9 +160,6 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-
-        <!-- Dims the window behind the icon picker, in either palette -->
-        <SolidColorBrush x:Key="ScrimBrush" Color="#6B0F172A" />
     </Window.Resources>
 
     <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible -->
@@ -176,7 +173,7 @@
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="24">
             <!-- Header -->
-            <TextBlock Text="Settings" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold" Margin="0,0,0,22"
+            <TextBlock Text="Settings" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold" Margin="0,0,0,22"
                        AutomationProperties.HeadingLevel="Level1" />
 
             <!-- Output -->
@@ -385,12 +382,12 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="14" />
             </Grid.RowDefinitions>
-            <Border Grid.RowSpan="3" Background="{StaticResource ScrimBrush}" MouseLeftButtonDown="IconPickerScrim_MouseLeftButtonDown" />
+            <Border Grid.RowSpan="3" Background="{DynamicResource ScrimBrush}" MouseLeftButtonDown="IconPickerScrim_MouseLeftButtonDown" />
             <!-- The shadow sits behind the sheet, not on it, so the sheet's text keeps ClearType -->
             <Border Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top" CornerRadius="10"
                     Background="{DynamicResource SurfaceRaisedBrush}" Height="{Binding ActualHeight, ElementName=IconPickerSheet}">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="#0F172A" />
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="{DynamicResource ShadowColor}" />
                 </Border.Effect>
             </Border>
             <Border x:Name="IconPickerSheet" Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top"
@@ -464,7 +461,7 @@
                                 </GroupStyle.ContainerStyle>
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeEyebrow}" FontWeight="ExtraBold"
+                                        <TextBlock Text="{Binding Name}" FontSize="{StaticResource FontSizeCaption}" FontWeight="ExtraBold"
                                                    Foreground="{DynamicResource TextTertiaryBrush}" Margin="5,4,0,8"
                                                    AutomationProperties.HeadingLevel="Level3" />
                                     </DataTemplate>

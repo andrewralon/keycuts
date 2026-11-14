@@ -413,7 +413,7 @@
                   <MenuItem.Header>
                     <StackPanel>
                       <TextBlock Text="File…" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" />
-                      <TextBlock Text="Choose a single file" FontSize="{StaticResource FontSizeEyebrow}" Margin="0,2,0,0"
+                      <TextBlock Text="Choose a single file" FontSize="{StaticResource FontSizeCaption}" Margin="0,2,0,0"
                                  Foreground="{DynamicResource TextTertiaryBrush}" />
                     </StackPanel>
                   </MenuItem.Header>
@@ -426,7 +426,7 @@
                   <MenuItem.Header>
                     <StackPanel>
                       <TextBlock Text="Folder…" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" />
-                      <TextBlock Text="Choose a directory" FontSize="{StaticResource FontSizeEyebrow}" Margin="0,2,0,0"
+                      <TextBlock Text="Choose a directory" FontSize="{StaticResource FontSizeCaption}" Margin="0,2,0,0"
                                  Foreground="{DynamicResource TextTertiaryBrush}" />
                     </StackPanel>
                   </MenuItem.Header>

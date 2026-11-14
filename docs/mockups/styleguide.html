@@ -1,0 +1,339 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>keycuts style guide</title>
+<!-- The reference sheet for docs/styleguide.md (#211): the rules drawn, not a screenshot of the app. Render it with
+     pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/styleguide.html -Width 1700 -Height 1280 -->
+<style>
+  :root {
+    --accent:#2563eb; --accent-text:#2563eb; --accent-soft:#eaf1ff; --on-accent:#fff; --canvas:#eef1f5; --surface:#fff;
+    --subtle:#f6f8fb; --hover:#eef3fb; --raised:#fff; --text:#172033; --text2:#5d687b; --text3:#818b9d; --border:#d9dee8;
+    --border-strong:#bdc5d2; --control:#818b9d; --danger:#c42b1c; --warning:#8a5700; --success:#16794b;
+  }
+  .dark {
+    --accent:#4f8cff; --accent-text:#6a9eff; --accent-soft:#182a4d; --on-accent:#06090f; --canvas:#14171d; --surface:#20242c;
+    --subtle:#252a33; --hover:#2c3441; --raised:#272c35; --text:#f3f5f8; --text2:#bdc5d2; --text3:#8d97a8; --border:#363d48;
+    --border-strong:#4a5361; --control:#8d97a8; --danger:#ff8175; --warning:#f0c365; --success:#64d5a0;
+  }
+  .hc {
+    --accent:#75e9fc; --accent-text:#75e9fc; --accent-soft:#202020; --on-accent:#202020; --canvas:#202020; --surface:#202020;
+    --subtle:#202020; --hover:#202020; --raised:#202020; --text:#fff; --text2:#fff; --text3:#a6a6a6; --border:#fff;
+    --border-strong:#fff; --control:#fff; --danger:#fff; --warning:#fff; --success:#fff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #d5d9e0; font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; color: #172033; }
+  .page { padding: 24px; display: grid; grid-template-columns: 400px 470px 760px; gap: 20px; align-items: start; }
+  .card { background: #fff; border-radius: 12px; padding: 20px 22px; box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+  .card + .card { margin-top: 20px; }
+  h1 { margin: 0 0 4px; font-size: 26px; font-weight: 600; }
+  h2 { margin: 0 0 14px; font-size: 15px; font-weight: 600; color: #172033; }
+  .lede { font-size: 13px; color: #5d687b; margin: 0 0 4px; }
+  .k { font-family: Consolas, monospace; font-size: 11.5px; color: #5d687b; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 5px 0; vertical-align: middle; border-bottom: 1px solid #eef1f5; }
+  tr:last-child td { border-bottom: 0; }
+  td.k { width: 150px; }
+  td.px { width: 44px; color: #818b9d; font-size: 12px; }
+
+  /* Type ramp */
+  .t20 { font-size: 20px; font-weight: 600; } .t16 { font-size: 16px; font-weight: 600; } .t14 { font-size: 14px; }
+  .t13 { font-size: 13px; } .t12 { font-size: 12px; color: #5d687b; }
+  .eyebrow { font-size: 12px; font-weight: 800; color: var(--accent-text); text-transform: uppercase; letter-spacing: .02em; }
+
+  /* Spacing */
+  .bar { height: 14px; background: #2563eb; border-radius: 2px; opacity: .85; }
+  /* Radii */
+  .radii { display: flex; gap: 10px; align-items: flex-end; }
+  .radii div { width: 66px; text-align: center; font-size: 11.5px; color: #5d687b; }
+  .radii i { display: block; width: 56px; height: 40px; border: 2px solid #2563eb; background: #eaf1ff; margin-bottom: 6px; }
+
+  /* Controls */
+  .ctl-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; }
+  .input { flex: 1; height: 36px; border: 1px solid var(--control); border-radius: 5px; padding: 0 12px; font-size: 14px;
+           display: flex; align-items: center; color: var(--text); background: var(--surface); }
+  .input.ph { color: var(--text3); }
+  .input.err { border-color: var(--danger); }
+  .btn { height: 36px; padding: 0 12px; border-radius: 5px; font: 600 13px "Segoe UI"; display: inline-flex; align-items: center;
+         gap: 8px; border: 1px solid var(--control); background: var(--surface); color: var(--text); flex: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .sq { width: 36px; padding: 0; justify-content: center; }
+  .ghost { width: 32px; height: 32px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center;
+           color: var(--text2); flex: none; }
+  .ghost.hov { background: var(--hover); }
+  .rowedit { height: 30px; border: 1px solid var(--accent); border-radius: 5px; padding: 0 8px; font-size: 13px; display: flex;
+             align-items: center; width: 150px; background: var(--surface); }
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--accent); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--on-accent); }
+  .toggle.off { background: var(--surface); border: 1px solid var(--control); }
+  .toggle.off::after { left: 2px; right: auto; top: 2px; background: var(--text2); }
+  .badge { height: 22px; padding: 0 7px 0 5px; border-radius: 5px; font-size: 12px; font-weight: 600; display: inline-flex;
+           align-items: center; gap: 4px; color: #1c619d; background: #e9f4ff; border: 1px solid #cfe6fa; }
+  .pill { height: 22px; min-width: 26px; padding: 0 8px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface);
+          font-size: 12px; font-weight: 600; color: var(--text2); display: inline-flex; align-items: center; justify-content: center; }
+  .tile { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: flex;
+          align-items: center; justify-content: center; flex: none; }
+  .measure { font-size: 11.5px; color: #818b9d; min-width: 92px; }
+  .row-spec { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #eef1f5; }
+  .row-spec:last-child { border-bottom: 0; }
+
+  /* Palettes */
+  .pal { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .pal h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #5d687b; }
+  .sw { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #5d687b; margin-bottom: 3px; white-space: nowrap; }
+  .sw i { width: 22px; height: 16px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); flex: none; }
+  .text-on { padding: 8px 10px; border-radius: 8px; margin-top: 8px; font-size: 12px; line-height: 1.55; border: 1px solid var(--border); background: var(--surface); }
+  .text-on .p { color: var(--text); font-weight: 600; } .text-on .s { color: var(--text2); } .text-on .t { color: var(--text3); }
+  .text-on .a { color: var(--accent-text); font-weight: 800; text-transform: uppercase; }
+
+  /* Sample dialogs */
+  .dialogs { display: flex; gap: 20px; }
+  .win { flex: 1; min-width: 0; background: var(--surface); color: var(--text); border-radius: 8px; overflow: hidden;
+         box-shadow: 0 8px 26px rgba(15,23,42,.22), 0 0 0 1px rgba(15,23,42,.10); font-size: 13px; position: relative; }
+  .titlebar { height: 32px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: var(--text2); background: var(--surface); }
+  .body { padding: 16px 24px 24px; }
+  .heading { font-size: 20px; font-weight: 600; margin: 0 0 16px; }
+  .slabel { font-size: 12px; font-weight: 800; color: var(--accent-text); letter-spacing: .02em; margin-bottom: 8px; }
+  .section + .section { margin-top: 24px; }
+  .flabel { font-weight: 600; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .flabel .msg { font-weight: 400; text-align: right; margin-left: 12px; font-size: 12px; color: var(--text2); }
+  .field + .field { margin-top: 16px; }
+  .helper { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .helper.err { color: var(--danger); }
+  .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .setting + .setting { margin-top: 16px; }
+  .setting .name { font-weight: 600; }
+  .setting .note { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .footer { border-top: 1px solid var(--border); background: var(--subtle); padding: 12px 24px; display: flex; gap: 8px; justify-content: flex-end; }
+  .footer .left { margin-right: auto; }
+  .railph { height: 48px; display: flex; align-items: center; justify-content: center; font: 600 11.5px "Segoe UI"; color: #818b9d;
+            background: repeating-linear-gradient(135deg, #e3e7ee 0 6px, #edf0f4 6px 12px); }
+  .appfoot { border-top: 1px solid var(--border); background: var(--subtle); min-height: 48px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text2); }
+  .appfoot a { color: var(--accent-text); font-weight: 600; }
+  .saved { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px; margin-top: 16px; }
+  .endrow { display: flex; justify-content: space-between; margin-top: 16px; }
+  svg { display: block; }
+
+  /* Annotations */
+  .ann { position: absolute; font: 600 10.5px "Segoe UI"; color: #c2185b; background: #fff0f6; border: 1px solid #f8bbd0;
+         border-radius: 4px; padding: 0 4px; line-height: 16px; white-space: nowrap; }
+  .dark .ann { color: #ff80ab; background: #3a1f2b; border-color: #6d2c47; }
+  .gap { position: absolute; left: 0; right: 0; background: rgba(233,30,99,.12); border-top: 1px dashed rgba(233,30,99,.6); border-bottom: 1px dashed rgba(233,30,99,.6); }
+
+  /* Selected card */
+  .cards { display: flex; gap: 8px; }
+  .scard { position: relative; flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: var(--surface); font-size: 12px; color: var(--text2); }
+  .scard b { display: block; font-size: 13px; color: var(--text); font-weight: 600; }
+  .scard.sel { border: 2px solid var(--accent); padding: 11px; }
+  .check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
+           display: flex; align-items: center; justify-content: center; }
+  .rules { margin: 0; padding-left: 18px; font-size: 12.5px; color: #3b4558; line-height: 1.55; }
+  .rules b { color: #172033; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Column 1: type, spacing, radii, icons -->
+  <div>
+    <div class="card">
+      <h1>keycuts style guide</h1>
+      <p class="lede">Reference sheet for <span class="k">docs/styleguide.md</span> (#211). Tokens in <span class="k">Themes/Tokens.xaml</span>, brushes in the three palettes, styles in <span class="k">Themes/Controls.xaml</span>.</p>
+    </div>
+
+    <div class="card">
+      <h2>Type ramp · Segoe UI Variable</h2>
+      <table>
+        <tr><td class="k">FontSizeHeading</td><td class="px">20</td><td class="t20">edit keycut</td></tr>
+        <tr><td class="k">FontSizeSubheading</td><td class="px">16</td><td class="t16">No keycuts yet</td></tr>
+        <tr><td class="k">FontSizeInput</td><td class="px">14</td><td class="t14">C:\Users\you\Pictures\Art</td></tr>
+        <tr><td class="k">FontSizeBody</td><td class="px">13</td><td class="t13"><b style="font-weight:600">Field label</b> · Body text</td></tr>
+        <tr><td class="k">FontSizeCaption</td><td class="px">12</td><td class="t12">Helper text, notes, status</td></tr>
+        <tr><td class="k">SectionLabel</td><td class="px">12</td><td><span class="eyebrow">Behavior</span></td></tr>
+      </table>
+      <p class="lede" style="margin-top:10px">SemiBold for headings, labels and buttons · ExtraBold only in the section label · no plain Bold · 12 is the smallest size.</p>
+    </div>
+
+    <div class="card">
+      <h2>Spacing · 4px grid</h2>
+      <table>
+        <tr><td class="k">Space1 · Inset1</td><td class="px">4</td><td><div class="bar" style="width:4px"></div></td><td class="t12">control → helper; label → note</td></tr>
+        <tr><td class="k">Space2 · Inset2</td><td class="px">8</td><td><div class="bar" style="width:8px"></div></td><td class="t12">label → control; button gap</td></tr>
+        <tr><td class="k">Space3 · Inset3</td><td class="px">12</td><td><div class="bar" style="width:12px"></div></td><td class="t12">groups in a panel</td></tr>
+        <tr><td class="k">Space4 · Inset4</td><td class="px">16</td><td><div class="bar" style="width:16px"></div></td><td class="t12">field gap; heading → content</td></tr>
+        <tr><td class="k">Space6 · Inset6</td><td class="px">24</td><td><div class="bar" style="width:24px"></div></td><td class="t12">outer padding (sides, bottom); section gap</td></tr>
+        <tr><td class="k">Space8</td><td class="px">32</td><td><div class="bar" style="width:32px"></div></td><td class="t12">empty states</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Corner radii</h2>
+      <div class="radii">
+        <div><i style="border-radius:5px"></i>RadiusSm 5<br>buttons, boxes</div>
+        <div><i style="border-radius:8px"></i>RadiusMd 8<br>menus, cards</div>
+        <div><i style="border-radius:12px"></i>RadiusLg 12<br>panels, sheets</div>
+        <div><i style="border-radius:16px"></i>RadiusXl 16<br>illustration</div>
+        <div><i style="border-radius:20px;width:40px"></i>half height<br>pills, toggles</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Icons</h2>
+      <div class="row-spec"><span class="measure">12</span>
+        <svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1.5 15 14H1z" fill="none" stroke="#8a5700" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <span class="t12">beside 12px text · gap 4</span></div>
+      <div class="row-spec"><span class="measure">16 (default)</span>
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="#172033" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="t12">buttons with text, ghost buttons, menus · gap 8</span></div>
+      <div class="row-spec"><span class="measure">20</span>
+        <svg width="20" height="20" viewBox="0 0 16 16"><path d="M1.5 4.5h4l1.5 1.5h7.5v7.5h-13z" fill="none" stroke="#172033" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        <span class="t12">square buttons, footer gear</span></div>
+      <div class="row-spec"><span class="measure">24 in a 40 tile</span>
+        <span class="tile"><svg width="24" height="24" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12" fill="none" stroke="currentColor" stroke-width="1.1"/></svg></span>
+        <span class="t12">TileSize 40 · RadiusLg</span></div>
+    </div>
+  </div>
+
+  <!-- Column 2: controls, palettes, selection -->
+  <div>
+    <div class="card">
+      <h2>Control sizes</h2>
+      <div class="row-spec"><span class="measure">36 text box</span><div class="input ph" style="max-width:200px">e.g. art</div></div>
+      <div class="row-spec"><span class="measure">36 text buttons</span>
+        <span class="btn">cancel</span>
+        <span class="btn primary"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>save</span></div>
+      <div class="row-spec"><span class="measure">36 square</span>
+        <span class="btn primary sq"><svg width="20" height="20" viewBox="0 0 16 16"><path d="M9.5 2.5c2-1 4-.9 4-.9s.1 2-.9 4L8 10 6 8z M6 8 3.5 8 2 9.5l3 .5M8 10l0 2.5L6.5 14l-.5-3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg></span>
+        <span class="btn sq"><svg width="20" height="20" viewBox="0 0 16 16"><path d="M1.5 4.5h4l1.5 1.5h7.5v7.5h-13z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+        <span class="t12">icon-only beside a box</span></div>
+      <div class="row-spec"><span class="measure">32 ghost</span>
+        <span class="ghost"><svg width="20" height="20" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.2 1.6"/></svg></span>
+        <span class="ghost hov"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+        <span class="t12">IconButton · hover</span></div>
+      <div class="row-spec"><span class="measure">30 in a row</span><div class="rowedit">npp</div><span class="t12">rename only</span></div>
+      <div class="row-spec"><span class="measure">36 × 20</span><span class="toggle"></span><span class="toggle off"></span></div>
+      <div class="row-spec"><span class="measure">22 high</span>
+        <span class="badge"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M3 1.5h6l4 4v9H3z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>File</span>
+        <span class="pill">355</span><span class="t12">badge, count pill</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Palettes · readable text ≥ 4.5:1</h2>
+      <div class="pal">
+        <div>
+          <h3>Light</h3>
+          <div class="sw"><i style="background:#2563eb"></i>Accent · AccentText</div>
+          <div class="sw"><i style="background:#eaf1ff"></i>AccentSoft</div>
+          <div class="sw"><i style="background:#ffffff"></i>Surface</div>
+          <div class="sw"><i style="background:#f6f8fb"></i>SurfaceSubtle</div>
+          <div class="sw"><i style="background:#172033"></i>Text</div>
+          <div class="sw"><i style="background:#5d687b"></i>TextSecondary 5.6</div>
+          <div class="sw"><i style="background:#818b9d"></i>TextTertiary 3.4</div>
+          <div class="sw"><i style="background:#c42b1c"></i>Danger</div>
+          <div class="sw"><i style="background:#8a5700"></i>Warning</div>
+          <div class="text-on"><div class="a">Output</div><div class="p">Output folder</div><div class="s">New keycuts are saved here.</div><div class="t">Placeholder only</div></div>
+        </div>
+        <div class="dark" style="color:#172033">
+          <h3>Dark</h3>
+          <div class="sw"><i style="background:#4f8cff"></i>Accent (fills)</div>
+          <div class="sw"><i style="background:#6a9eff"></i>AccentText (new)</div>
+          <div class="sw"><i style="background:#182a4d"></i>AccentSoft</div>
+          <div class="sw"><i style="background:#20242c"></i>Surface</div>
+          <div class="sw"><i style="background:#252a33"></i>SurfaceSubtle</div>
+          <div class="sw"><i style="background:#f3f5f8"></i>Text</div>
+          <div class="sw"><i style="background:#bdc5d2"></i>TextSecondary 8.9</div>
+          <div class="sw"><i style="background:#8d97a8"></i>TextTertiary 5.3</div>
+          <div class="sw"><i style="background:#ff8175"></i>Danger</div>
+          <div class="text-on"><div class="a">Output</div><div class="p">Output folder</div><div class="s">New keycuts are saved here.</div><div class="t">Placeholder only</div></div>
+        </div>
+        <div class="hc" style="color:#172033">
+          <h3>High contrast (Aquatic)</h3>
+          <div class="sw"><i style="background:#75e9fc"></i>HotTrack → Accent</div>
+          <div class="sw"><i style="background:#202020"></i>Window → surfaces</div>
+          <div class="sw"><i style="background:#ffffff"></i>WindowText → text, borders</div>
+          <div class="sw"><i style="background:#a6a6a6"></i>GrayText → tertiary</div>
+          <div class="sw" style="white-space:normal">Every key maps to a system color; ScrimBrush and ShadowColor are Transparent.</div>
+          <div class="text-on"><div class="a">Output</div><div class="p">Output folder</div><div class="s">New keycuts are saved here.</div><div class="t">Placeholder only</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Selected card · border + check, no fill</h2>
+      <div class="cards">
+        <div class="scard"><b>Porcelain</b>Charcoal keycap on a light background.</div>
+        <div class="scard sel"><span class="check"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Onyx</b>White keycap on a dark background.</div>
+      </div>
+      <p class="lede" style="margin-top:10px">Card: RadiusMd, padding 12 (11 when selected, so nothing moves), 8 apart. Hover: SurfaceHover.</p>
+    </div>
+  </div>
+
+  <!-- Column 3: a dialog drawn by the rules, light and dark, and the writing rules -->
+  <div>
+    <div class="card">
+      <h2>Settings screen (after #218) · dialog with heading and footer</h2>
+      <div class="dialogs">
+        <div class="win">
+          <div class="railph">tab bar, 48 (#218 · window-tabs-v4)</div>
+          <div class="body" style="position:relative">
+            <div class="section">
+              <div class="slabel">OUTPUT</div>
+              <div class="field">
+                <div class="flabel">Output folder <span class="msg">New keycuts are saved here.</span></div>
+                <div class="ctl-row" style="margin:0">
+                  <div class="input">%USERPROFILE%\Shortcuts</div>
+                  <span class="btn sq"><svg width="20" height="20" viewBox="0 0 16 16"><path d="M1.5 4.5h4l1.5 1.5h7.5v7.5h-13z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+                  <span class="btn sq"><svg width="20" height="20" viewBox="0 0 16 16"><path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M11.5 9.5v4h-9v-9h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <div class="slabel">BEHAVIOR</div>
+              <div class="setting"><div><div class="name">Ask before replacing a keycut</div></div><span class="toggle"></span></div>
+              <div class="setting"><div><div class="name">Check for updates</div><div class="note">Once a day, ask GitHub whether a newer version is out.</div></div><span class="toggle off"></span></div>
+            </div>
+            <div class="saved"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Changes are saved as you make them.</div>
+            <div class="endrow"><span class="btn">show welcome</span><span class="btn">restore defaults</span></div>
+          </div>
+          <div class="appfoot"><span class="pill">355</span><span>keycuts 1.5.0 is available · <a>download</a></span></div>
+        </div>
+        <div class="win dark">
+          <div class="titlebar">edit keycut</div>
+          <div class="body" style="position:relative">
+            <div class="heading">edit keycut</div>
+            <div class="field">
+              <div class="flabel">Target</div>
+              <div class="input">https://github.com</div>
+            </div>
+            <div class="field">
+              <div class="flabel">Name</div>
+              <div class="input err">gh/</div>
+              <div class="helper err">Use letters, numbers, dashes, or dots.</div>
+            </div>
+            <div class="field">
+              <div class="flabel">Description (optional)</div>
+              <div class="input ph">e.g. Recent paintings</div>
+            </div>
+          </div>
+          <div class="footer"><span class="btn">cancel</span><span class="btn primary"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>save</span></div>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:12px">No lines between rows · lowercase button text · padding 16 at the top, 24 at the sides and bottom · a dialog heading 20 then 16 · section label 12 ExtraBold, 8 below · sections 24 apart · label 8 above its control · fields 16 apart · helper 4 below · footer 24,12 on SurfaceSubtle, primary last at the right.</p>
+    </div>
+
+    <div class="card">
+      <h2>Writing</h2>
+      <ul class="rules">
+        <li><b>Lowercase</b>: tabs (creator, manager, settings), dialog titles (edit keycut) and <b>button text</b> (save, show welcome, add to PATH). <b>Sentence case</b> for the rest: “Edit in Notepad”, “Ask before replacing a keycut”.</li>
+        <li><b>keycuts and keycut are always lowercase</b>, even first in a label: “keycut name”.</li>
+        <li><b>Keys</b>: Ctrl+Shift+E, Shift+F2, Win+R. In a tooltip: “Undo the delete (Ctrl+Z)”.</li>
+        <li><b>Ellipsis …</b> only for a command that asks for more (File…, Edit…) and work in progress (Saving…).</li>
+        <li><b>No period</b> on labels, buttons, headings; periods on sentences. Typographic ’ and “ ” in the app.</li>
+        <li><b>The automation name starts with the visible label</b>; extra words go to HelpText.</li>
+        <li><b>Errors</b>: what happened, then what to do. “Couldn’t save to the output folder. Check Settings.”</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

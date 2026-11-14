@@ -38,6 +38,26 @@ namespace keycuts.GUI
             runner = new Runner();
         }
 
+        /// <summary>The icon a new install shows (#218, restore defaults).</summary>
+        public const AppIconChoice DefaultAppIcon = AppIconChoice.BlackAndWhite;
+
+        /// <summary>
+        /// What a new install has, for Settings' restore defaults (#218): ask before replacing, the right-click menu on (the
+        /// installer adds it), no environment variables, the system theme, and update checks on. The output folder isn't a
+        /// default here: restore defaults never touches it.
+        /// </summary>
+        public static Settings Defaults()
+        {
+            return new Settings
+            {
+                AskBeforeReplacing = Runner.DefaultAskBeforeReplacing,
+                RightClickContextMenus = true,
+                UseEnvironmentVariables = false,
+                Theme = ThemePreference.System,
+                CheckForUpdates = true
+            };
+        }
+
         public void LoadSettings()
         {
             OutputFolder = runner.GetOutputFolder();

@@ -307,7 +307,7 @@
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <TextBlock Text="keycuts manager" FontSize="{StaticResource FontSizeHeadingLarge}" FontWeight="SemiBold"
+      <TextBlock Text="keycuts manager" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
                  VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
                  AutomationProperties.HeadingLevel="Level1" />
       <!-- Lowercase on purpose: the creator's link to this screen says "manager" -->
@@ -380,7 +380,7 @@
                                 Visibility="{Binding ShowMissingIndicator, Converter={StaticResource BoolToVisibility}}">
                       <controls:Icon Kind="Close" Size="11" VerticalAlignment="Center"
                                      Foreground="{DynamicResource DangerBrush}" />
-                      <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
+                      <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeCaption}"
                                  VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" />
                     </StackPanel>
                     <!-- #203: starts, but something it names is wrong (a start-in folder that doesn't exist). WarningBrush is yellow
@@ -389,7 +389,7 @@
                                 Visibility="{Binding ShowWarningIndicator, Converter={StaticResource BoolToVisibility}}">
                       <controls:Icon Kind="Warning" Size="11" VerticalAlignment="Center"
                                      Foreground="{DynamicResource WarningBrush}" />
-                      <TextBlock Text="Warning" Margin="3,0,0,0" FontSize="{StaticResource FontSizeEyebrow}"
+                      <TextBlock Text="Warning" Margin="3,0,0,0" FontSize="{StaticResource FontSizeCaption}"
                                  VerticalAlignment="Center" Foreground="{DynamicResource WarningBrush}" />
                     </StackPanel>
                   </StackPanel>

@@ -513,8 +513,10 @@ namespace keycuts.Tests
                     var surface = ((SolidColorBrush)Application.Current.FindResource("SurfaceBrush")).Color;
                     var onAccent = ((SolidColorBrush)Application.Current.FindResource("OnAccentBrush")).Color;
 
+                    // 24 to click (WCAG 2.5.8), around a 20 track
                     Assert.Equal(36, toggle.ActualWidth);
-                    Assert.Equal(20, toggle.ActualHeight);
+                    Assert.Equal(24, toggle.ActualHeight);
+                    Assert.Equal(20, track.ActualHeight);
                     Assert.Equal(14, thumb.Width);
                     Assert.Equal(14, thumb.Height);
                     Assert.Equal(surface, ((SolidColorBrush)track.Background).Color);
@@ -526,7 +528,7 @@ namespace keycuts.Tests
                     Assert.Equal(onAccent, ((SolidColorBrush)thumb.Fill).Color);
                     Assert.Equal(HorizontalAlignment.Right, thumb.HorizontalAlignment);
 
-                    Assert.Same(Application.Current.FindResource("AppFocusVisual"), toggle.FocusVisualStyle);
+                    Assert.Same(Application.Current.FindResource("ToggleFocusVisual"), toggle.FocusVisualStyle);
                 }
                 finally
                 {

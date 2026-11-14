@@ -182,7 +182,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | `ErrorText` | 12, Regular, `DangerBrush`, wraps | 4 above (16 when it closes a form) | `LiveSetting="Assertive"` |
 | `Caption` | 12, Regular, `TextSecondaryBrush` | none | For notes beside a label, status lines and the count |
 
-`HelperText` has state triggers for warning (`WarningBrush` with a 12 `Warning` icon before it), error (`DangerBrush`) and success (`SuccessBrush` with a 12 `Check` icon). It never uses `TextTertiaryBrush`.
+`HelperText` has states for warning (`WarningBrush` with a 12 `Warning` icon before it), error (`DangerBrush`) and success (`SuccessBrush` with a 12 `Check` icon). A style can't add the icon, so it is a control too (`Controls/HelperText`, with `Text` and `State`), like `SectionLabel`. It never uses `TextTertiaryBrush`.
 
 **The section label is a control** (`Controls/SectionLabel`, like `TypeBadge`). WPF has no text-transform, so typing `OUTPUT` into the XAML is the only way to get capitals from a `TextBlock`, and screen readers then get capitals too. The control takes sentence-case text (`Text="Output"`), draws it in capitals, and gives sentence case to the automation name, so the source, the tests and Narrator all see "Output". The icon picker's group names (`AppIcons.FollowsThemeGroup`, `AlwaysTheSameGroup`) become sentence case for the same reason.
 
@@ -398,7 +398,7 @@ Small, mostly invisible changes #219 makes along with the rest (by file):
 
 - #211 wrote this guide.
 - #218 (the tabbed window) follows it: its tab bar, the Settings screen and the footer are built to these rules from the start.
-- #219, "Update the app to follow the style guide", holds the checklist of changes by screen and an enforcement test that reads the GUI's XAML and fails on a literal font size, a hex color outside the palettes, a margin, padding or radius off the grid or outside the tokens, `FontWeight="Bold"`, or a heading or section label without its `HeadingLevel`.
+- #219, "Update the app to follow the style guide", holds the checklist of changes by screen and an enforcement test (`StyleGuideTests`) that reads the GUI's XAML and fails on a literal font size, a hex color outside the palettes, a margin, padding or radius off the grid or outside the tokens, `FontWeight="Bold"`, or a heading or section label without its `HeadingLevel`. A file not converted yet is on its `NotYetConverted` list, and the guide's exceptions are in its `Exceptions`, each with its reason.
 
 **Order of work**: (1) #219 Part 1, the foundation: tokens, shared styles, `SectionLabel` and the contrast tests, which change little on screen; (2) #218, in two PRs, first the window frame and tabs, then Settings as a screen, both built with those styles; (3) #219 Part 2, the screen-by-screen cleanup of what #218 doesn't rebuild (the Creator's body, the Manager, Edit, Confirm, the footer), then the enforcement test switched on and the screenshots regenerated once.
 

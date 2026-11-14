@@ -108,7 +108,8 @@ namespace keycuts.Tests
             {
                 "AccentBrush", "AccentHoverBrush", "AccentPressedBrush", "AccentSoftBrush", "CanvasBrush", "SurfaceBrush",
                 "SurfaceSubtleBrush", "SurfaceHoverBrush", "SurfaceRaisedBrush", "TextBrush", "TextSecondaryBrush",
-                "TextTertiaryBrush", "BorderBrush", "BorderStrongBrush", "DangerBrush", "DangerSoftBrush", "SuccessBrush", "WarningBrush"
+                "TextTertiaryBrush", "BorderBrush", "BorderStrongBrush", "DangerBrush", "DangerSoftBrush", "SuccessBrush", "WarningBrush",
+                "AccentTextBrush", "OnAccentBrush", "ControlBorderBrush", "ScrimBrush", "ShadowColor"
             };
 
             foreach (var file in new[] { "Light.xaml", "Dark.xaml", "HighContrast.xaml" })
@@ -125,6 +126,11 @@ namespace keycuts.Tests
             Assert.Equal("#eef1f5", colors["CanvasBrush"]);
             Assert.Equal("#172033", colors["TextBrush"]);
             Assert.Equal("#c42b1c", colors["DangerBrush"]);
+            Assert.Equal("#2563eb", colors["AccentTextBrush"]);
+            Assert.Equal("#646e80", colors["TextTertiaryBrush"]);
+            Assert.Equal("#818b9d", colors["ControlBorderBrush"]);
+            Assert.Equal("#6b0f172a", colors["ScrimBrush"]);
+            Assert.Equal("#0f172a", colors["ShadowColor"]);
         }
 
         [Fact]
@@ -135,6 +141,18 @@ namespace keycuts.Tests
             Assert.Equal("#14171d", colors["CanvasBrush"]);
             Assert.Equal("#f3f5f8", colors["TextBrush"]);
             Assert.Equal("#ff8175", colors["DangerBrush"]);
+            Assert.Equal("#6a9eff", colors["AccentTextBrush"]);
+            Assert.Equal("#99000000", colors["ScrimBrush"]);
+            Assert.Equal("#000000", colors["ShadowColor"]);
+        }
+
+        [Fact]
+        public void HighContrastPalette_HasNoScrimOrShadow_AndAccentTextIsTheLinkColor()
+        {
+            var colors = LoadColors("HighContrast.xaml");
+            Assert.Equal("transparent", colors["ScrimBrush"]);
+            Assert.Equal("transparent", colors["ShadowColor"]);
+            Assert.Contains("HotTrackColorKey".ToLowerInvariant(), colors["AccentTextBrush"]);
         }
 
         public static IEnumerable<object[]> ContrastPairs()
@@ -147,6 +165,15 @@ namespace keycuts.Tests
                 {
                     yield return new object[] { palette, "TextBrush", surface, 4.5 };
                 }
+
+                // Accent-colored text (section labels, links, the active sort header) can sit on any surface
+                foreach (var surface in surfaces)
+                {
+                    yield return new object[] { palette, "AccentTextBrush", surface, 4.5 };
+                }
+
+                // The welcome panel's text
+                yield return new object[] { palette, "TextSecondaryBrush", "AccentSoftBrush", 4.5 };
 
                 foreach (var surface in surfaces.Where(s => s != "AccentSoftBrush"))
                 {
@@ -161,12 +188,15 @@ namespace keycuts.Tests
                 yield return new object[] { palette, "OnAccentBrush", "AccentHoverBrush", 4.5 };
                 yield return new object[] { palette, "OnAccentBrush", "AccentPressedBrush", 4.5 };
 
-                // Non-text UI: control boundaries, accent focus ring, secondary and placeholder text (3:1)
                 foreach (var surface in new[] { "CanvasBrush", "SurfaceBrush", "SurfaceSubtleBrush", "SurfaceRaisedBrush" })
                 {
+                    // Non-text UI: control boundaries and the accent focus ring (3:1)
                     yield return new object[] { palette, "ControlBorderBrush", surface, 3.0 };
                     yield return new object[] { palette, "AccentBrush", surface, 3.0 };
-                    yield return new object[] { palette, "TextTertiaryBrush", surface, 3.0 };
+
+                    // Tertiary text is only placeholders, disabled text and decorative glyphs (the search icon). Placeholders are
+                    // text, and WCAG 1.4.3 covers them even beside a label, so it meets 4.5:1 like any other (docs/styleguide.md)
+                    yield return new object[] { palette, "TextTertiaryBrush", surface, 4.5 };
                 }
             }
         }
@@ -194,8 +224,9 @@ namespace keycuts.Tests
 
         static Dictionary<string, string> LoadColors(string file)
         {
+            // A brush has a Color attribute; a Color (ShadowColor) is the element's own text
             return XDocument.Load(ThemePath(file)).Root!.Elements()
-                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => ((string)e.Attribute("Color")!).ToLowerInvariant());
+                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => ((string)e.Attribute("Color") ?? e.Value.Trim()).ToLowerInvariant());
         }
 
         static string ThemePath(string file)

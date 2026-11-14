@@ -16,7 +16,7 @@
 
         <!-- Same as the Settings window's field labels and section labels -->
         <Style x:Key="SectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeEyebrow}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
             <Setter Property="FontWeight" Value="ExtraBold" />
             <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
             <Setter Property="Margin" Value="0,0,0,4" />

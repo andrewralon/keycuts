@@ -195,8 +195,10 @@ namespace keycuts.Tests
                 add(rule, "FontSize", fontSize);
             }
 
+            // A window-local section label without a level, or a shared heading style whose level was set to None here
             var style = (string)element.Attribute("Style");
-            if (style != null && Regex.IsMatch(style, @"Resource\s+SectionLabel\s*}"))
+            if (style != null && (Regex.IsMatch(style, @"Resource\s+SectionLabel\s*}")
+                || (level != null && Regex.IsMatch(style, @"Resource\s+(Heading|Subheading)\s*}"))))
             {
                 add(rule, "Style", style);
             }
@@ -240,7 +242,11 @@ namespace keycuts.Tests
 
             foreach (var attribute in element.Attributes().Where(a => !a.IsNamespaceDeclaration && a.Name.Namespace != Xaml))
             {
-                yield return (attribute.Name.LocalName, attribute.Value);
+                // "TextElement.FontSize" sets the font size for everything inside: the owner type doesn't matter here, except for
+                // the attached automation properties
+                var attributeName = attribute.Name.LocalName;
+                yield return (attributeName.StartsWith("AutomationProperties.", StringComparison.Ordinal)
+                    ? attributeName : attributeName.Split('.').Last(), attribute.Value);
             }
 
             foreach (var child in element.Elements().Where(e => e.Name.LocalName.StartsWith(name + ".", StringComparison.Ordinal)))
@@ -416,6 +422,10 @@ namespace keycuts.Tests
         [InlineData("<Border><Border.CornerRadius><CornerRadius>10</CornerRadius></Border.CornerRadius></Border>", "CornerRadius")]
         [InlineData("<Style TargetType=\"Border\"><Setter Property=\"CornerRadius\"><Setter.Value>9</Setter.Value></Setter></Style>", "CornerRadius")]
         [InlineData("<TextBlock><TextBlock.FontWeight>Bold</TextBlock.FontWeight></TextBlock>", "FontWeight")]
+        [InlineData("<TextBlock Style=\"{StaticResource Heading}\" AutomationProperties.HeadingLevel=\"None\" />", "Style")]
+        [InlineData("<TextBlock Style=\"{StaticResource Subheading}\" AutomationProperties.HeadingLevel=\"None\" />", "Style")]
+        [InlineData("<Grid TextElement.FontSize=\"11\" />", "FontSize")]
+        [InlineData("<Grid TextElement.FontWeight=\"Bold\" />", "FontWeight")]
         public void Check_FindsEachBrokenRule(string xaml, string property)
         {
             Assert.Contains(CheckSnippet(xaml), v => v.Property == property);
@@ -435,6 +445,8 @@ namespace keycuts.Tests
         [InlineData("<Border><Border.Padding><StaticResource ResourceKey=\"PagePadding\" /></Border.Padding></Border>")]
         [InlineData("<Style TargetType=\"Border\"><Setter Property=\"Margin\"><Setter.Value><Thickness>0,8,0,16</Thickness></Setter.Value></Setter></Style>")]
         [InlineData("<Border><Border.Effect><DropShadowEffect BlurRadius=\"28\" /></Border.Effect></Border>")]
+        [InlineData("<TextBlock Style=\"{StaticResource Subheading}\" AutomationProperties.HeadingLevel=\"Level3\" />")]
+        [InlineData("<Grid TextElement.FontSize=\"{StaticResource FontSizeCaption}\" Grid.Row=\"1\" />")]
         [InlineData("<Style TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"{StaticResource FontSizeSubheading}\" /><Setter Property=\"AutomationProperties.HeadingLevel\" Value=\"Level2\" /></Style>")]
         public void Check_PassesWhatTheGuideAllows(string xaml)
         {

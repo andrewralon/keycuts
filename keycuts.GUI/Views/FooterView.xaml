@@ -13,7 +13,7 @@
   </UserControl.Resources>
 
   <Border Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-          BorderThickness="0,1,0,0" Padding="24,0" MinHeight="46">
+          BorderThickness="0,1,0,0" Padding="24,0" MinHeight="48">
     <Grid>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" />
@@ -22,7 +22,8 @@
       </Grid.ColumnDefinitions>
 
       <!-- Just the number; the tooltip and the screen reader say what it counts (the manager adds "4 of 355" while searching) -->
-      <Border Grid.Column="0" MinWidth="26" Height="22" Padding="9,0" CornerRadius="11"
+      <!-- Fully round: the radius is half its height -->
+      <Border Grid.Column="0" MinWidth="26" Height="22" Padding="8,0" CornerRadius="11"
               Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
               BorderThickness="1" VerticalAlignment="Center">
         <TextBlock x:Name="CountText" Text="{Binding KeycutCount}" FontSize="{StaticResource FontSizeCaption}"
@@ -38,7 +39,7 @@
       <!-- #171: a newer release is out. Collapsed without an UpdateNotice, while there's nothing to say, and after dismissing.
            The text is right-aligned in the space it gets, so the dismiss button follows it closely and the line is
            right-justified; the text wraps when the space is narrow. -->
-      <Grid x:Name="UpdateNotice" Grid.Column="2" DataContext="{Binding UpdateNotice}" Margin="16,6,0,6"
+      <Grid x:Name="UpdateNotice" Grid.Column="2" DataContext="{Binding UpdateNotice}" Margin="16,8,0,8"
             VerticalAlignment="Center"
             Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
             DataContextChanged="UpdateNotice_DataContextChanged">
@@ -50,12 +51,12 @@
                    TextWrapping="Wrap" TextAlignment="Right"
                    Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
           <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
-              Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentBrush}"
-              AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">Download</Hyperlink>
+              Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentTextBrush}"
+              AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">download</Hyperlink>
         </TextBlock>
         <Button x:Name="BtnDismissUpdate" Grid.Column="1" Style="{StaticResource IconButton}" VerticalAlignment="Center"
                 Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
-          <controls:Icon Kind="Close" Size="14" />
+          <controls:Icon Kind="Close" Size="16" />
         </Button>
       </Grid>
     </Grid>

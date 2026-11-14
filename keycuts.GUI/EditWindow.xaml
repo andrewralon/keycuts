@@ -7,27 +7,13 @@
         xmlns:themes="clr-namespace:keycuts.GUI.Themes"
         xmlns:vm="clr-namespace:keycuts.GUI.ViewModels"
         mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:EditKeycutViewModel}"
-        Title="{Binding Title}" Width="480" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
+        Title="{Binding Title}" Width="{StaticResource EditWidth}" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" UseLayoutRounding="True"
         Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}"
         FontFamily="{StaticResource AppFontFamily}" FontSize="{StaticResource FontSizeBody}"
         Loaded="Edit_Loaded" Closing="Edit_Closing" Closed="Edit_Closed">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-
-        <Style x:Key="FieldLabel" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-
-        <!-- Beside the field it is about, in the error color; wraps, since a message can be long -->
-        <Style x:Key="FieldError" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
-            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="0,6,0,0" />
-            <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
-        </Style>
     </Window.Resources>
 
     <!-- The body scrolls when the window is capped to the screen (high DPI, large text); the footer always stays visible -->
@@ -39,53 +25,51 @@
 
         <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="24">
-                <TextBlock Text="Edit keycut" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                           Margin="0,0,0,20" AutomationProperties.HeadingLevel="Level1" />
+            <StackPanel Margin="{StaticResource PagePadding}">
+                <TextBlock Text="{Binding Title}" Style="{StaticResource Heading}" />
 
                 <TextBlock Text="Target" Style="{StaticResource FieldLabel}" />
-                <TextBox x:Name="TextboxTarget" Style="{StaticResource AppTextBox}" Height="38" MinHeight="38"
+                <TextBox x:Name="TextboxTarget" Style="{StaticResource AppTextBox}"
                          Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
                          themes:TextBoxChrome.Placeholder="A file, folder, or URL"
                          themes:TextBoxChrome.HasError="{Binding HasTargetError}"
                          IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
                          AutomationProperties.HelpText="{Binding TargetError}"
                          ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
-                <TextBlock x:Name="TargetErrorText" Text="{Binding TargetError}" Style="{StaticResource FieldError}"
+                <TextBlock x:Name="TargetErrorText" Text="{Binding TargetError}" Style="{StaticResource ErrorText}"
                            Visibility="{Binding HasTargetError, Converter={StaticResource BoolToVisibility}}" />
 
-                <TextBlock Text="Name" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
-                <TextBox x:Name="TextboxName" Style="{StaticResource AppTextBox}" Height="38" MinHeight="38"
+                <TextBlock Text="Name" Style="{StaticResource FieldLabel}" Margin="0,16,0,8" />
+                <TextBox x:Name="TextboxName" Style="{StaticResource AppTextBox}"
                          Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                         themes:TextBoxChrome.Placeholder="What you type in Win+R"
+                         themes:TextBoxChrome.Placeholder="e.g. art"
                          themes:TextBoxChrome.HasError="{Binding HasNameError}"
-                         IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Keycut name"
+                         IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
                          AutomationProperties.HelpText="{Binding NameError}" />
-                <TextBlock x:Name="NameErrorText" Text="{Binding NameError}" Style="{StaticResource FieldError}"
+                <TextBlock x:Name="NameErrorText" Text="{Binding NameError}" Style="{StaticResource ErrorText}"
                            Visibility="{Binding HasNameError, Converter={StaticResource BoolToVisibility}}" />
 
-                <TextBlock Text="Description (optional)" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
-                <TextBox x:Name="TextboxDescription" Style="{StaticResource AppTextBox}" Height="38" MinHeight="38"
+                <TextBlock Text="Description (optional)" Style="{StaticResource FieldLabel}" Margin="0,16,0,8" />
+                <TextBox x:Name="TextboxDescription" Style="{StaticResource AppTextBox}"
                          Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                         themes:TextBoxChrome.Placeholder="What is it for? Shown in the manager"
+                         themes:TextBoxChrome.Placeholder="e.g. Recent paintings"
                          IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
 
-                <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Style="{StaticResource FieldError}"
-                           Margin="0,14,0,0" Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Style="{StaticResource ErrorText}"
+                           Margin="0,16,0,0" Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
             </StackPanel>
         </ScrollViewer>
 
         <!-- Footer, as in Settings and the confirmation: Escape and Cancel leave things as they are; Enter saves -->
-        <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,1,0,0" Padding="24,13">
+        <Border Grid.Row="1" Style="{StaticResource DialogFooter}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="BtnCancel" Content="Cancel" Style="{StaticResource SecondaryButton}" IsCancel="True"
+                <Button x:Name="BtnCancel" Content="cancel" Style="{StaticResource SecondaryButton}" IsCancel="True"
                         IsEnabled="{Binding IsInputEnabled}" />
                 <Button x:Name="BtnSave" Style="{StaticResource PrimaryButton}" IsDefault="True" Margin="8,0,0,0"
-                        Command="{Binding SaveCommand}" AutomationProperties.Name="Save">
+                        Command="{Binding SaveCommand}" AutomationProperties.Name="save">
                     <StackPanel Orientation="Horizontal">
                         <controls:Icon Kind="Check" Size="16" VerticalAlignment="Center" />
-                        <TextBlock Text="Save" Margin="7,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock Text="save" Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </StackPanel>

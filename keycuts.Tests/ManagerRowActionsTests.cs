@@ -530,7 +530,7 @@ namespace keycuts.Tests
         [Theory]
         [InlineData(KeycutRepositoryError.AlreadyExists, "\u201Cb\u201D already exists. Choose another name.")]
         [InlineData(KeycutRepositoryError.InvalidName, CreatorViewModel.InvalidNameMessage)]
-        [InlineData(KeycutRepositoryError.InUse, "Couldn't rename \u201Ca\u201D: locked")]
+        [InlineData(KeycutRepositoryError.InUse, "Couldn’t rename \u201Ca\u201D: locked")]
         public async Task Rename_Failure_EndsTheEdit_AndSaysWhy(KeycutRepositoryError error, string message)
         {
             var actions = new FakeActions { RenameError = new KeycutRepositoryException(error, "locked") };
@@ -557,7 +557,7 @@ namespace keycuts.Tests
 
             await manager.CommitRenameAsync();
 
-            Assert.Equal("Couldn't rename “a”: " + locked.Message, manager.StatusMessage);
+            Assert.Equal("Couldn’t rename “a”: " + locked.Message, manager.StatusMessage);
         }
 
         [Fact]

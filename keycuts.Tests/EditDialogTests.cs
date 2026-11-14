@@ -65,7 +65,7 @@ namespace keycuts.Tests
                     Assert.Same(Application.Current.FindResource("SurfaceBrush"), window.Background);
                     Assert.Same(Application.Current.FindResource("TextBrush"), window.Foreground);
                     Assert.False(window.ShowInTaskbar);
-                    Assert.Equal("Edit keycut", window.Title);
+                    Assert.Equal("edit keycut", window.Title);
 
                     var save = (Button)window.FindName("BtnSave");
                     var cancel = (Button)window.FindName("BtnCancel");
@@ -73,20 +73,20 @@ namespace keycuts.Tests
                     Assert.True(cancel.IsCancel);
                     Assert.Same(Application.Current.FindResource("PrimaryButton"), save.Style);
                     Assert.Same(Application.Current.FindResource("SecondaryButton"), cancel.Style);
-                    Assert.Equal("Save", AutomationProperties.GetName(save));
+                    Assert.Equal("save", AutomationProperties.GetName(save));
 
                     var fields = Descendants<TextBox>(window).ToList();
-                    Assert.Equal(new[] { "Target", "Keycut name", "Description" }, fields.Select(AutomationProperties.GetName));
+                    Assert.Equal(new[] { "Target", "keycut name", "Description" }, fields.Select(AutomationProperties.GetName));
                     Assert.Equal(new[] { "https://mail.google.com", "gmail", "Work email" }, fields.Select(f => f.Text));
 
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "Edit keycut");
+                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "edit keycut");
                     Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
 
                     // The target is the usual reason to open the form
                     Assert.Same(fields[0], FocusManager.GetFocusedElement(window));
 
                     // Cancel's text is its accessible name; the helper prints a nameless button as Button:<text>
-                    Assert.Equal(new[] { "Target", "Keycut name", "Description", "Button:Cancel", "Save" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "keycut name", "Description", "Button:cancel", "save" }, TabStops(window));
                 }
                 finally
                 {
@@ -116,7 +116,7 @@ namespace keycuts.Tests
                     Assert.Equal(CreatorViewModel.GetTargetErrorMessage(TargetError.NotFound), AutomationProperties.GetHelpText(target));
                     Assert.False(((TextBlock)window.FindName("NameErrorText")).IsVisible);
                     Assert.False(((TextBlock)window.FindName("SaveErrorText")).IsVisible);
-                    Assert.False(TextBoxChrome.GetHasError(Field(window, "Keycut name")));
+                    Assert.False(TextBoxChrome.GetHasError(Field(window, "keycut name")));
 
                     // Typing again takes it away
                     target.Text = @"C:\somewhere";
@@ -146,7 +146,7 @@ namespace keycuts.Tests
                     Pump();
 
                     Assert.True(((TextBlock)window.FindName("NameErrorText")).IsVisible);
-                    Assert.True(TextBoxChrome.GetHasError(Field(window, "Keycut name")));
+                    Assert.True(TextBoxChrome.GetHasError(Field(window, "keycut name")));
                     Assert.False(((TextBlock)window.FindName("TargetErrorText")).IsVisible);
 
                     var other = NewForm(Fails(KeycutRepositoryError.NotEditable));
@@ -190,7 +190,7 @@ namespace keycuts.Tests
                     form.Name = "  ";
                     Pump();
                     Assert.False(save.IsEnabled);
-                    Assert.DoesNotContain("Save", TabStops(window));
+                    Assert.DoesNotContain("save", TabStops(window));
 
                     form.Name = "gmail";
                     form.Target = "";
@@ -289,7 +289,7 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(form);
                 try
                 {
-                    Field(window, "Keycut name").Focus();
+                    Field(window, "keycut name").Focus();
                     form.Description = "x";
                     form.SaveAsync().GetAwaiter().GetResult();
                     Pump();

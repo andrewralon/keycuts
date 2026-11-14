@@ -27,10 +27,10 @@ namespace keycuts.Tests
         {
             var vm = ConfirmViewModel.ForCreate(TestNameChecks.Existing("gmail", "https://old.example.com"), "https://new.example.com");
 
-            Assert.Equal("Replace keycut", vm.Title);
+            Assert.Equal("replace keycut", vm.Title);
             Assert.Equal("Replace \u201cgmail\u201d?", vm.Heading);
             Assert.Equal(ConfirmViewModel.ReplaceIntro, vm.Intro);
-            Assert.Equal("Replace", vm.ConfirmText);
+            Assert.Equal("replace", vm.ConfirmText);
             Assert.True(vm.ShowTargets);
             Assert.Equal("https://old.example.com", vm.CurrentTarget);
             Assert.Equal("https://new.example.com", vm.NewTarget);
@@ -51,7 +51,7 @@ namespace keycuts.Tests
             var vm = ConfirmViewModel.ForCreate(TestNameChecks.Conflict("ex"), "https://new.example.com");
 
             Assert.Equal("Use \u201cex\u201d anyway?", vm.Heading);
-            Assert.Equal("Create anyway", vm.ConfirmText);
+            Assert.Equal("create anyway", vm.ConfirmText);
             Assert.False(vm.ShowTargets);
             Assert.Equal(new[] { CreatorViewModel.GetConflictMessage("ex", TestNameChecks.Conflict("ex").Conflicts[0]) }, vm.Warnings);
         }
@@ -62,7 +62,7 @@ namespace keycuts.Tests
             var vm = ConfirmViewModel.ForRename(TestNameChecks.Conflict("ex"));
 
             Assert.Equal("Rename to \u201cex\u201d anyway?", vm.Heading);
-            Assert.Equal("Rename anyway", vm.ConfirmText);
+            Assert.Equal("rename anyway", vm.ConfirmText);
             Assert.False(vm.ShowTargets);
             Assert.True(vm.ShowWarnings);
         }
@@ -118,7 +118,7 @@ namespace keycuts.Tests
                     Assert.True(cancel.IsCancel);
                     Assert.Same(Application.Current.FindResource("PrimaryButton"), confirm.Style);
                     Assert.Same(Application.Current.FindResource("SecondaryButton"), cancel.Style);
-                    Assert.Equal("Replace", AutomationProperties.GetName(confirm));
+                    Assert.Equal("replace", AutomationProperties.GetName(confirm));
                     Assert.Contains("Opens now", AutomationProperties.GetHelpText(confirm));
 
                     // A capped dialog's body must be reachable from the keyboard, since it holds nothing focusable
@@ -151,7 +151,7 @@ namespace keycuts.Tests
                 {
                     Assert.False(((TextBlock)window.FindName("CurrentTargetText")).IsVisible);
                     Assert.True(((ItemsControl)window.FindName("WarningList")).IsVisible);
-                    Assert.Equal("Create anyway", AutomationProperties.GetName((Button)window.FindName("BtnConfirm")));
+                    Assert.Equal("create anyway", AutomationProperties.GetName((Button)window.FindName("BtnConfirm")));
                 }
                 finally
                 {

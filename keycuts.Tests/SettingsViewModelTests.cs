@@ -498,7 +498,7 @@ namespace keycuts.Tests
         {
             var confirm = ConfirmViewModel.ForRestoreDefaults();
 
-            Assert.Equal("Restore defaults", confirm.ConfirmText);
+            Assert.Equal("restore defaults", confirm.ConfirmText);
             Assert.Contains("output folder stays", confirm.Intro);
             Assert.False(confirm.ShowTargets);
             Assert.False(confirm.ShowWarnings);

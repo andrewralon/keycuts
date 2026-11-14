@@ -1,0 +1,300 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: one window, folder tabs (v7, style guide)</title>
+<style>
+/* v7: v6 with 16 between the name and the first tab (the guide said 4). v6: v5 drawn to docs/styleguide.md (#211, PR #220), the guide's DIPs at 1:1. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172033}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#465064;margin-top:12px}
+.cap:first-child{margin-top:0}
+.note{font-size:12.5px;color:#465064;line-height:1.5}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:2px 0}
+
+/* ---------- palettes: Themes/Light.xaml and Dark.xaml after #219, plus the proposed tab bar keys (#218) ---------- */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--hover:#eef3fb;--glow:rgba(37,99,235,.22);
+  --uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --socket1:#f9fafb;--socket2:#e2e7ee;--socketBorder:#bdc5d2;--capGlyph:#172033;--capHover:rgba(23,32,51,.08);--hcLine:transparent}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentText:#6a9eff;--accentSoft:#182a4d;--onAccent:#06090f;--hover:#2c3441;--glow:rgba(79,140,255,.3);
+  --uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a;
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --socket1:#14171d;--socket2:#20242c;--socketBorder:#363d48;--capGlyph:#f3f5f8;--capHover:rgba(255,255,255,.08);--hcLine:transparent}
+/* high contrast (Night sky): Window black, WindowText white, no textures */
+.hc{--surface:#000;--subtle:#000;--border:#fff;--strong:#fff;--text:#fff;--text2:#fff;--text3:#a0a0a0;
+  --rail1:#000;--rail2:#000;--railTex:transparent;--grip:transparent;
+  --tab1:#000;--tab2:#000;--tabTex:transparent;--tabBorder:#fff;--tabBorderOn:#fff;--tabText:#fff;--tabShadow:transparent;
+  --socket1:#000;--socket2:#000;--socketBorder:#fff;--capGlyph:#fff;--capHover:transparent;--hcLine:#fff}
+
+/* ---------- window ---------- */
+.win{background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+.w-main{width:600px}             /* MainWidth: what the tab bar needs plus about 60 of empty bar */
+.w-wide{width:840px;height:470px}
+
+/* ---------- tab bar: RailHeight 48 ---------- */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.rail::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--hcLine);z-index:4}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 12px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.socket{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--socket2),var(--socket1));border:1px solid var(--socketBorder);box-shadow:inset 0 1px 3px var(--tabShadow)}
+.socket img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+
+/* folder tab: TabHeight 40, 8 cut corner, 16 slant, padding 12 left and slant + 8 right, 4 apart */
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 0 12px;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));z-index:0}
+.hc .tw:not(.on) .tab::after{display:none}
+/* high contrast: the line under the bar sits behind the tabs; inactive tabs close their own outline at the base,
+   and the selected tab leaves it open, so its outline runs into the page */
+.hc .rail::after{z-index:0}
+.hc .tw:not(.on) .tab::before{inset:1px}
+.hc .tw.on{filter:none;clip-path:none}
+.hc .tw.on .tab{clip-path:polygon(0 calc(100% + 3px),0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% calc(100% + 3px))}
+.hc .tw.on .tab::after{left:1px;right:1px;height:6px;bottom:-3px}  /* covers the bar's line at the zoomed close-up's fractional pixels */
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+/* caption buttons: CaptionButtonWidth 46 x RailHeight, 10px glyphs */
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.dis{color:var(--text3);opacity:.7}
+.cb.hot{background:var(--capHover)}
+.cb.close-hot{background:#c42b1c;color:#fff}
+
+/* ---------- page: PagePadding 24,16,24,24 ---------- */
+.body{padding:16px 24px 24px;flex:1;display:flex;flex-direction:column}
+.flabel{font-size:13px;font-weight:600;margin-bottom:8px}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface)}
+.field.focus{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.field.ph{color:var(--text3)}
+.btn{height:36px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;font-size:13px;font-weight:600;flex:none}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.sq.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.row{display:flex;gap:8px;align-items:center}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+a{color:var(--accentText);font-weight:600;text-decoration:none}
+
+/* creator */
+.drop{border:1.5px dashed var(--strong);border-radius:12px;background:var(--subtle);padding:16px;display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.tv{font-size:13px;color:var(--text2);word-break:break-all;margin-top:4px;line-height:1.35}
+.gap16{height:16px}
+
+/* footer: 48 min, padding 24,0 */
+.foot{min-height:48px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;color:var(--text2);flex:none}
+.pill{height:22px;border:1px solid var(--strong);border-radius:11px;background:var(--surface);padding:0 10px;display:flex;align-items:center;font-weight:600;font-size:12px;color:var(--text)}
+.upd{display:flex;align-items:center;gap:8px}
+.ghost{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:5px}
+
+/* manager */
+.srch{flex:1;height:36px;border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+.tbl{margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{height:36px;text-align:left;color:var(--text2);padding:0 12px;background:var(--subtle);border-bottom:1px solid var(--border);font-size:12px;font-weight:600}
+td{height:36px;padding:0 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+td.n{font-weight:600;color:var(--text)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+
+/* settings */
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:24px 0 8px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:16px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:4px}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.radio{display:flex;gap:16px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconbtn img{width:20px;height:20px}
+.saved{font-size:12px;color:var(--text2);margin-top:24px;display:flex;align-items:center;gap:4px}
+.endrow{display:flex;justify-content:space-between;margin-top:16px}
+
+/* close-up annotation */
+.anno .brand,.anno .drag{outline:1.5px dashed #2563eb;outline-offset:-1.5px;background-color:rgba(37,99,235,.14)}
+.anno .drag{-webkit-mask-image:none}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:rgba(37,99,235,.3);outline:1px dashed #2563eb}
+.keys{border-collapse:collapse;font-size:12px;width:100%;margin-top:4px}
+.keys th,.keys td{height:auto;padding:4px 8px;border-bottom:1px solid #cfd5df;text-align:left;color:#172033;background:none;font-size:12px}
+.keys th{color:#465064}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.25);vertical-align:-2px;margin-right:6px}
+code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-launch" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+ </defs>
+</svg>
+
+<div class="grid">
+ <div class="stack" id="c1"></div>
+ <div class="stack" id="c2"></div>
+ <div class="stack" id="c3"></div>
+</div>
+
+<script>
+const icon = t => `../../assets/icons/${t === 'light' ? 'porcelain/porcelain' : 'onyx/onyx'}-32.png`;
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+
+// fixed: Creator and Settings are fixed-size, so maximize is disabled there
+function rail(theme, active, fixed, hot) {
+  const tab = (key, inner, label) =>
+    `<div class="tw${active === key ? ' on' : ''}" title="${label}"><div class="tab">${inner}</div></div>`;
+  return `<div class="rail">
+   <div class="brand"><span class="socket"><img src="${icon(theme)}" alt=""></span>keycuts</div>
+   <div class="tabs">
+    ${tab('creator', `${use('i-spark', 16)}<span>creator</span>`, 'creator')}
+    ${tab('manager', `${use('i-table', 16)}<span>manager</span>`, 'manager')}
+    ${tab('settings', use('i-gear', 16), 'settings')}
+   </div>
+   <div class="drag"></div>
+   <div class="caps">
+    <div class="cb${hot === 'min' ? ' hot' : ''}">${use('i-min', 10)}</div>
+    <div class="cb${fixed ? ' dis' : ''}">${use('i-max', 10)}</div>
+    <div class="cb${hot === 'close' ? ' close-hot' : ''}">${use('i-close', 10)}</div>
+   </div></div>`;
+}
+
+const footer = `<div class="foot"><span class="pill">355</span>
+  <span class="upd">keycuts 1.3.0 is available &middot; <a>download</a><span class="ghost" title="Dismiss">${use('i-x', 16)}</span></span></div>`;
+
+const creator = `<div class="body">
+  <div class="drop">
+   <div class="tile">${use('i-link', 24)}</div>
+   <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Target</div>
+    <div class="tv">%USERPROFILE%\\Documents\\Projects\\2026\\Gallery Submissions\\spring-collection-final-v3.xlsx</div></div>
+   <div class="sq" title="Browse">${use('i-folder', 20)}</div>
+  </div>
+  <div class="flabel">Name</div>
+  <div class="row"><div class="field focus">art</div><div class="sq primary" title="Create">${use('i-rocket', 20)}</div></div>
+  <div class="gap16"></div>
+  <div class="flabel">Description (optional)</div>
+  <div class="field ph" style="flex:none">e.g. Recent paintings</div>
+ </div>${footer}`;
+
+const rows = [
+  ['art', 'u', 'URL', 'Paintings gallery', 'https://gallery.example.com/art', '12 minutes ago'],
+  ['db', 'f', 'Folder', 'Dropbox folder', '%USERPROFILE%\\Dropbox', '1 month ago'],
+  ['gmail', 'u', 'URL', 'Work email', 'https://mail.google.com/mail/u/0/#inbox', '5 hours ago'],
+  ['npp', 'fi', 'File', 'Notepad++', 'C:\\Program Files\\Notepad++\\notepad++.exe', '3 days ago']
+];
+const manager = `<div class="body" style="padding-bottom:12px">
+  <div class="row"><div class="srch">${use('i-search', 16)} Search names, types, descriptions, or targets</div><span style="font-size:12px;color:var(--text2)">4 of 355 shown</span></div>
+  <div class="tbl"><table>
+   <tr><th>Name</th><th>Type</th><th>Description</th><th>Target</th><th>Modified</th><th style="width:44px"></th></tr>
+   ${rows.map(r => `<tr><td class="n">${r[0]}</td><td><span class="badge ${r[1]}">${r[2]}</span></td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td><span class="ghost">${use('i-dots', 16)}</span></td></tr>`).join('')}
+  </table></div>
+  <div style="flex:1"></div>
+ </div>${footer}`;
+
+const settings = theme => `<div class="body">
+  <div class="sec">Output</div>
+  <div class="flabel">Output folder</div>
+  <div class="row"><div class="field">%USERPROFILE%\\Shortcuts</div>
+   <div class="sq" title="Choose a folder">${use('i-folder', 20)}</div>
+   <div class="sq" title="Open the output folder">${use('i-launch', 20)}</div></div>
+  <div class="help">New keycuts are saved here.</div>
+
+  <div class="sec">Behavior</div>
+  <div class="set"><div class="t">Ask before replacing a keycut</div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Right-click context menus</div><div class="n">Add “keycut this!” to File Explorer menus.</div></div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Use environment variables in paths</div><div class="n">Save paths as %USERPROFILE%\\… or similar. Hold Shift to preview.</div></div><div class="tog off"></div></div>
+
+  <div class="sec">Appearance</div>
+  <div class="set"><div><div class="t">Icon <span class="v">&middot; Black &amp; White</span></div><div class="n">Porcelain in light mode, Onyx in dark mode.</div></div><div class="sq iconbtn" title="Choose an icon"><img src="${icon(theme)}" alt=""></div></div>
+  <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>
+
+  <div class="sec">Updates</div>
+  <div class="set"><div><div class="t">Check for updates</div><div class="n">Once a day, ask GitHub whether a newer version is out.</div></div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Version 1.2.0</div><div class="n">keycuts 1.3.0 is available &middot; <a>download</a></div></div><div class="btn">check now</div></div>
+
+  <div class="saved">${use('i-check', 12)}Changes are saved as you make them.</div>
+  <div class="endrow"><div class="btn">show welcome</div><div class="btn">restore defaults</div></div>
+ </div>${footer}`;
+
+const win = (theme, active, size, content, fixed) =>
+  `<div class="win ${theme} ${size}">${rail(theme, active, fixed)}${content}</div>`;
+
+const sw = c => `<span class="sw" style="background:${c}"></span>`;
+const keyRows = [
+  ['RailBrush', 'linear-gradient(#eef1f5,#d3d9e3)', '#eef1f5 → #d3d9e3', 'linear-gradient(#1c2029,#111318)', '#1c2029 → #111318', 'Window'],
+  ['RailTextureBrush', 'rgba(255,255,255,.45)', 'white 45%', 'rgba(255,255,255,.1)', 'white 2.5%', 'none'],
+  ['RailGripBrush', 'rgba(23,32,51,.16)', '#172033 16%', 'rgba(255,255,255,.10)', 'white 10%', 'none'],
+  ['TabBrush', 'linear-gradient(#dde2ea,#c4ccd8)', '#dde2ea → #c4ccd8', 'linear-gradient(#2b313c,#191c23)', '#2b313c → #191c23', 'Window'],
+  ['TabBorderBrush', '#aab3c2', '#aab3c2', '#3d4553', '#3d4553', 'WindowText'],
+  ['TabTextBrush', '#465064', '#465064', '#9aa4b5', '#9aa4b5', 'WindowText'],
+  ['SocketBrush', 'linear-gradient(#e2e7ee,#f9fafb)', '#e2e7ee → #f9fafb', 'linear-gradient(#20242c,#14171d)', '#20242c → #14171d', 'Window'],
+  ['CaptionHoverBrush', 'rgba(23,32,51,.08)', '#172033 8%', 'rgba(255,255,255,.08)', 'white 8%', 'Highlight'],
+  ['CaptionCloseBrush', '#c42b1c', '#c42b1c', '#c42b1c', '#c42b1c', '#c42b1c']
+];
+const keys = `<table class="keys"><tr><th>Key (proposed)</th><th>Light</th><th>Dark</th><th>High contrast</th></tr>
+ ${keyRows.map(k => `<tr><td><code>${k[0]}</code></td><td>${sw(k[1])}${k[2]}</td><td>${sw(k[3])}${k[4]}</td><td>${k[5]}</td></tr>`).join('')}</table>`;
+
+document.getElementById('c1').innerHTML = `
+ <div class="cap">1. creator, light (maximize is greyed out: the Creator is fixed-size)</div>${win('light', 'creator', 'w-main', creator, true)}
+ <div class="cap">creator, dark</div>${win('dark', 'creator', 'w-main', creator, true)}
+ <div class="cap">Notes: what v6 and v7 change from v5 to follow the style guide (#211)</div>
+ <div class="note"><ul>
+  <li><b>Sizes in DIPs:</b> tab bar 48, tabs 40 (8 cut corner, 4 apart), caption buttons 46 × 48 with 10 glyphs, the icon 20 in a 28 square, <code>keycuts</code> 16 SemiBold and <b>16 from the first tab</b> (v7; the guide said 4), tab text 13 SemiBold with 16 icons. The Creator and Settings are 600 wide (<code>MainWidth</code>).</li>
+  <li><b>Inactive tab text</b> is <code>#465064</code> light and <code>#9aa4b5</code> dark, readable at 4.5:1 over the whole tab (v5's colors weren't).</li>
+  <li><b>Pages:</b> 16 below the tab bar, 24 at the sides and bottom; text boxes and buttons 36; the Create, Browse and output folder buttons square 36 with 20 icons; the target tile 40.</li>
+  <li><b>Settings:</b> section labels in 12 bold blue capitals, 24 between sections and 16 between rows, no lines; two square buttons for the output folder (choose a folder, open the output folder) with the helper line under them; toggles 36 × 20; “Changes are saved…” in the readable grey with a 12 check.</li>
+  <li><b>Lowercase buttons and links:</b> <code>check now</code>, <code>show welcome</code>, <code>restore defaults</code>, the footer’s <code>download</code>. The gear tab’s tooltip is <code>settings</code>.</li>
+  <li><b>Footer:</b> no gear, 24 at the sides, the count pill 22 high, the dismiss button 32.</li>
+  <li><b>The icon picker</b> (not drawn) greys out the page and the tabs; minimize, maximize, close and dragging still work.</li>
+ </ul></div>`;
+
+document.getElementById('c2').innerHTML = `
+ <div class="cap">2. manager, light (resizable, so maximize works; the tabs don't move)</div>${win('light', 'manager', 'w-wide', manager, false)}
+ <div class="cap">manager, dark</div>${win('dark', 'manager', 'w-wide', manager, false)}
+ <div class="cap">4. The tab bar at the Creator's width, zoomed in: grab areas, hover, high contrast</div>
+ <div class="win light anno" style="width:600px;zoom:1.35">${rail('light', 'creator', true, 'close')}<div style="height:16px"></div></div>
+ <div class="win dark anno" style="width:600px;zoom:1.35">${rail('dark', 'creator', true, 'min')}<div style="height:16px;background:var(--surface)"></div></div>
+ <div class="win hc" style="width:600px;zoom:1.35">${rail('hc', 'creator', true)}<div style="height:16px;background:var(--surface)"></div></div>
+ <div class="note"><span class="k"></span><b>Grab areas</b> (the icon and name, and the empty bar): drag to move, right-click for the window menu, drag to an edge to snap; double-click maximizes or restores on the Manager only. Hover: light shows close, dark shows minimize. <b>High contrast</b> drops the textures: black bar, tabs outlined in white, and the selected tab is the one whose outline runs into the page.</div>
+ <div class="cap">Tab bar colors (proposed palette keys; #218 settles them)</div>${keys}`;
+
+document.getElementById('c3').innerHTML = `
+ <div class="cap">3. settings, light (fixed-size; the icon picker stays an overlay)</div>${win('light', 'settings', 'w-main', settings('light'), true)}
+ <div class="cap">settings, dark</div>${win('dark', 'settings', 'w-main', settings('dark'), true)}`;
+</script>
+</body></html>

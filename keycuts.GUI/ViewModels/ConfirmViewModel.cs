@@ -37,7 +37,7 @@ namespace keycuts.GUI.ViewModels
 
         public string Intro { get; }
 
-        /// <summary>The primary button, which is also what Enter does: "Replace", "Create anyway" or "Rename anyway".</summary>
+        /// <summary>The primary button, which is also what Enter does: "replace", "create anyway", "rename anyway" or "restore defaults" (button text is lowercase, docs/styleguide.md).</summary>
         public string ConfirmText { get; }
 
         /// <summary>What the keycut being replaced opens now; null when nothing is replaced.</summary>
@@ -91,12 +91,12 @@ namespace keycuts.GUI.ViewModels
             {
                 var current = string.IsNullOrEmpty(check.Existing.Target) ? "(unknown)" : check.Existing.Target;
 
-                return new ConfirmViewModel("Replace keycut", Quote("Replace ", check.Name, "?"), ReplaceIntro, "Replace",
+                return new ConfirmViewModel("replace keycut", Quote("Replace ", check.Name, "?"), ReplaceIntro, "replace",
                     current, newTarget ?? string.Empty, warnings);
             }
 
-            return new ConfirmViewModel("Name already in use", Quote("Use ", check.Name, " anyway?"), ConflictIntro,
-                "Create anyway", null, null, warnings);
+            return new ConfirmViewModel("name already in use", Quote("Use ", check.Name, " anyway?"), ConflictIntro,
+                "create anyway", null, null, warnings);
         }
 
         public const string RestoreDefaultsIntro = "Every setting on this page goes back to how a new install has it. The output folder stays as it is.";
@@ -104,7 +104,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>Settings' restore defaults (#218), which stores at once like any other change, so it asks first.</summary>
         public static ConfirmViewModel ForRestoreDefaults()
         {
-            return new ConfirmViewModel("Restore defaults", "Restore the default settings?", RestoreDefaultsIntro, "Restore defaults",
+            return new ConfirmViewModel("restore defaults", "Restore the default settings?", RestoreDefaultsIntro, "restore defaults",
                 null, null, Array.Empty<string>());
         }
 
@@ -116,8 +116,8 @@ namespace keycuts.GUI.ViewModels
                 throw new ArgumentNullException(nameof(check));
             }
 
-            return new ConfirmViewModel("Name already in use", Quote("Rename to ", check.Name, " anyway?"), ConflictIntro,
-                "Rename anyway", null, null, GetWarnings(check, null));
+            return new ConfirmViewModel("name already in use", Quote("Rename to ", check.Name, " anyway?"), ConflictIntro,
+                "rename anyway", null, null, GetWarnings(check, null));
         }
 
         private static IReadOnlyList<string> GetWarnings(NameCheck check, string? newTarget)

@@ -121,7 +121,7 @@ namespace keycuts.GUI.DesignData
             get
             {
                 var manager = new DesignManagerViewModel(SampleKeycuts.Generate(0));
-                manager.ShowError(@"Can't read keycuts folder ""Z:\keycuts"".");
+                manager.ShowError(@"Can’t read keycuts folder ""Z:\keycuts"".");
                 return manager;
             }
         }

@@ -87,7 +87,7 @@ namespace keycuts.GUI.ViewModels
         /// <summary>The window title.</summary>
         public string Title
         {
-            get { return "Edit keycut"; }
+            get { return "edit keycut"; }
         }
 
         /// <summary>The keycut as it was loaded.</summary>

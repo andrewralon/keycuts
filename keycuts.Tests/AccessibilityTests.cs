@@ -972,6 +972,50 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Manager_RowMenuButton_FitsItsCell()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    // The whole 32 button, its click area and its hover and focus look, is inside the 44 cell, centered
+                    var menuButton = Descendants<MenuButton>(window).Single();
+                    var cell = FindAncestor<DataGridCell>(menuButton);
+                    Assert.Equal((32.0, 32.0), (menuButton.ActualWidth, menuButton.ActualHeight));
+                    var left = menuButton.TranslatePoint(new Point(0, 0), cell).X;
+                    Assert.InRange(left, 5.5, 6.5);
+                    Assert.InRange(left + menuButton.ActualWidth, 0, cell.ActualWidth);
+                    // A slot narrower than the button clips it, wherever it is centered
+                    var slot = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(menuButton);
+                    Assert.True(slot.ActualWidth >= menuButton.ActualWidth, $"The button's slot is {slot.ActualWidth} wide");
+                    Assert.Null(LayoutInformation.GetLayoutClip(menuButton));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        static T FindAncestor<T>(DependencyObject start)
+            where T : DependencyObject
+        {
+            for (var current = System.Windows.Media.VisualTreeHelper.GetParent(start); current != null;
+                 current = System.Windows.Media.VisualTreeHelper.GetParent(current))
+            {
+                if (current is T match)
+                {
+                    return match;
+                }
+            }
+
+            throw new InvalidOperationException("No " + typeof(T).Name + " above " + start);
+        }
+
+        [Fact]
         public void Manager_EnterOnAButtonStaysWithTheButton()
         {
             RunSta(() =>

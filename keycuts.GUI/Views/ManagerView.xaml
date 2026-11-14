@@ -228,6 +228,11 @@
       </Setter>
     </Style>
 
+    <!-- The menu column is 44 wide: the 32 button needs the whole cell, centered, not the text cells' 12 at each side -->
+    <Style x:Key="ManagerMenuCell" TargetType="DataGridCell" BasedOn="{StaticResource ManagerCell}">
+      <Setter Property="Padding" Value="0" />
+    </Style>
+
     <Style x:Key="ManagerTable" TargetType="DataGrid">
       <Setter Property="AutoGenerateColumns" Value="False" />
       <Setter Property="IsReadOnly" Value="True" />
@@ -446,7 +451,8 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}">
+            <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}"
+                                    CellStyle="{StaticResource ManagerMenuCell}">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <controls:MenuButton Style="{StaticResource IconButton}"

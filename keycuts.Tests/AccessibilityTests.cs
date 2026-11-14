@@ -131,6 +131,17 @@ namespace keycuts.Tests
             Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
         }
 
+        // For state that settles after an await on another thread; the assertion after it reports a timeout
+        static void PumpUntil(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (!condition() && DateTime.UtcNow < deadline)
+            {
+                Pump();
+                Thread.Sleep(10);
+            }
+        }
+
         static Window Host(FrameworkElement view, object viewModel)
         {
             var window = new Window
@@ -314,18 +325,17 @@ namespace keycuts.Tests
                     var panel = (Border)Descendants<CreatorView>(window).Single().FindName("WelcomePanel");
                     Assert.True(panel.IsEnabled);
 
+                    // The app's UI thread has a SynchronizationContext and a test thread doesn't, so without one the command's
+                    // continuation can run on whatever thread finishes the create, and touching the Create button there throws
+                    // (the command's task faulted and Saving never ended). The pumps below run what it posts.
+                    SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
                     _ = creator.CreateCommand.ExecuteAsync();
-                    Pump();
+                    PumpUntil(() => creator.IsSaving && !panel.IsEnabled);
                     Assert.True(creator.IsSaving);
                     Assert.False(panel.IsEnabled);
 
                     pending.SetResult(CreateResult.Success(null!));
-                    // The save's continuation can take more than one pump on a slow runner (it failed once on CI with one)
-                    for (var i = 0; i < 50 && creator.IsSaving; i++)
-                    {
-                        Pump();
-                    }
-
+                    PumpUntil(() => !creator.IsSaving && panel.IsEnabled);
                     Assert.False(creator.IsSaving);
                     Assert.True(panel.IsEnabled);
                 }

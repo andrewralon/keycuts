@@ -22,7 +22,8 @@ namespace keycuts.GUI
 
         private ShellMode shownMode;
 
-        private WindowCaptionHook? captionHook;
+        // Held here: an HwndSource keeps only weak references to its hooks
+        private readonly NoMaximizeHook noMaximize;
 
         public MainWindow(ShellViewModel shell)
         {
@@ -37,9 +38,8 @@ namespace keycuts.GUI
             // The tab bar replaces the title bar (#218). The tabs show the shell's screen and switch it.
             SelectTabForMode();
             Rail.Tabs.SelectionChanged += Tabs_SelectionChanged;
-            // Windows 11's snap layouts need the window to answer "this is the maximize button" over ours
-            SourceInitialized += (sender, e) => captionHook = new WindowCaptionHook(this, Rail.MaximizeButton);
-            StateChanged += (sender, e) => FitMaximizedWindow();
+            // The window is never maximized, on any screen; the Manager is still resized from its edges
+            noMaximize = new NoMaximizeHook(this);
 
             // Pick up keycuts changed outside the app
             Activated += (sender, e) =>
@@ -148,24 +148,6 @@ namespace keycuts.GUI
             else
             {
                 ShowFixedSize(leavingManager: previous == ShellMode.Manager, mode == ShellMode.Settings);
-            }
-        }
-
-        /// <summary>
-        /// With no frame of its own, a maximized window is placed by Windows as if it still had one: it overhangs the work area by the
-        /// size of the resize border on every side (measured: -8,-8 to 1928,1160 against a 1920 x 1152 work area at 100%, which is what <see cref="WindowLayout.GetFrameThickness"/> returns). The content is
-        /// pulled in by that much so it lies inside the work area, and the caption area grows by the same amount at the top so it still
-        /// covers the whole bar.
-        /// </summary>
-        private void FitMaximizedWindow()
-        {
-            var overhang = WindowState == WindowState.Maximized ? WindowLayout.GetFrameThickness(this) : new Thickness(0);
-            Frame.Margin = overhang;
-
-            var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
-            if (chrome != null)
-            {
-                chrome.CaptionHeight = (double)FindResource("RailHeight") + overhang.Top;
             }
         }
 

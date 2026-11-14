@@ -195,16 +195,16 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Add a description (optional)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Add a description (optional)" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Add a description (optional)" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
-                    Assert.Equal(new[] { "manager", "Settings" }, TabStops(window));
+                    Assert.Empty(TabStops(window));
                 }
                 finally
                 {
@@ -239,7 +239,7 @@ namespace keycuts.Tests
                     Assert.Equal("Description (optional)", toggle.Content);
                     Assert.Equal("Hide description", AutomationProperties.GetName(toggle));
                     Assert.Equal(
-                        new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Hide description", "Description", "Settings" },
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Hide description", "Description" },
                         TabStops(window));
                     Assert.Contains(box.InputBindings.OfType<KeyBinding>(), b => b.Key == Key.Return && ReferenceEquals(b.Command, creator.CreateCommand));
 
@@ -275,15 +275,15 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "manager", "Dismiss welcome",
+                            "Dismiss welcome",
                             "URL google.com, creates the keycut g", "Folder Downloads, creates the keycut dl", "File keycuts, creates the keycut kc",
-                            "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings"
+                            "Target", "Browse", "Keycut name", "Create", "Add a description (optional)"
                         },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Add a description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -353,14 +353,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings", "Dismiss update notice" },
+                        new[] { "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Dismiss update notice" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)Descendants<FooterView>(window).Single().FindName("UpdateDownloadLink");
                     Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "Keycut name", "Create", "Add a description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -514,7 +514,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Creator_HeadingAndErrorLiveRegionAreExposed()
+        public void Creator_HasNoHeading_AndTheErrorLiveRegionIsExposed()
         {
             RunSta(() =>
             {
@@ -523,8 +523,8 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), creator);
                 try
                 {
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "keycuts creator");
-                    Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
+                    // The selected tab names the screen (#218), so the screen has no heading of its own
+                    Assert.DoesNotContain(Descendants<TextBlock>(window), t => t.Text == "keycuts creator");
 
                     var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
                     Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(helper));
@@ -1041,21 +1041,19 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "creator",
                             "Search keycuts",
                             "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
                             "SortHeaderButton:Target",
                             "Actions for alpha",
-                            "Actions for bravo",
-                            "Settings"
+                            "Actions for bravo"
                         },
                         TabStops(window));
                     Assert.Equal("Search keycuts", FocusedName());
 
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "keycuts manager");
-                    Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
+                    // The selected tab names the screen (#218), so the screen has no heading of its own
+                    Assert.DoesNotContain(Descendants<TextBlock>(window), t => t.Text == "keycuts manager");
 
                     Assert.Equal(2, Descendants<TypeBadge>(window).Count());
                 }
@@ -1165,7 +1163,7 @@ namespace keycuts.Tests
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "creator", "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha", "Settings" },
+                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

@@ -74,7 +74,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Footer_OnBothScreens_HasSettingsAndTheCountAsJustANumber()
+        public void Footer_OnBothScreens_HasNoSettingsGear_AndTheCountAsJustANumber()
         {
             RunSta(() =>
             {
@@ -89,16 +89,15 @@ namespace keycuts.Tests
                 try
                 {
                     var creatorFooter = Descendants<FooterView>(creatorWindow).Single();
-                    var settings = (Button)Named(creatorFooter, "BtnSettings");
+                    // Settings is a tab in the bar above (#218), not a button here
+                    Assert.Null(creatorFooter.FindName("BtnSettings"));
                     var count = (TextBlock)Named(creatorFooter, "CountText");
-                    Assert.Equal("Settings", AutomationProperties.GetName(settings));
-                    Assert.Equal("Settings", settings.ToolTip);
                     Assert.Equal("355", count.Text);
                     Assert.Equal("355 keycuts", AutomationProperties.GetName(count));
                     Assert.Equal("355 keycuts", count.ToolTip);
 
                     var managerFooter = Descendants<FooterView>(managerWindow).Single();
-                    Assert.Equal("Settings", AutomationProperties.GetName((Button)Named(managerFooter, "BtnSettings")));
+                    Assert.Null(managerFooter.FindName("BtnSettings"));
                     var managerCount = (TextBlock)Named(managerFooter, "CountText");
                     Assert.Equal("3", managerCount.Text);
                     Assert.Equal("3 keycuts", AutomationProperties.GetName(managerCount));
@@ -257,7 +256,7 @@ namespace keycuts.Tests
                     Assert.InRange(LeftIn(dismiss, footer) - RightIn(text, footer), -0.5, 4);
 
                     // ...and the line is right-justified in the footer
-                    Assert.InRange(footer.ActualWidth - 16 - RightIn(dismiss, footer), -0.5, 1);
+                    Assert.InRange(footer.ActualWidth - 24 - RightIn(dismiss, footer), -0.5, 1);
 
                     notice.DismissCommand.Execute(null);
                     Pump();
@@ -270,10 +269,10 @@ namespace keycuts.Tests
             });
         }
 
-        // Settings, then what the screen says, then Download, then dismiss: the order they are in on screen. Real focus traversal,
+        // Undo, then Download, then dismiss: the order they are in on screen (the gear is a tab now, #218). Real focus traversal,
         // since the TabStops helper leaves out hyperlinks
         [Fact]
-        public void Footer_FocusGoesSettings_Undo_Download_Dismiss()
+        public void Footer_FocusGoesUndo_Download_Dismiss()
         {
             RunSta(() =>
             {
@@ -289,14 +288,14 @@ namespace keycuts.Tests
                     window.UpdateLayout();
 
                     var footer = Descendants<FooterView>(window).Single();
-                    var settings = (Button)Named(footer, "BtnSettings");
-                    Assert.True(Descendants<Button>(window).Single(b => b.Name == "UndoButton").IsVisible);
+                    var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
+                    Assert.True(undo.IsVisible);
 
-                    settings.Focus();
-                    Keyboard.Focus(settings);
+                    undo.Focus();
+                    Keyboard.Focus(undo);
                     var order = new List<string> { FocusedName() };
 
-                    for (var step = 0; step < 3; step++)
+                    for (var step = 0; step < 2; step++)
                     {
                         // Download is a Hyperlink, which is a content element, not a UIElement
                         var request = new TraversalRequest(FocusNavigationDirection.Next);
@@ -304,7 +303,7 @@ namespace keycuts.Tests
                         order.Add(FocusedName());
                     }
 
-                    Assert.Equal(new[] { "Settings", "Undo delete", "Download keycuts 1.3.0", "Dismiss update notice" }, order);
+                    Assert.Equal(new[] { "Undo delete", "Download keycuts 1.3.0", "Dismiss update notice" }, order);
                 }
                 finally
                 {
@@ -379,19 +378,17 @@ namespace keycuts.Tests
                         var message = Descendants<TextBlock>(window).Single(t => t.Name == "StatusMessageText");
                         Assert.Equal(undoShows, undo.IsVisible);
 
-                        var settings = Named(footer, "BtnSettings");
                         var count = Named(footer, "CountText");
                         var line = Named(footer, "UpdateNotice");
                         var link = Named(footer, "UpdateNoticeText");
 
-                        foreach (var element in new FrameworkElement[] { settings, count, message, line }.Concat(undoShows ? new[] { undo } : Array.Empty<FrameworkElement>()))
+                        foreach (var element in new FrameworkElement[] { count, message, line }.Concat(undoShows ? new[] { undo } : Array.Empty<FrameworkElement>()))
                         {
                             Assert.True(LeftIn(element, footer) >= 0 && RightIn(element, footer) <= width + 0.5,
                                 $"{scenario}: {element.GetType().Name} {element.Name} runs from {LeftIn(element, footer)} to {RightIn(element, footer)} in a footer {width} wide");
                         }
 
                         // In order, never over each other, and the update text has real room
-                        Assert.True(RightIn(settings, footer) <= LeftIn(count, footer), scenario);
                         // Undo first, right after the count, then the message, then the update line
                         Assert.True(RightIn(count, footer) <= LeftIn(undoShows ? undo : message, footer) + 0.5, scenario);
                         if (undoShows)

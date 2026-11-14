@@ -109,7 +109,11 @@ namespace keycuts.Tests
                 "AccentBrush", "AccentHoverBrush", "AccentPressedBrush", "AccentSoftBrush", "CanvasBrush", "SurfaceBrush",
                 "SurfaceSubtleBrush", "SurfaceHoverBrush", "SurfaceRaisedBrush", "TextBrush", "TextSecondaryBrush",
                 "TextTertiaryBrush", "BorderBrush", "BorderStrongBrush", "DangerBrush", "DangerSoftBrush", "SuccessBrush", "WarningBrush",
-                "AccentTextBrush", "OnAccentBrush", "ControlBorderBrush", "ScrimBrush", "ShadowColor"
+                "AccentTextBrush", "OnAccentBrush", "ControlBorderBrush", "ScrimBrush", "ShadowColor",
+                // The tab bar (#218)
+                "RailBrush", "RailTextureBrush", "RailGripBrush", "TabBrush", "TabTextureBrush", "TabBorderBrush", "TabSelectedBorderBrush",
+                "TabBaseBrush", "TabTextBrush", "SocketBrush", "SocketBorderBrush", "CaptionHoverBrush", "CaptionPressedBrush",
+                "CaptionHoverGlyphBrush", "CaptionCloseBrush", "CaptionCloseGlyphBrush"
             };
 
             foreach (var file in new[] { "Light.xaml", "Dark.xaml", "HighContrast.xaml" })
@@ -152,6 +156,10 @@ namespace keycuts.Tests
             var colors = LoadColors("HighContrast.xaml");
             Assert.Equal("transparent", colors["ScrimBrush"]);
             Assert.Equal("transparent", colors["ShadowColor"]);
+            // DropShadowEffect ignores a color's alpha, so only the opacity turns a shadow off (#224 review)
+            Assert.Equal("0", colors["ShadowOpacity"]);
+            Assert.Equal("0.3", LoadColors("Light.xaml")["ShadowOpacity"]);
+            Assert.Equal("0.3", LoadColors("Dark.xaml")["ShadowOpacity"]);
             Assert.Contains("HotTrackColorKey".ToLowerInvariant(), colors["AccentTextBrush"]);
         }
 
@@ -183,6 +191,18 @@ namespace keycuts.Tests
                     yield return new object[] { palette, "WarningBrush", surface, 4.5 };
                 }
 
+                // The tab bar (#218). A tab and the bar are gradients, so the text has to pass at both ends: inactive tab text on the whole tab,
+                // the name `keycuts` on the whole bar, and the caption glyphs as non-text UI (3:1). Close is white on red in both themes.
+                foreach (var end in new[] { "#0", "#1" })
+                {
+                    yield return new object[] { palette, "TabTextBrush", "TabBrush" + end, 4.5 };
+                    yield return new object[] { palette, "TextBrush", "RailBrush" + end, 4.5 };
+                    yield return new object[] { palette, "TextBrush", "SocketBrush" + end, 3.0 };
+                }
+
+                yield return new object[] { palette, "TextBrush", "SurfaceBrush", 4.5 };
+                yield return new object[] { palette, "CaptionCloseGlyphBrush", "CaptionCloseBrush", 4.5 };
+
                 yield return new object[] { palette, "DangerBrush", "DangerSoftBrush", 4.5 };
                 yield return new object[] { palette, "OnAccentBrush", "AccentBrush", 4.5 };
                 yield return new object[] { palette, "OnAccentBrush", "AccentHoverBrush", 4.5 };
@@ -211,6 +231,20 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void EveryShadow_TakesItsOpacityFromThePalette()
+        {
+            // A shadow with a fixed opacity would still show in high contrast, where ShadowColor is Transparent: the effect ignores alpha
+            var gui = Path.GetDirectoryName(Path.GetDirectoryName(ThemePath("Controls.xaml")))!;
+            var shadows = Directory.EnumerateFiles(gui, "*.xaml", SearchOption.AllDirectories)
+                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))
+                .SelectMany(f => XDocument.Load(f).Descendants().Where(e => e.Name.LocalName == "DropShadowEffect").Select(e => (File: Path.GetFileName(f), Opacity: (string)e.Attribute("Opacity"))))
+                .ToList();
+
+            Assert.NotEmpty(shadows);
+            Assert.All(shadows, s => Assert.True(s.Opacity == "{DynamicResource ShadowOpacity}", $"{s.File}: a DropShadowEffect has Opacity=\"{s.Opacity}\""));
+        }
+
+        [Fact]
         public void ControlStyles_DoNotHardCodeColors()
         {
             var controls = File.ReadAllText(ThemePath("Controls.xaml"));
@@ -224,9 +258,25 @@ namespace keycuts.Tests
 
         static Dictionary<string, string> LoadColors(string file)
         {
-            // A brush has a Color attribute; a Color (ShadowColor) is the element's own text
-            return XDocument.Load(ThemePath(file)).Root!.Elements()
-                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => ((string)e.Attribute("Color") ?? e.Value.Trim()).ToLowerInvariant());
+            // A brush has a Color attribute; a Color (ShadowColor) is the element's own text. A gradient is listed by its stops, as
+            // "TabBrush#0" (the top) and "TabBrush#1" (the bottom), so a contrast pair can name either end; a texture has no color of its own.
+            var colors = new Dictionary<string, string>();
+            foreach (var e in XDocument.Load(ThemePath(file)).Root!.Elements())
+            {
+                var key = (string)e.Attribute(Xaml + "Key")!;
+                colors[key] = ((string)e.Attribute("Color") ?? e.Value.Trim()).ToLowerInvariant();
+
+                if (e.Name.LocalName == "LinearGradientBrush")
+                {
+                    var stops = e.Elements().Where(c => c.Name.LocalName == "GradientStop").OrderBy(c => (double)c.Attribute("Offset")!).ToList();
+                    for (var i = 0; i < stops.Count; i++)
+                    {
+                        colors[key + "#" + i] = ((string)stops[i].Attribute("Color")!).ToLowerInvariant();
+                    }
+                }
+            }
+
+            return colors;
         }
 
         static string ThemePath(string file)

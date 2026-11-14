@@ -1,6 +1,7 @@
 <!-- System-color fallback used when Windows high contrast is on. Same keys as Light/Dark. -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
     <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
     <SolidColorBrush x:Key="AccentHoverBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
     <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
@@ -38,4 +39,25 @@
     <!-- No dimming and no shadow in high contrast: the sheet's outline sets it apart -->
     <SolidColorBrush x:Key="ScrimBrush" Color="Transparent" />
     <Color x:Key="ShadowColor">Transparent</Color>
+    <!-- A shadow's strength. DropShadowEffect ignores a color's alpha, so a Transparent ShadowColor alone still draws a shadow: high contrast turns it off here -->
+    <sys:Double x:Key="ShadowOpacity">0</sys:Double>
+
+    <!-- Tab bar (#218): no gradients, textures or shadow. The bar is the window color, the tabs are outlined in the text color,
+         and the selected tab is the one whose outline runs into the page. -->
+    <SolidColorBrush x:Key="RailBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <SolidColorBrush x:Key="RailTextureBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="RailGripBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TabBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <SolidColorBrush x:Key="TabTextureBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TabBorderBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="TabSelectedBorderBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="TabTextBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="TabBaseBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="SocketBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <SolidColorBrush x:Key="SocketBorderBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="CaptionHoverBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <SolidColorBrush x:Key="CaptionPressedBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <SolidColorBrush x:Key="CaptionHoverGlyphBrush" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
+    <SolidColorBrush x:Key="CaptionCloseBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="CaptionCloseGlyphBrush" Color="#ffffff" />
 </ResourceDictionary>

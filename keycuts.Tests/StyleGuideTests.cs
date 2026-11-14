@@ -47,6 +47,9 @@ namespace keycuts.Tests
         /// </summary>
         static readonly Exception[] Exceptions =
         {
+            // The app's name in the tab bar is drawn at the level 2 size, but it names the app, not a section of the screen
+            new("Views/RailView.xaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
+
             // Focus rings and glows sit outside the control and follow its radius plus their offset
             new("Themes/Controls.xaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),
             new("Themes/Controls.xaml", "Rectangle", "RadiusY", "7", "focus ring: RadiusSm + 2"),

@@ -44,7 +44,7 @@ Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 | `ShadowColor` | `#0F172A` literal on the icon picker | **new `Color`**: Light `#0F172A`, Dark `#000000`, high contrast `Transparent` | Same |
 | `RadiusMdValue`, `RadiusLgValue` | none | **new `sys:Double`**: 8, 12 | `Rectangle.RadiusX/Y` (the dashed drop and empty-state outlines) take a number, not a `CornerRadius` |
 | `MainWidth`, `ConfirmWidth`, `EditWidth` | literals 440 (`WindowLayout.CreatorWidth`, Confirm), 480 (Edit), 500 (Settings) | **new `sys:Double`**: `MainWidth` is what the tab bar needs (about 600; #218 measures it), for the Creator and Settings; `ConfirmWidth` 440; `EditWidth` 480 | [Window widths](#window-widths) |
-| `RailHeight`, `TabHeight`, `CaptionButtonWidth` | none | **new** (#218): 48, 40, 46 | [Tabbed window](#tabbed-window-218) |
+| `RailHeight`, `TabHeight`, `CaptionButtonWidth`, `TabCut`, `TabSlant` | none | **new** (#218): 48, 40, 46, 8, 16 | [Tabbed window](#tabbed-window-218) |
 | `Rail*`, `Tab*`, `Socket*`, `Caption*` brushes | none | **new** (#218), in all three palettes | The tab bar's colors come from the palettes, not literals |
 | `TileSize` | none | **new**: 40 | The inline icon tile ([decision](#decisions)) |
 | `TextTertiaryBrush` (Light) | `#818b9d`, 3.0-3.4:1 | **`#646e80`**, 4.54:1 or better on every light surface | Placeholders are text, and WCAG 1.4.3 covers them ([decision](#decisions)); `ControlBorderBrush` keeps `#818b9d` |

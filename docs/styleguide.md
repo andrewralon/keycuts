@@ -232,8 +232,8 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | Text box editing inside a Manager row (rename, description) | 30 high | The **only** 30; it has to fit a 36 row |
 | Manager table: header / row | 36 / 36 (40 if a name plus a 12px marker doesn't fit; #219 checks) | `ManagerTable` |
 | Menu item: one line / two lines (Browse menu) | 32 / 48 min | `AppMenuItem`, `BrowseMenuItem` |
-| Toggle switch | 36 × 20 | `ToggleSwitch` |
-| Check box and radio box | 18 | The implicit `CheckBox` and `RadioButton` styles |
+| Toggle switch | 36 × 20 drawn, **36 × 24 to click** | `ToggleSwitch` (its template adds a transparent hit area around the track) |
+| Check box and radio box | 18 drawn; the label is part of the click area | The implicit `CheckBox` and `RadioButton` styles |
 | Type badge, count pill | 22 high | `TypeBadge`, the footer pill |
 | Icon tile | 40 × 40, `RadiusLg` | `IconTile` (new), `TileSize` |
 | App footer | 48 min | `FooterView` |
@@ -241,7 +241,11 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 
 The owner's decision says icon buttons are 32. This guide reads that as the ghost `IconButton`. An icon-only button with a border or fill that sits beside a 36 text box is square at the box's height, so the row lines up. That is today's pattern too (Create 38 beside a 38 box).
 
-Touch and pointer targets are at least 24 × 24 (WCAG 2.5.8). Everything above passes; the row menu button goes from 28 to 32.
+**Pointer targets are at least 24 × 24** (WCAG 2.5.8, Target Size (Minimum)). That is the area that takes the click, which isn't always the area that is drawn:
+
+- **By size**: text boxes, text and square buttons (36), ghost icon buttons (32, the row menu button up from 28), menu items, tabs and caption buttons. Check boxes and radio buttons pass with their label, which WPF makes part of the click area; one without a visible label needs a 24 hit area of its own.
+- **The toggle** is drawn 20 high, so its template wraps the track in a transparent border 24 high. It then passes by size wherever it is placed, rather than depending on the space around it.
+- **Anything smaller than 24** passes only by WCAG's spacing exception, where a 24px circle centered on it overlaps no other target, or its inline exception for a link inside a sentence. Today that is the sort headers (inside a 36 header row, with the next header well clear), the status line's undo, and the footer's download link (inline in the update sentence). A new small target must show which exception it meets, or grow to 24.
 
 ## Corner radii
 

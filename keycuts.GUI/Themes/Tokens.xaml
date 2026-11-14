@@ -7,6 +7,10 @@
     <CornerRadius x:Key="RadiusMd">8</CornerRadius>
     <CornerRadius x:Key="RadiusLg">12</CornerRadius>
     <CornerRadius x:Key="RadiusXl">16</CornerRadius>
+    <!-- The same radii as numbers, for Rectangle.RadiusX/Y (the dashed drop and empty-state outlines) -->
+    <sys:Double x:Key="RadiusSmValue">5</sys:Double>
+    <sys:Double x:Key="RadiusMdValue">8</sys:Double>
+    <sys:Double x:Key="RadiusLgValue">12</sys:Double>
 
     <!-- 4px spacing grid -->
     <sys:Double x:Key="Space1">4</sys:Double>
@@ -20,19 +24,36 @@
     <Thickness x:Key="Inset2">8</Thickness>
     <Thickness x:Key="Inset3">12</Thickness>
     <Thickness x:Key="Inset4">16</Thickness>
+    <Thickness x:Key="Inset6">24</Thickness>
+
+    <!-- Layout (docs/styleguide.md, Layout): every screen and dialog body; the shared dialog footer; an inset panel -->
+    <Thickness x:Key="PagePadding">24,16,24,24</Thickness>
+    <Thickness x:Key="DialogFooterPadding">24,12</Thickness>
+    <Thickness x:Key="PanelPadding">16</Thickness>
+
+    <!-- Window widths. MainWidth (the Creator's, and Settings' once #218's second part lands) is what the tab bar needs plus about 60 of empty bar. -->
+    <sys:Double x:Key="MainWidth">600</sys:Double>
+    <sys:Double x:Key="ConfirmWidth">440</sys:Double>
+    <sys:Double x:Key="EditWidth">480</sys:Double>
 
     <!-- Control metrics -->
-    <sys:Double x:Key="ControlHeight">34</sys:Double>
+    <sys:Double x:Key="ControlHeight">36</sys:Double>
     <sys:Double x:Key="InputHeight">36</sys:Double>
     <sys:Double x:Key="IconButtonSize">32</sys:Double>
+    <sys:Double x:Key="TileSize">40</sys:Double>
 
-    <!-- Typography -->
+    <!-- The tab bar that replaces the title bar (#218). The caption buttons are the Windows standard sizes, an exception to the grid. -->
+    <sys:Double x:Key="RailHeight">48</sys:Double>
+    <sys:Double x:Key="TabHeight">40</sys:Double>
+    <sys:Double x:Key="TabCut">8</sys:Double>
+    <sys:Double x:Key="TabSlant">16</sys:Double>
+    <sys:Double x:Key="CaptionButtonWidth">46</sys:Double>
+
+    <!-- Typography: 12 is the smallest text, and every heading is 20 (level 1) or 16 (level 2) -->
     <FontFamily x:Key="AppFontFamily">Segoe UI Variable, Segoe UI</FontFamily>
-    <sys:Double x:Key="FontSizeEyebrow">11</sys:Double>
     <sys:Double x:Key="FontSizeCaption">12</sys:Double>
     <sys:Double x:Key="FontSizeBody">13</sys:Double>
     <sys:Double x:Key="FontSizeInput">14</sys:Double>
     <sys:Double x:Key="FontSizeSubheading">16</sys:Double>
     <sys:Double x:Key="FontSizeHeading">20</sys:Double>
-    <sys:Double x:Key="FontSizeHeadingLarge">22</sys:Double>
 </ResourceDictionary>

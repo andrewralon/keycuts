@@ -52,6 +52,18 @@ namespace keycuts.GUI
             // #171: the GUI only; the CLI never checks
             var updateNotice = new ViewModels.UpdateNoticeViewModel(Common.UpdateChecker.CreateDefault());
 
+            // Settings is the window's third screen (#218), made fresh each time it opens. Its pickers and the confirmation of
+            // restore defaults are owned by the main window, created below.
+            MainWindow? mainWindow = null;
+            Func<ViewModels.SettingsViewModel> settingsFactory = () => new ViewModels.SettingsViewModel(
+                new ViewModels.RunnerSettingsStore(),
+                current => Views.SettingsView.PickFolder(mainWindow, current),
+                Views.SettingsView.OpenFolder,
+                updates: updateNotice.Checker,
+                appIcon: new ViewModels.AppIconService(),
+                applyTheme: Themes.ThemeManager.SetPreference,
+                confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow, ViewModels.ConfirmViewModel.ForRestoreDefaults()));
+
             var shell = new ViewModels.ShellViewModel(
                 async () =>
                 {
@@ -67,7 +79,8 @@ namespace keycuts.GUI
                 new ViewModels.SystemKeycutActions(),
                 welcome,
                 updateNotice,
-                new ViewModels.RegistryDescriptionVisibilityStore());
+                new ViewModels.RegistryDescriptionVisibilityStore(),
+                settingsFactory);
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
             // Through NameCheck.Run, like the Creator, so a conflict that is a keycut is described as one; askBeforeReplacing is
             // off because the rename refuses a taken keycut name itself
@@ -77,7 +90,7 @@ namespace keycuts.GUI
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
 
-            var mainWindow = new MainWindow(shell);
+            mainWindow = new MainWindow(shell);
 
             if (args.Any())
             {

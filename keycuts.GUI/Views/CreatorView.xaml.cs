@@ -57,7 +57,6 @@ namespace keycuts.GUI.Views
                 oldViewModel.BrowseFolderRequested -= ViewModel_BrowseFolderRequested;
                 oldViewModel.FocusRequested -= ViewModel_FocusRequested;
                 oldViewModel.KeycutCreated -= ViewModel_KeycutCreated;
-                oldViewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 oldViewModel.ConfirmName = null;
 
                 if (oldViewModel.Welcome != null)
@@ -72,7 +71,6 @@ namespace keycuts.GUI.Views
                 newViewModel.BrowseFolderRequested += ViewModel_BrowseFolderRequested;
                 newViewModel.FocusRequested += ViewModel_FocusRequested;
                 newViewModel.KeycutCreated += ViewModel_KeycutCreated;
-                newViewModel.PropertyChanged += ViewModel_PropertyChanged;
                 newViewModel.ConfirmName = ConfirmName;
 
                 if (newViewModel.Welcome != null)
@@ -82,18 +80,8 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // Tell screen readers when the helper line (name warnings and errors) or the status by the Name label (Saving, Created) changes
-        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(CreatorViewModel.HelperText) && ViewModel?.ShowHelperLine == true)
-            {
-                LiveRegion.Announce(HelperTextBlock);
-            }
-            else if (e.PropertyName == nameof(CreatorViewModel.NameStatusText) && ViewModel?.HasNameStatus == true)
-            {
-                LiveRegion.Announce(NameStatusTextBlock);
-            }
-        }
+        // The helper line (name warnings and errors) and the status by the Name label (Saving, Created) are HelperText
+        // controls, which announce their own changes
 
         // The welcome panel's helper line (name errors, Saving, how to use the new keycut, the PATH warning)
         private void Welcome_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -159,6 +147,12 @@ namespace keycuts.GUI.Views
 
         private void CreatorView_Loaded(object sender, RoutedEventArgs e)
         {
+            // Arrowing through the tabs (#218) keeps the focus there
+            if (Controls.RailTabControl.HoldsKeyboardFocus())
+            {
+                return;
+            }
+
             var nameFirst = ViewModel?.FocusNameFieldOnShow == true;
             var target = nameFirst ? TextboxShortcut : TextboxTarget;
             target.Focus();

@@ -47,10 +47,10 @@ namespace keycuts.GUI.ViewModels
             get { return notice == null ? string.Empty : FormatAvailable(notice.Latest); }
         }
 
-        /// <summary>What a screen reader calls the Download link: "Download keycuts 1.2.0".</summary>
+        /// <summary>What a screen reader calls the download link: "download keycuts 1.2.0", starting with its visible label.</summary>
         public string DownloadName
         {
-            get { return notice == null ? string.Empty : "Download " + Runner.AppName + " " + notice.Latest.ToString(3); }
+            get { return notice == null ? string.Empty : "download " + Runner.AppName + " " + notice.Latest.ToString(3); }
         }
 
         public static string FormatAvailable(Version latest)

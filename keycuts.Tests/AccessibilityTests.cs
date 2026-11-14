@@ -131,6 +131,17 @@ namespace keycuts.Tests
             Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
         }
 
+        // For state that settles after an await on another thread; the assertion after it reports a timeout
+        static void PumpUntil(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (!condition() && DateTime.UtcNow < deadline)
+            {
+                Pump();
+                Thread.Sleep(10);
+            }
+        }
+
         static Window Host(FrameworkElement view, object viewModel)
         {
             var window = new Window
@@ -195,16 +206,16 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Add a description (optional)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Add a description (optional)" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
-                    Assert.Equal(new[] { "manager", "Settings" }, TabStops(window));
+                    Assert.Empty(TabStops(window));
                 }
                 finally
                 {
@@ -239,7 +250,7 @@ namespace keycuts.Tests
                     Assert.Equal("Description (optional)", toggle.Content);
                     Assert.Equal("Hide description", AutomationProperties.GetName(toggle));
                     Assert.Equal(
-                        new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Hide description", "Description", "Settings" },
+                        new[] { "Target", "Browse", "keycut name", "Create", "Hide description", "Description" },
                         TabStops(window));
                     Assert.Contains(box.InputBindings.OfType<KeyBinding>(), b => b.Key == Key.Return && ReferenceEquals(b.Command, creator.CreateCommand));
 
@@ -275,15 +286,15 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "manager", "Dismiss welcome",
+                            "got it",
                             "URL google.com, creates the keycut g", "Folder Downloads, creates the keycut dl", "File keycuts, creates the keycut kc",
-                            "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings"
+                            "Target", "Browse", "keycut name", "Create", "Add a description (optional)"
                         },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -314,13 +325,17 @@ namespace keycuts.Tests
                     var panel = (Border)Descendants<CreatorView>(window).Single().FindName("WelcomePanel");
                     Assert.True(panel.IsEnabled);
 
+                    // The app's UI thread has a SynchronizationContext and a test thread doesn't, so without one the command's
+                    // continuation can run on whatever thread finishes the create, and touching the Create button there throws
+                    // (the command's task faulted and Saving never ended). The pumps below run what it posts.
+                    SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
                     _ = creator.CreateCommand.ExecuteAsync();
-                    Pump();
+                    PumpUntil(() => creator.IsSaving && !panel.IsEnabled);
                     Assert.True(creator.IsSaving);
                     Assert.False(panel.IsEnabled);
 
                     pending.SetResult(CreateResult.Success(null!));
-                    Pump();
+                    PumpUntil(() => !creator.IsSaving && panel.IsEnabled);
                     Assert.False(creator.IsSaving);
                     Assert.True(panel.IsEnabled);
                 }
@@ -353,14 +368,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings", "Dismiss update notice" },
+                        new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)", "Dismiss update notice" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)Descendants<FooterView>(window).Single().FindName("UpdateDownloadLink");
-                    Assert.Equal("Download keycuts 1.2.0", AutomationProperties.GetName(link));
+                    Assert.Equal("download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "manager", "Target", "Browse", "Keycut name", "Create", "Add a description (optional)", "Settings" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -504,7 +519,7 @@ namespace keycuts.Tests
                 var withPath = Host(new CreatorView(), NewCreator());
                 try
                 {
-                    Assert.Equal("Keycut name", FocusedName());
+                    Assert.Equal("keycut name", FocusedName());
                 }
                 finally
                 {
@@ -514,7 +529,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Creator_HeadingAndErrorLiveRegionAreExposed()
+        public void Creator_HasNoHeading_AndTheErrorLiveRegionIsExposed()
         {
             RunSta(() =>
             {
@@ -523,17 +538,18 @@ namespace keycuts.Tests
                 var window = Host(new CreatorView(), creator);
                 try
                 {
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "keycuts creator");
-                    Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
+                    // The selected tab names the screen (#218), so the screen has no heading of its own
+                    Assert.DoesNotContain(Descendants<TextBlock>(window), t => t.Text == "keycuts creator");
 
-                    var helper = Descendants<TextBlock>(window).Single(t => t.Name == "HelperTextBlock");
+                    var helper = Descendants<HelperText>(window).Single(t => t.Name == "HelperTextBlock");
                     Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(helper));
 
                     creator.SetNameWarning(TestNameChecks.Existing("ex"));
                     Pump();
                     Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(helper));
+                    Assert.Equal(HelperTextState.Warning, helper.State);
 
-                    var name = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Keycut name");
+                    var name = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "keycut name");
                     Assert.Contains("already exists", AutomationProperties.GetHelpText(name));
                 }
                 finally
@@ -677,7 +693,7 @@ namespace keycuts.Tests
                     var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
                     Assert.False(undo.IsVisible);
-                    Assert.Equal("Undo delete", AutomationProperties.GetName(undo));
+                    Assert.Equal("undo delete", AutomationProperties.GetName(undo));
 
                     // Nothing to undo: Ctrl+Z is left to the search box's own undo
                     Assert.False(Press(search, Key.Z, ModifierKeys.Control));
@@ -966,6 +982,50 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Manager_RowMenuButton_FitsItsCell()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    // The whole 32 button, its click area and its hover and focus look, is inside the 44 cell, centered
+                    var menuButton = Descendants<MenuButton>(window).Single();
+                    var cell = FindAncestor<DataGridCell>(menuButton);
+                    Assert.Equal((32.0, 32.0), (menuButton.ActualWidth, menuButton.ActualHeight));
+                    var left = menuButton.TranslatePoint(new Point(0, 0), cell).X;
+                    Assert.InRange(left, 5.5, 6.5);
+                    Assert.InRange(left + menuButton.ActualWidth, 0, cell.ActualWidth);
+                    // A slot narrower than the button clips it, wherever it is centered
+                    var slot = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(menuButton);
+                    Assert.True(slot.ActualWidth >= menuButton.ActualWidth, $"The button's slot is {slot.ActualWidth} wide");
+                    Assert.Null(LayoutInformation.GetLayoutClip(menuButton));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        static T FindAncestor<T>(DependencyObject start)
+            where T : DependencyObject
+        {
+            for (var current = System.Windows.Media.VisualTreeHelper.GetParent(start); current != null;
+                 current = System.Windows.Media.VisualTreeHelper.GetParent(current))
+            {
+                if (current is T match)
+                {
+                    return match;
+                }
+            }
+
+            throw new InvalidOperationException("No " + typeof(T).Name + " above " + start);
+        }
+
+        [Fact]
         public void Manager_EnterOnAButtonStaysWithTheButton()
         {
             RunSta(() =>
@@ -1041,21 +1101,19 @@ namespace keycuts.Tests
                     Assert.Equal(
                         new[]
                         {
-                            "creator",
                             "Search keycuts",
                             "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
                             "SortHeaderButton:Target",
                             "Actions for alpha",
-                            "Actions for bravo",
-                            "Settings"
+                            "Actions for bravo"
                         },
                         TabStops(window));
                     Assert.Equal("Search keycuts", FocusedName());
 
-                    var heading = Descendants<TextBlock>(window).Single(t => t.Text == "keycuts manager");
-                    Assert.Equal(AutomationHeadingLevel.Level1, AutomationProperties.GetHeadingLevel(heading));
+                    // The selected tab names the screen (#218), so the screen has no heading of its own
+                    Assert.DoesNotContain(Descendants<TextBlock>(window), t => t.Text == "keycuts manager");
 
                     Assert.Equal(2, Descendants<TypeBadge>(window).Count());
                 }
@@ -1098,13 +1156,13 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    var fine = OpenRowMenuItem(window, "alpha", "Edit", out var fineMenu);
+                    var fine = OpenRowMenuItem(window, "alpha", "Edit…", out var fineMenu);
                     Assert.True(fine.IsEnabled);
                     Assert.True(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(fine).IsEnabled());
                     Assert.False(ToolTipService.GetIsEnabled(fine));
                     fineMenu.IsOpen = false;
 
-                    var edit = OpenRowMenuItem(window, "bravo", "Edit", out var menu);
+                    var edit = OpenRowMenuItem(window, "bravo", "Edit…", out var menu);
                     Assert.False(edit.IsEnabled);
                     Assert.False(System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(edit).IsEnabled());
                     Assert.Equal(EditKeycutViewModel.NotEditableMessage, edit.ToolTip);
@@ -1165,7 +1223,7 @@ namespace keycuts.Tests
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "creator", "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha", "Settings" },
+                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

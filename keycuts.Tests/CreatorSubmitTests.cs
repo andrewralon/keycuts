@@ -433,13 +433,13 @@ namespace keycuts.Tests
         [Fact]
         public async Task TypingADescription_DuringTheSuccessMessage_EndsItAtOnce_AndKeepsTheOtherFields()
         {
+            // Ready's SuccessDuration is a minute, so only the typing can end the message: a short timer here raced the
+            // first assertion on a slow runner, and would also have passed without the typing doing anything
             var creator = Ready(new FakeCreator());
-            creator.SuccessDuration = TimeSpan.FromMilliseconds(50);
 
             await creator.CreateCommand.ExecuteAsync();
             Assert.True(creator.IsSuccess);
             creator.Description = "next";
-            await Task.Delay(150);
 
             Assert.False(creator.IsSuccess);
             Assert.Equal("next", creator.Description);

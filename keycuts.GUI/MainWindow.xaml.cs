@@ -1,13 +1,14 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using keycuts.GUI.ViewModels;
 
 namespace keycuts.GUI
 {
     /// <summary>
-    /// The single application window. Hosts the creator or the manager and resizes itself per mode.
+    /// The single application window. Hosts the creator, the manager or settings (#218) and resizes itself per screen.
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -17,15 +18,28 @@ namespace keycuts.GUI
 
         private Size? managerSize;
 
+        private bool syncingTabs;
+
+        private ShellMode shownMode;
+
+        // Held here: an HwndSource keeps only weak references to its hooks
+        private readonly NoMaximizeHook noMaximize;
+
         public MainWindow(ShellViewModel shell)
         {
             InitializeComponent();
             this.shell = shell;
             DataContext = shell;
 
+            shownMode = shell.Mode;
             shell.PropertyChanged += Shell_PropertyChanged;
-            shell.SettingsRequested += Shell_SettingsRequested;
             Loaded += (sender, e) => _ = shell.ReloadAsync();
+
+            // The tab bar replaces the title bar (#218). The tabs show the shell's screen and switch it.
+            SelectTabForMode();
+            Rail.Tabs.SelectionChanged += Tabs_SelectionChanged;
+            // The window is never maximized, on any screen; the Manager is still resized from its edges
+            noMaximize = new NoMaximizeHook(this);
 
             // Pick up keycuts changed outside the app
             Activated += (sender, e) =>
@@ -44,38 +58,59 @@ namespace keycuts.GUI
 
         private void Shell_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ShellViewModel.Mode) && IsLoaded)
+            if (e.PropertyName != nameof(ShellViewModel.Mode))
             {
-                ApplyMode(shell.Mode);
+                return;
+            }
+
+            SelectTabForMode();
+            var previous = shownMode;
+            shownMode = shell.Mode;
+            if (IsLoaded)
+            {
+                ApplyMode(previous, shell.Mode);
             }
         }
 
-        private void Shell_SettingsRequested(object? sender, EventArgs e)
+        private void SelectTabForMode()
         {
-            var settingsWindow = new SettingsWindow(null, shell.Creator.UpdateNotice?.Checker) { Owner = this };
-            // Check now can answer after the window closed; the creator's line follows whenever it does
-            settingsWindow.ViewModel.UpdateChecked += (_, _) => shell.Creator.UpdateNotice?.Refresh();
-            // A save that reported a problem (for example PATH) may still have stored the folder, so closing without a successful save refreshes too
-            var saved = settingsWindow.ShowDialog() == true || settingsWindow.ViewModel.StoreChanged;
-
-            if (saved)
+            syncingTabs = true;
+            try
             {
-                // The environment-variables setting may have changed; the preview follows it
-                shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+                Rail.Tabs.SelectedItem = shell.Mode switch
+                {
+                    ShellMode.Manager => Rail.ManagerItem,
+                    ShellMode.Settings => Rail.SettingsItem,
+                    _ => Rail.CreatorItem
+                };
+            }
+            finally
+            {
+                syncingTabs = false;
+            }
+        }
+
+        private void Tabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (syncingTabs || !ReferenceEquals(e.OriginalSource, Rail.Tabs))
+            {
+                return;
             }
 
-            // A saved toggle may hide or show the line
-            shell.Creator.UpdateNotice?.Refresh();
-
-            if (settingsWindow.ShowWelcomeRequested)
+            var selected = Rail.Tabs.SelectedItem;
+            if (ReferenceEquals(selected, Rail.SettingsItem))
             {
-                shell.ShowWelcome();
+                shell.ShowSettings();
+                // Without a way to make its screen (a test's shell), Settings can't open, and the screen's own tab stays selected
+                SelectTabForMode();
             }
-
-            // The output folder may have changed
-            if (saved || settingsWindow.ShowWelcomeRequested)
+            else if (ReferenceEquals(selected, Rail.ManagerItem))
             {
-                _ = shell.ReloadAsync();
+                shell.ShowManager();
+            }
+            else if (ReferenceEquals(selected, Rail.CreatorItem))
+            {
+                shell.ShowCreator();
             }
         }
 
@@ -100,7 +135,11 @@ namespace keycuts.GUI
             }
         }
 
-        private void ApplyMode(ShellMode mode)
+        /// <summary>
+        /// The Manager is resizable and remembers its size; the Creator and Settings are MainWidth wide and fit their content's
+        /// height, Settings capped to the work area so it scrolls on a short screen. The tabs never move: the window keeps its left.
+        /// </summary>
+        private void ApplyMode(ShellMode previous, ShellMode mode)
         {
             if (mode == ShellMode.Manager)
             {
@@ -108,7 +147,17 @@ namespace keycuts.GUI
             }
             else
             {
-                ShowCreatorSize();
+                ShowFixedSize(leavingManager: previous == ShellMode.Manager, mode == ShellMode.Settings);
+            }
+        }
+
+        /// <summary>The edges that resize the window: the system's thickness on the Manager, none on the fixed-size screens.</summary>
+        private void SetResizeBorder(Thickness thickness)
+        {
+            var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+            if (chrome != null)
+            {
+                chrome.ResizeBorderThickness = thickness;
             }
         }
 
@@ -117,7 +166,10 @@ namespace keycuts.GUI
             creatorLocation = new Point(Left, Top);
 
             SizeToContent = SizeToContent.Manual;
+            // Settings caps the height to its monitor's work area; the Manager can be as tall as any screen it is moved to
+            MaxHeight = double.PositiveInfinity;
             ResizeMode = ResizeMode.CanResize;
+            SetResizeBorder(WindowLayout.GetFrameThickness(this));
             MinWidth = WindowLayout.ManagerMinWidth;
             MinHeight = WindowLayout.ManagerMinHeight;
 
@@ -130,29 +182,59 @@ namespace keycuts.GUI
             Height = bounds.Height;
         }
 
-        private void ShowCreatorSize()
+        private void ShowFixedSize(bool leavingManager, bool capToWorkArea)
         {
-            if (WindowState == WindowState.Normal)
+            if (leavingManager)
             {
-                managerSize = new Size(ActualWidth, ActualHeight);
-            }
-            else
-            {
-                managerSize = RestoreBounds.Size;
-                WindowState = WindowState.Normal;
+                // Only the Manager's own size is remembered, not the Creator's or Settings'
+                if (WindowState == WindowState.Normal)
+                {
+                    managerSize = new Size(ActualWidth, ActualHeight);
+                }
+                else
+                {
+                    managerSize = RestoreBounds.Size;
+                    WindowState = WindowState.Normal;
+                }
             }
 
             MinWidth = 0;
             MinHeight = 0;
             ResizeMode = ResizeMode.CanMinimize;
+            SetResizeBorder(new Thickness(0));
+            MaxHeight = capToWorkArea ? WindowLayout.GetWorkAreaInDips(this).Height : double.PositiveInfinity;
             Width = WindowLayout.CreatorWidth;
             SizeToContent = SizeToContent.Height;
 
-            if (creatorLocation.HasValue)
+            if (leavingManager && creatorLocation.HasValue)
             {
                 Left = creatorLocation.Value.X;
                 Top = creatorLocation.Value.Y;
             }
+
+            if (capToWorkArea)
+            {
+                // Settings is taller than the Creator: once it has its height, slide it up if its bottom is off the screen
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(KeepOnScreen));
+            }
+        }
+
+        // The cap is measured again here, after the window went back to where the Creator was: that can be a shorter monitor
+        // than the Manager's, and a cap from the old one would leave the footer below the screen (PR #225 review)
+        private void KeepOnScreen()
+        {
+            if (shownMode != ShellMode.Settings)
+            {
+                return;
+            }
+
+            var workArea = WindowLayout.GetWorkAreaInDips(this);
+            MaxHeight = workArea.Height;
+            UpdateLayout();
+
+            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, ActualWidth, ActualHeight), workArea);
+            Left = bounds.Left;
+            Top = bounds.Top;
         }
     }
 }

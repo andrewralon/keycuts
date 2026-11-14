@@ -1,0 +1,274 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: one window, folder tabs (v1)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e9ecf2;font-family:"Segoe UI",system-ui,sans-serif;color:#1a2233}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:28px}
+.col{display:flex;flex-direction:column;gap:10px}
+.cap{font-size:14px;font-weight:600;color:#556}
+.note{font-size:12px;color:#556;line-height:1.45}
+
+/* ---------- window ---------- */
+.win{background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.2);overflow:hidden;display:flex;flex-direction:column;border:1px solid #b9c0cf}
+.w-small{width:560px}
+.w-wide{width:840px;height:470px}
+
+/* ---------- the rail (replaces the Windows title bar) ---------- */
+.rail{height:46px;background:#d9dee8;display:flex;align-items:flex-end;position:relative;flex:none;border-bottom:1px solid #b9c0cf}
+.brand{display:flex;align-items:center;gap:8px;height:46px;padding:0 16px 0 14px;align-self:stretch;font-weight:700;font-size:15px;letter-spacing:.2px;color:#1a2233}
+.brand img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;gap:2px;height:46px;padding-top:9px}
+.tab{position:relative;height:34px;padding:0 20px;display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:#4a5468;z-index:1;margin-bottom:-1px}
+.tab::before{content:"";position:absolute;inset:0;background:#e9ecf3;border:1px solid #b9c0cf;border-bottom:none;border-radius:9px 9px 0 0;transform:perspective(40px) rotateX(5deg);transform-origin:bottom;z-index:-1}
+.tab.on{color:#1a2233;z-index:3;height:38px}
+.tab.on::before{background:#fff;border-color:#b9c0cf;box-shadow:0 -2px 6px rgba(20,30,60,.08)}
+.tab.on::after{content:"";position:absolute;left:1px;right:1px;bottom:0;height:2px;background:#fff}
+.tab .acc{position:absolute;left:14px;right:14px;top:3px;height:3px;border-radius:2px;background:#2563eb}
+.tab.gear{padding:0 15px}
+.drag{flex:1;align-self:stretch}
+.caps{display:flex;align-self:stretch}
+.cb{width:46px;height:46px;display:flex;align-items:center;justify-content:center}
+.cb.close-hot{background:#c42b1c}
+.cb.hot{background:rgba(0,0,0,.07)}
+
+/* ---------- page content (from creator-manager-v3) ---------- */
+.body{padding:20px 22px;flex:1;display:flex;flex-direction:column}
+.btn{border:1px solid #8a93a6;border-radius:6px;background:#fff;height:34px;padding:0 14px;display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
+.ibtn{width:40px;height:40px;border:1px solid #8a93a6;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#fff;flex:none}
+.drop{border:1.5px dashed #b8bfd0;border-radius:10px;background:#f6f7fb;padding:14px;display:flex;gap:12px;align-items:center}
+.tbadge{width:36px;height:36px;border-radius:8px;background:#e6eefc;display:flex;align-items:center;justify-content:center;flex:none}
+.tl{font-weight:600;font-size:13px}
+.tv{font-size:13px;color:#556;word-break:break-all;margin-top:2px;line-height:1.35}
+.lbl{margin-top:16px;font-weight:600;font-size:13px}
+.row{display:flex;gap:8px;margin-top:6px}
+.inp{flex:1;height:40px;border:1.5px solid #2563eb;border-radius:6px;box-shadow:0 0 0 3px #cfdcfb;padding:0 10px;display:flex;align-items:center;font-size:15px}
+.go{width:40px;height:40px;border-radius:6px;background:#2563eb;display:flex;align-items:center;justify-content:center;flex:none}
+.desc2{margin-top:6px;border:1px solid #c5cad8;border-radius:6px;height:34px;padding:0 10px;display:flex;align-items:center;color:#8a93a6;font-size:13px}
+.foot{height:44px;border-top:1px solid #dde0ea;background:#f6f7fb;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:13px;color:#556;flex:none}
+.pill{border:1px solid #c5cad8;border-radius:999px;background:#fff;padding:1px 11px;font-weight:600;font-size:13px;color:#1a2233}
+.upd a{color:#2563eb;font-weight:600}
+.x{margin-left:10px;color:#778}
+.srch{flex:1;height:36px;border:1.5px solid #2563eb;border-radius:6px;display:flex;align-items:center;padding:0 10px;color:#8a93a6;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th{text-align:left;color:#778;padding:8px 10px;background:#f6f7fb;border-bottom:1px solid #dde0ea}
+td{padding:7px 10px;border-bottom:1px solid #e6e8f0}
+.b{font-weight:700}
+.pillt{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
+.f{background:#fdf1d4;color:#7a5200}.u{background:#ece3fb;color:#5b2fa8}.fi{background:#e1eefb;color:#164f87}
+
+/* settings page */
+.sec{font-size:11px;font-weight:700;letter-spacing:1px;color:#778;margin-top:18px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid #eef0f5}
+.set .t{font-size:14px;font-weight:600}
+.set .n{font-size:12px;color:#667;margin-top:1px}
+.tog{width:40px;height:20px;border-radius:10px;background:#2563eb;position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff}
+.tog.off{background:#fff;border:1.5px solid #8a93a6}
+.tog.off::after{left:3px;right:auto;top:2px;width:12px;height:12px;background:#556}
+.field{flex:1;height:34px;border:1px solid #8a93a6;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px}
+.radio{display:flex;gap:14px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:5px}
+.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid #8a93a6}
+.dot.on{border:4px solid #2563eb}
+.iconpick{width:42px;height:42px;border:1px solid #8a93a6;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none}
+.iconpick img{width:28px;height:28px}
+.save{align-self:flex-end;margin-top:16px;height:34px;padding:0 22px;border-radius:6px;background:#2563eb;color:#fff;font-weight:600;font-size:13px;display:flex;align-items:center}
+
+/* ---------- annotated rail ---------- */
+.anno{position:relative}
+.anno .brand,.anno .drag{background:repeating-linear-gradient(135deg,rgba(37,99,235,.20) 0 6px,rgba(37,99,235,.08) 6px 12px);outline:1.5px dashed #2563eb;outline-offset:-1.5px}
+.callouts{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:12.5px;line-height:1.4}
+.callouts b{color:#1a2233}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+.k.drag{background:repeating-linear-gradient(135deg,rgba(37,99,235,.45) 0 3px,rgba(37,99,235,.15) 3px 6px);outline:1px dashed #2563eb}
+.dark .rail{background:#1b2130;border-bottom-color:#3a4356}
+.dark .brand{color:#e8ecf4}
+.dark .tab{color:#a9b2c4}
+.dark .tab::before{background:#262d3d;border-color:#3a4356}
+.dark .tab.on{color:#f2f5fa}
+.dark .tab.on::before{background:#11151f;border-color:#3a4356;box-shadow:none}
+.dark .tab.on::after{background:#11151f}
+.dark .tab .acc{background:#6c9cff}
+.dark .strip{height:22px;background:#11151f}
+</style></head><body>
+
+<!-- reusable SVGs -->
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+ </defs>
+</svg>
+
+<div class="grid">
+
+<div class="stack">
+<!-- ================= CREATOR ================= -->
+<div class="col">
+<div class="cap">1. Creator tab (window at its Creator size)</div>
+<div class="win w-small">
+ <div class="rail">
+  <div class="brand"><img src="../../assets/icons/porcelain/porcelain-32.png" alt="">keycuts</div>
+  <div class="tabs">
+   <div class="tab on"><span class="acc"></span><svg width="15" height="15"><use href="#i-spark"/></svg>Creator</div>
+   <div class="tab"><svg width="15" height="15"><use href="#i-table"/></svg>Manager</div>
+   <div class="tab gear" title="Settings"><svg width="17" height="17"><use href="#i-gear"/></svg></div>
+  </div>
+  <div class="drag"></div>
+  <div class="caps">
+   <div class="cb"><svg width="10" height="10"><use href="#i-min"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-max"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-close"/></svg></div>
+  </div>
+ </div>
+ <div class="body">
+  <div class="drop">
+   <div class="tbadge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/></svg></div>
+   <div style="flex:1;min-width:0"><div class="tl">Target</div>
+    <div class="tv">%USERPROFILE%\Documents\Projects\2026\Gallery Submissions\spring-collection-final-v3.xlsx</div></div>
+   <div class="ibtn" title="Browse"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a2233" stroke-width="2"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg></div>
+  </div>
+  <div class="lbl">Name</div>
+  <div class="row"><div class="inp">art</div>
+   <div class="go" title="Create"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></svg></div></div>
+  <div class="lbl">Description (optional)</div>
+  <div class="desc2">e.g. Recent paintings</div>
+ </div>
+ <div class="foot"><span class="pill">355</span>
+  <span class="upd">keycuts 1.3.0 is available &middot; <a>Download</a><span class="x">&#10005;</span></span></div>
+</div>
+<div class="note">The tab names the screen, so the big "keycuts creator" heading and the creator/manager switch button go away. The footer keeps the count and the update line; its gear goes, since Settings is now a tab.</div>
+</div>
+
+<!-- ================= SETTINGS ================= -->
+<div class="col">
+<div class="cap">3. Settings tab (no separate window; the icon picker stays an overlay)</div>
+<div class="win w-small">
+ <div class="rail">
+  <div class="brand"><img src="../../assets/icons/porcelain/porcelain-32.png" alt="">keycuts</div>
+  <div class="tabs">
+   <div class="tab"><svg width="15" height="15"><use href="#i-spark"/></svg>Creator</div>
+   <div class="tab"><svg width="15" height="15"><use href="#i-table"/></svg>Manager</div>
+   <div class="tab gear on" title="Settings"><span class="acc"></span><svg width="17" height="17"><use href="#i-gear"/></svg></div>
+  </div>
+  <div class="drag"></div>
+  <div class="caps">
+   <div class="cb"><svg width="10" height="10"><use href="#i-min"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-max"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-close"/></svg></div>
+  </div>
+ </div>
+ <div class="body">
+  <div class="sec">OUTPUT</div>
+  <div style="font-size:14px;font-weight:600;margin-top:8px">Output folder</div>
+  <div class="row"><div class="field">%USERPROFILE%\Shortcuts</div><div class="btn">Browse</div></div>
+
+  <div class="sec">BEHAVIOR</div>
+  <div class="set"><div><div class="t">Ask before replacing a keycut</div></div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Right-click context menus</div><div class="n">Add “keycut this!” to File Explorer menus.</div></div><div class="tog"></div></div>
+  <div class="set"><div><div class="t">Use environment variables in paths</div><div class="n">Save paths as %USERPROFILE%\… or similar. Hold Shift to preview.</div></div><div class="tog off"></div></div>
+
+  <div class="sec">APPEARANCE</div>
+  <div class="set"><div><div class="t">Icon <span style="font-weight:400;color:#667">&middot; Black &amp; White</span></div><div class="n">Porcelain in light mode, Onyx in dark mode.</div></div><div class="iconpick"><img src="../../assets/icons/porcelain/porcelain-32.png" alt=""></div></div>
+  <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>
+
+  <div class="sec">UPDATES</div>
+  <div class="set"><div><div class="t">Check for updates</div><div class="n">Once a day, ask GitHub whether a newer version is out.</div></div><div class="tog"></div></div>
+  <div class="set" style="border:none"><div><div class="t">keycuts 1.2.0</div><div class="n">1.3.0 is available &middot; <a style="color:#2563eb;font-weight:600">Download</a></div></div><div class="btn">Check now</div></div>
+  <div class="save">Save</div>
+ </div>
+ <div class="foot"><span class="pill">355</span>
+  <span class="upd">keycuts 1.3.0 is available &middot; <a>Download</a><span class="x">&#10005;</span></span></div>
+</div>
+<div class="note">The same settings as today's Settings window, in the same order, minus its own title. Whether Save stays (and what leaving the tab with unsaved changes does) is an open question; to be decided before the issue.</div>
+</div>
+</div>
+
+<div class="stack">
+<!-- ================= MANAGER ================= -->
+<div class="col">
+<div class="cap">2. Manager tab (same window, grown to the Manager's size; the tabs don't move)</div>
+<div class="win w-wide">
+ <div class="rail">
+  <div class="brand"><img src="../../assets/icons/porcelain/porcelain-32.png" alt="">keycuts</div>
+  <div class="tabs">
+   <div class="tab"><svg width="15" height="15"><use href="#i-spark"/></svg>Creator</div>
+   <div class="tab on"><span class="acc"></span><svg width="15" height="15"><use href="#i-table"/></svg>Manager</div>
+   <div class="tab gear" title="Settings"><svg width="17" height="17"><use href="#i-gear"/></svg></div>
+  </div>
+  <div class="drag"></div>
+  <div class="caps">
+   <div class="cb"><svg width="10" height="10"><use href="#i-min"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-max"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-close"/></svg></div>
+  </div>
+ </div>
+ <div class="body">
+  <div style="display:flex;gap:10px;align-items:center"><div class="srch">&#128269;&nbsp; Search names, types, descriptions, or targets</div><span style="font-size:13px;color:#556">4 of 355 shown</span></div>
+  <table>
+   <tr><th>Name</th><th>Type</th><th>Description</th><th>Target</th><th>Modified</th><th></th></tr>
+   <tr><td class="b">art</td><td><span class="pillt u">URL</span></td><td>Paintings gallery</td><td>https://gallery.example.com/art</td><td>12 minutes ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">db</td><td><span class="pillt f">Folder</span></td><td>Dropbox folder</td><td>%USERPROFILE%\Dropbox</td><td>1 month ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">gmail</td><td><span class="pillt u">URL</span></td><td>Work email</td><td>https://mail.google.com/mail/u/0/#inbox</td><td>5 hours ago</td><td>&middot;&middot;&middot;</td></tr>
+   <tr><td class="b">npp</td><td><span class="pillt fi">File</span></td><td>Notepad++</td><td>C:\Program Files\Notepad++\notepad++.exe</td><td>3 days ago</td><td>&middot;&middot;&middot;</td></tr>
+  </table>
+  <div style="flex:1"></div>
+ </div>
+ <div class="foot"><span class="pill">355</span>
+  <span class="upd">keycuts 1.3.0 is available &middot; <a>Download</a><span class="x">&#10005;</span></span></div>
+</div>
+<div class="note">The Manager's Undo and status message keep their place in the footer, right after the count.</div>
+
+<!-- annotated rail -->
+<div class="cap" style="margin-top:14px">4. The rail up close: what you can grab</div>
+<div class="win anno" style="width:840px">
+ <div class="rail">
+  <div class="brand"><img src="../../assets/icons/porcelain/porcelain-32.png" alt="">keycuts</div>
+  <div class="tabs">
+   <div class="tab"><svg width="15" height="15"><use href="#i-spark"/></svg>Creator</div>
+   <div class="tab on"><span class="acc"></span><svg width="15" height="15"><use href="#i-table"/></svg>Manager</div>
+   <div class="tab gear" title="Settings"><svg width="17" height="17"><use href="#i-gear"/></svg></div>
+  </div>
+  <div class="drag"></div>
+  <div class="caps">
+   <div class="cb"><svg width="10" height="10"><use href="#i-min"/></svg></div>
+   <div class="cb hot"><svg width="10" height="10"><use href="#i-max"/></svg></div>
+   <div class="cb close-hot" style="color:#fff"><svg width="10" height="10"><use href="#i-close"/></svg></div>
+  </div>
+ </div>
+ <div style="height:22px;background:#fff"></div>
+</div>
+<div class="win dark" style="width:840px;margin-top:8px">
+ <div class="rail">
+  <div class="brand"><img src="../../assets/icons/onyx/onyx-32.png" alt="">keycuts</div>
+  <div class="tabs">
+   <div class="tab"><svg width="15" height="15"><use href="#i-spark"/></svg>Creator</div>
+   <div class="tab on"><span class="acc"></span><svg width="15" height="15"><use href="#i-table"/></svg>Manager</div>
+   <div class="tab gear" title="Settings"><svg width="17" height="17"><use href="#i-gear"/></svg></div>
+  </div>
+  <div class="drag"></div>
+  <div class="caps" style="color:#e8ecf4">
+   <div class="cb"><svg width="10" height="10"><use href="#i-min"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-max"/></svg></div>
+   <div class="cb"><svg width="10" height="10"><use href="#i-close"/></svg></div>
+  </div>
+ </div>
+ <div class="strip"></div>
+</div>
+<div class="callouts">
+ <div><span class="k drag"></span><b>Grab areas</b> (the icon and name, and the empty rail): drag to move, double-click to maximize or restore, right-click for the window menu (Alt+Space too). Dragging a maximized window down restores it, and dragging to an edge snaps it, as with a normal title bar.</div>
+ <div><b>Tabs</b> switch screens on click and never drag. The gear tab is Settings; its name shows as a tooltip and to screen readers.</div>
+ <div><b>Our own minimize, maximize and close</b> (shown hovered: grey on maximize, red on close). Hovering maximize still opens Windows 11's snap layouts.</div>
+ <div>Dark mode below: the same rail in the dark theme (Onyx icon).</div>
+</div>
+</div>
+</div>
+
+</div>
+</body></html>

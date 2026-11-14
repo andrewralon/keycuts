@@ -38,6 +38,26 @@ namespace keycuts.GUI
             runner = new Runner();
         }
 
+        /// <summary>The icon a new install shows (#218, restore defaults).</summary>
+        public const AppIconChoice DefaultAppIcon = AppIconChoice.BlackAndWhite;
+
+        /// <summary>
+        /// What a new install has, for Settings' restore defaults (#218): ask before replacing, the right-click menu on (the
+        /// installer adds it), no environment variables, the system theme, and update checks on. The output folder isn't a
+        /// default here: restore defaults never touches it.
+        /// </summary>
+        public static Settings Defaults()
+        {
+            return new Settings
+            {
+                AskBeforeReplacing = Runner.DefaultAskBeforeReplacing,
+                RightClickContextMenus = true,
+                UseEnvironmentVariables = false,
+                Theme = ThemePreference.System,
+                CheckForUpdates = true
+            };
+        }
+
         public void LoadSettings()
         {
             OutputFolder = runner.GetOutputFolder();
@@ -55,39 +75,66 @@ namespace keycuts.GUI
                 Path.IsPathFullyQualified(folder);
         }
 
-        /// <summary>Saves everything it can. Returns a message for the user when something failed, otherwise null.</summary>
-        public string? SaveSettings()
+        /// <summary>
+        /// Stores every setting but the output folder: a toggle, the theme or restore defaults changes these, and must not write a
+        /// folder that another window or the CLI may have changed since this one was loaded. Returns a message for the user when
+        /// something failed, otherwise null.
+        /// </summary>
+        public string? SaveOptions()
         {
-            if (!IsValidOutputFolder(OutputFolder))
-            {
-                return InvalidOutputFolderMessage;
-            }
-
             try
             {
-                var problems = new List<string>();
-
-                if (!runner.ChangeOutputFolder(OutputFolder))
-                {
-                    problems.Add(PathUpdateFailedMessage);
-                }
-
                 runner.SetAskBeforeReplacing(AskBeforeReplacing);
                 runner.SetUseEnvironmentVariables(UseEnvironmentVariables);
                 runner.SetThemePreference(Theme);
                 runner.SetCheckForUpdates(CheckForUpdates);
 
-                if (!runner.SetRightClickContextMenu(RightClickContextMenus))
-                {
-                    problems.Add(ContextMenuFailedMessage);
-                }
-
-                return problems.Count == 0 ? null : string.Join(Environment.NewLine, problems);
+                return runner.SetRightClickContextMenu(RightClickContextMenus) ? null : ContextMenuFailedMessage;
             }
             catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
             {
-                return $"Couldn\u2019t save settings: {e.Message}";
+                return SaveFailedPrefix + e.Message;
+            }
+        }
+
+        /// <summary>
+        /// Stores <see cref="OutputFolder"/> and moves PATH to it. Says whether the folder itself was stored, apart from any message:
+        /// PATH can fail after the folder is stored, and then the folder still counts.
+        /// </summary>
+        public FolderSaveResult SaveOutputFolder()
+        {
+            if (!IsValidOutputFolder(OutputFolder))
+            {
+                return new FolderSaveResult(false, InvalidOutputFolderMessage);
+            }
+
+            try
+            {
+                return new FolderSaveResult(true, runner.ChangeOutputFolder(OutputFolder) ? null : PathUpdateFailedMessage);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            {
+                // The folder is written before PATH, so a failure may come after it was stored: ask the registry
+                return new FolderSaveResult(IsStored(OutputFolder), SaveFailedPrefix + e.Message);
+            }
+        }
+
+        /// <summary>The start of the message for a save the registry refused.</summary>
+        public const string SaveFailedPrefix = "Couldn\u2019t save settings: ";
+
+        private bool IsStored(string folder)
+        {
+            try
+            {
+                return string.Equals(runner.GetOutputFolder(), folder, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            {
+                return false;
             }
         }
     }
+
+    /// <summary>What saving the output folder did: whether the folder itself was stored, and a message for the user, or null.</summary>
+    public sealed record FolderSaveResult(bool Stored, string? Message);
 }

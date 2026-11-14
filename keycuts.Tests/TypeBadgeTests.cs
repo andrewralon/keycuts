@@ -102,8 +102,9 @@ namespace keycuts.Tests
 
         static Dictionary<string, string> LoadColors(string file)
         {
+            // A brush has a Color attribute; a Color (ShadowColor) is the element's own text
             return XDocument.Load(ThemePath(file)).Root!.Elements()
-                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => ((string)e.Attribute("Color")!).ToLowerInvariant());
+                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => ((string)e.Attribute("Color") ?? e.Value.Trim()).ToLowerInvariant());
         }
 
         static string ThemePath(string file)

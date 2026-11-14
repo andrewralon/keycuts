@@ -6,21 +6,13 @@
         xmlns:controls="clr-namespace:keycuts.GUI.Controls"
         xmlns:vm="clr-namespace:keycuts.GUI.ViewModels"
         mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:ConfirmViewModel}"
-        Title="{Binding Title}" Width="440" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
+        Title="{Binding Title}" Width="{StaticResource ConfirmWidth}" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" UseLayoutRounding="True"
         Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}"
         FontFamily="{StaticResource AppFontFamily}" FontSize="{StaticResource FontSizeBody}"
         Loaded="Confirm_Loaded">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-
-        <!-- Same as the Settings window's field labels and section labels -->
-        <Style x:Key="SectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{StaticResource FontSizeEyebrow}" />
-            <Setter Property="FontWeight" Value="ExtraBold" />
-            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-            <Setter Property="Margin" Value="0,0,0,4" />
-        </Style>
 
         <Style x:Key="TargetText" TargetType="TextBlock">
             <Setter Property="TextWrapping" Value="Wrap" />
@@ -41,35 +33,34 @@
                       FocusVisualStyle="{StaticResource AppFocusVisual}" AutomationProperties.Name="{Binding Heading}"
                       AutomationProperties.HelpText="{Binding Summary}"
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="24">
+            <StackPanel Margin="{StaticResource PagePadding}">
                 <!-- Header -->
-                <Grid Margin="0,0,0,18">
+                <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Border Width="38" Height="38" CornerRadius="10" Background="{DynamicResource SurfaceSubtleBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" VerticalAlignment="Top">
-                        <controls:Icon Kind="Warning" Size="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <!-- A warning, not a greeting: the tile is subtle and outlined, with the glyph in the warning color -->
+                    <Border Style="{StaticResource IconTile}" Background="{DynamicResource SurfaceSubtleBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <controls:Icon Kind="Warning" Size="24" HorizontalAlignment="Center" VerticalAlignment="Center"
                                        Foreground="{DynamicResource WarningBrush}" />
                     </Border>
-                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                        <TextBlock x:Name="HeadingText" Text="{Binding Heading}" FontSize="{StaticResource FontSizeHeading}"
-                                   FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level1" />
+                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                        <TextBlock x:Name="HeadingText" Text="{Binding Heading}" Style="{StaticResource Heading}" Margin="0" />
                         <TextBlock Text="{Binding Intro}" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextSecondaryBrush}" />
                     </StackPanel>
                 </Grid>
 
                 <!-- A replace: what the keycut opens now, and what it will open -->
-                <Border Padding="14,12" Margin="0,0,0,14" CornerRadius="{StaticResource RadiusLg}"
-                        Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                <Border Style="{StaticResource InsetPanel}"
                         Visibility="{Binding ShowTargets, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
-                        <TextBlock Text="OPENS NOW" Style="{StaticResource SectionLabel}" />
+                        <controls:SectionLabel Text="Opens now" />
                         <TextBlock x:Name="CurrentTargetText" Text="{Binding CurrentTarget}" Style="{StaticResource TargetText}"
                                    AutomationProperties.Name="{Binding CurrentTarget, StringFormat='Opens now: {0}'}" />
-                        <TextBlock Text="WILL OPEN" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
+                        <controls:SectionLabel Text="Will open" Margin="0,12,0,8" />
                         <TextBlock x:Name="NewTargetText" Text="{Binding NewTarget}" Style="{StaticResource TargetText}"
                                    AutomationProperties.Name="{Binding NewTarget, StringFormat='Will open: {0}'}" />
                     </StackPanel>
@@ -85,7 +76,7 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <controls:Icon Kind="Warning" Size="15" Margin="0,1,8,0" VerticalAlignment="Top"
+                                <controls:Icon Kind="Warning" Size="16" Margin="0,1,8,0" VerticalAlignment="Top"
                                                Foreground="{DynamicResource WarningBrush}" />
                                 <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" />
                             </Grid>
@@ -96,16 +87,15 @@
         </ScrollViewer>
 
         <!-- Footer, as in Settings: Cancel and Escape keep things as they are; Enter goes ahead -->
-        <Border Grid.Row="1" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,1,0,0" Padding="24,13">
+        <Border Grid.Row="1" Style="{StaticResource DialogFooter}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="BtnCancel" Content="Cancel" Style="{StaticResource SecondaryButton}" IsCancel="True" />
+                <Button x:Name="BtnCancel" Content="cancel" Style="{StaticResource SecondaryButton}" IsCancel="True" />
                 <Button x:Name="BtnConfirm" Style="{StaticResource PrimaryButton}" IsDefault="True" Margin="8,0,0,0"
                         Click="Confirm_Click" AutomationProperties.Name="{Binding ConfirmText}"
                         AutomationProperties.HelpText="{Binding Summary}">
                     <StackPanel Orientation="Horizontal">
                         <controls:Icon Kind="Check" Size="16" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding ConfirmText}" Margin="7,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </StackPanel>

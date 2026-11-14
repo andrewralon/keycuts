@@ -293,7 +293,7 @@ namespace keycuts.Tests
                 var alpha = manager.Rows[0];
                 manager.SelectedRow = alpha;
 
-                OpenRowMenuItem(window, "alpha", "Edit", out var menu);
+                OpenRowMenuItem(window, "alpha", "Edit…", out var menu);
                 Assert.False(Click(CellOf(window, alpha, 0)));
                 Assert.False(manager.IsEditing);
 

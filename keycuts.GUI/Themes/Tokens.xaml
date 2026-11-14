@@ -8,6 +8,7 @@
     <CornerRadius x:Key="RadiusLg">12</CornerRadius>
     <CornerRadius x:Key="RadiusXl">16</CornerRadius>
     <!-- The same radii as numbers, for Rectangle.RadiusX/Y (the dashed drop and empty-state outlines) -->
+    <sys:Double x:Key="RadiusSmValue">5</sys:Double>
     <sys:Double x:Key="RadiusMdValue">8</sys:Double>
     <sys:Double x:Key="RadiusLgValue">12</sys:Double>
 
@@ -30,8 +31,8 @@
     <Thickness x:Key="DialogFooterPadding">24,12</Thickness>
     <Thickness x:Key="PanelPadding">16</Thickness>
 
-    <!-- Window widths. MainWidth is the Creator's until #218 sets it from what the tab bar needs. -->
-    <sys:Double x:Key="MainWidth">440</sys:Double>
+    <!-- Window widths. MainWidth (the Creator's, and Settings' once #218's second part lands) is what the tab bar needs plus about 60 of empty bar. -->
+    <sys:Double x:Key="MainWidth">600</sys:Double>
     <sys:Double x:Key="ConfirmWidth">440</sys:Double>
     <sys:Double x:Key="EditWidth">480</sys:Double>
 
@@ -40,6 +41,13 @@
     <sys:Double x:Key="InputHeight">36</sys:Double>
     <sys:Double x:Key="IconButtonSize">32</sys:Double>
     <sys:Double x:Key="TileSize">40</sys:Double>
+
+    <!-- The tab bar that replaces the title bar (#218). The caption buttons are the Windows standard sizes, an exception to the grid. -->
+    <sys:Double x:Key="RailHeight">48</sys:Double>
+    <sys:Double x:Key="TabHeight">40</sys:Double>
+    <sys:Double x:Key="TabCut">8</sys:Double>
+    <sys:Double x:Key="TabSlant">16</sys:Double>
+    <sys:Double x:Key="CaptionButtonWidth">46</sys:Double>
 
     <!-- Typography: 12 is the smallest text, and every heading is 20 (level 1) or 16 (level 2) -->
     <FontFamily x:Key="AppFontFamily">Segoe UI Variable, Segoe UI</FontFamily>

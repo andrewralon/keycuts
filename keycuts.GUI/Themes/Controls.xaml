@@ -1019,4 +1019,157 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- The tab bar that replaces the title bar (issue 218; docs/styleguide.md, Tabbed window) -->
+
+    <!-- Keyboard focus on a tab: inside it, since the tab stands on the bar's bottom edge and a ring around it would be cut -->
+    <Style x:Key="TabFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="4,4,16,4" StrokeThickness="2" RadiusX="{StaticResource RadiusSmValue}" RadiusY="{StaticResource RadiusSmValue}" SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource AccentBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A folder tab: TabHeight high, a cut corner at the left, a slanted right side, standing on the bar's bottom edge. The selected tab
+         is the page color and runs into the page; only its shadow falls to the right. Inactive tabs are shaded and textured. -->
+    <Style x:Key="RailTabItem" TargetType="TabItem">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource TabFocusVisual}" />
+        <Setter Property="Height" Value="{StaticResource TabHeight}" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Padding" Value="12,0,24,0" />
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TabTextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Grid x:Name="Root" Background="Transparent" SnapsToDevicePixels="True">
+                        <!-- The selected tab's shadow, to the right only (Direction 0). It is a shape of its own under the tab, with the effect
+                             written here, because an effect set from a trigger is one object shared by every tab and can't be frozen
+                             with a palette color in it. Opacity is the effect's own: a color's alpha is ignored. -->
+                        <controls:FolderTabShape x:Name="Shadow" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
+                                                 Fill="{DynamicResource SurfaceBrush}" StrokeThickness="0" Visibility="Collapsed"
+                                                 IsHitTestVisible="False">
+                            <controls:FolderTabShape.Effect>
+                                <DropShadowEffect Direction="0" ShadowDepth="3" BlurRadius="4" Opacity="0.3" Color="{DynamicResource ShadowColor}" />
+                            </controls:FolderTabShape.Effect>
+                        </controls:FolderTabShape>
+                        <controls:FolderTabShape x:Name="Body" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
+                                                 Fill="{DynamicResource TabBrush}" Stroke="{DynamicResource TabBorderBrush}"
+                                                 StrokeThickness="1" />
+                        <controls:FolderTabShape x:Name="Texture" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
+                                                 Fill="{DynamicResource TabTextureBrush}" StrokeThickness="1" IsHitTestVisible="False" />
+                        <!-- High contrast only: an inactive tab closes its outline at the base, so the selected one, whose outline
+                             runs into the page, is the one to tell apart. Transparent in the other palettes. -->
+                        <Rectangle x:Name="Base" Height="1" VerticalAlignment="Bottom" Fill="{DynamicResource TabBaseBrush}"
+                                   IsHitTestVisible="False" />
+                        <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Panel.ZIndex" Value="5" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                            <Setter TargetName="Body" Property="Fill" Value="{DynamicResource SurfaceBrush}" />
+                            <Setter TargetName="Body" Property="Stroke" Value="{DynamicResource TabSelectedBorderBrush}" />
+                            <Setter TargetName="Texture" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Base" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Shadow" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Only the row of tabs: the screen under it is chosen by the shell, not hosted here. One Tab stop; the arrow keys move between tabs. -->
+    <Style x:Key="RailTabControl" TargetType="controls:RailTabControl">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource RailTabItem}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
+        <Setter Property="KeyboardNavigation.DirectionalNavigation" Value="Cycle" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:RailTabControl">
+                    <StackPanel IsItemsHost="True" Orientation="Horizontal" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Minimize, maximize or restore, and close: CaptionButtonWidth by RailHeight, a 10px glyph in the text color. They are not Tab stops,
+         as the standard ones aren't (the window menu, Alt+Space, has the same commands). Maximize also answers to the window's
+         non-client mouse messages (CaptionButtonState), which is how Windows 11 shows its snap layouts over it. -->
+    <Style x:Key="CaptionButton" TargetType="Button">
+        <Setter Property="Width" Value="{StaticResource CaptionButtonWidth}" />
+        <Setter Property="Height" Value="{StaticResource RailHeight}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CaptionHoverBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
+            </Trigger>
+            <Trigger Property="controls:CaptionButtonState.IsHot" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CaptionHoverBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CaptionPressedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
+            </Trigger>
+            <Trigger Property="controls:CaptionButtonState.IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CaptionPressedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource CaptionHoverGlyphBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="CaptionCloseButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CaptionCloseBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource CaptionCloseGlyphBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource CaptionCloseBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource CaptionCloseGlyphBrush}" />
+                <Setter Property="Opacity" Value="0.8" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

@@ -36,4 +36,56 @@
     <SolidColorBrush x:Key="BadgeCommandBorderBrush" Color="#285e45" />
     <SolidColorBrush x:Key="ScrimBrush" Color="#99000000" />
     <Color x:Key="ShadowColor">#000000</Color>
+
+    <!-- Tab bar (#218): the bar, its tabs, the app icon's socket and the caption buttons. Gradients and textures live here, not in the views. -->
+    <LinearGradientBrush x:Key="RailBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#1c2029" Offset="0" />
+        <GradientStop Color="#111318" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Fine horizontal lines over the bar: 1 px in every 3 -->
+    <DrawingBrush x:Key="RailTextureBrush" TileMode="Tile" ViewportUnits="Absolute" Viewport="0,0,4,3" ViewboxUnits="Absolute" Viewbox="0,0,4,3">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing Brush="#06ffffff"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,4,1" /></GeometryDrawing.Geometry></GeometryDrawing>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <!-- The faint dot grid in the empty, draggable part of the bar -->
+    <DrawingBrush x:Key="RailGripBrush" TileMode="Tile" ViewportUnits="Absolute" Viewport="0,0,6,6" ViewboxUnits="Absolute" Viewbox="0,0,6,6">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing Brush="#1affffff"><GeometryDrawing.Geometry><RectangleGeometry Rect="2.5,2.5,1,1" /></GeometryDrawing.Geometry></GeometryDrawing>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <LinearGradientBrush x:Key="TabBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#2b313c" Offset="0" />
+        <GradientStop Color="#191c23" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Fine diagonal lines over an inactive tab: 1 px in every 4 -->
+    <DrawingBrush x:Key="TabTextureBrush" TileMode="Tile" ViewportUnits="Absolute" Viewport="0,0,4,4" ViewboxUnits="Absolute" Viewbox="0,0,4,4">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing>
+                <GeometryDrawing.Pen><Pen Brush="#0bffffff" Thickness="1" /></GeometryDrawing.Pen>
+                <GeometryDrawing.Geometry>
+                    <GeometryGroup>
+                        <LineGeometry StartPoint="0,4" EndPoint="4,0" />
+                        <LineGeometry StartPoint="-1,1" EndPoint="1,-1" />
+                        <LineGeometry StartPoint="3,5" EndPoint="5,3" />
+                    </GeometryGroup>
+                </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <SolidColorBrush x:Key="TabBorderBrush" Color="#3d4553" />
+    <SolidColorBrush x:Key="TabSelectedBorderBrush" Color="#4a5361" />
+    <SolidColorBrush x:Key="TabTextBrush" Color="#9aa4b5" />
+    <SolidColorBrush x:Key="TabBaseBrush" Color="Transparent" />
+    <LinearGradientBrush x:Key="SocketBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#20242c" Offset="0" />
+        <GradientStop Color="#14171d" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="SocketBorderBrush" Color="#363d48" />
+    <SolidColorBrush x:Key="CaptionHoverBrush" Color="#14ffffff" />
+    <SolidColorBrush x:Key="CaptionPressedBrush" Color="#24ffffff" />
+    <SolidColorBrush x:Key="CaptionHoverGlyphBrush" Color="#f3f5f8" />
+    <!-- The one fixed color: Windows' close button is this red with a white glyph in every theme -->
+    <SolidColorBrush x:Key="CaptionCloseBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="CaptionCloseGlyphBrush" Color="#ffffff" />
 </ResourceDictionary>

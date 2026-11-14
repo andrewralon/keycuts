@@ -6,7 +6,7 @@ using keycuts.GUI.ViewModels;
 namespace keycuts.GUI.Views
 {
     /// <summary>
-    /// The footer of the creator and the manager (#205): Settings, the keycut count, an optional message of the screen's own, and
+    /// The footer of the creator and the manager (#205): the keycut count, an optional message of the screen's own, and
     /// the update line. It takes its data from the view model of the view it sits in.
     /// </summary>
     public partial class FooterView : UserControl

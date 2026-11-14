@@ -297,32 +297,12 @@
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
-      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <Grid Grid.Row="0" Margin="24,24,24,0">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
-      <TextBlock Text="keycuts manager" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
-                 AutomationProperties.HeadingLevel="Level1" />
-      <!-- Lowercase on purpose: the creator's link to this screen says "manager" -->
-      <Button x:Name="BtnCreator" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Margin="12,0,0,0"
-              AutomationProperties.Name="creator"
-              Command="{Binding ShowCreatorCommand}">
-        <StackPanel Orientation="Horizontal">
-          <controls:Icon Kind="Spark" Size="15" />
-          <TextBlock Text="creator" Margin="8,0,0,0" />
-        </StackPanel>
-      </Button>
-    </Grid>
-
     <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
-    <Grid Grid.Row="1" Margin="24,16,24,12">
+    <Grid Grid.Row="0" Margin="24,16,24,12">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
@@ -342,7 +322,7 @@
                  Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
     </Grid>
 
-    <Grid Grid.Row="2" Margin="24,0,24,12">
+    <Grid Grid.Row="1" Margin="24,0,24,12">
       <!-- Populated -->
       <Border x:Name="TableHost" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
               CornerRadius="{StaticResource RadiusMd}" SizeChanged="TableHost_SizeChanged"
@@ -594,7 +574,7 @@
 
     <!-- #205: the footer both screens share. The status line (Deleted, errors) and Undo sit in it between the count and the
          update line. -->
-    <views:FooterView Grid.Row="3">
+    <views:FooterView Grid.Row="2">
       <views:FooterView.Message>
         <views:ManagerStatusView />
       </views:FooterView.Message>

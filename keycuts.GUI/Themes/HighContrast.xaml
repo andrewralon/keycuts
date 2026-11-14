@@ -38,4 +38,23 @@
     <!-- No dimming and no shadow in high contrast: the sheet's outline sets it apart -->
     <SolidColorBrush x:Key="ScrimBrush" Color="Transparent" />
     <Color x:Key="ShadowColor">Transparent</Color>
+
+    <!-- Tab bar (#218): no gradients, textures or shadow. The bar is the window color, the tabs are outlined in the text color,
+         and the selected tab is the one whose outline runs into the page. -->
+    <SolidColorBrush x:Key="RailBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <SolidColorBrush x:Key="RailTextureBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="RailGripBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TabBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <SolidColorBrush x:Key="TabTextureBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TabBorderBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="TabSelectedBorderBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="TabTextBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="TabBaseBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="SocketBrush" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <SolidColorBrush x:Key="SocketBorderBrush" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <SolidColorBrush x:Key="CaptionHoverBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <SolidColorBrush x:Key="CaptionPressedBrush" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <SolidColorBrush x:Key="CaptionHoverGlyphBrush" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
+    <SolidColorBrush x:Key="CaptionCloseBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="CaptionCloseGlyphBrush" Color="#ffffff" />
 </ResourceDictionary>

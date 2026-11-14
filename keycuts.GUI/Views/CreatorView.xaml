@@ -264,7 +264,7 @@
     </Grid.RowDefinitions>
 
     <!-- 16 at the bottom: the same gap as between the Name and Description fields, so the window ends where its content does -->
-    <Grid Grid.Row="0" Margin="20,20,20,16">
+    <Grid Grid.Row="0" Margin="20,16,20,16">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
@@ -272,29 +272,10 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <Grid Grid.Row="0" Margin="0,0,0,16">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <TextBlock Text="keycuts creator" FontSize="{StaticResource FontSizeHeading}" FontWeight="SemiBold"
-                   VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
-                   AutomationProperties.HeadingLevel="Level1" />
-        <!-- Lowercase on purpose: the manager's own heading is "keycuts manager" -->
-        <Button x:Name="BtnManager" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
-                AutomationProperties.Name="manager"
-                Margin="12,0,0,0" Command="{Binding ShowManagerCommand}">
-          <StackPanel Orientation="Horizontal">
-            <controls:Icon Kind="Table" Size="15" />
-            <TextBlock Text="manager" Margin="8,0,0,0" />
-          </StackPanel>
-        </Button>
-      </Grid>
-
       <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. Its bubbles fill an example (a website, a
            folder, keycuts itself) into the fields below instead of the panel having a form of its own. Off while a keycut is being saved,
            like the fields it fills. Collapsed without a Welcome. -->
-      <Border x:Name="WelcomePanel" Grid.Row="1" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
+      <Border x:Name="WelcomePanel" Grid.Row="0" DataContext="{Binding Welcome}" Margin="0,0,0,18" Padding="14,12"
               IsEnabled="{Binding DataContext.IsInputEnabled, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=True}"
               CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}"
               Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
@@ -364,7 +345,7 @@
       </Border>
 
       <!-- Target drop area -->
-      <Grid x:Name="DropArea" Grid.Row="2" MinHeight="96">
+      <Grid x:Name="DropArea" Grid.Row="1" MinHeight="96">
         <Border Style="{StaticResource DropGlow}" />
         <Border Style="{StaticResource DropFill}" />
         <Rectangle Style="{StaticResource DropStroke}" />
@@ -438,7 +419,7 @@
       </Grid>
 
       <!-- Name form -->
-      <StackPanel Grid.Row="3" Margin="0,16,0,0">
+      <StackPanel Grid.Row="2" Margin="0,16,0,0">
         <!-- The label, and at its right what is happening to the keycut: "Saving…", then "Created name" (#205). They sit on this
              row, not under the field, so the window keeps its height while a keycut is made. -->
         <Grid Margin="0,0,0,6">

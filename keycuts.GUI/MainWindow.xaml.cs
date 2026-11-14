@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using keycuts.GUI.ViewModels;
 
@@ -17,6 +18,10 @@ namespace keycuts.GUI
 
         private Size? managerSize;
 
+        private bool syncingTabs;
+
+        private WindowCaptionHook? captionHook;
+
         public MainWindow(ShellViewModel shell)
         {
             InitializeComponent();
@@ -26,6 +31,13 @@ namespace keycuts.GUI
             shell.PropertyChanged += Shell_PropertyChanged;
             shell.SettingsRequested += Shell_SettingsRequested;
             Loaded += (sender, e) => _ = shell.ReloadAsync();
+
+            // The tab bar replaces the title bar (#218). The tabs show the shell's screen and switch it.
+            SelectTabForMode();
+            Rail.Tabs.SelectionChanged += Tabs_SelectionChanged;
+            // Windows 11's snap layouts need the window to answer "this is the maximize button" over ours
+            SourceInitialized += (sender, e) => captionHook = new WindowCaptionHook(this, Rail.MaximizeButton);
+            StateChanged += (sender, e) => FitMaximizedWindow();
 
             // Pick up keycuts changed outside the app
             Activated += (sender, e) =>
@@ -44,9 +56,52 @@ namespace keycuts.GUI
 
         private void Shell_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ShellViewModel.Mode) && IsLoaded)
+            if (e.PropertyName != nameof(ShellViewModel.Mode))
+            {
+                return;
+            }
+
+            SelectTabForMode();
+            if (IsLoaded)
             {
                 ApplyMode(shell.Mode);
+            }
+        }
+
+        private void SelectTabForMode()
+        {
+            syncingTabs = true;
+            try
+            {
+                Rail.Tabs.SelectedItem = shell.Mode == ShellMode.Manager ? Rail.ManagerItem : Rail.CreatorItem;
+            }
+            finally
+            {
+                syncingTabs = false;
+            }
+        }
+
+        private void Tabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (syncingTabs || !ReferenceEquals(e.OriginalSource, Rail.Tabs))
+            {
+                return;
+            }
+
+            var selected = Rail.Tabs.SelectedItem;
+            if (ReferenceEquals(selected, Rail.SettingsItem))
+            {
+                // Settings is still a dialog; the tab opens it and the screen's own tab stays selected
+                SelectTabForMode();
+                shell.OpenSettingsCommand.Execute(null);
+            }
+            else if (ReferenceEquals(selected, Rail.ManagerItem))
+            {
+                shell.ShowManager();
+            }
+            else if (ReferenceEquals(selected, Rail.CreatorItem))
+            {
+                shell.ShowCreator();
             }
         }
 
@@ -112,12 +167,41 @@ namespace keycuts.GUI
             }
         }
 
+        /// <summary>
+        /// With no frame of its own, a maximized window is placed by Windows as if it still had one: it overhangs the work area by the
+        /// size of the resize border on every side (measured: -8,-8 to 1928,1160 against a 1920 x 1152 work area at 100%, which is what <see cref="WindowLayout.GetFrameThickness"/> returns). The content is
+        /// pulled in by that much so it lies inside the work area, and the caption area grows by the same amount at the top so it still
+        /// covers the whole bar.
+        /// </summary>
+        private void FitMaximizedWindow()
+        {
+            var overhang = WindowState == WindowState.Maximized ? WindowLayout.GetFrameThickness(this) : new Thickness(0);
+            Frame.Margin = overhang;
+
+            var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+            if (chrome != null)
+            {
+                chrome.CaptionHeight = (double)FindResource("RailHeight") + overhang.Top;
+            }
+        }
+
+        /// <summary>The edges that resize the window: the system's thickness on the Manager, none on the fixed-size screens.</summary>
+        private void SetResizeBorder(Thickness thickness)
+        {
+            var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
+            if (chrome != null)
+            {
+                chrome.ResizeBorderThickness = thickness;
+            }
+        }
+
         private void ShowManagerSize()
         {
             creatorLocation = new Point(Left, Top);
 
             SizeToContent = SizeToContent.Manual;
             ResizeMode = ResizeMode.CanResize;
+            SetResizeBorder(WindowLayout.GetFrameThickness(this));
             MinWidth = WindowLayout.ManagerMinWidth;
             MinHeight = WindowLayout.ManagerMinHeight;
 
@@ -145,6 +229,7 @@ namespace keycuts.GUI
             MinWidth = 0;
             MinHeight = 0;
             ResizeMode = ResizeMode.CanMinimize;
+            SetResizeBorder(new Thickness(0));
             Width = WindowLayout.CreatorWidth;
             SizeToContent = SizeToContent.Height;
 

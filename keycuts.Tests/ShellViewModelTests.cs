@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using keycuts.Common;
 using keycuts.GUI;
 using keycuts.GUI.Mvvm;
 using keycuts.GUI.ViewModels;
@@ -262,6 +263,33 @@ namespace keycuts.Tests
 
             Assert.Equal(9, shell.Creator.KeycutCount);
             Assert.Equal(9, shell.Manager.KeycutCount);
+        }
+
+        // A Manager load still running when the screen changes and a new folder's count comes in must not fill the table with the
+        // old folder's rows afterwards (PR #227 review)
+        [Fact]
+        public async Task AManagerLoadOvertakenByACountOnlyReload_DoesntPublishItsRows()
+        {
+            var load = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var count = 3;
+            var shell = new ShellViewModel(() => Task.FromResult(count), _ => load.Task);
+
+            shell.ShowManager();
+            Assert.True(shell.Manager.IsLoading);
+
+            count = 9;
+            shell.ShowCreator();
+            await shell.ReloadAsync();
+
+            load.SetResult(new[]
+            {
+                new Keycut { Name = "old", Kind = KeycutKind.Url, RawType = ShortcutType.Url, Target = "https://old.example.com", FilePath = @"C:\Old\old.bat" }
+            });
+            await Task.Yield();
+
+            Assert.Empty(shell.Manager.Rows);
+            Assert.Equal(9, shell.Manager.KeycutCount);
+            Assert.Equal(9, shell.Creator.KeycutCount);
         }
 
         [Fact]

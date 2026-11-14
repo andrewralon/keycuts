@@ -264,6 +264,9 @@ namespace keycuts.GUI.ViewModels
                 return;
             }
 
+            // The Manager isn't loading its rows now; one load it started earlier must not publish them after this count
+            Manager.CancelLoad();
+
             int count;
             try
             {

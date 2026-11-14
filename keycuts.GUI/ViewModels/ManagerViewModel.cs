@@ -1165,6 +1165,16 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
+        /// Drops a load still running, so it can't fill the table later. The shell calls it when it reloads only the count (the
+        /// Manager isn't showing): a load started before a new output folder would otherwise finish with the old folder's rows
+        /// (PR #227 review). Showing the Manager loads again.
+        /// </summary>
+        public void CancelLoad()
+        {
+            Interlocked.Exchange(ref loadSource, null)?.Cancel();
+        }
+
+        /// <summary>
         /// Loads the keycuts and then checks their targets in the background. A newer call cancels the previous one.
         /// The loading indicator shows only for the first load; later refreshes update the table quietly.
         /// </summary>

@@ -156,6 +156,10 @@ namespace keycuts.Tests
             var colors = LoadColors("HighContrast.xaml");
             Assert.Equal("transparent", colors["ScrimBrush"]);
             Assert.Equal("transparent", colors["ShadowColor"]);
+            // DropShadowEffect ignores a color's alpha, so only the opacity turns a shadow off (#224 review)
+            Assert.Equal("0", colors["ShadowOpacity"]);
+            Assert.Equal("0.3", LoadColors("Light.xaml")["ShadowOpacity"]);
+            Assert.Equal("0.3", LoadColors("Dark.xaml")["ShadowOpacity"]);
             Assert.Contains("HotTrackColorKey".ToLowerInvariant(), colors["AccentTextBrush"]);
         }
 
@@ -224,6 +228,20 @@ namespace keycuts.Tests
             var colors = LoadColors(palette);
             var ratio = ColorContrast.Ratio(colors[foreground], colors[background]);
             Assert.True(ratio >= minimum, $"{palette}: {foreground} on {background} is {ratio:0.00}:1, needs {minimum}:1");
+        }
+
+        [Fact]
+        public void EveryShadow_TakesItsOpacityFromThePalette()
+        {
+            // A shadow with a fixed opacity would still show in high contrast, where ShadowColor is Transparent: the effect ignores alpha
+            var gui = Path.GetDirectoryName(Path.GetDirectoryName(ThemePath("Controls.xaml")))!;
+            var shadows = Directory.EnumerateFiles(gui, "*.xaml", SearchOption.AllDirectories)
+                .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar))
+                .SelectMany(f => XDocument.Load(f).Descendants().Where(e => e.Name.LocalName == "DropShadowEffect").Select(e => (File: Path.GetFileName(f), Opacity: (string)e.Attribute("Opacity"))))
+                .ToList();
+
+            Assert.NotEmpty(shadows);
+            Assert.All(shadows, s => Assert.True(s.Opacity == "{DynamicResource ShadowOpacity}", $"{s.File}: a DropShadowEffect has Opacity=\"{s.Opacity}\""));
         }
 
         [Fact]

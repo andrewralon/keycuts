@@ -890,7 +890,7 @@
                     <Grid>
                         <Border x:Name="Shadow" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource SurfaceRaisedBrush}">
                             <Border.Effect>
-                                <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="{DynamicResource ShadowColor}" />
+                                <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="{DynamicResource ShadowOpacity}" Color="{DynamicResource ShadowColor}" />
                             </Border.Effect>
                         </Border>
                         <Border x:Name="Sheet" CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource SurfaceRaisedBrush}"
@@ -1053,12 +1053,12 @@
                     <Grid x:Name="Root" Background="Transparent" SnapsToDevicePixels="True">
                         <!-- The selected tab's shadow, to the right only (Direction 0). It is a shape of its own under the tab, with the effect
                              written here, because an effect set from a trigger is one object shared by every tab and can't be frozen
-                             with a palette color in it. Opacity is the effect's own: a color's alpha is ignored. -->
+                             with a palette color in it. Its opacity is ShadowOpacity, since a color's alpha is ignored; high contrast sets it to 0. -->
                         <controls:FolderTabShape x:Name="Shadow" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
                                                  Fill="{DynamicResource SurfaceBrush}" StrokeThickness="0" Visibility="Collapsed"
                                                  IsHitTestVisible="False">
                             <controls:FolderTabShape.Effect>
-                                <DropShadowEffect Direction="0" ShadowDepth="3" BlurRadius="4" Opacity="0.3" Color="{DynamicResource ShadowColor}" />
+                                <DropShadowEffect Direction="0" ShadowDepth="3" BlurRadius="4" Opacity="{DynamicResource ShadowOpacity}" Color="{DynamicResource ShadowColor}" />
                             </controls:FolderTabShape.Effect>
                         </controls:FolderTabShape>
                         <controls:FolderTabShape x:Name="Body" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"

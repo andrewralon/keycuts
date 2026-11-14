@@ -15,6 +15,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Xml.Linq;
+using keycuts.Common;
 using keycuts.GUI;
 using keycuts.GUI.Controls;
 using keycuts.GUI.ViewModels;
@@ -302,6 +303,54 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void ArrowingThroughTheTabs_KeepsTheFocusOnTheTabs_WhileAClickLandsInThePage()
+        {
+            WithWindow((window, shell) =>
+            {
+                var creator = (TabItem)Named(window, "CreatorTab");
+                var manager = (TabItem)Named(window, "ManagerTab");
+
+                // An arrow on a tab: the key reaches the tab list, and keyboard navigation moves the focus, which selects the tab.
+                // The navigation itself belongs to the input manager, which a raised event doesn't pass through, so it is done here.
+                void Arrow(TabItem from, FocusNavigationDirection direction)
+                {
+                    var key = direction == FocusNavigationDirection.Right ? Key.Right : Key.Left;
+                    var source = PresentationSource.FromVisual(window)!;
+                    from.RaiseEvent(new KeyEventArgs(new FakeKeyboardDevice(), source, 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+                    from.MoveFocus(new TraversalRequest(direction));
+                    Settle(window);
+                }
+
+                Keyboard.Focus(creator);
+                Settle(window);
+
+                Arrow(creator, FocusNavigationDirection.Right);
+                Assert.Equal(ShellMode.Manager, shell.Mode);
+                Assert.Same(manager, Keyboard.FocusedElement);
+
+                // The search box turns on when the load ends, and still doesn't take the focus from the tabs
+                shell.ReloadAsync().GetAwaiter().GetResult();
+                Settle(window);
+                Assert.True(Descendants<TextBox>(window).Single(t => t.Name == "SearchBox").IsEnabled);
+                Assert.Same(manager, Keyboard.FocusedElement);
+
+                // So the next arrow still moves through the tabs
+                Arrow(manager, FocusNavigationDirection.Left);
+                Assert.Equal(ShellMode.Creator, shell.Mode);
+                Assert.Same(creator, Keyboard.FocusedElement);
+
+                // A click on a tab goes on into the page, as the old switch buttons did: the Manager's search box
+                manager.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                Keyboard.Focus(manager);
+                Settle(window);
+                shell.ReloadAsync().GetAwaiter().GetResult();
+                Settle(window);
+                Assert.Equal(ShellMode.Manager, shell.Mode);
+                Assert.Equal("SearchBox", (Keyboard.FocusedElement as FrameworkElement)?.Name);
+            }, withKeycuts: true);
+        }
+
         [Theory]
         [InlineData(Key.Tab, ModifierKeys.Control, true)]
         [InlineData(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, true)]
@@ -561,12 +610,20 @@ namespace keycuts.Tests
             }
         }
 
-        private static void WithWindow(Action<MainWindow, ShellViewModel> body)
+        private static void WithWindow(Action<MainWindow, ShellViewModel> body, bool withKeycuts = false)
         {
             RunSta(() =>
             {
                 EnsureApplication();
-                var shell = new ShellViewModel(() => Task.FromResult(3));
+
+                // With keycuts to load, the Manager turns its search box on once the load ends, as it does in the app
+                Func<CancellationToken, Task<System.Collections.Generic.IReadOnlyList<Keycut>>>? loader = withKeycuts
+                    ? _ => Task.FromResult<System.Collections.Generic.IReadOnlyList<Keycut>>(new[]
+                    {
+                        new Keycut { Name = "gmail", Kind = KeycutKind.Url, RawType = ShortcutType.Url, Target = "https://mail.google.com", FilePath = @"C:\fixture\gmail.bat" }
+                    })
+                    : null;
+                var shell = new ShellViewModel(() => Task.FromResult(3), loader);
                 var window = new MainWindow(shell)
                 {
                     WindowStartupLocation = WindowStartupLocation.Manual,

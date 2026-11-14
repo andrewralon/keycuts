@@ -25,14 +25,20 @@ namespace keycuts.GUI.Views
 
         private void ManagerView_Loaded(object sender, RoutedEventArgs e)
         {
+            // Arrowing through the tabs (#218) keeps the focus there
+            if (Controls.RailTabControl.HoldsKeyboardFocus())
+            {
+                return;
+            }
+
             SearchBox.Focus();
             Keyboard.Focus(SearchBox);
         }
 
-        // Search is disabled while loading; focus it once it becomes available (unless the user went elsewhere).
+        // Search is disabled while loading; focus it once it becomes available (unless the user went elsewhere, the tabs included).
         private void SearchBox_IsEnabledChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (SearchBox.IsEnabled && !IsKeyboardFocusWithin)
+            if (SearchBox.IsEnabled && !IsKeyboardFocusWithin && !Controls.RailTabControl.HoldsKeyboardFocus())
             {
                 SearchBox.Focus();
             }

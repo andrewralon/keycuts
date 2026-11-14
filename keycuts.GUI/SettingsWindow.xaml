@@ -387,7 +387,7 @@
             <Border Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top" CornerRadius="10"
                     Background="{DynamicResource SurfaceRaisedBrush}" Height="{Binding ActualHeight, ElementName=IconPickerSheet}">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.3" Color="{DynamicResource ShadowColor}" />
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="{DynamicResource ShadowOpacity}" Color="{DynamicResource ShadowColor}" />
                 </Border.Effect>
             </Border>
             <Border x:Name="IconPickerSheet" Grid.Row="1" Width="456" HorizontalAlignment="Center" VerticalAlignment="Top"

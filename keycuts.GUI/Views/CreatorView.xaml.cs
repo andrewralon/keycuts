@@ -159,6 +159,12 @@ namespace keycuts.GUI.Views
 
         private void CreatorView_Loaded(object sender, RoutedEventArgs e)
         {
+            // Arrowing through the tabs (#218) keeps the focus there
+            if (Controls.RailTabControl.HoldsKeyboardFocus())
+            {
+                return;
+            }
+
             var nameFirst = ViewModel?.FocusNameFieldOnShow == true;
             var target = nameFirst ? TextboxShortcut : TextboxTarget;
             target.Focus();

@@ -10,6 +10,32 @@ namespace keycuts.GUI.Controls
     /// </summary>
     public class RailTabControl : TabControl
     {
+        private bool lastInputWasMouse;
+
+        /// <summary>
+        /// Whether a keyboard user is moving through the tabs: the focus is on one of them and the last input there was a key, not a
+        /// click. A screen's own first-focus code (the Creator's fields, the Manager's search box) stands aside then, or an arrow that
+        /// switches screens would leave the tabs and the next arrow would act on the page. A click on a tab still lands in the page.
+        /// </summary>
+        public static bool HoldsKeyboardFocus()
+        {
+            return Keyboard.FocusedElement is TabItem tab
+                && ItemsControl.ItemsControlFromItemContainer(tab) is RailTabControl rail
+                && !rail.lastInputWasMouse;
+        }
+
+        protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+        {
+            lastInputWasMouse = true;
+            base.OnPreviewMouseDown(e);
+        }
+
+        protected override void OnPreviewKeyDown(KeyEventArgs e)
+        {
+            lastInputWasMouse = false;
+            base.OnPreviewKeyDown(e);
+        }
+
         protected override void OnKeyDown(KeyEventArgs e)
         {
             if (IsTabCycleKey(e.Key, e.KeyboardDevice.Modifiers))

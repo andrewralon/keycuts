@@ -402,9 +402,14 @@ namespace keycuts.Tests
                 };
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 return null;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                return new FolderSaveResult(true, null);
             }
         }
 

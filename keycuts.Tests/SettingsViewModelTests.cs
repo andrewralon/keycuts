@@ -51,19 +51,33 @@ namespace keycuts.Tests
                 Theme = ThemePreference.Dark
             };
 
+            /// <summary>Every save of the settings but the folder.</summary>
             public List<Settings> Saves { get; } = new List<Settings>();
 
+            /// <summary>Every save of the output folder.</summary>
+            public List<string> FolderSaves { get; } = new List<string>();
+
+            /// <summary>What a settings save says.</summary>
             public string? SaveMessage { get; set; }
+
+            /// <summary>What a folder save says; stored with no message when null.</summary>
+            public FolderSaveResult? FolderResult { get; set; }
 
             public Settings Load()
             {
                 return Stored;
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 Saves.Add(settings);
                 return SaveMessage;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                FolderSaves.Add(folder);
+                return FolderResult ?? new FolderSaveResult(true, null);
             }
         }
 
@@ -97,11 +111,12 @@ namespace keycuts.Tests
             _ = new SettingsViewModel(store, applyTheme: themes.Add);
 
             Assert.Empty(store.Saves);
+            Assert.Empty(store.FolderSaves);
             Assert.Empty(themes);
         }
 
         [Fact]
-        public void EachToggle_IsStoredTheMomentItChanges_WithTheStoredFolder()
+        public void EachToggle_IsStoredTheMomentItChanges_AndNeverWritesTheFolder()
         {
             var store = new FakeStore();
             var vm = NewViewModel(store);
@@ -121,7 +136,8 @@ namespace keycuts.Tests
             Assert.True(last.RightClickContextMenus);
             Assert.False(last.UseEnvironmentVariables);
             Assert.False(last.CheckForUpdates);
-            Assert.All(store.Saves, s => Assert.Equal(@"C:\Shortcuts", s.OutputFolder));
+            // The folder is another window's or the CLI's to change too: a toggle never writes it back (PR #225 review)
+            Assert.Empty(store.FolderSaves);
             Assert.Equal(4, stored);
         }
 
@@ -160,24 +176,22 @@ namespace keycuts.Tests
             vm.OutputFolderChanged += (sender, e) => changed++;
 
             vm.OutputFolder = "  \"" + folder + "\"  ";
-            Assert.Empty(store.Saves);
+            Assert.Empty(store.FolderSaves);
             Assert.False(Directory.Exists(folder));
 
-            // A toggle changed meanwhile stores the folder that was stored, not the half-typed one
+            // A toggle changed meanwhile stores the toggle, and no folder at all
             vm.AskBeforeReplacing = true;
-            Assert.Equal(@"C:\Shortcuts", Assert.Single(store.Saves).OutputFolder);
+            Assert.Single(store.Saves);
+            Assert.Empty(store.FolderSaves);
 
             Assert.True(vm.CommitOutputFolder());
 
-            Assert.Equal(folder, store.Saves[^1].OutputFolder);
-            Assert.True(store.Saves[^1].AskBeforeReplacing);
+            // The folder alone: the other settings were stored as they changed
+            Assert.Equal(new[] { folder }, store.FolderSaves);
+            Assert.Single(store.Saves);
             Assert.Equal(folder, vm.OutputFolder);
             Assert.True(Directory.Exists(folder));
             Assert.Equal(1, changed);
-
-            // ...and after that, a toggle stores the new folder
-            vm.RightClickContextMenus = true;
-            Assert.Equal(folder, store.Saves[^1].OutputFolder);
         }
 
         [Fact]
@@ -198,7 +212,7 @@ namespace keycuts.Tests
             Assert.Equal(@"C:\Shortcuts", vm.OutputFolder);
             Assert.False(vm.HasUncommittedFolder);
             Assert.False(vm.HasOutputFolderError);
-            Assert.Empty(store.Saves);
+            Assert.Empty(store.FolderSaves);
 
             // Nothing left to drop: Escape can go on to leave the screen
             Assert.False(vm.RevertOutputFolder());
@@ -218,7 +232,7 @@ namespace keycuts.Tests
             Assert.True(vm.RevertOutputFolder());
 
             Assert.Equal(folder, vm.OutputFolder);
-            Assert.Single(store.Saves);
+            Assert.Single(store.FolderSaves);
         }
 
         [Fact]
@@ -233,7 +247,7 @@ namespace keycuts.Tests
             vm.OutputFolder = " " + root.ToUpperInvariant() + " ";
             Assert.True(vm.CommitOutputFolder());
 
-            Assert.Empty(store.Saves);
+            Assert.Empty(store.FolderSaves);
             Assert.Equal(0, changed);
         }
 
@@ -260,8 +274,8 @@ namespace keycuts.Tests
         [Fact]
         public void APathFailure_StillCountsAsANewFolder()
         {
-            // Settings.SaveSettings stores the folder before PATH fails, so the count must follow it
-            var store = new FakeStore { SaveMessage = Settings.PathUpdateFailedMessage };
+            // The folder is stored before PATH fails, so the count must follow it
+            var store = new FakeStore { FolderResult = new FolderSaveResult(true, Settings.PathUpdateFailedMessage) };
             var vm = NewViewModel(store);
             var changed = 0;
             vm.OutputFolderChanged += (sender, e) => changed++;
@@ -277,7 +291,7 @@ namespace keycuts.Tests
         [Fact]
         public void ARefusedRegistryWrite_KeepsTheOldFolder_AndEnterTriesAgain()
         {
-            var store = new FakeStore { SaveMessage = Settings.SaveFailedPrefix + "Access is denied." };
+            var store = new FakeStore { FolderResult = new FolderSaveResult(false, Settings.SaveFailedPrefix + "Access is denied.") };
             var vm = NewViewModel(store);
             var folder = Path.Combine(root, "keys");
             var changed = 0;
@@ -291,27 +305,53 @@ namespace keycuts.Tests
             Assert.Equal(folder, vm.OutputFolder);
             Assert.True(vm.HasUncommittedFolder);
 
-            // A toggle meanwhile writes the folder that is really stored
-            store.SaveMessage = null;
+            // A toggle meanwhile writes no folder, so nothing puts back an old one
+            store.FolderResult = null;
             vm.AskBeforeReplacing = true;
-            Assert.Equal(@"C:\Shortcuts", store.Saves[^1].OutputFolder);
+            Assert.Single(store.FolderSaves);
 
             // The same folder again is not "unchanged": it was never stored
             Assert.True(vm.CommitOutputFolder());
-            Assert.Equal(folder, store.Saves[^1].OutputFolder);
+            Assert.Equal(new[] { folder, folder }, store.FolderSaves);
             Assert.Equal(1, changed);
             Assert.False(vm.HasUncommittedFolder);
         }
 
-        [Theory]
-        [InlineData(null, true)]
-        [InlineData(Settings.PathUpdateFailedMessage, true)]
-        [InlineData(Settings.ContextMenuFailedMessage, true)]
-        [InlineData(Settings.InvalidOutputFolderMessage, false)]
-        [InlineData(Settings.SaveFailedPrefix + "Access is denied.", false)]
-        public void StoredTheFolder_TellsAPathFailureFromARefusedWrite(string? message, bool stored)
+        // The store says whether the folder was stored, apart from its message: a failure after the folder was written still
+        // leaves it stored, whatever the message says (PR #225 review)
+        [Fact]
+        public void AFailureAfterTheFolderWasStored_StillCountsAsANewFolder()
         {
-            Assert.Equal(stored, Settings.StoredTheFolder(message));
+            var store = new FakeStore { FolderResult = new FolderSaveResult(true, Settings.SaveFailedPrefix + "Access is denied.") };
+            var vm = NewViewModel(store);
+            var folder = Path.Combine(root, "keys");
+            var changed = 0;
+            vm.OutputFolderChanged += (sender, e) => changed++;
+
+            vm.OutputFolder = folder;
+            Assert.True(vm.CommitOutputFolder());
+
+            Assert.Equal(Settings.SaveFailedPrefix + "Access is denied.", vm.SaveError);
+            Assert.Equal(1, changed);
+            Assert.False(vm.HasUncommittedFolder);
+
+            // Escape has nothing to go back to: the new folder is the stored one
+            Assert.False(vm.RevertOutputFolder());
+        }
+
+        // Another window or the CLI can change the stored folder while this screen is open; a toggle here must not undo it
+        [Fact]
+        public void AToggle_LeavesAFolderSomeoneElseStored()
+        {
+            var store = new FakeStore();
+            var vm = NewViewModel(store);
+            store.Stored = new Settings { OutputFolder = @"D:\SetElsewhere" };
+
+            vm.UseEnvironmentVariables = !vm.UseEnvironmentVariables;
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.Equal(2, store.Saves.Count);
+            Assert.Empty(store.FolderSaves);
         }
 
         private sealed class FailingIconService : IAppIconService
@@ -384,7 +424,7 @@ namespace keycuts.Tests
 
             var saved = Assert.Single(store.Saves);
             var defaults = Settings.Defaults();
-            Assert.Equal(@"D:\Elsewhere", saved.OutputFolder);
+            Assert.Empty(store.FolderSaves);
             Assert.Equal(defaults.AskBeforeReplacing, saved.AskBeforeReplacing);
             Assert.True(saved.AskBeforeReplacing);
             Assert.True(saved.RightClickContextMenus);
@@ -562,7 +602,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void ARefusedFolder_KeepsTheStoredOne_ForTheNextToggle()
+        public void ARefusedFolder_IsNeverStored_NotEvenByTheNextToggle()
         {
             var store = new FakeStore();
             var vm = NewViewModel(store);
@@ -571,7 +611,8 @@ namespace keycuts.Tests
 
             vm.AskBeforeReplacing = true;
 
-            Assert.Equal(@"C:\Shortcuts", Assert.Single(store.Saves).OutputFolder);
+            Assert.Single(store.Saves);
+            Assert.Empty(store.FolderSaves);
         }
 
         [Fact]
@@ -683,7 +724,7 @@ namespace keycuts.Tests
             Assert.Equal(root, seed);
             Assert.Equal(picked, vm.OutputFolder);
             // A pick from the folder button is a commit: stored at once (#218)
-            Assert.Equal(picked, Assert.Single(store.Saves).OutputFolder);
+            Assert.Equal(picked, Assert.Single(store.FolderSaves));
         }
 
         [Fact]
@@ -829,11 +870,19 @@ namespace keycuts.Tests
                 return Stored;
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 Saves++;
                 Last = settings;
                 return SaveMessage;
+            }
+
+            // Counted with the other saves; Last then holds just the folder
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                Saves++;
+                Last = new Settings { OutputFolder = folder };
+                return new FolderSaveResult(true, null);
             }
         }
 

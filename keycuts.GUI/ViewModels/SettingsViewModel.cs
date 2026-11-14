@@ -16,8 +16,14 @@ namespace keycuts.GUI.ViewModels
     {
         Settings Load();
 
-        /// <summary>Returns a message for the user when something couldn't be saved, otherwise null.</summary>
-        string? Save(Settings settings);
+        /// <summary>
+        /// Stores every setting but the output folder, which another window or the CLI may have changed since this one loaded.
+        /// Returns a message for the user when something couldn't be saved, otherwise null.
+        /// </summary>
+        string? SaveOptions(Settings settings);
+
+        /// <summary>Stores the output folder and moves PATH to it; says whether the folder itself was stored, apart from any message.</summary>
+        FolderSaveResult SaveOutputFolder(string folder);
     }
 
     public class RunnerSettingsStore : ISettingsStore
@@ -29,9 +35,14 @@ namespace keycuts.GUI.ViewModels
             return settings;
         }
 
-        public string? Save(Settings settings)
+        public string? SaveOptions(Settings settings)
         {
-            return settings.SaveSettings();
+            return settings.SaveOptions();
+        }
+
+        public FolderSaveResult SaveOutputFolder(string folder)
+        {
+            return new Settings { OutputFolder = folder }.SaveOutputFolder();
         }
     }
 
@@ -81,7 +92,7 @@ namespace keycuts.GUI.ViewModels
 
         private readonly Func<bool> confirmRestoreDefaults;
 
-        /// <summary>The output folder as stored: what a toggle's save writes, whatever the box holds while it is being edited.</summary>
+        /// <summary>The output folder as this screen last stored it: what Escape in the box goes back to, and what "unchanged" is measured against.</summary>
         private string committedFolder;
 
         private bool showVersionRow = true;
@@ -498,19 +509,21 @@ namespace keycuts.GUI.ViewModels
                 return false;
             }
 
-            var previous = committedFolder;
-            committedFolder = folder;
+            // The folder alone: the other settings were stored as they changed. The store says whether the folder was stored, apart
+            // from any message: PATH can fail after it is, and then it still counts. When it wasn't, the stored folder is still the
+            // old one, and the box keeps the new text as an edit that Enter tries again.
             OutputFolder = folder;
-            Store();
+            var result = store.SaveOutputFolder(folder);
+            SaveError = result.Message;
 
-            // A PATH or menu failure comes after the folder is stored, so it still counts; a refused registry write doesn't. Then
-            // the stored folder is still the old one, and the box keeps the new text as an edit that Enter tries again.
-            if (!Settings.StoredTheFolder(SaveError))
+            if (!result.Stored)
             {
-                committedFolder = previous;
                 return false;
             }
 
+            committedFolder = folder;
+            OnPropertyChanged(nameof(HasUncommittedFolder));
+            Stored?.Invoke(this, EventArgs.Empty);
             OutputFolderChanged?.Invoke(this, EventArgs.Empty);
             return true;
         }
@@ -537,12 +550,14 @@ namespace keycuts.GUI.ViewModels
             return true;
         }
 
-        /// <summary>Stores every value, with the folder as last committed. A partial failure shows on the page (<see cref="SaveError"/>).</summary>
+        /// <summary>
+        /// Stores every value but the output folder, which is stored only when committed: a toggle never writes back a folder that
+        /// another window or the CLI changed meanwhile. A partial failure shows on the page (<see cref="SaveError"/>).
+        /// </summary>
         private void Store()
         {
             var settings = new Settings
             {
-                OutputFolder = committedFolder,
                 AskBeforeReplacing = askBeforeReplacing,
                 RightClickContextMenus = rightClickContextMenus,
                 UseEnvironmentVariables = useEnvironmentVariables,
@@ -550,7 +565,7 @@ namespace keycuts.GUI.ViewModels
                 CheckForUpdates = checkForUpdates
             };
 
-            SaveError = store.Save(settings);
+            SaveError = store.SaveOptions(settings);
             Stored?.Invoke(this, EventArgs.Empty);
         }
 

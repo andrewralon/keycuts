@@ -75,34 +75,21 @@ namespace keycuts.GUI
                 Path.IsPathFullyQualified(folder);
         }
 
-        /// <summary>Saves everything it can. Returns a message for the user when something failed, otherwise null.</summary>
-        public string? SaveSettings()
+        /// <summary>
+        /// Stores every setting but the output folder: a toggle, the theme or restore defaults changes these, and must not write a
+        /// folder that another window or the CLI may have changed since this one was loaded. Returns a message for the user when
+        /// something failed, otherwise null.
+        /// </summary>
+        public string? SaveOptions()
         {
-            if (!IsValidOutputFolder(OutputFolder))
-            {
-                return InvalidOutputFolderMessage;
-            }
-
             try
             {
-                var problems = new List<string>();
-
-                if (!runner.ChangeOutputFolder(OutputFolder))
-                {
-                    problems.Add(PathUpdateFailedMessage);
-                }
-
                 runner.SetAskBeforeReplacing(AskBeforeReplacing);
                 runner.SetUseEnvironmentVariables(UseEnvironmentVariables);
                 runner.SetThemePreference(Theme);
                 runner.SetCheckForUpdates(CheckForUpdates);
 
-                if (!runner.SetRightClickContextMenu(RightClickContextMenus))
-                {
-                    problems.Add(ContextMenuFailedMessage);
-                }
-
-                return problems.Count == 0 ? null : string.Join(Environment.NewLine, problems);
+                return runner.SetRightClickContextMenu(RightClickContextMenus) ? null : ContextMenuFailedMessage;
             }
             catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
             {
@@ -110,17 +97,44 @@ namespace keycuts.GUI
             }
         }
 
-        /// <summary>The start of the message for a save that stopped before anything was stored (the registry refused).</summary>
+        /// <summary>
+        /// Stores <see cref="OutputFolder"/> and moves PATH to it. Says whether the folder itself was stored, apart from any message:
+        /// PATH can fail after the folder is stored, and then the folder still counts.
+        /// </summary>
+        public FolderSaveResult SaveOutputFolder()
+        {
+            if (!IsValidOutputFolder(OutputFolder))
+            {
+                return new FolderSaveResult(false, InvalidOutputFolderMessage);
+            }
+
+            try
+            {
+                return new FolderSaveResult(true, runner.ChangeOutputFolder(OutputFolder) ? null : PathUpdateFailedMessage);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            {
+                // The folder is written before PATH, so a failure may come after it was stored: ask the registry
+                return new FolderSaveResult(IsStored(OutputFolder), SaveFailedPrefix + e.Message);
+            }
+        }
+
+        /// <summary>The start of the message for a save the registry refused.</summary>
         public const string SaveFailedPrefix = "Couldn\u2019t save settings: ";
 
-        /// <summary>
-        /// Whether a save that returned this message stored the output folder. A PATH or right-click menu failure comes after the
-        /// folder is stored (the PATH message says so); an exception, or an invalid folder, means it wasn't.
-        /// </summary>
-        public static bool StoredTheFolder(string? message)
+        private bool IsStored(string folder)
         {
-            return message == null
-                || (!message.StartsWith(SaveFailedPrefix, StringComparison.Ordinal) && message != InvalidOutputFolderMessage);
+            try
+            {
+                return string.Equals(runner.GetOutputFolder(), folder, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            {
+                return false;
+            }
         }
     }
+
+    /// <summary>What saving the output folder did: whether the folder itself was stored, and a message for the user, or null.</summary>
+    public sealed record FolderSaveResult(bool Stored, string? Message);
 }

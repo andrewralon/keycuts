@@ -303,10 +303,15 @@ namespace keycuts.Tests
                 return new Settings { OutputFolder = Path.GetTempPath() };
             }
 
-            public string? Save(Settings settings)
+            public string? SaveOptions(Settings settings)
             {
                 Saves++;
                 return null;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                return new FolderSaveResult(true, null);
             }
         }
 

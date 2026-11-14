@@ -47,6 +47,7 @@ Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 | `RailHeight`, `TabHeight`, `CaptionButtonWidth` | none | **new** (#218): 48, 40, 46 | [Tabbed window](#tabbed-window-218) |
 | `Rail*`, `Tab*`, `Socket*`, `Caption*` brushes | none | **new** (#218), in all three palettes | The tab bar's colors come from the palettes, not literals |
 | `TileSize` | none | **new**: 40 | The inline icon tile ([decision](#decisions)) |
+| `TextTertiaryBrush` (Light) | `#818b9d`, 3.0-3.4:1 | **`#646e80`**, 4.54:1 or better on every light surface | Placeholders are text, and WCAG 1.4.3 covers them ([decision](#decisions)); `ControlBorderBrush` keeps `#818b9d` |
 
 Kept as they are: `RadiusSm/Md/Lg/Xl` (5/8/12/16), `Space1`-`Space8` and `Inset1`-`Inset4`, `IconButtonSize` (32), `AppFontFamily` (Segoe UI Variable, Segoe UI), `FontSizeCaption` (12), `FontSizeBody` (13), `FontSizeInput` (14), `FontSizeSubheading` (16), `FontSizeHeading` (20). Add `Inset6` (24) for the outer padding, and `Thickness` tokens for the composite values used below (`PagePadding` 24,16,24,24, `DialogFooterPadding` 24,12, `PanelPadding` 16).
 
@@ -195,7 +196,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 |---|---|
 | `TextBrush` | Headings, labels, body text, values the user typed |
 | `TextSecondaryBrush` | **All readable supporting text**: helper text, notes, captions, status lines, table cells, column headers, menu item second lines, intros, Settings' "Changes are saved as you make them." |
-| `TextTertiaryBrush` | **Only** placeholders, disabled text, and decorative glyphs (the search icon). Never text someone needs to read |
+| `TextTertiaryBrush` | **Only** placeholders, disabled text, and decorative glyphs (the search icon). It meets 4.5:1 like any text, but it is for hints, never for text someone needs to read |
 | `AccentBrush` | Fills (primary button, toggle on, selection bar, check badge), focus ring, accent borders, icons |
 | `AccentTextBrush` (new) | Accent-colored **text**: section labels, links (Download, Undo), the active sort header |
 | `AccentSoftBrush` | Selected row, icon tile background, the welcome panel, drag-over fill |
@@ -216,9 +217,9 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 - **Text people read meets 4.5:1** against every surface it can sit on, at every size the app uses. Even 16-20px SemiBold is short of WCAG's "large text" (24px, or 18.7px bold), so 3:1 never applies to text here.
 - **Non-text UI** (control borders, the focus ring, icons that carry meaning) meets 3:1.
 - Measured today (WCAG relative luminance):
-  - `TextTertiaryBrush` is 3.0-3.4:1 in the light palette. That is fine for placeholders and decoration and fails for the text it colors now: the Creator's name helper line, the Manager's column headers, the Browse menu's second lines and the icon picker's group headers. Those move to `TextSecondaryBrush` (5.0-5.6:1).
+  - `TextTertiaryBrush` is 3.0-3.4:1 in the light palette, which fails for every text it colors: placeholders (WCAG 1.4.3 covers them even beside a label), the Creator's name helper line, the Manager's column headers, the Browse menu's second lines and the icon picker's group headers. Light tertiary becomes `#646e80` (4.54:1 on `CanvasBrush` and `AccentSoftBrush`, 5.14:1 on white), still lighter than secondary, so placeholders stay recognizably hints. The helper line, headers, menu lines and group headers move to `TextSecondaryBrush` (5.0-5.6:1) anyway, because they aren't hints. Dark tertiary `#8d97a8` already passes on the surfaces text sits on (4.76:1 or better).
   - `AccentBrush` as text in the dark palette is 4.48:1 on `SurfaceSubtleBrush` (the footer's Download link, Confirm's section labels, the active sort header on the table header) and 3.90:1 on `SurfaceHoverBrush`. `AccentTextBrush` at `#6a9eff` is 4.75-5.89:1 on every dark surface. The light palette's accent already passes (4.56:1 at worst, on `AccentSoftBrush`), so light `AccentTextBrush` is the same `#2563eb`.
-- `ThemeTests.ContrastPairs` gains the pairs this adds: `AccentTextBrush` on every surface at 4.5, `TabTextBrush` on both ends of the inactive tab's gradient and `TextBrush` on the bar at 4.5 (#218), `TextSecondaryBrush` on `AccentSoftBrush` at 4.5 (the welcome panel's text), and `TextTertiaryBrush` stays at 3.0 with a comment naming the only uses it may have.
+- `ThemeTests.ContrastPairs` gains the pairs this adds: `AccentTextBrush` on every surface at 4.5, `TabTextBrush` on both ends of the inactive tab's gradient and `TextBrush` on the bar at 4.5 (#218), `TextSecondaryBrush` on `AccentSoftBrush` at 4.5 (the welcome panel's text), and `TextTertiaryBrush` rises from 3.0 to 4.5 on `CanvasBrush`, `SurfaceBrush`, `SurfaceSubtleBrush` and `SurfaceRaisedBrush`, with a comment naming the only uses it may have.
 
 ## Control sizes
 
@@ -326,7 +327,7 @@ Not elsewhere: the Creator's target placeholder "Drop or paste a file, folder, U
 
 ### Placeholders
 
-A placeholder is a hint inside an empty box, in `TextTertiaryBrush`. Anything people need goes in the label or helper text instead. The Name and Description fields use **examples, the same in both forms** ([decision](#decisions)): "e.g. art" and "e.g. Recent paintings". The Edit form changes from "What you type in Win+R" and "What is it for? Shown in the manager". "e.g." with no comma after it is allowed in placeholders only, where space is tight; elsewhere write "for example". A placeholder that isn't an example says what goes there ("Search names, types, descriptions, or targets", "A file, folder, or URL").
+A placeholder is a hint inside an empty box, in `TextTertiaryBrush` (4.5:1, like all text). Anything people need goes in the label or helper text instead. The Name and Description fields use **examples, the same in both forms** ([decision](#decisions)): "e.g. art" and "e.g. Recent paintings". The Edit form changes from "What you type in Win+R" and "What is it for? Shown in the manager". "e.g." with no comma after it is allowed in placeholders only, where space is tight; elsewhere write "for example". A placeholder that isn't an example says what goes there ("Search names, types, descriptions, or targets", "A file, folder, or URL").
 
 ### Messages
 
@@ -366,6 +367,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-13 | Settings tab (aligning with #218) | #218: the gear alone, named `Settings` | **The gear alone, no text**; `settings` is its tooltip and automation name |
 | 2026-11-13 | Icon picker over the Settings screen (aligning with #218) | #218: disables everything, the tab bar included | **Disables the page and the tabs**; the caption buttons and dragging stay available |
 | 2026-11-13 | Main window width and headings (aligning with #218) | Creator 440; headings `keycuts creator` and `keycuts manager` | The Creator and Settings share `MainWidth`, set by the tab bar; Confirm keeps 440 and Edit 480; the main screens lose their headings (#218) |
+| 2026-11-13 | Placeholder contrast (PR #220 review) | Light `TextTertiaryBrush` `#818b9d`, 3.44:1, allowed for placeholders | **4.5:1 for placeholders too**: light `TextTertiaryBrush` becomes `#646e80`; dark is unchanged |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

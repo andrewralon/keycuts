@@ -27,7 +27,7 @@ namespace keycuts.Tests
 
             Assert.True(notice.IsVisible);
             Assert.Equal("keycuts 1.2.0 is available", notice.Message);
-            Assert.Equal("Download keycuts 1.2.0", notice.DownloadName);
+            Assert.Equal("download keycuts 1.2.0", notice.DownloadName);
             Assert.True(notice.DownloadCommand.CanExecute(null));
         }
 

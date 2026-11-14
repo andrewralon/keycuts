@@ -155,12 +155,22 @@ namespace keycuts.Tests
                     // The text it starts with isn't news
                     Assert.Empty(announced);
 
+                    // Once, for any number of changes before the view settles
                     helper.State = HelperTextState.Warning;
+                    helper.Text = "Windows opens “npp” from…";
                     helper.Text = "Windows opens “npp” from System32 first.";
+                    Pump();
                     Assert.Equal(new UIElement[] { helper }, announced);
 
                     // An emptied line has nothing to say
                     helper.Text = string.Empty;
+                    Pump();
+                    Assert.Single(announced);
+
+                    // Nor has a hidden one
+                    helper.Visibility = Visibility.Collapsed;
+                    helper.Text = "Hidden";
+                    Pump();
                     Assert.Single(announced);
                 }
                 finally

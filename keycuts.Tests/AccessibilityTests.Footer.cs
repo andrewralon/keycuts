@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using keycuts.Common;
+using keycuts.GUI.Controls;
 using keycuts.GUI.Mvvm;
 using keycuts.GUI.ViewModels;
 using keycuts.GUI.Views;
@@ -191,8 +192,8 @@ namespace keycuts.Tests
                 try
                 {
                     var view = (FrameworkElement)window.Content;
-                    var status = (TextBlock)view.FindName("NameStatusTextBlock");
-                    var helper = (TextBlock)view.FindName("HelperTextBlock");
+                    var status = (HelperText)view.FindName("NameStatusTextBlock");
+                    var helper = (HelperText)view.FindName("HelperTextBlock");
                     var nameLabel = Descendants<TextBlock>(window).Single(t => t.Text == "Name");
                     var heightBefore = view.ActualHeight;
                     Assert.False(status.IsVisible);
@@ -204,9 +205,9 @@ namespace keycuts.Tests
                     Assert.False(helper.IsVisible);
                     Assert.Same(status, announced.Last());
 
-                    // At the right of the label, on its row
+                    // At the right of the label, on its row, at the page's 24 padding
                     Assert.True(LeftIn(status, view) > RightIn(nameLabel, view));
-                    Assert.InRange(RightIn(status, view), view.ActualWidth - 21, view.ActualWidth - 19);
+                    Assert.InRange(RightIn(status, view), view.ActualWidth - 25, view.ActualWidth - 23);
                     Assert.InRange(status.TranslatePoint(new Point(0, status.ActualHeight / 2), view).Y,
                         nameLabel.TranslatePoint(new Point(0, 0), view).Y,
                         nameLabel.TranslatePoint(new Point(0, nameLabel.ActualHeight), view).Y);
@@ -218,6 +219,7 @@ namespace keycuts.Tests
                     Pump();
                     window.UpdateLayout();
                     Assert.Equal(CreatorViewModel.CreatedText, status.Text);
+                    Assert.Equal(HelperTextState.Success, status.State);
                     Assert.False(helper.IsVisible);
                     Assert.Equal(heightBefore, view.ActualHeight, 0.5);   // the window did not grow
                     Assert.True(LeftIn(status, view) > RightIn(nameLabel, view), "Created runs over the Name label");
@@ -248,7 +250,7 @@ namespace keycuts.Tests
                     Assert.True(line.IsVisible);
 
                     var link = (Hyperlink)footer.FindName("UpdateDownloadLink");
-                    Assert.Equal("Download keycuts 1.3.0", AutomationProperties.GetName(link));
+                    Assert.Equal("download keycuts 1.3.0", AutomationProperties.GetName(link));
 
                     // The dismiss button follows the text closely instead of sitting at the far right
                     var text = Named(footer, "UpdateNoticeText");
@@ -303,7 +305,7 @@ namespace keycuts.Tests
                         order.Add(FocusedName());
                     }
 
-                    Assert.Equal(new[] { "Undo delete", "Download keycuts 1.3.0", "Dismiss update notice" }, order);
+                    Assert.Equal(new[] { "undo delete", "download keycuts 1.3.0", "Dismiss update notice" }, order);
                 }
                 finally
                 {

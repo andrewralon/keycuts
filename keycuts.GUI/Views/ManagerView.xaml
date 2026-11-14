@@ -41,7 +41,7 @@
         <Setter.Value>
           <ControlTemplate TargetType="Thumb">
             <Border Background="{TemplateBinding Background}">
-              <Rectangle x:Name="Line" Width="2" Margin="0,9" HorizontalAlignment="Center"
+              <Rectangle x:Name="Line" Width="2" Margin="0,8" HorizontalAlignment="Center"
                          Fill="{DynamicResource BorderStrongBrush}" Opacity="0" SnapsToDevicePixels="True" />
             </Border>
             <ControlTemplate.Triggers>
@@ -59,10 +59,10 @@
     </Style>
 
     <Style x:Key="ManagerHeader" TargetType="DataGridColumnHeader">
-      <Setter Property="Height" Value="34" />
-      <Setter Property="Padding" Value="10,0" />
-      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
-      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
       <Setter Property="Focusable" Value="False" />
       <Setter Property="IsTabStop" Value="False" />
@@ -108,11 +108,12 @@
       <Setter Property="Tag" Value="NoGrippers" />
     </Style>
 
-    <!-- Sortable column header: label plus a chevron that shows on hover and for the active column. -->
+    <!-- Sortable column header: label plus a chevron that shows on hover and for the active column. Smaller than 24, it passes
+         WCAG 2.5.8 by spacing: it sits alone in a 36 high header, well clear of the next one. -->
     <Style x:Key="SortHeaderButtonStyle" TargetType="controls:SortHeaderButton">
-      <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
       <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
-      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="HorizontalAlignment" Value="Left" />
       <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -123,11 +124,12 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="controls:SortHeaderButton">
+            <!-- The frame shows keyboard focus; 2 above and below keep it close to the 12px label (an optical offset) -->
             <Border x:Name="Frame" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
-                    CornerRadius="3" Padding="3,2">
+                    CornerRadius="{StaticResource RadiusSm}" Padding="4,2">
               <StackPanel Orientation="Horizontal">
                 <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="False" />
-                <controls:Icon x:Name="Chevron" Kind="Chevron" Size="11" Margin="3,0,0,0" Opacity="0"
+                <controls:Icon x:Name="Chevron" Kind="Chevron" Size="12" Margin="4,0,0,0" Opacity="0"
                                VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
                   <controls:Icon.RenderTransform>
                     <RotateTransform Angle="90" />
@@ -145,7 +147,7 @@
                 <Setter TargetName="Chevron" Property="Opacity" Value="1" />
               </Trigger>
               <Trigger Property="State" Value="Ascending">
-                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
                 <Setter TargetName="Chevron" Property="Opacity" Value="1" />
                 <Setter TargetName="Chevron" Property="RenderTransform">
                   <Setter.Value>
@@ -154,7 +156,7 @@
                 </Setter>
               </Trigger>
               <Trigger Property="State" Value="Descending">
-                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
                 <Setter TargetName="Chevron" Property="Opacity" Value="1" />
                 <Setter TargetName="Chevron" Property="RenderTransform">
                   <Setter.Value>
@@ -213,7 +215,7 @@
       <Setter Property="Focusable" Value="False" />
       <Setter Property="IsTabStop" Value="False" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="Padding" Value="12,0" />
       <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
       <Setter Property="Template">
         <Setter.Value>
@@ -242,7 +244,7 @@
       <Setter Property="SelectionMode" Value="Single" />
       <Setter Property="SelectionUnit" Value="FullRow" />
       <Setter Property="RowHeight" Value="36" />
-      <Setter Property="ColumnHeaderHeight" Value="34" />
+      <Setter Property="ColumnHeaderHeight" Value="36" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
@@ -308,12 +310,12 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <Grid>
-        <TextBox x:Name="SearchBox" Style="{StaticResource AppTextBox}" Padding="34,0,10,0"
+        <TextBox x:Name="SearchBox" Style="{StaticResource AppTextBox}" Padding="36,0,12,0"
                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                  IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
                  themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
                  AutomationProperties.Name="Search keycuts" />
-        <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"
+        <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
                        IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
       </Grid>
       <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
@@ -328,7 +330,7 @@
               CornerRadius="{StaticResource RadiusMd}" SizeChanged="TableHost_SizeChanged"
               Visibility="{Binding IsTableVisible, Converter={StaticResource BoolToVisibility}}">
         <DataGrid x:Name="Table" Style="{StaticResource ManagerTable}" ItemsSource="{Binding Rows}"
-                  SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="Keycuts"
+                  SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="keycuts"
                   KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
             <!-- A click on the name or description cell of the selected row edits it in place (#202; see ManagerView_PreviewMouseDown) -->
@@ -339,7 +341,7 @@
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource TextBrush}">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}">
                       <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource CellText}">
                           <Style.Triggers>
@@ -356,20 +358,20 @@
                              AutomationProperties.Name="{Binding RenameLabel}"
                              IsVisibleChanged="RenameBox_IsVisibleChanged" PreviewKeyDown="RenameBox_PreviewKeyDown"
                              LostKeyboardFocus="RenameBox_LostKeyboardFocus" />
-                    <StackPanel Orientation="Horizontal" Margin="0,1,0,0" ToolTip="{Binding MissingTooltip}"
+                    <StackPanel Orientation="Horizontal" ToolTip="{Binding MissingTooltip}"
                                 Visibility="{Binding ShowMissingIndicator, Converter={StaticResource BoolToVisibility}}">
-                      <controls:Icon Kind="Close" Size="11" VerticalAlignment="Center"
+                      <controls:Icon Kind="Close" Size="12" VerticalAlignment="Center"
                                      Foreground="{DynamicResource DangerBrush}" />
-                      <TextBlock Text="Missing" Margin="3,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                      <TextBlock Text="Missing" Margin="4,0,0,0" FontSize="{StaticResource FontSizeCaption}"
                                  VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" />
                     </StackPanel>
                     <!-- #203: starts, but something it names is wrong (a start-in folder that doesn't exist). WarningBrush is yellow
                          in the dark palette and a dark amber in the light one, where yellow text can't be read. -->
-                    <StackPanel Orientation="Horizontal" Margin="0,1,0,0" ToolTip="{Binding WarningTooltip}"
+                    <StackPanel Orientation="Horizontal" ToolTip="{Binding WarningTooltip}"
                                 Visibility="{Binding ShowWarningIndicator, Converter={StaticResource BoolToVisibility}}">
-                      <controls:Icon Kind="Warning" Size="11" VerticalAlignment="Center"
+                      <controls:Icon Kind="Warning" Size="12" VerticalAlignment="Center"
                                      Foreground="{DynamicResource WarningBrush}" />
-                      <TextBlock Text="Warning" Margin="3,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                      <TextBlock Text="Warning" Margin="4,0,0,0" FontSize="{StaticResource FontSizeCaption}"
                                  VerticalAlignment="Center" Foreground="{DynamicResource WarningBrush}" />
                     </StackPanel>
                   </StackPanel>
@@ -447,14 +449,14 @@
             <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <controls:MenuButton Style="{StaticResource IconButton}" Width="28" Height="28"
+                  <controls:MenuButton Style="{StaticResource IconButton}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                        AutomationProperties.Name="{Binding ActionsLabel}"
                                        Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown">
-                    <controls:Icon Kind="More" Size="17" />
+                    <controls:Icon Kind="More" Size="16" />
                     <Button.ContextMenu>
-                      <!-- 250 wide for the key names beside the items; the offset keeps the menu's right edge under the button (250 - 28) -->
-                      <ContextMenu Width="250" Placement="Bottom" HorizontalOffset="-222" VerticalOffset="4"
+                      <!-- 250 wide for the key names beside the items; the offset keeps the menu's right edge under the button (250 - 32) -->
+                      <ContextMenu Width="250" Placement="Bottom" HorizontalOffset="-218" VerticalOffset="4"
                                    Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
                         <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>
@@ -462,7 +464,7 @@
                           </MenuItem.Icon>
                         </MenuItem>
                         <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
-                        <MenuItem Header="Edit" InputGestureText="Ctrl+E" Command="{Binding EditCommand}" Click="SafeItem_Click">
+                        <MenuItem Header="Edit…" InputGestureText="Ctrl+E" Command="{Binding EditCommand}" Click="SafeItem_Click">
                           <MenuItem.Style>
                             <Style TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
                               <Setter Property="ToolTip" Value="{Binding EditTooltip}" />
@@ -517,31 +519,30 @@
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal"
                   Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
         <Control Style="{StaticResource Spinner}" VerticalAlignment="Center" />
-        <TextBlock Text="Loading keycuts…" Margin="10,0,0,0" VerticalAlignment="Center"
+        <TextBlock Text="Loading keycuts…" Margin="8,0,0,0" VerticalAlignment="Center"
                    Foreground="{DynamicResource TextSecondaryBrush}" />
       </StackPanel>
 
       <!-- Empty -->
       <Grid Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
-        <Rectangle RadiusX="8" RadiusY="8" Stroke="{DynamicResource BorderStrongBrush}" StrokeThickness="1"
+        <Rectangle RadiusX="{StaticResource RadiusMdValue}" RadiusY="{StaticResource RadiusMdValue}"
+                   Stroke="{DynamicResource BorderStrongBrush}" StrokeThickness="1"
                    StrokeDashArray="4 3" />
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-          <Grid Width="58" Height="58" HorizontalAlignment="Center" Margin="0,0,0,12">
-            <Border CornerRadius="15" Background="{DynamicResource AccentSoftBrush}" />
+          <Grid Width="56" Height="56" HorizontalAlignment="Center" Margin="0,0,0,12">
+            <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource AccentSoftBrush}" />
             <controls:Icon Kind="File" Size="32" HorizontalAlignment="Center" VerticalAlignment="Center"
                            Foreground="{DynamicResource AccentBrush}" />
-            <controls:Icon Kind="Spark" Size="14" HorizontalAlignment="Right" VerticalAlignment="Top"
-                           Margin="0,6,6,0" Foreground="{DynamicResource AccentBrush}" />
+            <controls:Icon Kind="Spark" Size="16" HorizontalAlignment="Right" VerticalAlignment="Top"
+                           Margin="0,4,4,0" Foreground="{DynamicResource AccentBrush}" />
           </Grid>
-          <TextBlock Text="No keycuts yet" HorizontalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
-                     AutomationProperties.HeadingLevel="Level2"
-                     FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+          <TextBlock Text="No keycuts yet" HorizontalAlignment="Center" Style="{StaticResource Subheading}" />
           <TextBlock Text="Create your first keycut and it will show up here." HorizontalAlignment="Center"
-                     Margin="0,4,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
-          <Button x:Name="EmptyCreateButton" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Padding="16,0" Height="38"
+                     Margin="0,0,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
+          <Button x:Name="EmptyCreateButton" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Padding="16,0"
                   Command="{Binding ShowCreatorCommand}">
             <StackPanel Orientation="Horizontal">
-              <TextBlock Text="Create a keycut" />
+              <TextBlock Text="create a keycut" />
               <controls:Icon Kind="Arrow" Size="16" Margin="8,0,0,0" />
             </StackPanel>
           </Button>
@@ -552,22 +553,19 @@
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                   Visibility="{Binding IsNoResults, Converter={StaticResource BoolToVisibility}}">
         <TextBlock Text="{Binding NoResultsMessage}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
-                   MaxWidth="560" FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource TextBrush}" />
-        <Button Style="{StaticResource SecondaryButton}" Content="Clear search" HorizontalAlignment="Center"
+                   TextWrapping="NoWrap" MaxWidth="560" Style="{StaticResource Subheading}" />
+        <Button Style="{StaticResource SecondaryButton}" Content="clear search" HorizontalAlignment="Center"
                 Margin="0,12,0,0" Command="{Binding ClearSearchCommand}" />
       </StackPanel>
 
       <!-- Load error -->
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560"
                   Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
-        <TextBlock Text="Can't load your keycuts" HorizontalAlignment="Center" AutomationProperties.HeadingLevel="Level2"
-                   AutomationProperties.LiveSetting="Assertive"
-                   FontSize="{StaticResource FontSizeSubheading}" FontWeight="SemiBold"
-                   Foreground="{DynamicResource DangerBrush}" />
+        <TextBlock Text="Can’t load your keycuts" HorizontalAlignment="Center" Style="{StaticResource Subheading}"
+                   AutomationProperties.LiveSetting="Assertive" Foreground="{DynamicResource DangerBrush}" />
         <TextBlock Text="{Binding ErrorMessage}" HorizontalAlignment="Center" TextAlignment="Center"
-                   TextWrapping="Wrap" Margin="0,4,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
-        <Button Style="{StaticResource SecondaryButton}" Content="Open settings" HorizontalAlignment="Center"
+                   TextWrapping="Wrap" Margin="0,0,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
+        <Button Style="{StaticResource SecondaryButton}" Content="open settings" HorizontalAlignment="Center"
                 Command="{Binding OpenSettingsCommand}" />
       </StackPanel>
     </Grid>

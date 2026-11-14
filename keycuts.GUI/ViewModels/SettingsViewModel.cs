@@ -42,7 +42,7 @@ namespace keycuts.GUI.ViewModels
     /// </summary>
     public class SettingsViewModel : ObservableObject
     {
-        public const string DefaultHelperText = "New keycuts files are saved here.";
+        public const string DefaultHelperText = "New keycuts are saved here.";
 
         public const string EmptyFolderMessage = "Choose where keycuts are saved.";
 

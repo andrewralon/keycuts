@@ -7,15 +7,16 @@
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-    <!-- Small accent link for the status line (Undo). -->
+    <!-- Small accent link for the status line (undo). Smaller than 24, it passes WCAG 2.5.8 by spacing: nothing else is within
+         reach of it. -->
     <Style x:Key="StatusLinkButton" TargetType="Button">
       <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
       <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Padding" Value="6,2" />
+      <Setter Property="Padding" Value="8,4" />
       <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
       <Setter Property="Template">
         <Setter.Value>
@@ -42,9 +43,9 @@
     </Grid.ColumnDefinitions>
     <!-- #179, #205: Undo comes first, right after the count, so it is always in the same place whatever the message says. It is
          shown while the "Deleted" message is; Ctrl+Z does the same. Its own column, so a long message is trimmed and Undo never is -->
-    <Button x:Name="UndoButton" Grid.Column="0" Style="{StaticResource StatusLinkButton}" Margin="0,0,6,0"
-            VerticalAlignment="Center" Content="Undo" Command="{Binding UndoDeleteCommand}"
-            ToolTip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="Undo delete"
+    <Button x:Name="UndoButton" Grid.Column="0" Style="{StaticResource StatusLinkButton}" Margin="0,0,8,0"
+            VerticalAlignment="Center" Content="undo" Command="{Binding UndoDeleteCommand}"
+            ToolTip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="undo delete"
             Visibility="{Binding CanUndoDelete, Converter={StaticResource BoolToVisibility}}" />
     <TextBlock x:Name="StatusMessageText" Grid.Column="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                FontSize="{StaticResource FontSizeCaption}" Text="{Binding StatusMessage}"

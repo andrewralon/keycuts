@@ -21,18 +21,11 @@ namespace keycuts.Tests
         static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
         /// <summary>
-        /// Files not converted yet. #218 rebuilds the Settings dialog as a screen and #219 Part 2 converts the rest, one at a time;
-        /// take a file off as it is done (a test fails while a listed file already follows the guide). Part 2 empties the list.
+        /// Files not converted yet: empty since #219, so every XAML file in the GUI is checked. Keep it that way; a file that
+        /// can't follow the guide for a while goes here, and comes off as soon as it does (a test fails while a listed file
+        /// already follows the guide).
         /// </summary>
-        static readonly HashSet<string> NotYetConverted = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "ConfirmWindow.xaml",
-            "EditWindow.xaml",
-            "Views/CreatorView.xaml",
-            "Views/FooterView.xaml",
-            "Views/ManagerStatusView.xaml",
-            "Views/ManagerView.xaml",
-        };
+        static readonly HashSet<string> NotYetConverted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>The palettes, the only files where a hex color belongs.</summary>
         static readonly HashSet<string> Palettes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -60,10 +53,17 @@ namespace keycuts.Tests
             new("Themes/Controls.xaml", "Rectangle", "Margin", "-4,-2", "toggle focus ring, 2 outside the track"),
             new("Themes/Controls.xaml", "Rectangle", "RadiusX", "12", "toggle focus ring: the track's 10 + 2"),
             new("Themes/Controls.xaml", "Rectangle", "RadiusY", "12", "toggle focus ring: the track's 10 + 2"),
+            new("Views/CreatorView.xaml", "Setter", "Margin", "-3", "drop area glow, 3 outside it"),
+            new("Views/CreatorView.xaml", "Setter", "CornerRadius", "15", "drop area glow: RadiusLg + 3"),
+            new("Views/CreatorView.xaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
 
             // Fully round shapes use half their height
             new("Themes/Controls.xaml", "Border", "CornerRadius", "9", "radio box and check badge, 18 high"),
             new("Themes/Controls.xaml", "Border", "CornerRadius", "10", "toggle track, 20 high"),
+            new("Views/FooterView.xaml", "Border", "CornerRadius", "11", "count pill, 22 high"),
+
+            // Negative margins that cancel a known inset
+            new("Views/CreatorView.xaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),
 
             // Slim scroll thumbs
             new("Themes/Controls.xaml", "Border", "Margin", "2", "scroll thumb's inset"),
@@ -73,6 +73,9 @@ namespace keycuts.Tests
             new("Themes/Controls.xaml", "Ellipse", "Margin", "2,0,0,0", "toggle thumb, 2 inside the track"),
             new("Themes/Controls.xaml", "Setter", "Margin", "0,0,2,0", "toggle thumb when on, 2 inside the track"),
             new("Themes/Controls.xaml", "Icon", "Margin", "0,2,4,0", "helper text icon lowered onto the first line"),
+            new("ConfirmWindow.xaml", "Icon", "Margin", "0,1,8,0", "warning icon lowered onto the first line of its text"),
+            new("Views/CreatorView.xaml", "TextBlock", "Margin", "2,0,0,0", "target placeholder, where the text box draws its first character"),
+            new("Views/ManagerView.xaml", "Border", "Padding", "4,2", "sort header's focus frame, close to its 12px label"),
 
             // Selection borders: a card whose border goes from 1 to 2 takes 1 off its padding, so nothing moves
             new("Themes/Controls.xaml", "Setter", "Padding", "11", "selected card"),

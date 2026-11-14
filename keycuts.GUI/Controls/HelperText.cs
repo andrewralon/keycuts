@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using keycuts.GUI.Views;
 
 namespace keycuts.GUI.Controls
@@ -54,14 +56,28 @@ namespace keycuts.GUI.Controls
             set => SetValue(StateProperty, value);
         }
 
-        // Not while the view is being built (the first text isn't news), and not when the line empties
+        private bool announcePending;
+
+        // Not while the view is being built (the first text isn't news). The check waits for the bindings around it to settle,
+        // since a view often shows the line in the same change that gives it its text: then only a line that is shown and says
+        // something is announced, once however many times the text changed meanwhile.
         private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var helper = (HelperText)d;
-            if (helper.IsLoaded && !string.IsNullOrEmpty((string)e.NewValue))
+            if (!helper.IsLoaded || helper.announcePending)
             {
-                LiveRegion.Announce(helper);
+                return;
             }
+
+            helper.announcePending = true;
+            helper.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                helper.announcePending = false;
+                if (helper.IsVisible && !string.IsNullOrEmpty(helper.Text))
+                {
+                    LiveRegion.Announce(helper);
+                }
+            }));
         }
 
         protected override AutomationPeer OnCreateAutomationPeer()

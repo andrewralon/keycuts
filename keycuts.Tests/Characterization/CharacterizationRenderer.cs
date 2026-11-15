@@ -262,7 +262,9 @@ namespace keycuts.Tests.Characterization
                         body.Append("    ").Append(difference).Append('\n');
                     }
 
-                    body.Append("    emitted: ").Append(Show(emitted[emitted.Length - 2])).Append('\n');
+                    // The launch line: the last line but EXIT, once the lines that count runs after it (#187) are left out
+                    var launch = emitted.Where(line => !UsageLog.IsUsageLine(line)).ToArray();
+                    body.Append("    emitted: ").Append(Show(launch[launch.Length - 2])).Append('\n');
                 }
             }
 

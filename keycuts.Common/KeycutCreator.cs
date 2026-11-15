@@ -40,6 +40,9 @@ namespace keycuts.Common
 
         /// <summary>The variables for <see cref="UseEnvironmentVariables"/>; null reads them from this machine. Tests pass their own.</summary>
         public IReadOnlyList<PathVariable> PathVariables { get; set; }
+
+        /// <summary>The run counts (#187) a new name starts fresh in (see <see cref="Runner.Usage"/>). Null leaves them alone, as tests do.</summary>
+        public UsageLog Usage { get; set; }
     }
 
     public class CreateResult
@@ -154,7 +157,7 @@ namespace keycuts.Common
                     return CreateResult.Failure(CreateOutcome.DuplicateName);
                 }
 
-                var fixedRunner = new Runner(outputFolder, options.PathUpdater);
+                var fixedRunner = new Runner(outputFolder, options.PathUpdater) { Usage = options.Usage };
                 var args = new KeycutArgs(resolved.Target, fileName, force: overwrite)
                 {
                     Description = options.Description ?? "",

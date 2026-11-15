@@ -47,7 +47,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 All creates end in `Runner.Run` → `CreateShortcutFile` (GUI goes through `KeycutCreator` first, which validates with `TargetResolver` and name checks; the CLI doesn't). All reads go through `ShortcutFile` (`KeycutRepository.TryParse`). Changing the emitter or parser affects every entry point.
 
-`.bat` format: header `REM keycuts <version>`, then `REM <shortcut>`, `<type>`, `<target>` (pre-1.3: `<destination>`, still read), `<description>`, launch line, `EXIT`. REM type+target win when valid; otherwise the launch line is regex-parsed (0.1.x files). Corpus of real files in `tests/corpus/legacy/`.
+`.bat` format: header `REM keycuts <version>`, then `REM <shortcut>`, `<type>`, `<target>` (pre-1.3: `<destination>`, still read), `<description>`, launch line, the two run-counting lines (`UsageLog.BatLines`, #187), `EXIT`. REM type+target win when valid; otherwise the launch line is regex-parsed (0.1.x files). Corpus of real files in `tests/corpus/legacy/`.
 
 ### Landmines
 
@@ -60,7 +60,8 @@ All creates end in `Runner.Run` → `CreateShortcutFile` (GUI goes through `Keyc
 - Never write through `Registry.ClassesRoot` (resolves to HKLM). Context menu lives in `HKCU\Software\Classes`; a test matches it to `installer/Package.wxs`. Nothing needs elevation.
 - `UserPathUpdater` edits `HKCU\Environment` directly (preserves `REG_EXPAND_SZ`). GUI creates never change PATH.
 - Names `keycuts`/`keypaste` are refused and existing ones renamed to `*_previous` at startup.
-- Manager, Settings, welcome, update check, app icon, target check and parser fallback: **read the matching section of `docs/internals.md` before changing them** (DataGrid column traps, store semantics, edit/undo safety rules).
+- Run counts live in `%LOCALAPPDATA%\keycuts\usage`; tests use `new UsageLog(<temp>)`, never `UsageLog.CreateDefault()`.
+- Manager, Settings, welcome, update check, app icon, target check, run counts and parser fallback: **read the matching section of `docs/internals.md` before changing them** (DataGrid column traps, store semantics, edit/undo safety rules).
 
 ## Sequencing rule
 

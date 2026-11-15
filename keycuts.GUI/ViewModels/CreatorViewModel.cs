@@ -1149,7 +1149,8 @@ namespace keycuts.GUI.ViewModels
                 Description = description,
                 UseEnvironmentVariables = useEnvironmentVariables,
                 PathVariables = pathVariables,
-                Overwrite = replace ? true : null
+                Overwrite = replace ? true : null,
+                Usage = UsageLog.CreateDefault()
             };
             return await KeycutCreator.CreateAsync(target, name, options, ct);
         }

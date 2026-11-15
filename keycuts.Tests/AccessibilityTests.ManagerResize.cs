@@ -31,7 +31,11 @@ namespace keycuts.Tests
         const int LastRunColumn = 6;
         const int MenuColumn = 7;
 
-        /// <summary>Runs <paramref name="body"/> with a Manager of a few keycuts in a window <paramref name="width"/> wide.</summary>
+        /// <summary>
+        /// Runs <paramref name="body"/> with a Manager of a few keycuts <paramref name="width"/> wide. The width is the view's,
+        /// not the window's: Windows keeps a window within about the screen's width, and CI's screen is 1024 wide, too narrow
+        /// for the Modified column (#187). A view wider than its window is laid out at its own width and clipped.
+        /// </summary>
         static void WithWideManager(double width, Action<Window, ManagerViewModel, DataGrid> body)
         {
             RunSta(() =>
@@ -53,7 +57,7 @@ namespace keycuts.Tests
                 manager.LoadAsync().GetAwaiter().GetResult();
                 var window = new Window
                 {
-                    Content = new ManagerView(),
+                    Content = new ManagerView { Width = width },
                     DataContext = manager,
                     Width = width,
                     Height = 460,   // tall enough for the five rows beside the footer (#205), or a scroll bar takes the table's width
@@ -75,6 +79,13 @@ namespace keycuts.Tests
                     window.Close();
                 }
             });
+        }
+
+        /// <summary>Makes the Manager <paramref name="width"/> wide, as a resized window would (see <see cref="WithWideManager"/>).</summary>
+        static void Resize(Window window, double width)
+        {
+            ((FrameworkElement)window.Content).Width = width;
+            window.Width = width;
         }
 
         /// <summary>The grid works out its column widths a layout at a time, so let it finish after a change.</summary>
@@ -388,7 +399,7 @@ namespace keycuts.Tests
                 var starTarget = table.Columns[TargetColumn].Width.Value;
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
 
-                window.Width = 760;
+                Resize(window, 760);
                 Settle(window);
 
                 Assert.True(((FrameworkElement)window.Content).FindName("TableHost") is Border { ActualWidth: < 780 });
@@ -399,7 +410,7 @@ namespace keycuts.Tests
                 Assert.Equal(44, WidthOf(table, MenuColumn), 1);
                 AssertFillsTheTable(table);
 
-                window.Width = 1200;
+                Resize(window, 1200);
                 Settle(window);
 
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
@@ -446,7 +457,7 @@ namespace keycuts.Tests
         {
             WithWideManager(from, (window, manager, table) =>
             {
-                window.Width = to;
+                Resize(window, to);
                 Settle(window);
 
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
@@ -468,7 +479,7 @@ namespace keycuts.Tests
 
                 foreach (var width in new[] { 800.0, 840.0, 846.0, 848.0, 860.0, 900.0, 846.0, 840.0, 1100.0, 1106.0, 1108.0, 1120.0, 1106.0 })
                 {
-                    window.Width = width;
+                    Resize(window, width);
                     Settle(window);
 
                     // ManagerView.ModifiedColumnMinTableWidth and UsageColumnsMinTableWidth

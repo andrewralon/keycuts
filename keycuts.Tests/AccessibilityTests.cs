@@ -1217,7 +1217,7 @@ namespace keycuts.Tests
                     Assert.DoesNotContain("SortHeaderButton:Modified", TabStops(window));
 
                     // Wide enough for Runs and Last run (#187) too, which come before Modified
-                    window.Width = 1200;
+                    ((FrameworkElement)window.Content).Width = 1200;
                     Pump();
                     window.UpdateLayout();
                     Pump();
@@ -1230,7 +1230,7 @@ namespace keycuts.Tests
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");
                     Assert.Equal(modified.ToString("f"), text.ToolTip);
 
-                    window.Width = 700;
+                    ((FrameworkElement)window.Content).Width = 700;
                     Pump();
                     window.UpdateLayout();
                     Pump();

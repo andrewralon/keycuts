@@ -451,6 +451,30 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
+            <!-- #187: how often each keycut runs and when it last did, for cleaning up. They make way only after Modified does
+                 (TableHost_SizeChanged). A dash is no record, which isn't the same as 0. -->
+            <DataGridTemplateColumn x:Name="RunsColumn" Width="72" MinWidth="72" CanUserResize="False"
+                                    HeaderStyle="{StaticResource ManagerHeaderFixed}">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Runs" Content="Runs" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding RunsText}" ToolTip="{Binding RunsTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn x:Name="LastRunColumn" Width="110" MinWidth="110" CanUserResize="False"
+                                    HeaderStyle="{StaticResource ManagerHeaderFixed}">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="LastRun" Content="Last run" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding LastRunText}" ToolTip="{Binding RunsTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
             <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}"
                                     CellStyle="{StaticResource ManagerMenuCell}">
               <DataGridTemplateColumn.CellTemplate>

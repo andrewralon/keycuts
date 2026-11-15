@@ -42,7 +42,12 @@ namespace keycuts.GUI
             var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
             // Off the UI thread, since the folder can be a network share that's offline. The count and the loads below
             // wait for it, so the manager and the welcome already see the new names.
-            var moveAside = Task.Run(MoveAsideCommandNames);
+            var moveAside = Task.Run(() =>
+            {
+                var renamed = MoveAsideCommandNames();
+                AddRunCounting();
+                return renamed;
+            });
             var welcome = new ViewModels.WelcomeViewModel(
                 Common.RegistryStuff.GetWelcomeDismissed,
                 Common.RegistryStuff.SetWelcomeDismissed,
@@ -187,6 +192,39 @@ namespace keycuts.GUI
             {
                 System.Diagnostics.Debug.WriteLine("keycuts: couldn't check for keycuts named after commands: " + ex.Message);
                 return Array.Empty<Common.RenamedKeycut>();
+            }
+        }
+
+        /// <summary>
+        /// Gives the keycuts in the folder the lines that count their runs (#187), once per folder (so lines taken out by hand
+        /// stay out), and makes the usage folder so counting starts now. Runs on a worker thread. Never fails. The Debug folder
+        /// override never writes the registry, so its folder gets the lines on every start (they're only added once to a file).
+        /// </summary>
+        private static void AddRunCounting()
+        {
+            try
+            {
+                var repository = Common.KeycutRepository.CreateDefault();
+                repository.Usage?.EnsureFolder();
+
+                var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
+                var folder = repository.OutputFolder;
+
+                if (!usesDebugFolder && string.Equals(Common.RegistryStuff.GetRunCountingFolder(), folder, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                repository.AddRunCounting();
+
+                if (!usesDebugFolder && System.IO.Directory.Exists(folder))
+                {
+                    Common.RegistryStuff.SetRunCountingFolder(folder);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't add run counting: " + ex.Message);
             }
         }
 

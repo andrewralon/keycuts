@@ -44,27 +44,47 @@ namespace keycuts.GUI.Views
             }
         }
 
-        /// <summary>The table width below which the Modified column is hidden: the other columns need their room more.</summary>
-        internal const double ModifiedColumnMinTableWidth = 780;
+        /// <summary>
+        /// The table width below which the Modified column is hidden: the other columns need their room more, Runs and Last run
+        /// (#187) included, which are what a cleanup needs.
+        /// </summary>
+        internal const double ModifiedColumnMinTableWidth = 1040;
 
-        // Round the table's corners so the pinned header doesn't poke out of the border, and drop the Modified column
-        // when the window is narrow (at its minimum width the other columns' minimum widths already fill the table).
+        /// <summary>The table width below which Runs and Last run are hidden too (#187), after Modified.</summary>
+        internal const double UsageColumnsMinTableWidth = 780;
+
+        // Round the table's corners so the pinned header doesn't poke out of the border, and drop the fixed columns when the
+        // window is narrow, Modified first (at its minimum width the other columns' minimum widths already fill the table).
         private void TableHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var radius = TableHost.CornerRadius.TopLeft;
             TableHost.Clip = new RectangleGeometry(new Rect(0, 0, TableHost.ActualWidth, TableHost.ActualHeight), radius, radius);
 
-            var modifiedVisibility = TableHost.ActualWidth < ModifiedColumnMinTableWidth ? Visibility.Collapsed : Visibility.Visible;
+            var width = TableHost.ActualWidth;
+            var changed = SetVisible(ModifiedColumn, width >= ModifiedColumnMinTableWidth);
+            changed |= SetVisible(RunsColumn, width >= UsageColumnsMinTableWidth);
+            changed |= SetVisible(LastRunColumn, width >= UsageColumnsMinTableWidth);
 
-            if (ModifiedColumn.Visibility != modifiedVisibility)
+            if (changed)
             {
-                ModifiedColumn.Visibility = modifiedVisibility;
-
                 // The grid works out the widths from the change in the space it has, one step at a time, and a big step
                 // (a window snapped or restored) leaves the star columns short of the table with nothing to fill it.
                 // Giving each its own star width back makes it work them out from the space there is.
                 Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(RefillStarColumns));
             }
+        }
+
+        private static bool SetVisible(DataGridColumn column, bool visible)
+        {
+            var visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+
+            if (column.Visibility == visibility)
+            {
+                return false;
+            }
+
+            column.Visibility = visibility;
+            return true;
         }
 
         // Double-clicking a divider is how a grid is told to fit a column to its content, and the grid does it by making the

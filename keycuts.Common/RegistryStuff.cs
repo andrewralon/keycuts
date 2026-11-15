@@ -56,6 +56,12 @@ namespace keycuts.Common
         public static readonly string DismissedReleaseKeyName = "DismissedRelease";
 
         /// <summary>
+        /// The keycuts folder whose keycuts were last given the lines that count runs (#187, <c>KeycutRepository.AddRunCounting</c>).
+        /// That happens once per folder, so lines someone took out of a keycut by hand stay out.
+        /// </summary>
+        public static readonly string RunCountingFolderKeyName = "RunCountingFolder";
+
+        /// <summary>
         /// The update cache's names before #191. They are never read: the first write of a new value deletes them, and the cost of
         /// not migrating is one more daily check (or Check now) and, at worst, a dismissed notice showing once more.
         /// </summary>
@@ -249,6 +255,17 @@ namespace keycuts.Common
         public static void SetWelcomeDismissed()
         {
             SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
+        }
+
+        /// <summary>See <see cref="RunCountingFolderKeyName"/>; null if never set.</summary>
+        public static string GetRunCountingFolder()
+        {
+            return ReadValue(RunCountingFolderKeyName) as string;
+        }
+
+        public static void SetRunCountingFolder(string folder)
+        {
+            SetRegistryValue(RunCountingFolderKeyName, folder ?? "", RegistryValueKind.String);
         }
 
         public static void SetShowDescription(bool showDescription)

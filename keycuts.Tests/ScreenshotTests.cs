@@ -43,12 +43,13 @@ namespace keycuts.Tests
 
             return new List<Keycut>
             {
-                Sample("npp", KeycutKind.File, ShortcutType.File, "Notepad++", @"C:\Program Files\Notepad++\notepad++.exe", now.AddDays(-3)),
-                Sample("gmail", KeycutKind.Url, ShortcutType.Url, "Work email", "https://mail.google.com/mail/u/0/#inbox", now.AddHours(-5)),
-                Sample("db", KeycutKind.Folder, ShortcutType.Folder, "Dropbox folder", @"%USERPROFILE%\Dropbox", now.AddDays(-40)),
-                Sample("ss", KeycutKind.Folder, ShortcutType.Folder, "Screenshots", @"%USERPROFILE%\Pictures\Screenshots", now.AddDays(-200)),
-                Sample("timesheet", KeycutKind.Url, ShortcutType.Url, "This week's timesheet", "https://timesheet.example.com/week", now.AddMinutes(-12)),
-                Sample("rb", KeycutKind.Folder, ShortcutType.CLSIDKey, "Recycle Bin", "::{645FF040-5081-101B-9F08-00AA002F954E}", now.AddDays(-90)),
+                Sample("npp", KeycutKind.File, ShortcutType.File, "Notepad++", @"C:\Program Files\Notepad++\notepad++.exe", now.AddDays(-3)) with { Runs = 86, LastRun = now.AddHours(-2) },
+                Sample("gmail", KeycutKind.Url, ShortcutType.Url, "Work email", "https://mail.google.com/mail/u/0/#inbox", now.AddHours(-5)) with { Runs = 412, LastRun = now.AddMinutes(-20) },
+                Sample("db", KeycutKind.Folder, ShortcutType.Folder, "Dropbox folder", @"%USERPROFILE%\Dropbox", now.AddDays(-40)) with { Runs = 9, LastRun = now.AddDays(-4) },
+                Sample("ss", KeycutKind.Folder, ShortcutType.Folder, "Screenshots", @"%USERPROFILE%\Pictures\Screenshots", now.AddDays(-200)) with { Runs = 0 },
+                Sample("timesheet", KeycutKind.Url, ShortcutType.Url, "This week's timesheet", "https://timesheet.example.com/week", now.AddMinutes(-12)) with { Runs = 31, LastRun = now.AddDays(-1.2) },
+                Sample("rb", KeycutKind.Folder, ShortcutType.CLSIDKey, "Recycle Bin", "::{645FF040-5081-101B-9F08-00AA002F954E}", now.AddDays(-90)) with { Runs = 3, LastRun = now.AddDays(-62) },
+                // Made before counting, with the lines taken out by hand: no record, which isn't 0
                 Sample("old-report", KeycutKind.File, ShortcutType.File, "Quarterly report", @"D:\Reports\2019-q3.xlsx", now.AddDays(-1.5), TargetStatus.Missing),
             };
         }

@@ -18,8 +18,8 @@ using Xunit;
 namespace keycuts.Tests
 {
     // Resizing the Manager's columns by dragging the dividers (#202). The columns are Name (0), Type (1), Description (2),
-    // Target (3), Modified (4) and the menu (5). A drag is sent the way the table's own header gets it, as the grippers'
-    // Thumb events, so no pointer is needed.
+    // Target (3), Modified (4), Runs (5), Last run (6) and the menu (7). A drag is sent the way the table's own header gets
+    // it, as the grippers' Thumb events, so no pointer is needed. The window is 1200 wide where all of them should show.
     public partial class AccessibilityTests
     {
         const int NameColumn = 0;
@@ -27,9 +27,15 @@ namespace keycuts.Tests
         const int DescriptionColumn = 2;
         const int TargetColumn = 3;
         const int ModifiedColumn = 4;
-        const int MenuColumn = 5;
+        const int RunsColumn = 5;
+        const int LastRunColumn = 6;
+        const int MenuColumn = 7;
 
-        /// <summary>Runs <paramref name="body"/> with a Manager of a few keycuts in a window <paramref name="width"/> wide.</summary>
+        /// <summary>
+        /// Runs <paramref name="body"/> with a Manager of a few keycuts <paramref name="width"/> wide. The width is the view's,
+        /// not the window's: Windows keeps a window within about the screen's width, and CI's screen is 1024 wide, too narrow
+        /// for the Modified column (#187). A view wider than its window is laid out at its own width and clipped.
+        /// </summary>
         static void WithWideManager(double width, Action<Window, ManagerViewModel, DataGrid> body)
         {
             RunSta(() =>
@@ -51,7 +57,7 @@ namespace keycuts.Tests
                 manager.LoadAsync().GetAwaiter().GetResult();
                 var window = new Window
                 {
-                    Content = new ManagerView(),
+                    Content = new ManagerView { Width = width },
                     DataContext = manager,
                     Width = width,
                     Height = 460,   // tall enough for the five rows beside the footer (#205), or a scroll bar takes the table's width
@@ -73,6 +79,13 @@ namespace keycuts.Tests
                     window.Close();
                 }
             });
+        }
+
+        /// <summary>Makes the Manager <paramref name="width"/> wide, as a resized window would (see <see cref="WithWideManager"/>).</summary>
+        static void Resize(Window window, double width)
+        {
+            ((FrameworkElement)window.Content).Width = width;
+            window.Width = width;
         }
 
         /// <summary>The grid works out its column widths a layout at a time, so let it finish after a change.</summary>
@@ -135,7 +148,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_Resizing_IsOnTheNameDescriptionAndTargetColumns()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 Assert.True(table.CanUserResizeColumns);
                 Assert.True(table.Columns[NameColumn].CanUserResize);
@@ -145,6 +158,8 @@ namespace keycuts.Tests
                 // A badge, a date and the menu button have one width
                 Assert.False(table.Columns[TypeColumn].CanUserResize);
                 Assert.False(table.Columns[ModifiedColumn].CanUserResize);
+                Assert.False(table.Columns[RunsColumn].CanUserResize);
+                Assert.False(table.Columns[LastRunColumn].CanUserResize);
                 Assert.False(table.Columns[MenuColumn].CanUserResize);
             });
         }
@@ -153,7 +168,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_Grippers_AreOnlyOnTheDividersThatCanMove()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 bool Shown(int column, bool right) => GripperOf(window, table, column, right).IsVisible;
 
@@ -174,6 +189,10 @@ namespace keycuts.Tests
                 Assert.False(Shown(TargetColumn, right: true));
                 Assert.False(Shown(ModifiedColumn, right: false));
                 Assert.False(Shown(ModifiedColumn, right: true));
+                Assert.False(Shown(RunsColumn, right: false));
+                Assert.False(Shown(RunsColumn, right: true));
+                Assert.False(Shown(LastRunColumn, right: false));
+                Assert.False(Shown(LastRunColumn, right: true));
                 Assert.False(Shown(MenuColumn, right: false));
                 Assert.False(Shown(MenuColumn, right: true));
             });
@@ -186,7 +205,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_DraggingTheNameDivider_WidensName_AndTheOtherColumnsGiveWay()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 var name = WidthOf(table, NameColumn);
                 var description = WidthOf(table, DescriptionColumn);
@@ -214,7 +233,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_DraggingTheDescriptionDivider_TradesWidthBetweenDescriptionAndTarget()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 var name = WidthOf(table, NameColumn);
                 var description = WidthOf(table, DescriptionColumn);
@@ -245,7 +264,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_Dragging_NeverMakesTheColumnsWiderThanTheTable_OrNarrowerThanTheirMinimums()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 foreach (var (column, right) in new[] { (NameColumn, true), (TypeColumn, false), (DescriptionColumn, true), (TargetColumn, false) })
                 {
@@ -279,7 +298,7 @@ namespace keycuts.Tests
         [InlineData(TargetColumn, false)]
         public void Manager_DoubleClickingADivider_DoesNotSizeTheColumnToItsContent(int column, bool right)
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 var gripper = GripperOf(window, table, column, right);
                 var starred = table.Columns.Select(c => c.Width.UnitType).ToList();
@@ -313,7 +332,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_DraggingADivider_DoesNotSort()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 Assert.Equal(SortColumn.Shortcut, manager.SortColumn);
                 Assert.False(manager.SortDescending);
@@ -333,7 +352,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_AGripper_IsWhatThePointerHits_OverItsDivider()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 var content = (FrameworkElement)window.Content;
 
@@ -371,7 +390,7 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_AfterADrag_TheWindowShrinking_HidesModified_AndGrowingBringsItBack_WithTheWidthsKept()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 DragGripper(window, table, NameColumn, right: true, change: 60);
                 DragGripper(window, table, DescriptionColumn, right: true, change: 30);
@@ -380,20 +399,24 @@ namespace keycuts.Tests
                 var starTarget = table.Columns[TargetColumn].Width.Value;
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
 
-                window.Width = 760;
+                Resize(window, 760);
                 Settle(window);
 
                 Assert.True(((FrameworkElement)window.Content).FindName("TableHost") is Border { ActualWidth: < 780 });
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
+                Assert.Equal(Visibility.Collapsed, table.Columns[RunsColumn].Visibility);
+                Assert.Equal(Visibility.Collapsed, table.Columns[LastRunColumn].Visibility);
                 Assert.Equal(110, WidthOf(table, TypeColumn), 1);
                 Assert.Equal(44, WidthOf(table, MenuColumn), 1);
                 AssertFillsTheTable(table);
 
-                window.Width = 1200;
+                Resize(window, 1200);
                 Settle(window);
 
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
                 Assert.Equal(110, WidthOf(table, ModifiedColumn), 1);
+                Assert.Equal(72, WidthOf(table, RunsColumn), 1);
+                Assert.Equal(110, WidthOf(table, LastRunColumn), 1);
                 Assert.Equal(110, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
 
@@ -434,7 +457,7 @@ namespace keycuts.Tests
         {
             WithWideManager(from, (window, manager, table) =>
             {
-                window.Width = to;
+                Resize(window, to);
                 Settle(window);
 
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
@@ -447,23 +470,37 @@ namespace keycuts.Tests
         [Fact]
         public void Manager_ModifiedReturnsAtTheRightWidth_AfterAnyDrag()
         {
-            WithWideManager(1000, (window, manager, table) =>
+            WithWideManager(1200, (window, manager, table) =>
             {
                 var host = (Border)((FrameworkElement)window.Content).FindName("TableHost");
 
-                // Either side of the threshold, whatever the drag did before
+                // Either side of each threshold, whatever the drag did before
                 DragGripper(window, table, NameColumn, right: true, change: 5000);
 
-                foreach (var width in new[] { 800.0, 840.0, 846.0, 848.0, 860.0, 900.0, 846.0, 840.0 })
+                foreach (var width in new[] { 800.0, 840.0, 846.0, 848.0, 860.0, 900.0, 846.0, 840.0, 1100.0, 1106.0, 1108.0, 1120.0, 1106.0 })
                 {
-                    window.Width = width;
+                    Resize(window, width);
                     Settle(window);
 
-                    // 780 is ManagerView.ModifiedColumnMinTableWidth
-                    var expected = host.ActualWidth < 780 ? Visibility.Collapsed : Visibility.Visible;
-                    Assert.Equal(expected, table.Columns[ModifiedColumn].Visibility);
+                    // ManagerView.ModifiedColumnMinTableWidth and UsageColumnsMinTableWidth
+                    Assert.Equal(host.ActualWidth < 1040 ? Visibility.Collapsed : Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
+                    Assert.Equal(host.ActualWidth < 780 ? Visibility.Collapsed : Visibility.Visible, table.Columns[RunsColumn].Visibility);
+                    Assert.Equal(host.ActualWidth < 780 ? Visibility.Collapsed : Visibility.Visible, table.Columns[LastRunColumn].Visibility);
                     AssertFillsTheTable(table);
                 }
+            });
+        }
+
+        // #187: Runs and Last run are what a cleanup needs, so Modified makes way first; the window's default size shows them
+        [Fact]
+        public void Manager_AtTheDefaultWidth_ShowsRunsAndLastRun_ButNotModified()
+        {
+            WithWideManager(GUI.WindowLayout.ManagerDefaultWidth, (window, manager, table) =>
+            {
+                Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
+                Assert.Equal(Visibility.Visible, table.Columns[RunsColumn].Visibility);
+                Assert.Equal(Visibility.Visible, table.Columns[LastRunColumn].Visibility);
+                AssertFillsTheTable(table);
             });
         }
 

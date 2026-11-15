@@ -410,5 +410,62 @@ namespace keycuts.Tests
         }
 
         #endregion Target and Modified (#167)
+
+        #region Runs and Last run (#187)
+
+        static Keycut[] WithRuns()
+        {
+            return new[]
+            {
+                NewKeycut("daily") with { CountsRuns = true, Runs = 40, LastRun = Now.AddHours(-2) },
+                NewKeycut("weekly") with { CountsRuns = true, Runs = 4, LastRun = Now.AddDays(-6) },
+                NewKeycut("idle") with { CountsRuns = true, Runs = 0 },
+                NewKeycut("old"),
+                NewKeycut("twice") with { CountsRuns = true, Runs = 4, LastRun = Now.AddDays(-200) }
+            };
+        }
+
+        [Fact]
+        public void SortByRuns_StartsWithTheMost_AndNoRecordComesBelowZero()
+        {
+            var manager = NewManager(WithRuns());
+
+            manager.SortBy(SortColumn.Runs);
+
+            Assert.True(manager.SortDescending);
+            Assert.Equal(new[] { "daily", "twice", "weekly", "idle", "old" }, Names(manager));
+
+            // The other way round, the unused ones are on top: what a cleanup wants
+            manager.SortBy(SortColumn.Runs);
+
+            Assert.Equal(new[] { "old", "idle", "twice", "weekly", "daily" }, Names(manager));
+        }
+
+        [Fact]
+        public void SortByLastRun_StartsWithTheLatest()
+        {
+            var manager = NewManager(WithRuns());
+
+            manager.SortBy(SortColumn.LastRun);
+
+            Assert.True(manager.SortDescending);
+            Assert.Equal(new[] { "daily", "weekly", "twice", "idle", "old" }, Names(manager));
+        }
+
+        [Fact]
+        public void TheRunsCells_TellNoRecordFromNeverRun()
+        {
+            var rows = WithRuns().ToDictionary(k => k.Name, k => new KeycutRowViewModel(k));
+
+            Assert.Equal("40", rows["daily"].RunsText);
+            Assert.Equal("0", rows["idle"].RunsText);
+            Assert.Equal("Never", rows["idle"].LastRunText);
+            Assert.Equal(KeycutRowViewModel.NoRecord, rows["old"].RunsText);
+            Assert.Equal(KeycutRowViewModel.NoRecord, rows["old"].LastRunText);
+            Assert.StartsWith("Not counted", rows["old"].RunsTooltip);
+            Assert.Equal("Last run " + Now.AddHours(-2).ToString("f"), rows["daily"].RunsTooltip);
+        }
+
+        #endregion Runs and Last run (#187)
     }
 }

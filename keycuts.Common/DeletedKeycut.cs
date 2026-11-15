@@ -27,5 +27,8 @@ namespace keycuts.Common
 
         /// <summary>True if the file went to the Recycle Bin; false if it was deleted for good (a drive without one).</summary>
         public bool Recycled { get; }
+
+        /// <summary>Its run count (#187) as it was, which a restore puts back; null if it had none.</summary>
+        public UsageFile Usage { get; init; }
     }
 }

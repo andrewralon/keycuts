@@ -455,6 +455,88 @@ namespace keycuts.Common
             return renamed;
         }
 
+        /// <summary>
+        /// Gives keycuts written before #187 the lines that count their runs (<see cref="UsageLog.BatLines"/>), so they count
+        /// without being emitted again: the lines go in just before the file's last line, which must be <c>EXIT</c>, and
+        /// nothing else changes. The file is handled as bytes, so its encoding (UTF-8 or ANSI, with or without a BOM), line
+        /// breaks and hand edits all stay, and the new lines use the file's own line break. The last write time is put back,
+        /// so the Modified column doesn't make every keycut look new. A file that already counts, that isn't a keycut the
+        /// parser reads, or that doesn't end with <c>EXIT</c> (so there's no telling the lines would run) is left alone, as
+        /// is one that can't be written. Returns how many files got the lines.
+        /// </summary>
+        public int AddRunCounting()
+        {
+            var added = 0;
+
+            if (string.IsNullOrWhiteSpace(_outputFolder) || !Directory.Exists(_outputFolder))
+            {
+                return added;
+            }
+
+            string[] files;
+
+            try
+            {
+                files = Directory.GetFiles(_outputFolder, "*" + ShortcutFile.Extension);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return added;
+            }
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    if (TryAddRunCounting(file))
+                    {
+                        added++;
+                    }
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+                {
+                    // Left as it is (read-only, locked); it just doesn't count
+                    Debug.WriteLine($"keycuts: couldn't add run counting to \"{file}\": {ex.Message}");
+                }
+            }
+
+            return added;
+        }
+
+        private static bool TryAddRunCounting(string file)
+        {
+            var bytes = File.ReadAllBytes(file);
+
+            // Latin-1 maps every byte to one character and back, so the bytes that aren't touched come out the same
+            var text = System.Text.Encoding.Latin1.GetString(bytes);
+            var spans = ScanLines(text);
+            var lines = spans.Select(span => text.Substring(span.Start, span.Length)).ToArray();
+
+            if (UsageLog.IsCounted(lines) || TryParse(file) == null)
+            {
+                return false;
+            }
+
+            var last = Array.FindLastIndex(lines, line => line.Trim().Length > 0);
+
+            if (last < 1 || !string.Equals(lines[last].Trim(), "EXIT", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // The break after the line before EXIT
+            var breakAt = spans[last - 1].Start + spans[last - 1].Length;
+            var lineBreak = text[breakAt] == '\r' && breakAt + 1 < text.Length && text[breakAt + 1] == '\n' ? "\r\n" : text[breakAt].ToString();
+            var block = string.Concat(UsageLog.BatLines.Select(line => line + lineBreak));
+            var updated = text.Insert(spans[last].Start, block);
+            var modified = File.GetLastWriteTime(file);
+
+            ReplaceFileContent(file, System.Text.Encoding.Latin1.GetBytes(updated));
+            File.SetLastWriteTime(file, modified);
+
+            return true;
+        }
+
         /// <summary><paramref name="baseName"/>, or it with 2, 3 and so on appended, whichever isn't taken; null if all are.</summary>
         private string FreeName(string baseName)
         {

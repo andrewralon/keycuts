@@ -42,19 +42,19 @@ namespace keycuts.Tests
 
         private KeycutRepository Repo() => new KeycutRepository(_folder, new PermanentDeleter(), null, _usage);
 
+        private string Create(string name, string target = "https://example.com", string description = "")
+        {
+            var shortcut = new Shortcut(target, name + ShortcutFile.Extension, _folder);
+            new Runner().CreateShortcutFile(shortcut, true, description);
+            return shortcut.FullPath;
+        }
+
         private void SetRuns(string name, int runs, DateTime lastRun)
         {
             Directory.CreateDirectory(_usageFolder);
             var path = Path.Combine(_usageFolder, name + UsageLog.Extension);
             File.WriteAllText(path, string.Concat(Enumerable.Repeat("1\r\n", runs)));
             File.SetLastWriteTime(path, lastRun);
-        }
-
-        private string Create(string name, string target = "https://example.com", string description = "")
-        {
-            var shortcut = new Shortcut(target, name + ShortcutFile.Extension, _folder);
-            new Runner().CreateShortcutFile(shortcut, true, description);
-            return shortcut.FullPath;
         }
 
         private string RunsFile(string name) => Path.Combine(_usageFolder, name + UsageLog.Extension);
@@ -411,5 +411,126 @@ namespace keycuts.Tests
         }
 
         #endregion Keeping in step
+
+        #region Adding the lines to older keycuts
+
+        [Fact]
+        public void AddRunCounting_PutsTheLinesBeforeExit_AndChangesNothingElse()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            var old = OldLines(path);
+            File.WriteAllLines(path, old);
+            var modified = new DateTime(2024, 5, 6, 7, 8, 9);
+            File.SetLastWriteTime(path, modified);
+
+            Assert.Equal(1, Repo().AddRunCounting());
+
+            var expected = old.Take(old.Length - 1).Concat(UsageLog.BatLines).Concat(new[] { "EXIT" });
+            Assert.Equal(expected, File.ReadAllLines(path));
+            Assert.Equal(modified, File.GetLastWriteTime(path));
+            Assert.True(KeycutRepository.CanEditInForm(path));
+        }
+
+        [Fact]
+        public void AddRunCounting_KeepsTheBytes_ABomLineFeedsAndAnAnsiByte()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            // UTF-8 BOM, LF line breaks, and a description with an ANSI é (0xE9), which isn't valid UTF-8
+            var head = "@ECHO OFF\nREM <type>url</type>\nREM <target>https://example.com</target>\nREM <description>caf\u00e9</description>\nSTART https://example.com\n";
+            var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.Latin1.GetBytes(head + "EXIT\n")).ToArray();
+            File.WriteAllBytes(path, bytes);
+
+            Assert.Equal(1, Repo().AddRunCounting());
+
+            var expected = new byte[] { 0xEF, 0xBB, 0xBF }
+                .Concat(Encoding.Latin1.GetBytes(head + string.Concat(UsageLog.BatLines.Select(l => l + "\n")) + "EXIT\n")).ToArray();
+            Assert.Equal(expected, File.ReadAllBytes(path));
+        }
+
+        [Fact]
+        public void AddRunCounting_IsOnlyDoneOnce()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            File.WriteAllLines(path, OldLines(path));
+            Repo().AddRunCounting();
+            var once = File.ReadAllBytes(path);
+
+            Assert.Equal(0, Repo().AddRunCounting());
+            Assert.Equal(once, File.ReadAllBytes(path));
+        }
+
+        [Fact]
+        public void AddRunCounting_LeavesAloneAFileThatDoesntEndWithExit_OrIsntAKeycut()
+        {
+            var noExit = Path.Combine(_folder, "noexit.bat");
+            File.WriteAllLines(noExit, OldLines(noExit).Take(7));
+            var notAKeycut = Path.Combine(_folder, "script.bat");
+            File.WriteAllLines(notAKeycut, new[] { "@ECHO OFF", "echo hello", "EXIT" });
+            var before = new[] { File.ReadAllBytes(noExit), File.ReadAllBytes(notAKeycut) };
+
+            Assert.Equal(0, Repo().AddRunCounting());
+
+            Assert.Equal(before[0], File.ReadAllBytes(noExit));
+            Assert.Equal(before[1], File.ReadAllBytes(notAKeycut));
+        }
+
+        [Fact]
+        public void AddRunCounting_SkipsAReadOnlyFile_AndCarriesOn()
+        {
+            var locked = Path.Combine(_folder, "a.bat");
+            File.WriteAllLines(locked, OldLines(locked));
+            File.SetAttributes(locked, FileAttributes.ReadOnly);
+            var other = Path.Combine(_folder, "b.bat");
+            File.WriteAllLines(other, OldLines(other));
+
+            try
+            {
+                Assert.Equal(1, Repo().AddRunCounting());
+                Assert.False(UsageLog.IsCounted(File.ReadAllLines(locked)));
+                Assert.True(UsageLog.IsCounted(File.ReadAllLines(other)));
+            }
+            finally
+            {
+                File.SetAttributes(locked, FileAttributes.Normal);
+            }
+        }
+
+        [Fact]
+        public void TheCorpus_ParsesTheSame_WithTheLinesAdded()
+        {
+            var corpus = Path.Combine(FindRepoRoot(), "tests", "corpus");
+            var copied = 0;
+
+            foreach (var file in Directory.EnumerateFiles(corpus, "*.bat", SearchOption.AllDirectories))
+            {
+                File.Copy(file, Path.Combine(_folder, Path.GetFileName(file)), true);
+                copied++;
+            }
+
+            Assert.True(copied > 0);
+            var before = Directory.GetFiles(_folder).ToDictionary(f => f, f => new ShortcutFile(f));
+
+            Repo().AddRunCounting();
+
+            foreach (var (file, parsed) in before)
+            {
+                var after = new ShortcutFile(file);
+                Assert.Equal((parsed.Type, parsed.Target, parsed.Description, parsed.Command), (after.Type, after.Target, after.Description, after.Command));
+            }
+        }
+
+        private static string FindRepoRoot()
+        {
+            var folder = new DirectoryInfo(AppContext.BaseDirectory);
+
+            while (folder != null && !File.Exists(Path.Combine(folder.FullName, "keycuts.sln")))
+            {
+                folder = folder.Parent;
+            }
+
+            return folder?.FullName ?? throw new InvalidOperationException("Can't find keycuts.sln.");
+        }
+
+        #endregion Adding the lines to older keycuts
     }
 }

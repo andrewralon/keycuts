@@ -25,6 +25,8 @@ namespace keycuts.GUI
         // Held here: an HwndSource keeps only weak references to its hooks
         private readonly NoMaximizeHook noMaximize;
 
+        private readonly NoSystemCaptionHook noSystemCaption;
+
         public MainWindow(ShellViewModel shell)
         {
             InitializeComponent();
@@ -40,6 +42,8 @@ namespace keycuts.GUI
             Rail.Tabs.SelectionChanged += Tabs_SelectionChanged;
             // The window is never maximized, on any screen; the Manager is still resized from its edges
             noMaximize = new NoMaximizeHook(this);
+            // Windows would paint its classic caption buttons over the tab bar, after a drag from the bar
+            noSystemCaption = new NoSystemCaptionHook(this);
 
             // Pick up keycuts changed outside the app
             Activated += (sender, e) =>

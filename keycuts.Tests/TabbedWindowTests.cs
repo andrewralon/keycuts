@@ -159,6 +159,21 @@ namespace keycuts.Tests
 
         #endregion Never maximized
 
+        #region No system caption
+
+        [Theory]
+        [InlineData(0x00AE, true)]    // WM_NCUAHDRAWCAPTION: the classic caption buttons, painted over the tab bar
+        [InlineData(0x00AF, true)]    // WM_NCUAHDRAWFRAME
+        [InlineData(0x0085, false)]   // WM_NCPAINT
+        [InlineData(0x0086, false)]   // WM_NCACTIVATE, which WindowChrome handles
+        [InlineData(0x00A1, false)]   // WM_NCLBUTTONDOWN, which starts a drag
+        public void IsSystemCaptionPaint_IsOnlyTheThemeCaptionAndFrameMessages(int msg, bool expected)
+        {
+            Assert.Equal(expected, NoSystemCaptionHook.IsSystemCaptionPaint(msg));
+        }
+
+        #endregion No system caption
+
         #region The tabs
 
         [Fact]

@@ -56,6 +56,8 @@ namespace keycuts.Common
 
         private readonly Func<NameConflictEnvironment> _programLookup;
 
+        private readonly UsageLog _usage;
+
         /// <summary>
         /// A repository that deletes files for good. Use <see cref="CreateDefault"/> (or pass a
         /// <see cref="RecycleBinRecycler"/>) for the app, which sends them to the Recycle Bin.
@@ -74,18 +76,29 @@ namespace keycuts.Common
         /// (#203): the folders, PATH and App Paths that Windows searches. Null reads this machine's, only when a check needs
         /// it; tests pass their own so a check never reads the real PATH or registry.</param>
         public KeycutRepository(string outputFolder, IFileRecycler recycler, Func<NameConflictEnvironment> programLookup)
+            : this(outputFolder, recycler, programLookup, null)
+        {
+        }
+
+        /// <param name="usage">Where run counts are kept (#187). Null (what the other constructors pass, so tests never touch
+        /// the real one) loads no counts and leaves them alone on rename and delete.</param>
+        public KeycutRepository(string outputFolder, IFileRecycler recycler, Func<NameConflictEnvironment> programLookup, UsageLog usage)
         {
             _outputFolder = outputFolder;
             _recycler = recycler ?? throw new ArgumentNullException(nameof(recycler));
             _programLookup = programLookup ?? NameConflictEnvironment.GetDefault;
+            _usage = usage;
         }
 
         public string OutputFolder => _outputFolder;
 
+        /// <summary>The run counts this repository reads and keeps in step; null if it has none.</summary>
+        public UsageLog Usage => _usage;
+
         /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179).</summary>
         public static KeycutRepository CreateDefault()
         {
-            return new KeycutRepository(new Runner().GetOutputFolder(), new RecycleBinRecycler());
+            return new KeycutRepository(new Runner().GetOutputFolder(), new RecycleBinRecycler(), null, UsageLog.CreateDefault());
         }
 
         /// <summary>
@@ -526,6 +539,9 @@ namespace keycuts.Common
                 throw Translate(ex, $"Can't read keycuts folder \"{_outputFolder}\".");
             }
 
+            // Read once for the whole folder, not once per keycut
+            var usage = _usage?.ReadAll();
+
             foreach (var file in files.OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
             {
                 ct.ThrowIfCancellationRequested();
@@ -534,7 +550,7 @@ namespace keycuts.Common
 
                 if (keycut != null)
                 {
-                    keycuts.Add(keycut);
+                    keycuts.Add(WithUsage(keycut, usage));
                 }
             }
 
@@ -584,7 +600,8 @@ namespace keycuts.Common
                     ProgramName = shortcut.ProgramName ?? "",
                     FilePath = file,
                     CanEditInForm = strict && IsEditable(shortcut, file, lines),
-                    Modified = File.GetLastWriteTime(file)
+                    Modified = File.GetLastWriteTime(file),
+                    CountsRuns = UsageLog.IsCounted(lines)
                 };
             }
             catch (Exception ex)
@@ -592,6 +609,36 @@ namespace keycuts.Common
                 Debug.WriteLine($"keycuts: skipped \"{file}\": {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// The keycut with its run count (#187) from <paramref name="records"/>, or read for it alone when that's null. No
+        /// record means 0 runs for a keycut that counts them, and no count (null) for one that doesn't. Null stays null.
+        /// </summary>
+        private Keycut WithUsage(Keycut keycut, IReadOnlyDictionary<string, UsageRecord> records = null)
+        {
+            if (keycut == null || _usage == null)
+            {
+                return keycut;
+            }
+
+            UsageRecord record;
+
+            if (records != null)
+            {
+                records.TryGetValue(keycut.Name ?? "", out record);
+            }
+            else
+            {
+                record = _usage.Read(keycut.Name);
+            }
+
+            if (record == null)
+            {
+                return keycut.CountsRuns ? keycut with { Runs = 0 } : keycut;
+            }
+
+            return keycut with { Runs = record.Runs, LastRun = record.LastRun };
         }
 
         private DeletedKeycut Delete(Keycut keycut)
@@ -612,7 +659,10 @@ namespace keycuts.Common
 
                 _recycler.Remove(path);
 
-                return new DeletedKeycut(keycut, contents, modified, recycled);
+                // Its run count goes too, so a new keycut with the name starts from nothing; Undo puts it back
+                var usage = _usage?.Remove(Path.GetFileNameWithoutExtension(path));
+
+                return new DeletedKeycut(keycut, contents, modified, recycled) { Usage = usage };
             }
             catch (KeycutRepositoryException)
             {
@@ -624,7 +674,7 @@ namespace keycuts.Common
             }
         }
 
-        private static Keycut Update(Keycut keycut, KeycutEdit edit)
+        private Keycut Update(Keycut keycut, KeycutEdit edit)
         {
             var oldPath = keycut.FilePath;
             var name = (edit.Name ?? string.Empty).Trim();
@@ -690,6 +740,7 @@ namespace keycuts.Common
                         if (!string.Equals(newPath, oldPath, StringComparison.Ordinal))
                         {
                             File.Move(oldPath, newPath);
+                            _usage?.Move(Path.GetFileNameWithoutExtension(oldPath), name);
                         }
                     }
                     else
@@ -709,6 +760,8 @@ namespace keycuts.Common
                             TryMoveBack(newPath, oldPath);
                             throw;
                         }
+
+                        _usage?.Move(Path.GetFileNameWithoutExtension(oldPath), name);
                     }
                 }
                 finally
@@ -719,7 +772,7 @@ namespace keycuts.Common
                     }
                 }
 
-                return TryParse(newPath) ?? new Keycut
+                return WithUsage(TryParse(newPath)) ?? new Keycut
                 {
                     Name = name,
                     Kind = KeycutKind.File,
@@ -793,7 +846,7 @@ namespace keycuts.Common
             return shortcut;
         }
 
-        private static void Restore(DeletedKeycut deleted)
+        private void Restore(DeletedKeycut deleted)
         {
             var path = deleted.Keycut.FilePath;
             var name = Path.GetFileNameWithoutExtension(path);
@@ -819,6 +872,7 @@ namespace keycuts.Common
 
                     // Move without overwriting, so a file created between the check and here is kept (it throws)
                     File.Move(temp, path);
+                    _usage?.Restore(name, deleted.Usage);
                 }
                 finally
                 {
@@ -846,7 +900,7 @@ namespace keycuts.Common
             @"^(\s*REM\s+<shortcut>).*?(</shortcut>)",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
 
-        private static string Rename(string path, string newName)
+        private string Rename(string path, string newName)
         {
             if (!KeycutCreator.IsValidName(newName))
             {
@@ -875,6 +929,7 @@ namespace keycuts.Common
 
                 File.Move(path, newPath);
                 TryRewriteShortcutLine(newPath);
+                _usage?.Move(Path.GetFileNameWithoutExtension(path), newName);
 
                 return newPath;
             }
@@ -971,7 +1026,7 @@ namespace keycuts.Common
             return lines;
         }
 
-        private static Keycut SetDescription(Keycut keycut, string description)
+        private Keycut SetDescription(Keycut keycut, string description)
         {
             var path = keycut.FilePath;
 
@@ -1017,7 +1072,7 @@ namespace keycuts.Common
                 // Nothing to change: the file keeps its bytes and its date. No line and nothing to say needs no line.
                 if (existing >= 0 ? string.Equals(ShortcutFile.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
                 {
-                    return TryParse(path) ?? UnreadableKeycut(keycut);
+                    return WithUsage(TryParse(path)) ?? UnreadableKeycut(keycut);
                 }
 
                 string updated;
@@ -1048,7 +1103,7 @@ namespace keycuts.Common
                 var body = strict.GetBytes(updated);
                 ReplaceFileContent(path, hasBom ? preamble.Concat(body).ToArray() : body);
 
-                return TryParse(path) ?? UnreadableKeycut(keycut);
+                return WithUsage(TryParse(path)) ?? UnreadableKeycut(keycut);
             }
             catch (KeycutRepositoryException)
             {

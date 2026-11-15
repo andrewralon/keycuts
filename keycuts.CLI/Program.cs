@@ -99,7 +99,7 @@ namespace keycuts.CLI
                     options.Force);
 
                 // Run app and pass arguments as parameters. Environment variables in paths (#31) follow the setting.
-                var app = new Runner();
+                var app = new Runner { Usage = UsageLog.CreateDefault() };
                 keycutArgs.UseEnvironmentVariables = app.GetUseEnvironmentVariables();
                 keycutArgs.Description = options.Description ?? "";
 

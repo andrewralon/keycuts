@@ -29,6 +29,12 @@ namespace keycuts.Common
 
         private readonly string _fixedOutputFolder;
 
+        /// <summary>
+        /// The run counts (#187) a create clears for a new name. Null (the default, so tests never touch the real one) leaves
+        /// them alone; the CLI and the GUI pass <see cref="UsageLog.CreateDefault"/>.
+        /// </summary>
+        public UsageLog Usage { get; set; }
+
         public Runner()
         {
             // Debug builds only: KEYCUTS_OUTPUT_FOLDER pins the folder and leaves the registry and PATH alone
@@ -267,13 +273,28 @@ namespace keycuts.Common
         {
             var result = false;
 
+            var isNew = !File.Exists(shortcut.FullPath);
+
             // If the shortcut file already exists, let overwrite decide
-            if (!File.Exists(shortcut.FullPath) || overwrite)
+            if (isNew || overwrite)
             {
                 var lines = BuildShortcutLines(shortcut, description);
 
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
+
+                if (Usage != null)
+                {
+                    // A new name starts from nothing, not from the count of a keycut deleted outside keycuts; a replaced
+                    // keycut keeps its count, since it's still the name that's typed. The folder is made now so the
+                    // first run is counted even before keycuts is opened again.
+                    if (isNew)
+                    {
+                        Usage.Forget(Path.GetFileNameWithoutExtension(shortcut.FullPath));
+                    }
+
+                    Usage.EnsureFolder();
+                }
 
                 Console.WriteLine($"Shortcut created: \"{shortcut.FullPath}\"");
 

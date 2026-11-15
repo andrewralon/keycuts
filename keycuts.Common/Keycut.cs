@@ -62,6 +62,18 @@ namespace keycuts.Common
         /// </summary>
         public DateTime Modified { get; init; }
 
+        /// <summary>True if the .bat has the lines that count its runs (<see cref="UsageLog.BatLines"/>, #187).</summary>
+        public bool CountsRuns { get; init; }
+
+        /// <summary>
+        /// How many times the keycut has run (#187). Null when there's no record: it doesn't count its runs, or its runs
+        /// weren't read (a repository without a <see cref="UsageLog"/>). 0 when it counts them and hasn't run.
+        /// </summary>
+        public int? Runs { get; init; }
+
+        /// <summary>When it last ran (local time), from its usage record; <c>default</c> when it hasn't, or that isn't known.</summary>
+        public DateTime LastRun { get; init; }
+
         /// <summary>Set in the background by <see cref="KeycutRepository.CheckTargetsAsync"/>. Missing means a specific path was looked for and isn't there; anything else the check couldn't pin down stays Unknown.</summary>
         public TargetStatus TargetStatus { get; set; } = TargetStatus.Unknown;
 

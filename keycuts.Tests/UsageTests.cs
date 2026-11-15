@@ -40,6 +40,8 @@ namespace keycuts.Tests
 
         #region Helpers
 
+        private KeycutRepository Repo() => new KeycutRepository(_folder, new PermanentDeleter(), null, _usage);
+
         private void SetRuns(string name, int runs, DateTime lastRun)
         {
             Directory.CreateDirectory(_usageFolder);
@@ -123,6 +125,19 @@ namespace keycuts.Tests
             File.WriteAllLines(path, OldLines(path));
 
             Assert.True(KeycutRepository.CanEditInForm(path));
+        }
+
+        [Fact]
+        public async Task SavingTheEditForm_GivesAnOldKeycutTheLines()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            File.WriteAllLines(path, OldLines(path));
+            var keycut = (await Repo().LoadAllAsync()).Single();
+
+            var saved = await Repo().UpdateAsync(keycut, new KeycutEdit(keycut.Target, "old", "now counts"));
+
+            Assert.True(saved.CountsRuns);
+            Assert.True(UsageLog.IsCounted(File.ReadAllLines(path)));
         }
 
         // The lines are pure cmd, so they're run for real: by the full path, as Win+R and Explorer start a keycut, and by a
@@ -275,6 +290,126 @@ namespace keycuts.Tests
             Assert.Null(_usage.CountingSince());
         }
 
+        [Fact]
+        public async Task LoadAll_GivesEachKeycutItsRuns_ZeroWhenItCountsAndHasntRun_AndNoneWhenItDoesntCount()
+        {
+            Create("used");
+            Create("unused");
+            var oldPath = Path.Combine(_folder, "old.bat");
+            File.WriteAllLines(oldPath, OldLines(oldPath));
+            var lastRun = DateTime.Now.AddDays(-3);
+            SetRuns("used", 5, lastRun);
+
+            var keycuts = (await Repo().LoadAllAsync()).ToDictionary(k => k.Name);
+
+            Assert.Equal(5, keycuts["used"].Runs);
+            Assert.Equal(lastRun, keycuts["used"].LastRun);
+            Assert.Equal(0, keycuts["unused"].Runs);
+            Assert.Equal(default, keycuts["unused"].LastRun);
+            Assert.Null(keycuts["old"].Runs);
+            Assert.False(keycuts["old"].CountsRuns);
+        }
+
+        [Fact]
+        public async Task ARepositoryWithoutAUsageLog_ReadsNoRuns()
+        {
+            Create("used");
+            SetRuns("used", 5, DateTime.Now);
+
+            var keycut = (await new KeycutRepository(_folder).LoadAllAsync()).Single();
+
+            Assert.True(keycut.CountsRuns);
+            Assert.Null(keycut.Runs);
+        }
+
         #endregion Reading
+
+        #region Keeping in step
+
+        [Fact]
+        public async Task Rename_TakesTheRunsAlong_AndReplacesWhatTheNewNameHadLeftOver()
+        {
+            Create("mail");
+            SetRuns("mail", 4, new DateTime(2026, 1, 2));
+            SetRuns("inbox", 9, new DateTime(2025, 1, 2));
+            var keycut = (await Repo().LoadAllAsync()).Single();
+
+            await Repo().RenameAsync(keycut, "inbox");
+
+            Assert.False(File.Exists(RunsFile("mail")));
+            Assert.Equal(new UsageRecord(4, new DateTime(2026, 1, 2)), _usage.Read("inbox"));
+        }
+
+        [Fact]
+        public async Task Rename_OfAKeycutThatHasntRun_ClearsWhatTheNewNameHadLeftOver()
+        {
+            Create("mail");
+            SetRuns("inbox", 9, new DateTime(2025, 1, 2));
+            var keycut = (await Repo().LoadAllAsync()).Single();
+
+            await Repo().RenameAsync(keycut, "inbox");
+
+            Assert.Null(_usage.Read("inbox"));
+        }
+
+        [Fact]
+        public async Task Rename_ChangingOnlyTheCase_KeepsTheRuns()
+        {
+            Create("mail");
+            SetRuns("mail", 4, new DateTime(2026, 1, 2));
+            var keycut = (await Repo().LoadAllAsync()).Single();
+
+            await Repo().RenameAsync(keycut, "Mail");
+
+            Assert.Equal(4, _usage.Read("Mail").Runs);
+            Assert.Equal("Mail" + UsageLog.Extension, Path.GetFileName(Directory.GetFiles(_usageFolder).Single()));
+        }
+
+        [Fact]
+        public async Task TheEditForm_RenamingAKeycut_TakesTheRunsAlong()
+        {
+            Create("mail");
+            SetRuns("mail", 4, new DateTime(2026, 1, 2));
+            var keycut = (await Repo().LoadAllAsync()).Single();
+
+            var saved = await Repo().UpdateAsync(keycut, new KeycutEdit(keycut.Target, "inbox", ""));
+
+            Assert.Equal(4, saved.Runs);
+            Assert.Null(_usage.Read("mail"));
+        }
+
+        [Fact]
+        public async Task Delete_RemovesTheRuns_AndUndoPutsThemBack()
+        {
+            Create("mail");
+            var lastRun = new DateTime(2026, 1, 2, 3, 4, 5);
+            SetRuns("mail", 4, lastRun);
+            var keycut = (await Repo().LoadAllAsync()).Single();
+
+            var deleted = await Repo().DeleteAsync(keycut);
+
+            Assert.False(File.Exists(RunsFile("mail")));
+
+            await Repo().RestoreAsync(deleted);
+
+            Assert.Equal(new UsageRecord(4, lastRun), _usage.Read("mail"));
+        }
+
+        [Fact]
+        public void ANewKeycut_StartsFromNothing_AndAReplacedOneKeepsItsRuns()
+        {
+            SetRuns("mail", 4, DateTime.Now);
+            var runner = new Runner(_folder, new NoOpPathUpdater()) { Usage = _usage };
+
+            // A keycut named mail was deleted outside keycuts, and its record stayed
+            runner.CreateShortcutFile(new Shortcut("https://example.com", "mail.bat", _folder));
+            Assert.Null(_usage.Read("mail"));
+
+            SetRuns("mail", 4, DateTime.Now);
+            runner.CreateShortcutFile(new Shortcut("https://example.org", "mail.bat", _folder), overwrite: true);
+            Assert.Equal(4, _usage.Read("mail").Runs);
+        }
+
+        #endregion Keeping in step
     }
 }

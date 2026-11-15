@@ -24,7 +24,7 @@ Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
   <img src="docs/images/creator-light.png" alt="The creator." width="580">
 </picture>
 
-**Manage:** search, sort, open, rename, edit, delete (with undo). Missing targets are flagged.
+**Manage:** search, sort, open, rename, edit, delete (with undo). Missing targets are flagged. Each keycut counts its runs, so sorting by **Runs** or **Last run** shows which ones you never use.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">
@@ -38,7 +38,7 @@ Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
   <img src="docs/images/settings-light.png" alt="Settings." width="580">
 </picture>
 
-The app checks GitHub for updates at most once a day. No telemetry.
+The app checks GitHub for updates at most once a day. No telemetry: run counts are files in `%LOCALAPPDATA%\keycuts\usage` that never leave your PC.
 
 ## Command line
 

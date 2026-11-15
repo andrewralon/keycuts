@@ -53,6 +53,16 @@ Behavior that spans several files. Read the section before changing that area. P
   Widths aren't remembered; if they ever are, store star proportions.
 - Status messages last 3 s (`StatusMessageDuration`), errors 6 s.
 
+## Run counts (#187)
+
+- keycuts isn't running when a keycut runs, so the `.bat` counts itself: `UsageLog.BatLines`, after the launch line and before `EXIT`, append one line to `%LOCALAPPDATA%\keycuts\usage\%~n0.runs`. Count = number of lines (`UsageLog.CountRuns`), last run = the file's write time. No `%DATE%` parsing, concurrent runs both count, and `%~n0` keeps counting under a name changed in Explorer.
+- Both lines fail silently (the second is parenthesized so `2>NUL` covers the `>>` itself). The `.bat` keeps the launch's exit code: `ECHO` and a failed redirection leave ERRORLEVEL alone, and when the folder is missing, `MD` is followed by `"%ComSpec%" /C EXIT %ERRORLEVEL%` (expanded before `MD` runs) to put the code back. `UsageTests` runs the lines through real `cmd` with `LOCALAPPDATA` pointed at a temp folder.
+- Parser: neither line is a launch line. `CanEditInForm` drops exact `BatLines` from both sides, so files with and without them stay editable; saving the form adds them.
+- Older keycuts: `KeycutRepository.AddRunCounting` inserts the lines before a final `EXIT`, byte for byte (Latin-1 round trip keeps BOM, ANSI bytes, line breaks), restores the last write time, and skips anything else (no final `EXIT`, unparseable, read-only). The GUI runs it at startup once per folder (`RunCountingFolder` in HKCU), so lines removed by hand stay removed.
+- `Keycut.Runs`: null = no record (file lacks the lines), 0 = counts but never ran. Only repositories built with a `UsageLog` read counts (`CreateDefault`); tests pass a temp one.
+- Rename and the Edit form's rename move the record (replacing a leftover under the new name); delete removes it into `DeletedKeycut.Usage` and Undo restores it with its time. A brand-new keycut clears a leftover record for its name (`Runner.Usage`, set only by the CLI and `CreateOptions.Usage` from the GUI); overwriting keeps the count.
+- Manager: Runs and Last run columns, sorted most/latest first. Modified makes way first (table < 1040), then Runs and Last run (< 780).
+
 ## Target check (Missing / Warning / Unknown)
 
 - Missing = a specific path was looked for and isn't there. Anything uncertain is Unknown (no label).

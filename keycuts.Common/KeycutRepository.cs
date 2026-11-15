@@ -302,7 +302,10 @@ namespace keycuts.Common
                 emitted.RemoveAll(line => DescriptionRemLine.IsMatch(line));
             }
 
-            return lines.Select(NormalizeForComparison).SequenceEqual(emitted.Select(NormalizeForComparison), StringComparer.Ordinal);
+            // The lines that count runs (#187) are left out on both sides: a keycut from before them is as editable as one
+            // with them, and saving it adds them. Only lines exactly as the emitter writes them are left out, so nothing is lost.
+            return lines.Where(line => !UsageLog.IsUsageLine(line)).Select(NormalizeForComparison)
+                .SequenceEqual(emitted.Where(line => !UsageLog.IsUsageLine(line)).Select(NormalizeForComparison), StringComparer.Ordinal);
         }
 
         private static readonly System.Text.RegularExpressions.Regex DescriptionRemLine = new System.Text.RegularExpressions.Regex(

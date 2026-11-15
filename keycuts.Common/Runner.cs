@@ -300,6 +300,8 @@ namespace keycuts.Common
             };
 
             lines.Add(BuildCommand(shortcut));
+            // After the launch line, so counting the run (#187) never delays it
+            lines.AddRange(UsageLog.BatLines);
             lines.Add("EXIT");
 
             return lines;

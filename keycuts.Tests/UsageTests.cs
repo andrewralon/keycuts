@@ -48,9 +48,46 @@ namespace keycuts.Tests
             File.SetLastWriteTime(path, lastRun);
         }
 
+        private string Create(string name, string target = "https://example.com", string description = "")
+        {
+            var shortcut = new Shortcut(target, name + ShortcutFile.Extension, _folder);
+            new Runner().CreateShortcutFile(shortcut, true, description);
+            return shortcut.FullPath;
+        }
+
+        private string RunsFile(string name) => Path.Combine(_usageFolder, name + UsageLog.Extension);
+
+        /// <summary>The lines of an older keycut: the same as the emitter's, without the ones that count runs.</summary>
+        private static string[] OldLines(string path, string url = "https://example.com")
+        {
+            return new[]
+            {
+                "@ECHO OFF",
+                "REM keycuts 1.5.1",
+                $"REM <shortcut>{path}</shortcut>",
+                "REM <type>url</type>",
+                $"REM <target>{url}</target>",
+                "REM <description></description>",
+                $"START {url}",
+                "EXIT"
+            };
+        }
+
         #endregion Helpers
 
         #region The lines in the .bat
+
+        [Fact]
+        public void TheEmitter_WritesTheUsageLines_AfterTheLaunchLine_AndBeforeExit()
+        {
+            var shortcut = new Shortcut("https://example.com", "mail.bat", @"C:\Shortcuts");
+
+            var lines = Runner.BuildShortcutLines(shortcut);
+
+            Assert.Equal("START https://example.com", lines[^4]);
+            Assert.Equal(UsageLog.BatLines, lines.Skip(lines.Count - 3).Take(2));
+            Assert.Equal("EXIT", lines[^1]);
+        }
 
         [Fact]
         public void TheBatFolder_IsTheFolderTheAppReads()
@@ -62,6 +99,145 @@ namespace keycuts.Tests
         public void TheUsageLines_AreNeverReadAsTheLaunchLine()
         {
             Assert.All(UsageLog.BatLines, line => Assert.False(ShortcutFile.IsLaunchLine(line)));
+        }
+
+        [Theory]
+        [InlineData("https://mail.google.com/mail/u/0/#inbox", ShortcutType.Url)]
+        [InlineData(@"C:\Windows", ShortcutType.Folder)]
+        [InlineData(@"C:\Windows\notepad.exe", ShortcutType.File)]
+        public void ANewKeycut_ReadsBackTheSame_AndCanBeEditedInTheForm(string target, ShortcutType type)
+        {
+            var path = Create("k", target);
+
+            var parsed = new ShortcutFile(path);
+
+            Assert.Equal(type, parsed.Type);
+            Assert.Equal(target, parsed.Target);
+            Assert.True(KeycutRepository.CanEditInForm(path));
+        }
+
+        [Fact]
+        public void AKeycutFromBeforeCounting_CanStillBeEditedInTheForm()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            File.WriteAllLines(path, OldLines(path));
+
+            Assert.True(KeycutRepository.CanEditInForm(path));
+        }
+
+        // The lines are pure cmd, so they're run for real: by the full path, as Win+R and Explorer start a keycut, and by a
+        // name typed in another case, as a terminal does. LOCALAPPDATA points at the test's folder.
+        [Theory]
+        [InlineData("gmail")]
+        [InlineData("a&b (x)%y")]
+        [InlineData("my.app")]
+        public void RunningAKeycut_AddsOneRun_EachTime(string name)
+        {
+            var path = Path.Combine(_folder, name + ShortcutFile.Extension);
+            // A Command keycut that does nothing, so the launch line starts nothing that stays open
+            File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, "rem", path)));
+
+            Assert.Equal(0, RunBat("\"\"" + path + "\"\""));
+            Assert.Equal(0, RunBat("\"\"" + path + "\"\""));
+
+            var record = new UsageLog(_usageFolder).Read(name);
+            Assert.NotNull(record);
+            Assert.Equal(2, record.Runs);
+            Assert.True(DateTime.Now - record.LastRun < TimeSpan.FromMinutes(1));
+        }
+
+        [Fact]
+        public void RunningAKeycutByName_InAnotherCase_CountsUnderItsOwnName()
+        {
+            var path = Path.Combine(_folder, "gm.bat");
+            File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, "rem", path)));
+
+            // Found on PATH, as a terminal finds a keycut
+            Assert.Equal(0, RunBat("GM", pathFolder: _folder));
+
+            Assert.Equal(1, new UsageLog(_usageFolder).Read("gm").Runs);
+        }
+
+        [Fact]
+        public void AUsageFileThatCantBeWritten_StillLaunches_AndSaysNothing()
+        {
+            var path = Path.Combine(_folder, "blocked.bat");
+            var marker = Path.Combine(_root, "launched.txt");
+            // The launch line writes a marker, so the test can see it ran
+            File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, $"echo x> \"{marker}\"", path)));
+            // A folder where the record would go: the append fails
+            Directory.CreateDirectory(RunsFile("blocked"));
+
+            var exitCode = RunBat("\"\"" + path + "\"\"", captureErrors: out var errors);
+
+            Assert.Equal(0, exitCode);
+            Assert.Equal("", errors.Trim());
+            Assert.True(SpinUntil(() => File.Exists(marker)));
+        }
+
+        // The exit code is the launch's, as before counting: on the first run (the folder is made), on later runs, and when
+        // the folder can't be made
+        [Theory]
+        [InlineData("fresh")]
+        [InlineData("again")]
+        [InlineData("unwritable")]
+        public void AKeycut_ExitsWithTheLaunchsCode(string usageState)
+        {
+            var path = Path.Combine(_folder, "seven.bat");
+            File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, "rem", path))
+                .Select(line => line.StartsWith("START", StringComparison.Ordinal) ? "CMD /C EXIT 7" : line));
+            var localAppData = Path.Combine(_root, "localappdata");
+
+            if (usageState == "again")
+            {
+                Directory.CreateDirectory(_usageFolder);
+            }
+            else if (usageState == "unwritable")
+            {
+                // A file where the keycuts folder would go: MD fails
+                Directory.CreateDirectory(localAppData);
+                File.WriteAllText(Path.Combine(localAppData, "keycuts"), "");
+            }
+
+            Assert.Equal(7, RunBat("\"\"" + path + "\"\"", captureErrors: out var errors));
+            Assert.Equal("", errors.Trim());
+        }
+
+        private int RunBat(string commandLine, string pathFolder = null)
+        {
+            return RunBat(commandLine, out _, pathFolder);
+        }
+
+        private int RunBat(string commandLine, out string captureErrors, string pathFolder = null)
+        {
+            var info = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), "/c " + commandLine)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                WorkingDirectory = _root
+            };
+            info.Environment["LOCALAPPDATA"] = Path.Combine(_root, "localappdata");
+
+            if (pathFolder != null)
+            {
+                info.Environment["PATH"] = pathFolder + ";" + Environment.GetEnvironmentVariable("PATH");
+            }
+
+            using (var process = Process.Start(info))
+            {
+                var errors = process.StandardError.ReadToEndAsync();
+                process.StandardOutput.ReadToEnd();
+                Assert.True(process.WaitForExit(10000));
+                captureErrors = errors.Result;
+                return process.ExitCode;
+            }
+        }
+
+        private static bool SpinUntil(Func<bool> condition)
+        {
+            return System.Threading.SpinWait.SpinUntil(condition, TimeSpan.FromSeconds(10));
         }
 
         #endregion The lines in the .bat

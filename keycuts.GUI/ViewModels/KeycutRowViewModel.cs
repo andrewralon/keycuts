@@ -215,6 +215,55 @@ namespace keycuts.GUI.ViewModels
             get { return RelativeTime.FormatFull(Keycut.Modified); }
         }
 
+        /// <summary>How many times the keycut has run (#187); null when there's no record (it doesn't count its runs). Sorted by.</summary>
+        public int? Runs
+        {
+            get { return Keycut.Runs; }
+        }
+
+        /// <summary>When it last ran; <c>default</c> when it hasn't or that isn't known. Sorted by.</summary>
+        public System.DateTime LastRun
+        {
+            get { return Keycut.LastRun; }
+        }
+
+        /// <summary>The Runs cell: the count, or a dash when there's no record, which isn't the same as 0.</summary>
+        public string RunsText
+        {
+            get { return Keycut.Runs?.ToString(System.Globalization.CultureInfo.CurrentCulture) ?? NoRecord; }
+        }
+
+        /// <summary>The Last run cell: "3 days ago", "Never" for a keycut that counts and hasn't run, or a dash with no record.</summary>
+        public string LastRunText
+        {
+            get
+            {
+                if (Keycut.Runs == null)
+                {
+                    return NoRecord;
+                }
+
+                return Keycut.LastRun == default ? "Never" : RelativeTime.Format(Keycut.LastRun, System.DateTime.Now);
+            }
+        }
+
+        /// <summary>The tooltip of both cells: the exact time of the last run, or why there's no count.</summary>
+        public string RunsTooltip
+        {
+            get
+            {
+                if (Keycut.Runs == null)
+                {
+                    return "Not counted: this keycut doesn't have the lines that count its runs.";
+                }
+
+                return Keycut.LastRun == default ? "Hasn't run since counting started." : "Last run " + RelativeTime.FormatFull(Keycut.LastRun);
+            }
+        }
+
+        /// <summary>A dash, read out as "no record".</summary>
+        public const string NoRecord = "—";
+
         public bool IsTargetMissing
         {
             get { return Keycut.TargetStatus == TargetStatus.Missing; }
@@ -279,6 +328,7 @@ namespace keycuts.GUI.ViewModels
         public void RefreshModified()
         {
             OnPropertyChanged(nameof(ModifiedText));
+            OnPropertyChanged(nameof(LastRunText));
         }
 
         /// <summary>Call after the background target check has updated the keycut.</summary>

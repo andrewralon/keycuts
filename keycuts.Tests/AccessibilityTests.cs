@@ -1216,14 +1216,15 @@ namespace keycuts.Tests
                     Assert.Equal(Visibility.Collapsed, column.Visibility);
                     Assert.DoesNotContain("SortHeaderButton:Modified", TabStops(window));
 
-                    window.Width = 1000;
+                    // Wide enough for Runs and Last run (#187) too, which come before Modified
+                    window.Width = 1200;
                     Pump();
                     window.UpdateLayout();
                     Pump();
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "Actions for alpha" },
+                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "SortHeaderButton:Runs", "SortHeaderButton:Last run", "Actions for alpha" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

@@ -278,7 +278,8 @@ namespace keycuts.Tests
 
                 Assert.False(Click(CellOf(window, alpha, 1)));
                 Assert.False(Click(CellOf(window, alpha, 3)));
-                Assert.False(Click(CellOf(window, alpha, 5)));
+                // The menu (Modified, Runs and Last run make way in a window this narrow)
+                Assert.False(Click(CellOf(window, alpha, 7)));
                 Assert.False(Click(CellOf(window, alpha, 0), MouseButton.Right));
                 Assert.False(Click(CellOf(window, alpha, 2), MouseButton.Middle));
                 Assert.False(manager.IsEditing);

@@ -26,7 +26,13 @@ namespace keycuts.GUI.ViewModels
         Type,
         Description,
         Target,
-        Modified
+        Modified,
+
+        /// <summary>How many times it has run (#187).</summary>
+        Runs,
+
+        /// <summary>When it last ran (#187).</summary>
+        LastRun
     }
 
     /// <summary>
@@ -1307,8 +1313,9 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Default is ascending, except Modified, which starts with the newest first (what a click on it is for);
-        /// selecting the active column again toggles the direction.
+        /// Default is ascending, except Modified, Runs and Last run, which start with the newest or the most first (what a
+        /// click on them is for; a second click puts the unused ones on top, for cleaning up); selecting the active column
+        /// again toggles the direction.
         /// </summary>
         public void SortBy(SortColumn column)
         {
@@ -1319,7 +1326,7 @@ namespace keycuts.GUI.ViewModels
             else
             {
                 sortColumn = column;
-                sortDescending = column == SortColumn.Modified;
+                sortDescending = column == SortColumn.Modified || column == SortColumn.Runs || column == SortColumn.LastRun;
             }
 
             OnPropertyChanged(nameof(SortColumn));
@@ -1350,6 +1357,13 @@ namespace keycuts.GUI.ViewModels
                         break;
                     case SortColumn.Modified:
                         result = x.Modified.CompareTo(y.Modified);
+                        break;
+                    case SortColumn.Runs:
+                        // No record sorts below 0: it may have run, nobody counted
+                        result = (x.Runs ?? -1).CompareTo(y.Runs ?? -1);
+                        break;
+                    case SortColumn.LastRun:
+                        result = x.LastRun.CompareTo(y.LastRun);
                         break;
                 }
 
@@ -1438,7 +1452,8 @@ namespace keycuts.GUI.ViewModels
 
                 if (old.FilePath != next.FilePath || old.Name != next.Name || old.Kind != next.Kind ||
                     old.Description != next.Description || old.Target != next.Target || old.Modified != next.Modified ||
-                    old.Program != next.Program || old.Arguments != next.Arguments || old.CanEditInForm != next.CanEditInForm)
+                    old.Program != next.Program || old.Arguments != next.Arguments || old.CanEditInForm != next.CanEditInForm ||
+                    old.Runs != next.Runs || old.LastRun != next.LastRun)
                 {
                     return false;
                 }

@@ -10,12 +10,12 @@
         FontFamily="{StaticResource AppFontFamily}" FontSize="{StaticResource FontSizeBody}"
         KeyDown="Main_KeyDown">
   <!-- #218: no standard title bar. The tab bar (RailView) is the top row and does what a title bar does: WindowChrome makes
-       RailHeight of it a caption (drag, snap, the window menu) and leaves the resize border on the Manager, the shadow,
+       RailHeight of it a caption (drag, snap, the window menu) and leaves the resize border at the large size, the shadow,
        the rounded corners and Aero Snap to Windows. The tabs and caption buttons are marked IsHitTestVisibleInChrome in RailView.
        The window is never maximized, on any screen (NoMaximizeHook). The Title stays "keycuts" for the taskbar and Alt+Tab. -->
   <shell:WindowChrome.WindowChrome>
     <!-- The Creator is fixed-size (ResizeMode.CanMinimize), but WindowChrome would still answer a resize edge at the border, with the
-         resize cursor and no resizing: the border is 0 there, and MainWindow sets it for the Manager. -->
+         resize cursor and no resizing: the border is 0 there, and MainWindow sets it for the Manager and Settings. -->
     <shell:WindowChrome CaptionHeight="{StaticResource RailHeight}" ResizeBorderThickness="0"
                         GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
   </shell:WindowChrome.WindowChrome>

@@ -267,8 +267,8 @@ namespace keycuts.GUI.ViewModels
         public AsyncRelayCommand CreateCommand { get; }
 
         /// <summary>
-        /// The description label: "Add a description (optional)" shows the field and moves the focus into it, "Description (optional)"
-        /// hides it again. Either way the choice is remembered.
+        /// The description label, "Description (optional)" either way: it shows the field and moves the focus into it, or hides it
+        /// again. Either way the choice is remembered.
         /// </summary>
         public ICommand ToggleDescriptionCommand { get; }
 
@@ -533,26 +533,40 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public bool IsDescriptionVisible
         {
-            get { return isDescriptionVisible; }
+            get { return isDescriptionVisible || DescriptionAlwaysShown; }
         }
 
-        /// <summary>The label says "Add a description (optional)" because the field is hidden.</summary>
+        /// <summary>
+        /// The form always shows its description box, with no way to hide it (the Manager's create row): what it holds is
+        /// always saved. The Creator's box can be hidden instead (<see cref="IsDescriptionVisible"/>).
+        /// </summary>
+        public bool DescriptionAlwaysShown { get; init; }
+
+        /// <summary>
+        /// A create empties the fields for the next keycut and puts the focus back in the target (the Manager's create row, where the
+        /// new keycut shows in the table below). The Creator keeps them instead (#205).
+        /// </summary>
+        public bool ClearsAfterCreate { get; init; }
+
+        /// <summary>The field is hidden, and pressing the label shows it.</summary>
         public bool ShowAddDescription
         {
             get { return !isDescriptionVisible; }
         }
 
-        /// <summary>The label above the description field, which is also the button that hides it.</summary>
+        /// <summary>The label above the description field, which is also the button that shows or hides it. The same both ways.</summary>
         public string DescriptionToggleText
         {
-            get { return isDescriptionVisible ? "Description (optional)" : "Add a description (optional)"; }
+            get { return DescriptionLabel; }
         }
 
-        /// <summary>What a screen reader calls the label button: what pressing it does.</summary>
+        /// <summary>What a screen reader calls the label button: the label, or what pressing it does while the field is shown.</summary>
         public string DescriptionToggleName
         {
-            get { return isDescriptionVisible ? "Hide description" : "Add a description (optional)"; }
+            get { return isDescriptionVisible ? "Hide description" : DescriptionLabel; }
         }
+
+        private const string DescriptionLabel = "Description (optional)";
 
         private void ToggleDescription()
         {
@@ -590,17 +604,8 @@ namespace keycuts.GUI.ViewModels
             get { return keycutCount; }
             set
             {
-                if (SetProperty(ref keycutCount, value))
-                {
-                    OnPropertyChanged(nameof(CountDescription));
-                }
+                SetProperty(ref keycutCount, value);
             }
-        }
-
-        /// <summary>What a screen reader and the tooltip say for the footer's count pill, which shows just the number.</summary>
-        public string CountDescription
-        {
-            get { return keycutCount + (keycutCount == 1 ? " keycut" : " keycuts"); }
         }
 
         /// <summary>The kind the target resolved to. Set it after <see cref="Target"/>, which clears it.</summary>
@@ -980,7 +985,7 @@ namespace keycuts.GUI.ViewModels
             // resolves to its destination); the create itself still gets what was typed and resolves it again
             var confirmTarget = EffectiveTarget;
             // A hidden box is out of sight, so what it still holds isn't saved
-            var trimmedDescription = isDescriptionVisible ? description.Trim() : string.Empty;
+            var trimmedDescription = IsDescriptionVisible ? description.Trim() : string.Empty;
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;
@@ -1075,6 +1080,12 @@ namespace keycuts.GUI.ViewModels
             switch (result.Outcome)
             {
                 case CreateOutcome.Success:
+                    if (ClearsAfterCreate)
+                    {
+                        // Before the success, which typing in a field would clear
+                        ClearFields();
+                    }
+
                     SetSuccess(name);
                     NotifyKeycutCreated();
                     welcome?.OnKeycutCreated(string.IsNullOrEmpty(result.Keycut?.FilePath) ? null : System.IO.Path.GetDirectoryName(result.Keycut.FilePath));
@@ -1106,6 +1117,15 @@ namespace keycuts.GUI.ViewModels
                     ShowSubmitError(UnexpectedErrorMessage);
                     return;
             }
+        }
+
+        // Ready for the next keycut. The view model only asks for the focus: the fields are off while saving, and the view waits for them
+        private void ClearFields()
+        {
+            Target = string.Empty;
+            ShortcutName = string.Empty;
+            Description = string.Empty;
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Target);
         }
 
         private void ShowSubmitError(string message)

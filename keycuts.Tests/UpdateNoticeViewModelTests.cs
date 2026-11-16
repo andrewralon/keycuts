@@ -196,6 +196,7 @@ namespace keycuts.Tests
             var vm = NewSettings(UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "1.1.1.0"));
 
             Assert.Equal("Version 1.1.1", vm.CurrentVersionText);
+            Assert.Equal("1.1.1", vm.CurrentVersionNumber);
         }
 
         [Fact]
@@ -246,7 +247,7 @@ namespace keycuts.Tests
 
             await vm.CheckNowCommand.ExecuteAsync();
 
-            Assert.Equal("You\u2019re up to date (1.1.1).", vm.UpdateStatusText);
+            Assert.Equal("You\u2019re up to date.", vm.UpdateStatusText);
             Assert.False(vm.IsUpdateAvailable);
             Assert.False(vm.DownloadUpdateCommand.CanExecute(null));
         }

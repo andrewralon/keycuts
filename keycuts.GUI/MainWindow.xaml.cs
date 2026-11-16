@@ -14,9 +14,8 @@ namespace keycuts.GUI
     {
         private readonly ShellViewModel shell;
 
-        private Point? creatorLocation;
-
-        private Size? managerSize;
+        // The size the Manager and Settings share, once the window has left it for the Creator
+        private Size? largeSize;
 
         private bool syncingTabs;
 
@@ -40,7 +39,7 @@ namespace keycuts.GUI
             // The tab bar replaces the title bar (#218). The tabs show the shell's screen and switch it.
             SelectTabForMode();
             Rail.Tabs.SelectionChanged += Tabs_SelectionChanged;
-            // The window is never maximized, on any screen; the Manager is still resized from its edges
+            // The window is never maximized, on any screen; the Manager and Settings are still resized from their edges
             noMaximize = new NoMaximizeHook(this);
             // Windows would paint its classic caption buttons over the tab bar, after a drag from the bar
             noSystemCaption = new NoSystemCaptionHook(this);
@@ -127,6 +126,18 @@ namespace keycuts.GUI
                 return;
             }
 
+            // Ctrl+1, Ctrl+2 and Ctrl+3 pick the tabs left to right, as in a browser; nothing while the tabs are off (the icon picker)
+            if (e.KeyboardDevice.Modifiers == ModifierKeys.Control && TabNumber(e.Key) is int tab)
+            {
+                e.Handled = true;
+                if (shell.AreTabsEnabled)
+                {
+                    ShowTab(tab);
+                }
+
+                return;
+            }
+
             if (e.Key != Key.Escape)
             {
                 return;
@@ -139,23 +150,63 @@ namespace keycuts.GUI
             }
         }
 
-        /// <summary>
-        /// The Manager is resizable and remembers its size; the Creator and Settings are MainWidth wide and fit their content's
-        /// height, Settings capped to the work area so it scrolls on a short screen. The tabs never move: the window keeps its left.
-        /// </summary>
-        private void ApplyMode(ShellMode previous, ShellMode mode)
+        private static int? TabNumber(Key key)
         {
-            if (mode == ShellMode.Manager)
+            return key switch
             {
-                ShowManagerSize();
-            }
-            else
+                Key.D1 or Key.NumPad1 => 1,
+                Key.D2 or Key.NumPad2 => 2,
+                Key.D3 or Key.NumPad3 => 3,
+                _ => null
+            };
+        }
+
+        private void ShowTab(int tab)
+        {
+            switch (tab)
             {
-                ShowFixedSize(leavingManager: previous == ShellMode.Manager, mode == ShellMode.Settings);
+                case 1:
+                    shell.ShowCreator();
+                    break;
+                case 2:
+                    shell.ShowManager();
+                    break;
+                default:
+                    shell.ShowSettings();
+                    // Without a way to make its screen (a test's shell), Settings can't open, and the screen's own tab stays selected
+                    SelectTabForMode();
+                    break;
             }
         }
 
-        /// <summary>The edges that resize the window: the system's thickness on the Manager, none on the fixed-size screens.</summary>
+        /// <summary>
+        /// Two sizes (docs/styleguide.md, Window widths): the Creator is small, MainWidth wide and as tall as its content; the
+        /// Manager and Settings share the large one, which is resizable and remembered. Settings never grows the window to fit
+        /// itself: it lays out in what the Manager had. The tabs never move: the window keeps its left.
+        /// </summary>
+        private void ApplyMode(ShellMode previous, ShellMode mode)
+        {
+            var wasLarge = IsLarge(previous);
+
+            if (!IsLarge(mode))
+            {
+                ShowSmallSize(leavingLarge: wasLarge);
+            }
+            else if (!wasLarge)
+            {
+                ShowLargeSize();
+            }
+
+            // Between the Manager and Settings the window stays as it is
+        }
+
+        /// <summary>The Manager and Settings share the large size; the Creator has the small one.</summary>
+        public static bool IsLarge(ShellMode mode)
+        {
+            return mode != ShellMode.Creator;
+        }
+
+        /// <summary>The edges that resize the window: the system's thickness at the large size, none on the Creator.</summary>
         private void SetResizeBorder(Thickness thickness)
         {
             var chrome = System.Windows.Shell.WindowChrome.GetWindowChrome(this);
@@ -165,19 +216,16 @@ namespace keycuts.GUI
             }
         }
 
-        private void ShowManagerSize()
+        // From the Creator to the Manager or Settings: the large size, as it was last left (by either), kept on the screen
+        private void ShowLargeSize()
         {
-            creatorLocation = new Point(Left, Top);
-
             SizeToContent = SizeToContent.Manual;
-            // Settings caps the height to its monitor's work area; the Manager can be as tall as any screen it is moved to
-            MaxHeight = double.PositiveInfinity;
             ResizeMode = ResizeMode.CanResize;
             SetResizeBorder(WindowLayout.GetFrameThickness(this));
             MinWidth = WindowLayout.ManagerMinWidth;
             MinHeight = WindowLayout.ManagerMinHeight;
 
-            var size = managerSize ?? new Size(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight);
+            var size = largeSize ?? new Size(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight);
             var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, size.Width, size.Height), WindowLayout.GetWorkAreaInDips(this));
 
             Left = bounds.Left;
@@ -186,18 +234,19 @@ namespace keycuts.GUI
             Height = bounds.Height;
         }
 
-        private void ShowFixedSize(bool leavingManager, bool capToWorkArea)
+        // Back to the Creator: MainWidth, its content's height, no resizing, at the top-left the large window was left at
+        private void ShowSmallSize(bool leavingLarge)
         {
-            if (leavingManager)
+            if (leavingLarge)
             {
-                // Only the Manager's own size is remembered, not the Creator's or Settings'
+                // Only the large size is remembered: the Creator's follows its content
                 if (WindowState == WindowState.Normal)
                 {
-                    managerSize = new Size(ActualWidth, ActualHeight);
+                    largeSize = new Size(ActualWidth, ActualHeight);
                 }
                 else
                 {
-                    managerSize = RestoreBounds.Size;
+                    largeSize = RestoreBounds.Size;
                     WindowState = WindowState.Normal;
                 }
             }
@@ -206,39 +255,8 @@ namespace keycuts.GUI
             MinHeight = 0;
             ResizeMode = ResizeMode.CanMinimize;
             SetResizeBorder(new Thickness(0));
-            MaxHeight = capToWorkArea ? WindowLayout.GetWorkAreaInDips(this).Height : double.PositiveInfinity;
             Width = WindowLayout.CreatorWidth;
             SizeToContent = SizeToContent.Height;
-
-            if (leavingManager && creatorLocation.HasValue)
-            {
-                Left = creatorLocation.Value.X;
-                Top = creatorLocation.Value.Y;
-            }
-
-            if (capToWorkArea)
-            {
-                // Settings is taller than the Creator: once it has its height, slide it up if its bottom is off the screen
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(KeepOnScreen));
-            }
-        }
-
-        // The cap is measured again here, after the window went back to where the Creator was: that can be a shorter monitor
-        // than the Manager's, and a cap from the old one would leave the footer below the screen (PR #225 review)
-        private void KeepOnScreen()
-        {
-            if (shownMode != ShellMode.Settings)
-            {
-                return;
-            }
-
-            var workArea = WindowLayout.GetWorkAreaInDips(this);
-            MaxHeight = workArea.Height;
-            UpdateLayout();
-
-            var bounds = WindowLayout.ClampToWorkArea(new Rect(Left, Top, ActualWidth, ActualHeight), workArea);
-            Left = bounds.Left;
-            Top = bounds.Top;
         }
     }
 }

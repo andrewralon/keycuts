@@ -18,7 +18,7 @@ using Xunit;
 namespace keycuts.Tests
 {
     // Resizing the Manager's columns by dragging the dividers (#202). The columns are Name (0), Type (1), Description (2),
-    // Target (3), Modified (4), Runs (5), Last run (6) and the menu (7). A drag is sent the way the table's own header gets
+    // Target (3), Modified (4), Runs (5) and Last run (6). A drag is sent the way the table's own header gets
     // it, as the grippers' Thumb events, so no pointer is needed. The window is 1200 wide where all of them should show.
     public partial class AccessibilityTests
     {
@@ -29,7 +29,6 @@ namespace keycuts.Tests
         const int ModifiedColumn = 4;
         const int RunsColumn = 5;
         const int LastRunColumn = 6;
-        const int MenuColumn = 7;
 
         /// <summary>
         /// Runs <paramref name="body"/> with a Manager of a few keycuts <paramref name="width"/> wide. The width is the view's,
@@ -155,12 +154,11 @@ namespace keycuts.Tests
                 Assert.True(table.Columns[DescriptionColumn].CanUserResize);
                 Assert.True(table.Columns[TargetColumn].CanUserResize);
 
-                // A badge, a date and the menu button have one width
+                // A badge, a date and a count have one width
                 Assert.False(table.Columns[TypeColumn].CanUserResize);
                 Assert.False(table.Columns[ModifiedColumn].CanUserResize);
                 Assert.False(table.Columns[RunsColumn].CanUserResize);
                 Assert.False(table.Columns[LastRunColumn].CanUserResize);
-                Assert.False(table.Columns[MenuColumn].CanUserResize);
             });
         }
 
@@ -193,8 +191,6 @@ namespace keycuts.Tests
                 Assert.False(Shown(RunsColumn, right: true));
                 Assert.False(Shown(LastRunColumn, right: false));
                 Assert.False(Shown(LastRunColumn, right: true));
-                Assert.False(Shown(MenuColumn, right: false));
-                Assert.False(Shown(MenuColumn, right: true));
             });
         }
 
@@ -211,7 +207,7 @@ namespace keycuts.Tests
                 var description = WidthOf(table, DescriptionColumn);
                 var target = WidthOf(table, TargetColumn);
                 var type = WidthOf(table, TypeColumn);
-                var menu = WidthOf(table, MenuColumn);
+                var lastRun = WidthOf(table, LastRunColumn);
 
                 DragGripper(window, table, NameColumn, right: true, change: 80);
 
@@ -219,7 +215,7 @@ namespace keycuts.Tests
                 Assert.True(WidthOf(table, DescriptionColumn) < description);
                 Assert.True(WidthOf(table, TargetColumn) < target);
                 Assert.Equal(type, WidthOf(table, TypeColumn), 1);
-                Assert.Equal(menu, WidthOf(table, MenuColumn), 1);
+                Assert.Equal(lastRun, WidthOf(table, LastRunColumn), 1);
                 AssertFillsTheTable(table);
 
                 // From the other side of the same divider, and back
@@ -289,8 +285,8 @@ namespace keycuts.Tests
         }
 
         // Double-clicking a divider is a reflex for "fit this column", and the grid answers by sizing the column to its
-        // content: a star column becomes a content-width one, and a long description pushes the others, the menu button
-        // included, out of a table that can't scroll sideways. A double-click on a divider does nothing here.
+        // content: a star column becomes a content-width one, and a long description pushes the others
+        // out of a table that can't scroll sideways. A double-click on a divider does nothing here.
         [Theory]
         [InlineData(NameColumn, true)]
         [InlineData(TypeColumn, false)]
@@ -406,18 +402,17 @@ namespace keycuts.Tests
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
                 Assert.Equal(Visibility.Collapsed, table.Columns[RunsColumn].Visibility);
                 Assert.Equal(Visibility.Collapsed, table.Columns[LastRunColumn].Visibility);
-                Assert.Equal(110, WidthOf(table, TypeColumn), 1);
-                Assert.Equal(44, WidthOf(table, MenuColumn), 1);
+                Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
 
                 Resize(window, 1200);
                 Settle(window);
 
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(110, WidthOf(table, ModifiedColumn), 1);
-                Assert.Equal(72, WidthOf(table, RunsColumn), 1);
-                Assert.Equal(110, WidthOf(table, LastRunColumn), 1);
-                Assert.Equal(110, WidthOf(table, TypeColumn), 1);
+                Assert.Equal(112, WidthOf(table, ModifiedColumn), 1);
+                Assert.Equal(64, WidthOf(table, RunsColumn), 1);
+                Assert.Equal(112, WidthOf(table, LastRunColumn), 1);
+                Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
 
                 // The proportions the user chose are what the star columns still hold
@@ -447,7 +442,7 @@ namespace keycuts.Tests
             });
         }
 
-        // The grid squeezed Type and the menu to its default 20 when the table jumped narrower than all the columns need
+        // The grid squeezed Type (and the menu column, then) to its default 20 when the table jumped narrower than all the columns need
         // (a window snapped, or restored from maximized), and kept them that way once Modified had made way
         [Theory]
         [InlineData(1100, 720)]
@@ -461,8 +456,7 @@ namespace keycuts.Tests
                 Settle(window);
 
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(110, WidthOf(table, TypeColumn), 1);
-                Assert.Equal(44, WidthOf(table, MenuColumn), 1);
+                Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
             });
         }

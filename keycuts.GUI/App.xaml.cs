@@ -93,7 +93,11 @@ namespace keycuts.GUI
                 Common.NameConflictEnvironment.GetDefault());
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
-            shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+            var useEnvironmentVariables = Common.RegistryStuff.GetUseEnvironmentVariables();
+            foreach (var form in shell.Forms)
+            {
+                form.UseEnvironmentVariablesSetting = useEnvironmentVariables;
+            }
 
             mainWindow = new MainWindow(shell);
 
@@ -107,7 +111,7 @@ namespace keycuts.GUI
             // Before Show, so the title bar and the taskbar never show the exe's own icon first
             Themes.AppIconManager.ApplyTo(mainWindow);
             mainWindow.Show();
-            _ = LoadPathVariablesAsync(shell.Creator);
+            _ = LoadPathVariablesAsync(shell);
             _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
             _ = CheckForUpdatesAsync(updateNotice);
         }
@@ -232,11 +236,15 @@ namespace keycuts.GUI
         /// Reads this machine's variables off the UI thread: a custom one is checked with <c>Directory.Exists</c>, which can
         /// take a long time for a network share that's offline. The target shows its %VAR% form once they arrive.
         /// </summary>
-        private static async Task LoadPathVariablesAsync(ViewModels.CreatorViewModel creator)
+        private static async Task LoadPathVariablesAsync(ViewModels.ShellViewModel shell)
         {
             try
             {
-                creator.PathVariables = await Task.Run(Common.PathVariables.GetDefault);
+                var variables = await Task.Run(Common.PathVariables.GetDefault);
+                foreach (var form in shell.Forms)
+                {
+                    form.PathVariables = variables;
+                }
             }
             catch (Exception ex)
             {

@@ -69,8 +69,27 @@ namespace keycuts.Tests
             manager.SearchText = "VICKI";
 
             Assert.Equal(new[] { "l-vicki" }, Names(manager));
-            Assert.Equal("1 of 4 shown", manager.ShownText);
-            Assert.Equal("4 keycuts", manager.CountDescription);   // the footer's pill is always the total
+            Assert.Equal("1 of 4 keycuts", manager.CountText);
+        }
+
+        [Fact]
+        public void TheCount_SaysOf_OnlyWhileASearchIsTyped()
+        {
+            var manager = NewManager(Sample());
+            Assert.Equal("4 keycuts", manager.CountText);
+
+            // Blanks alone match everything, so they aren't a search
+            manager.SearchText = "   ";
+            Assert.Equal("4 keycuts", manager.CountText);
+
+            // A search that matches everything still says so
+            manager.SearchText = "o";
+            Assert.Equal(manager.Rows.Count + " of 4 keycuts", manager.CountText);
+
+            // The shell can update the total before the rows reload (a keycut made in the Creator): nothing is hidden by that
+            manager.SearchText = string.Empty;
+            manager.KeycutCount = 5;
+            Assert.Equal("5 keycuts", manager.CountText);
         }
 
         [Fact]
@@ -113,7 +132,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ManagerState.NoResults, manager.State);
             Assert.Empty(manager.Rows);
-            Assert.Equal("0 of 4 shown", manager.ShownText);
+            Assert.Equal("0 of 4 keycuts", manager.CountText);
 
             manager.ClearSearchCommand.Execute(null);
 

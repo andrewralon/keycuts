@@ -223,9 +223,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref keycutCount, value))
                 {
-                    OnPropertyChanged(nameof(CountDescription));
-                    OnPropertyChanged(nameof(ShownText));
-                    OnPropertyChanged(nameof(HasShownText));
+                    OnPropertyChanged(nameof(CountText));
                 }
             }
         }
@@ -289,28 +287,34 @@ namespace keycuts.GUI.ViewModels
             get { return errorMessage ?? string.Empty; }
         }
 
-        /// <summary>What a screen reader and the tooltip say for the footer's count pill, which shows just the total (#205): "355 keycuts".</summary>
-        public string CountDescription
-        {
-            get { return keycutCount + (keycutCount == 1 ? " keycut" : " keycuts"); }
-        }
-
         /// <summary>
-        /// "4 of 355 shown", beside the search box, while a search hides some of the keycuts; empty when all of them are shown
-        /// (#205). The footer's pill always shows the total.
+        /// The count in the pill at the right of the search box: "355 keycuts", or "4 of 355 keycuts" while a search is typed (as
+        /// <see cref="KeycutRowViewModel.Matches"/>, blanks alone aren't one). The total says keycut or keycuts. Not "of" from the
+        /// numbers alone: the shell can update the total before the rows reload, and nothing is hidden then.
         /// </summary>
-        public string ShownText
+        public string CountText
         {
-            get { return Rows.Count == keycutCount ? string.Empty : Rows.Count + " of " + keycutCount + " shown"; }
-        }
-
-        public bool HasShownText
-        {
-            get { return ShownText.Length > 0; }
+            get
+            {
+                var total = keycutCount + (keycutCount == 1 ? " keycut" : " keycuts");
+                return string.IsNullOrWhiteSpace(searchText) ? total : Rows.Count + " of " + total;
+            }
         }
 
         /// <summary>The "new version is out" line in the footer (#171), shared with the creator; null without one (tests, design data).</summary>
         public UpdateNoticeViewModel? UpdateNotice { get; init; }
+
+        /// <summary>
+        /// The create row at the top of the Manager (the Creator's fields in one row): a form of its own, apart from the Creator's, that
+        /// always shows its description and clears after a create. The shell makes it and reloads the table when it creates a keycut.
+        /// Null without one (tests, design data), and the row is hidden.
+        /// </summary>
+        public CreatorViewModel? CreateRow { get; init; }
+
+        public bool HasCreateRow
+        {
+            get { return CreateRow != null; }
+        }
 
         public string NoResultsMessage
         {
@@ -1478,8 +1482,7 @@ namespace keycuts.GUI.ViewModels
             OnPropertyChanged(nameof(IsTableVisible));
             OnPropertyChanged(nameof(CanSearch));
             OnPropertyChanged(nameof(ErrorMessage));
-            OnPropertyChanged(nameof(ShownText));
-            OnPropertyChanged(nameof(HasShownText));
+            OnPropertyChanged(nameof(CountText));
             OnPropertyChanged(nameof(NoResultsMessage));
         }
     }

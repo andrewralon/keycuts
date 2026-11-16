@@ -24,18 +24,18 @@ Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
   <img src="docs/images/creator-light.png" alt="The creator." width="580">
 </picture>
 
-**Manage:** search, sort, open, rename, edit, delete (with undo). Missing targets are flagged. Each keycut counts its runs, so sorting by **Runs** or **Last run** shows which ones you never use.
+**Manage:** add keycuts from the row at the top, search, sort, and right-click a keycut to open, rename, edit or delete it (with undo). Missing targets are flagged. Each keycut counts its runs, so sorting by **Runs** or **Last run** shows which ones you never use.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">
-  <img src="docs/images/manager-light.png" alt="The manager: a searchable table of keycuts." width="830">
+  <img src="docs/images/manager-light.png" alt="The manager: a row for a new keycut over a searchable table of keycuts." width="830">
 </picture>
 
 **Settings:** output folder, theme, icon, right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
-  <img src="docs/images/settings-light.png" alt="Settings." width="580">
+  <img src="docs/images/settings-light.png" alt="Settings, in two columns." width="830">
 </picture>
 
 The app checks GitHub for updates at most once a day. No telemetry: run counts are files in `%LOCALAPPDATA%\keycuts\usage` that never leave your PC.

@@ -206,12 +206,12 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Add a description (optional)" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Description (optional)" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
@@ -224,8 +224,8 @@ namespace keycuts.Tests
             });
         }
 
-        // #162, #205: the description label is a button. "Add a description (optional)" shows a named field that follows Create (Enter there
-        // creates), and "Description (optional)", now named "Hide description", hides it again
+        // #162, #205: the description label, "Description (optional)", is a button. It shows a named field that follows Create (Enter there
+        // creates), and the same label, now named "Hide description", hides it again
         [Fact]
         public void Creator_TheDescriptionLabel_ShowsANamedField_AndHidesItAgain()
         {
@@ -240,7 +240,7 @@ namespace keycuts.Tests
                     var box = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Description");
                     Assert.True(toggle.IsVisible);
                     Assert.False(box.IsVisible);
-                    Assert.Equal("Add a description (optional)", toggle.Content);
+                    Assert.Equal("Description (optional)", toggle.Content);
 
                     toggle.Command.Execute(null);
                     Pump();
@@ -258,7 +258,7 @@ namespace keycuts.Tests
                     Pump();
 
                     Assert.False(box.IsVisible);
-                    Assert.Equal("Add a description (optional)", toggle.Content);
+                    Assert.Equal("Description (optional)", toggle.Content);
                 }
                 finally
                 {
@@ -288,13 +288,13 @@ namespace keycuts.Tests
                         {
                             "got it",
                             "URL google.com, creates the keycut g", "Folder Downloads, creates the keycut dl", "File keycuts, creates the keycut kc",
-                            "Target", "Browse", "keycut name", "Create", "Add a description (optional)"
+                            "Target", "Browse", "keycut name", "Create", "Description (optional)"
                         },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -368,14 +368,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)", "Dismiss update notice" },
+                        new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)", "Dismiss update notice" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)Descendants<FooterView>(window).Single().FindName("UpdateDownloadLink");
                     Assert.Equal("download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -982,7 +982,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Manager_RowMenuButton_FitsItsCell()
+        public void Manager_HasNoMenuColumn_RightClickOrTheKeysOpenTheRowMenu()
         {
             RunSta(() =>
             {
@@ -991,17 +991,92 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    // The whole 32 button, its click area and its hover and focus look, is inside the 44 cell, centered
-                    var menuButton = Descendants<MenuButton>(window).Single();
-                    var cell = FindAncestor<DataGridCell>(menuButton);
-                    Assert.Equal((32.0, 32.0), (menuButton.ActualWidth, menuButton.ActualHeight));
-                    var left = menuButton.TranslatePoint(new Point(0, 0), cell).X;
-                    Assert.InRange(left, 5.5, 6.5);
-                    Assert.InRange(left + menuButton.ActualWidth, 0, cell.ActualWidth);
-                    // A slot narrower than the button clips it, wherever it is centered
-                    var slot = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(menuButton);
-                    Assert.True(slot.ActualWidth >= menuButton.ActualWidth, $"The button's slot is {slot.ActualWidth} wide");
-                    Assert.Null(LayoutInformation.GetLayoutClip(menuButton));
+                    // No ... button in the rows: a right-click, Shift+F10 or the Menu key opens a row's actions
+                    Assert.Empty(Descendants<MenuButton>(window));
+                    var table = Descendants<DataGrid>(window).Single();
+                    Assert.All(table.Columns, c => Assert.NotNull(c.Header));
+                    var row = (DataGridRow)table.ItemContainerGenerator.ContainerFromIndex(0);
+                    Assert.NotNull(row.ContextMenu);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_FixedColumns_FitTheirWidestValues()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var view = (FrameworkElement)window.Content;
+                    double Width(string column) => ((DataGridColumn)view.FindName(column)).Width.Value;
+                    var type = ((DataGrid)view.FindName("Table")).Columns[1].Width.Value;
+
+                    static double Measured(FrameworkElement element)
+                    {
+                        element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        return element.DesiredSize.Width;
+                    }
+
+                    double Sides(string style)
+                    {
+                        var padding = (Thickness)((Style)view.FindResource(style)).Setters.OfType<Setter>()
+                            .Single(s => s.Property == Control.PaddingProperty).Value;
+                        return padding.Left + padding.Right;
+                    }
+
+                    // The widest badge, the longest "how long ago" and the Runs header with its chevron (its margin already takes
+                    // the 5 it is pulled left), each with its cell's or header's padding at both sides
+                    var command = Sides("ManagerBadgeCell") + Measured(new TypeBadge { Kind = KeycutKind.Command });
+                    var ago = Sides("ManagerCell") + Measured(new TextBlock { Text = "20 minutes ago", Style = (Style)view.FindResource("CellText") });
+                    var runs = Sides("ManagerHeader") + Measured(new SortHeaderButton { Content = "Runs", Style = (Style)view.FindResource("SortHeaderButtonStyle") });
+                    Assert.True(command <= type, $"Command needs {command}, in a {type} column");
+                    Assert.True(ago <= Width("ModifiedColumn"), $"\"20 minutes ago\" needs {ago}");
+                    Assert.True(ago <= Width("LastRunColumn"), $"\"20 minutes ago\" needs {ago}");
+                    Assert.True(runs <= Width("RunsColumn"), $"The Runs header needs {runs}");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Manager_EachHeaderLabel_StartsWhereItsColumnsValuesDo()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    // Wide enough for every column, Runs (short values under a short label) included
+                    window.Width = 1200;
+                    Pump();
+                    window.UpdateLayout();
+
+                    var table = Descendants<DataGrid>(window).Single();
+                    var row = (DataGridRow)table.ItemContainerGenerator.ContainerFromIndex(0);
+                    var headers = Descendants<SortHeaderButton>(window).Where(h => h.IsVisible).ToList();
+                    Assert.Contains(headers, h => (string)h.Content == "Runs");
+
+                    foreach (var header in headers)
+                    {
+                        var label = Descendants<ContentPresenter>(header).First();
+                        var column = table.Columns.Single(c => ReferenceEquals(c.Header, header));
+                        var value = column.GetCellContent(row);
+                        Assert.True(Math.Abs(label.TranslatePoint(new Point(0, 0), window).X - value.TranslatePoint(new Point(0, 0), window).X) < 0.5,
+                            $"{header.Content}: the label at {label.TranslatePoint(new Point(0, 0), window).X}, the values at {value.TranslatePoint(new Point(0, 0), window).X}");
+                    }
                 }
                 finally
                 {
@@ -1039,9 +1114,9 @@ namespace keycuts.Tests
                     manager.MoveSelection(1);
                     Pump();
 
-                    var menuButton = Descendants<MenuButton>(window).Single();
+                    var button = Descendants<SortHeaderButton>(window).First();
 
-                    Assert.False(Press(menuButton, Key.Enter));
+                    Assert.False(Press(button, Key.Enter));
                     Assert.Empty(actions.Launched);
                 }
                 finally
@@ -1105,9 +1180,7 @@ namespace keycuts.Tests
                             "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
-                            "SortHeaderButton:Target",
-                            "Actions for alpha",
-                            "Actions for bravo"
+                            "SortHeaderButton:Target"
                         },
                         TabStops(window));
                     Assert.Equal("Search keycuts", FocusedName());
@@ -1126,9 +1199,11 @@ namespace keycuts.Tests
 
         static MenuItem OpenRowMenuItem(Window window, string rowName, string header, out ContextMenu menu)
         {
-            var button = Descendants<MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for " + rowName);
-            menu = button.ContextMenu;
-            menu.PlacementTarget = button;
+            // As a right-click on the row opens it
+            var table = Descendants<DataGrid>(window).Single();
+            var row = Descendants<DataGridRow>(table).Single(r => (r.DataContext as KeycutRowViewModel)?.Name == rowName);
+            menu = row.ContextMenu;
+            menu.PlacementTarget = row;
             menu.IsOpen = true;
             Pump();
             return menu.Items.OfType<MenuItem>().Single(i => i.Header as string == header);
@@ -1224,7 +1299,7 @@ namespace keycuts.Tests
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "SortHeaderButton:Runs", "SortHeaderButton:Last run", "Actions for alpha" },
+                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "SortHeaderButton:Runs", "SortHeaderButton:Last run" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

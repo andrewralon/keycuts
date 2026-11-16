@@ -9,205 +9,62 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.CreatorUrl}"
              Background="{DynamicResource SurfaceBrush}" Loaded="CreatorView_Loaded"
-             PreviewKeyDown="CreatorView_PreviewKeyDown" PreviewKeyUp="CreatorView_PreviewKeyUp"
-             IsKeyboardFocusWithinChanged="CreatorView_IsKeyboardFocusWithinChanged"
-             PreviewDragEnter="Creator_DragEnter" PreviewDragOver="Creator_DragOver" PreviewDragLeave="Creator_DragLeave"
-             PreviewDrop="Creator_Drop"
              AllowDrop="{Binding IsInputEnabled}">
   <UserControl.Resources>
-    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <ResourceDictionary>
+      <!-- The drop area, the target box, the name's lines and Browse's menu, shared with the Manager's create row -->
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="CreatorForm.xaml" />
+      </ResourceDictionary.MergedDictionaries>
 
-    <!-- Borderless single-line field that sits inside the drop area; focus is shown on the drop area instead. -->
-    <Style x:Key="InlineTextBox" TargetType="TextBox">
-      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
-      <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}" />
-      <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="SelectionTextBrush" Value="{DynamicResource OnAccentBrush}" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="MinHeight" Value="22" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-      <Setter Property="AllowDrop" Value="True" />
-      <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="TextBox">
-            <Grid Background="Transparent">
-              <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}" Focusable="False"
-                            VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden"
-                            VerticalScrollBarVisibility="Hidden" />
-              <!-- 2 in, where the text box draws its first character: an optical offset -->
-              <TextBlock x:Name="Placeholder" Visibility="Collapsed" IsHitTestVisible="False" Margin="2,0,0,0"
-                         Text="{TemplateBinding themes:TextBoxChrome.Placeholder}" VerticalAlignment="Center"
-                         TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextSecondaryBrush}" />
-            </Grid>
-            <ControlTemplate.Triggers>
-              <Trigger Property="Text" Value="">
-                <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
-              </Trigger>
-              <Trigger Property="IsEnabled" Value="False">
-                <Setter TargetName="Placeholder" Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-      <Style.Triggers>
-        <Trigger Property="Text" Value="">
-          <Setter Property="ToolTipService.IsEnabled" Value="False" />
-        </Trigger>
-        <Trigger Property="IsEnabled" Value="False">
-          <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
-        </Trigger>
-      </Style.Triggers>
-    </Style>
+      <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-    <!-- Drop area layers: the dashed outline, the fill, and the soft glow around it. -->
-    <Style x:Key="DropStroke" TargetType="Rectangle">
-      <Setter Property="RadiusX" Value="{StaticResource RadiusLgValue}" />
-      <Setter Property="RadiusY" Value="{StaticResource RadiusLgValue}" />
-      <Setter Property="StrokeThickness" Value="1" />
-      <Setter Property="Stroke" Value="{DynamicResource BorderStrongBrush}" />
-      <Setter Property="StrokeDashArray">
-        <Setter.Value>
-          <DoubleCollection>4 3</DoubleCollection>
-        </Setter.Value>
-      </Setter>
-      <Setter Property="IsHitTestVisible" Value="False" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=DropArea}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding ShowTargetError}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding ShowDragHover}" Value="True">
-          <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-          <Setter Property="StrokeThickness" Value="2" />
-          <Setter Property="StrokeDashArray" Value="{x:Null}" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
+      <!-- A field label that is also a button (#205): "Description (optional)" shows or hides its box. It looks
+           like the "Name" label, and turns to the accent on hover so it reads as clickable. -->
+      <Style x:Key="FieldLabelButton" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter RecognizesAccessKey="False" />
+              </Border>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+          <Trigger Property="IsMouseOver" Value="True">
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+          </Trigger>
+          <Trigger Property="IsEnabled" Value="False">
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Cursor" Value="Arrow" />
+          </Trigger>
+        </Style.Triggers>
+      </Style>
 
-    <Style x:Key="DropFill" TargetType="Border">
-      <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
-      <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding ShowTargetError}" Value="True">
-          <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding ShowDragHover}" Value="True">
-          <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-
-    <!-- The glow is a ring outside the drop area: 3 out at RadiusLg + 3, and 4 out at RadiusLg + 4 while something is dragged over -->
-    <Style x:Key="DropGlow" TargetType="Border">
-      <Setter Property="Margin" Value="-3" />
-      <Setter Property="BorderThickness" Value="3" />
-      <Setter Property="CornerRadius" Value="15" />
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="Opacity" Value="0" />
-      <Setter Property="IsHitTestVisible" Value="False" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=DropArea}" Value="True">
-          <Setter Property="Opacity" Value="0.2" />
-        </DataTrigger>
-        <MultiDataTrigger>
-          <MultiDataTrigger.Conditions>
-            <Condition Binding="{Binding IsKeyboardFocusWithin, ElementName=DropArea}" Value="True" />
-            <Condition Binding="{Binding ShowTargetError}" Value="True" />
-          </MultiDataTrigger.Conditions>
-          <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
-        </MultiDataTrigger>
-        <DataTrigger Binding="{Binding ShowDragHover}" Value="True">
-          <Setter Property="Margin" Value="-4" />
-          <Setter Property="BorderThickness" Value="4" />
-          <Setter Property="CornerRadius" Value="16" />
-          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-          <Setter Property="Opacity" Value="0.2" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-
-    <!-- A field label that is also a button (#205): "Description (optional)" hides its box, "Add a description (optional)" shows it. It looks
-         like the "Name" label, and turns to the accent on hover so it reads as clickable. -->
-    <Style x:Key="FieldLabelButton" TargetType="Button">
-      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
-      <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-              <ContentPresenter RecognizesAccessKey="False" />
-            </Border>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-      <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-          <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
-        </Trigger>
-        <Trigger Property="IsEnabled" Value="False">
-          <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
-          <Setter Property="Cursor" Value="Arrow" />
-        </Trigger>
-      </Style.Triggers>
-    </Style>
-
-    <!-- The name line's states (#153): an error outranks a warning. Saving and Created are on the label's row (NameStatus). -->
-    <Style x:Key="NameHelper" TargetType="controls:HelperText" BasedOn="{StaticResource {x:Type controls:HelperText}}">
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding HelperIsWarning}" Value="True">
-          <Setter Property="State" Value="Warning" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
-          <Setter Property="State" Value="Error" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-
-    <!-- Saving, then Created with its check, at the right of the Name label -->
-    <Style x:Key="NameStatus" TargetType="controls:HelperText" BasedOn="{StaticResource {x:Type controls:HelperText}}">
-      <Setter Property="Margin" Value="12,0,0,0" />
-      <Setter Property="HorizontalAlignment" Value="Right" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding IsSuccess}" Value="True">
-          <Setter Property="State" Value="Success" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-
-    <!-- The welcome panel's line under the bubbles (#213): the same size and color as the intro above it, which reads better than the
-         small tertiary helper text on the blue panel in the dark theme. Only a PATH problem changes it, to the error color. -->
-    <Style x:Key="WelcomeHelperText" TargetType="TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding HelperIsError}" Value="True">
-          <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-          <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-
-    <Style x:Key="BrowseMenuItem" TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
-      <Setter Property="MinHeight" Value="48" />
-    </Style>
+      <!-- The welcome panel's line under the bubbles (#213): the same size and color as the intro above it, which reads better than the
+           small tertiary helper text on the blue panel in the dark theme. Only a PATH problem changes it, to the error color. -->
+      <Style x:Key="WelcomeHelperText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding HelperIsError}" Value="True">
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </ResourceDictionary>
   </UserControl.Resources>
 
   <Grid>
@@ -320,21 +177,17 @@
                      Text="{Binding TargetText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"
                      themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, or URL"
                      IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
-                     AutomationProperties.HelpText="{Binding TargetHelpText}"
-                     PreviewKeyDown="TextboxTarget_PreviewKeyDown" TextChanged="TextboxTarget_TextChanged"
-                     LostFocus="TextboxTarget_LostFocus"
-                     IsKeyboardFocusWithinChanged="TextboxTarget_IsKeyboardFocusWithinChanged" />
+                     AutomationProperties.HelpText="{Binding TargetHelpText}" />
           </StackPanel>
 
           <!-- Icon-only, like the Settings window's folder button: the tooltip and the automation name say "Browse". Centered in
                the box, so it stays so when a long target wraps and the box grows. -->
           <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Style="{StaticResource SquareButton}" VerticalAlignment="Center"
-                  Click="Browse_Click" PreviewKeyDown="Browse_PreviewKeyDown" ContextMenuOpening="Browse_ContextMenuOpening" IsEnabled="{Binding IsInputEnabled}"
+                  IsEnabled="{Binding IsInputEnabled}"
                   ToolTip="Browse" AutomationProperties.Name="Browse">
             <controls:Icon Kind="Folder" Size="20" VerticalAlignment="Center" />
             <Button.ContextMenu>
-              <ContextMenu x:Name="BrowseMenu" Width="190" Opened="BrowseMenu_Opened" Closed="BrowseMenu_Closed"
-                           PreviewKeyDown="BrowseMenu_PreviewKeyDown">
+              <ContextMenu x:Name="BrowseMenu" Width="190">
                 <MenuItem Style="{StaticResource BrowseMenuItem}" AutomationProperties.Name="File…"
                           Command="{Binding BrowseFileCommand}">
                   <MenuItem.Icon>
@@ -392,8 +245,7 @@
                    themes:TextBoxChrome.HasError="{Binding IsNameError}"
                    themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
                    IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
-                   AutomationProperties.HelpText="{Binding NameHelpText}"
-                   TextChanged="TextboxShortcut_TextChanged">
+                   AutomationProperties.HelpText="{Binding NameHelpText}">
             <TextBox.InputBindings>
               <!-- Enter creates only from the name field; Shift+Enter too, with the environment-variables setting flipped -->
               <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
@@ -439,8 +291,8 @@
         <controls:HelperText x:Name="HelperTextBlock" Style="{StaticResource NameHelper}" Text="{Binding HelperText}"
                              Visibility="{Binding ShowHelperLine, Converter={StaticResource BoolToVisibility}}" />
 
-        <!-- #162, #205: the description is optional. Its label is a button: "Add a description (optional)" shows the box and
-             "Description (optional)" hides it, the choice being remembered between launches. Styled like the "Name" label,
+        <!-- #162, #205: the description is optional. Its label, "Description (optional)", is a button that shows the box and
+             hides it, the choice being remembered between launches. Styled like the "Name" label,
              with the same 16 above it as between Target and Name. -->
         <Button x:Name="BtnToggleDescription" Style="{StaticResource FieldLabelButton}" HorizontalAlignment="Left"
                 Margin="0,16,0,0" Command="{Binding ToggleDescriptionCommand}"
@@ -459,7 +311,7 @@
       </StackPanel>
     </Grid>
 
-    <!-- #205: the footer both screens share (Settings, the count, the update line) -->
+    <!-- #205: the bar the screens share, there only while a newer version is out -->
     <views:FooterView Grid.Row="1" />
   </Grid>
 </UserControl>

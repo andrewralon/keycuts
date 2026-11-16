@@ -63,12 +63,10 @@ namespace keycuts.GUI.ViewModels
 
         public const string CheckingForUpdatesMessage = "Checking for updates\u2026";
 
-        public const string UpToDateFormat = "You\u2019re up to date ({0}).";
+        // No version in it: Settings shows the version on the line above
+        public const string UpToDateMessage = "You\u2019re up to date.";
 
         public const string UpdateCheckFailedMessage = "Couldn\u2019t check for updates.";
-
-        /// <summary>The note near the bottom of the screen, since there is no Save button.</summary>
-        public const string SavedAsYouGoNote = "Changes are saved as you make them.";
 
         private readonly ISettingsStore store;
 
@@ -423,10 +421,16 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>"Version 1.1.1": the running version in three parts.</summary>
+        /// <summary>"Version 1.1.1": the running version in three parts. Settings shows it as "Version · 1.1.1", and a screen reader reads this.</summary>
         public string CurrentVersionText
         {
-            get { return string.Format(VersionFormat, CurrentVersion.ToString(3)); }
+            get { return string.Format(VersionFormat, CurrentVersionNumber); }
+        }
+
+        /// <summary>"1.1.1": the running version in three parts, shown after "Version ·" as the icon's name follows "Icon ·".</summary>
+        public string CurrentVersionNumber
+        {
+            get { return CurrentVersion.ToString(3); }
         }
 
         /// <summary>
@@ -655,7 +659,7 @@ namespace keycuts.GUI.ViewModels
                     UpdateStatusText = UpdateNoticeViewModel.FormatAvailable(result.Latest);
                     break;
                 case UpdateStatus.UpToDate:
-                    UpdateStatusText = string.Format(UpToDateFormat, CurrentVersion.ToString(3));
+                    UpdateStatusText = UpToDateMessage;
                     break;
                 default:
                     UpdateStatusText = UpdateCheckFailedMessage;

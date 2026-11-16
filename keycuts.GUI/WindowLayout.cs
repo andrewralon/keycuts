@@ -16,7 +16,7 @@ namespace keycuts.GUI
 
         public const double ManagerDefaultWidth = 960;
 
-        public const double ManagerDefaultHeight = 700;
+        public const double ManagerDefaultHeight = 540;
 
         public const double ManagerMinWidth = 720;
 

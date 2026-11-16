@@ -121,191 +121,204 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- The page scrolls when the window is capped to a short screen; the footer stays. Off while the icon picker is open. -->
+    <!-- The page scrolls when the window is shorter than it; the footer stays. Off while the icon picker is open. -->
     <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False" IsEnabled="{Binding IsBodyEnabled}"
-                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Margin="{StaticResource PagePadding}">
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" SizeChanged="BodyScroller_SizeChanged">
+      <!-- Two columns at the large size (docs/styleguide.md, Tabbed window): Output and Behavior on the left, the rest on the right,
+           with a rule 24 from each. A narrow window stacks them, in the same order (SettingsView.xaml.cs, UseTwoColumns). -->
+      <Grid x:Name="Columns" Margin="{StaticResource PagePadding}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-        <!-- Output -->
-        <controls:SectionLabel Text="Output" />
-        <TextBlock Text="Output folder" Style="{StaticResource FieldLabel}" />
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <!-- Stored when committed: Enter or leaving the box (SettingsView.xaml.cs), or a pick from the folder button. Escape drops an edit. -->
-          <TextBox x:Name="TextboxOutputFolder" Grid.Column="0" Style="{StaticResource OutputFolderBox}"
-                   Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
-                   themes:TextBoxChrome.Placeholder="Choose where keycuts are saved"
-                   KeyDown="OutputFolder_KeyDown" LostKeyboardFocus="OutputFolder_LostKeyboardFocus"
-                   AutomationProperties.Name="Output folder"
-                   AutomationProperties.HelpText="{Binding OutputFolderMessage}" />
-          <Button x:Name="BtnChoose" Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource SquareButton}"
-                  Command="{Binding ChooseCommand}" ToolTip="Choose a folder" AutomationProperties.Name="Choose a folder">
-            <controls:Icon Kind="Folder" Size="20" />
-          </Button>
-          <!-- Disabled while the folder doesn't exist; the tooltip still shows then, so the bare icon can be identified -->
-          <Button x:Name="BtnLaunch" Grid.Column="2" Margin="8,0,0,0" Style="{StaticResource SquareButton}"
-                  Command="{Binding LaunchCommand}" ToolTip="Open the output folder" ToolTipService.ShowOnDisabled="True"
-                  AutomationProperties.Name="Open the output folder">
-            <controls:Icon Kind="External" Size="20" />
-          </Button>
-        </Grid>
-        <controls:HelperText x:Name="OutputFolderMessage" Style="{StaticResource OutputFolderHelper}" Text="{Binding OutputFolderMessage}" />
+        <StackPanel x:Name="LeftColumn" Grid.Row="0" Grid.Column="0">
 
-        <!-- Behavior -->
-        <controls:SectionLabel Text="Behavior" Style="{StaticResource LaterSection}" />
+          <!-- Output -->
+          <controls:SectionLabel Text="Output" />
+          <TextBlock Text="Output folder" Style="{StaticResource FieldLabel}" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <!-- Stored when committed: Enter or leaving the box (SettingsView.xaml.cs), or a pick from the folder button. Escape drops an edit. -->
+            <TextBox x:Name="TextboxOutputFolder" Grid.Column="0" Style="{StaticResource OutputFolderBox}"
+                     Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                     themes:TextBoxChrome.Placeholder="Choose where keycuts are saved"
+                     KeyDown="OutputFolder_KeyDown" LostKeyboardFocus="OutputFolder_LostKeyboardFocus"
+                     AutomationProperties.Name="Output folder"
+                     AutomationProperties.HelpText="{Binding OutputFolderMessage}" />
+            <Button x:Name="BtnChoose" Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource SquareButton}"
+                    Command="{Binding ChooseCommand}" ToolTip="Choose a folder" AutomationProperties.Name="Choose a folder">
+              <controls:Icon Kind="Folder" Size="20" />
+            </Button>
+            <!-- Disabled while the folder doesn't exist; the tooltip still shows then, so the bare icon can be identified -->
+            <Button x:Name="BtnLaunch" Grid.Column="2" Margin="8,0,0,0" Style="{StaticResource SquareButton}"
+                    Command="{Binding LaunchCommand}" ToolTip="Open the output folder" ToolTipService.ShowOnDisabled="True"
+                    AutomationProperties.Name="Open the output folder">
+              <controls:Icon Kind="External" Size="20" />
+            </Button>
+          </Grid>
+          <controls:HelperText x:Name="OutputFolderMessage" Style="{StaticResource OutputFolderHelper}" Text="{Binding OutputFolderMessage}" />
 
-        <!-- No visible note: the toggle's help text tells a screen reader what it does -->
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <TextBlock Text="Ask before replacing a keycut" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
-          <ToggleButton x:Name="ToggleAskBeforeReplacing" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                        VerticalAlignment="Center" IsChecked="{Binding AskBeforeReplacing}"
-                        AutomationProperties.Name="Ask before replacing a keycut"
-                        AutomationProperties.HelpText="Confirm before a new keycut replaces one with the same name." />
-        </Grid>
+          <!-- Behavior -->
+          <controls:SectionLabel Text="Behavior" Style="{StaticResource LaterSection}" />
 
-        <Grid Style="{StaticResource SettingRow}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <StackPanel>
-            <TextBlock Text="Right-click context menus" Style="{StaticResource SettingName}" />
-            <TextBlock Text="Add “keycut this!” to File Explorer menus." Style="{StaticResource SettingNote}" />
-          </StackPanel>
-          <ToggleButton x:Name="ToggleRightClick" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                        VerticalAlignment="Center" IsChecked="{Binding RightClickContextMenus}"
-                        AutomationProperties.Name="Right-click context menus"
-                        AutomationProperties.HelpText="Add “keycut this!” to File Explorer menus." />
-        </Grid>
+          <!-- No visible note: the toggle's help text tells a screen reader what it does -->
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Ask before replacing a keycut" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
+            <ToggleButton x:Name="ToggleAskBeforeReplacing" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding AskBeforeReplacing}"
+                          AutomationProperties.Name="Ask before replacing a keycut"
+                          AutomationProperties.HelpText="Confirm before a new keycut replaces one with the same name." />
+          </Grid>
 
-        <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating (the Creator's
-             Target shows the path that way). "Flip" is right both ways: Shift turns it on for one keycut when it is off, and off
-             when it is on. -->
-        <Grid Style="{StaticResource SettingRow}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <StackPanel>
-            <TextBlock Text="Use environment variables in paths" Style="{StaticResource SettingName}" />
-            <TextBlock Text="Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled."
-                       Style="{StaticResource SettingNote}" />
-          </StackPanel>
-          <ToggleButton x:Name="ToggleEnvironmentVariables" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                        VerticalAlignment="Center" IsChecked="{Binding UseEnvironmentVariables}"
-                        AutomationProperties.Name="Use environment variables in paths"
-                        AutomationProperties.HelpText="Saves C:\Users\you\Desktop as %USERPROFILE%\Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut." />
-        </Grid>
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Right-click context menus" Style="{StaticResource SettingName}" />
+              <TextBlock Text="Add “keycut this!” to File Explorer menus." Style="{StaticResource SettingNote}" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleRightClick" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding RightClickContextMenus}"
+                          AutomationProperties.Name="Right-click context menus"
+                          AutomationProperties.HelpText="Add “keycut this!” to File Explorer menus." />
+          </Grid>
 
-        <!-- Appearance. The icon: its name and what it does, and the icon itself as the button that opens the picker. -->
-        <controls:SectionLabel Text="Appearance" Style="{StaticResource LaterSection}" />
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Style="{StaticResource SettingName}">
-              <Run Text="Icon" /><Run Text=" &#x00B7; " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
-                  Text="{Binding SelectedIcon.Name, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
-            </TextBlock>
-            <TextBlock x:Name="IconDescription" Text="{Binding SelectedIcon.Description}" Style="{StaticResource SettingNote}" />
-          </StackPanel>
-          <Button x:Name="BtnIcon" Grid.Column="1" Margin="16,0,0,0" Padding="4" VerticalAlignment="Center"
-                  Command="{Binding OpenIconPickerCommand}" Content="{Binding SelectedIcon}" ContentTemplate="{StaticResource IconPreview}"
-                  ToolTip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
-        </Grid>
-
-        <!-- The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
-        <Grid Style="{StaticResource SettingRow}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <TextBlock Text="Theme" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
-          <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-            <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
-                         AutomationProperties.Name="System theme" Checked="Theme_Checked" Margin="0,0,16,0" />
-            <RadioButton Content="Light" GroupName="Theme" Tag="{x:Static common:ThemePreference.Light}"
-                         AutomationProperties.Name="Light theme" Checked="Theme_Checked" Margin="0,0,16,0" />
-            <RadioButton Content="Dark" GroupName="Theme" Tag="{x:Static common:ThemePreference.Dark}"
-                         AutomationProperties.Name="Dark theme" Checked="Theme_Checked" />
-          </StackPanel>
-        </Grid>
-
-        <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->
-        <controls:SectionLabel Text="Updates" Style="{StaticResource LaterSection}" />
-        <Grid>
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <StackPanel>
-            <TextBlock Text="Check for updates" Style="{StaticResource SettingName}" />
-            <TextBlock Text="Once a day, ask GitHub whether a newer version is out." Style="{StaticResource SettingNote}" />
-          </StackPanel>
-          <ToggleButton x:Name="ToggleCheckForUpdates" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                        VerticalAlignment="Center" IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates"
-                        AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out." />
-        </Grid>
-
-        <!-- The version, the update status and check now: hidden only for the README's screenshots -->
-        <Grid x:Name="VersionRow" Style="{StaticResource SettingRow}"
-              Visibility="{Binding ShowVersionRow, Converter={StaticResource BoolToVisibility}}">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock x:Name="CurrentVersionText" Text="{Binding CurrentVersionText}" Style="{StaticResource SettingName}" />
-            <WrapPanel Margin="0,4,0,0" Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVisibility}}">
-              <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Style="{StaticResource Caption}"
-                         AutomationProperties.LiveSetting="Polite" />
-              <!-- Only while a newer release is known -->
-              <TextBlock Style="{StaticResource Caption}" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibility}}">
-                <Run Text=" &#x00B7; " /><Hyperlink x:Name="SettingsDownloadLink" Command="{Binding DownloadUpdateCommand}"
-                    Foreground="{DynamicResource AccentTextBrush}" AutomationProperties.Name="Download the new version">download</Hyperlink>
-              </TextBlock>
-            </WrapPanel>
-          </StackPanel>
-          <Button x:Name="BtnCheckNow" Grid.Column="1" Margin="16,0,0,0" Content="check now" Style="{StaticResource SecondaryButton}"
-                  VerticalAlignment="Center" Command="{Binding CheckNowCommand}" AutomationProperties.Name="check for updates now"
-                  Visibility="{Binding CanCheckForUpdates, Converter={StaticResource BoolToVisibility}}" />
-        </Grid>
-
-        <!-- A change that was only partly stored (for example PATH couldn't be updated) -->
-        <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Style="{StaticResource ErrorText}" Margin="0,16,0,0"
-                   Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
-
-        <!-- There is no Save button, so the page says so -->
-        <StackPanel x:Name="SavedNote" Orientation="Horizontal" Margin="0,24,0,0">
-          <controls:Icon Kind="Check" Size="12" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
-          <TextBlock Text="{x:Static vm:SettingsViewModel.SavedAsYouGoNote}" Style="{StaticResource Caption}" Margin="4,0,0,0"
-                     VerticalAlignment="Center" />
+          <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating (the Creator's
+               Target shows the path that way). "Flip" is right both ways: Shift turns it on for one keycut when it is off, and off
+               when it is on. -->
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Use environment variables in paths" Style="{StaticResource SettingName}" />
+              <TextBlock Text="Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled."
+                         Style="{StaticResource SettingNote}" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleEnvironmentVariables" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding UseEnvironmentVariables}"
+                          AutomationProperties.Name="Use environment variables in paths"
+                          AutomationProperties.HelpText="Saves C:\Users\you\Desktop as %USERPROFILE%\Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut." />
+          </Grid>
         </StackPanel>
 
-        <!-- Show welcome goes back to the creator with the first-run panel; restore defaults asks first, never touches the folder -->
-        <Grid Margin="0,16,0,0">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-          <Button x:Name="BtnShowWelcome" Grid.Column="0" Content="show welcome" Style="{StaticResource SecondaryButton}"
-                  Command="{Binding ShowWelcomeCommand}" AutomationProperties.Name="show the welcome panel" />
-          <Button x:Name="BtnRestoreDefaults" Grid.Column="2" Content="restore defaults" Style="{StaticResource SecondaryButton}"
-                  Command="{Binding RestoreDefaultsCommand}" AutomationProperties.Name="restore defaults"
-                  AutomationProperties.HelpText="{x:Static vm:ConfirmViewModel.RestoreDefaultsIntro}" />
-        </Grid>
-      </StackPanel>
+        <Border x:Name="ColumnRule" Grid.Row="0" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
+
+        <!-- Its first section label starts at the top of the page beside the left column's; stacked, 24 under the left column -->
+        <StackPanel x:Name="RightColumn" Grid.Row="0" Grid.Column="2">
+          <!-- Appearance. The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
+          <controls:SectionLabel Text="Appearance" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Theme" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
+            <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+              <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
+                           AutomationProperties.Name="System theme" Checked="Theme_Checked" Margin="0,0,16,0" />
+              <RadioButton Content="Light" GroupName="Theme" Tag="{x:Static common:ThemePreference.Light}"
+                           AutomationProperties.Name="Light theme" Checked="Theme_Checked" Margin="0,0,16,0" />
+              <RadioButton Content="Dark" GroupName="Theme" Tag="{x:Static common:ThemePreference.Dark}"
+                           AutomationProperties.Name="Dark theme" Checked="Theme_Checked" />
+            </StackPanel>
+          </Grid>
+
+          <!-- The icon: its name and what it does, and the icon itself as the button that opens the picker -->
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Style="{StaticResource SettingName}">
+                <Run Text="Icon" /><Run Text=" &#x00B7; " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
+                    Text="{Binding SelectedIcon.Name, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+              </TextBlock>
+              <TextBlock x:Name="IconDescription" Text="{Binding SelectedIcon.Description}" Style="{StaticResource SettingNote}" />
+            </StackPanel>
+            <Button x:Name="BtnIcon" Grid.Column="1" Margin="16,0,0,0" Padding="4" VerticalAlignment="Center"
+                    Command="{Binding OpenIconPickerCommand}" Content="{Binding SelectedIcon}" ContentTemplate="{StaticResource IconPreview}"
+                    ToolTip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
+          </Grid>
+
+          <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->
+          <controls:SectionLabel Text="Updates" Style="{StaticResource LaterSection}" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Check for updates daily" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
+            <ToggleButton x:Name="ToggleCheckForUpdates" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates daily" />
+          </Grid>
+
+          <!-- The version, the update status and check now: hidden only for the README's screenshots -->
+          <Grid x:Name="VersionRow" Style="{StaticResource SettingRow}"
+                Visibility="{Binding ShowVersionRow, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+              <!-- "Version · 1.6.0", like "Icon · Black & White": the name SemiBold, the value in secondary text -->
+              <TextBlock x:Name="CurrentVersionText" Style="{StaticResource SettingName}" AutomationProperties.Name="{Binding CurrentVersionText}">
+                <Run Text="Version" /><Run Text=" &#x00B7; " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
+                    Text="{Binding CurrentVersionNumber, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+              </TextBlock>
+              <WrapPanel Margin="0,4,0,0" Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Style="{StaticResource Caption}"
+                           AutomationProperties.LiveSetting="Polite" />
+                <!-- Only while a newer release is known -->
+                <TextBlock Style="{StaticResource Caption}" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibility}}">
+                  <Run Text=" &#x00B7; " /><Hyperlink x:Name="SettingsDownloadLink" Command="{Binding DownloadUpdateCommand}"
+                      Foreground="{DynamicResource AccentTextBrush}" AutomationProperties.Name="Download the new version">download</Hyperlink>
+                </TextBlock>
+              </WrapPanel>
+            </StackPanel>
+            <Button x:Name="BtnCheckNow" Grid.Column="1" Margin="16,0,0,0" Content="check now" Style="{StaticResource SecondaryButton}"
+                    VerticalAlignment="Center" Command="{Binding CheckNowCommand}" AutomationProperties.Name="check for updates now"
+                    Visibility="{Binding CanCheckForUpdates, Converter={StaticResource BoolToVisibility}}" />
+          </Grid>
+
+          <!-- A change that was only partly stored (for example PATH couldn't be updated) -->
+          <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Style="{StaticResource ErrorText}" Margin="0,16,0,0"
+                     Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
+
+          <!-- Show welcome goes back to the creator with the first-run panel; restore defaults asks first, never touches the folder.
+               24 above, as between sections. -->
+          <Grid Margin="0,24,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="BtnShowWelcome" Grid.Column="0" Content="show welcome" Style="{StaticResource SecondaryButton}"
+                    Command="{Binding ShowWelcomeCommand}" AutomationProperties.Name="show the welcome panel" />
+            <Button x:Name="BtnRestoreDefaults" Grid.Column="2" Content="restore defaults" Style="{StaticResource SecondaryButton}"
+                    Command="{Binding RestoreDefaultsCommand}" AutomationProperties.Name="restore defaults"
+                    AutomationProperties.HelpText="{x:Static vm:ConfirmViewModel.RestoreDefaultsIntro}" />
+          </Grid>
+        </StackPanel>
+      </Grid>
     </ScrollViewer>
 
     <views:FooterView x:Name="Footer" Grid.Row="1" DataContext="{Binding Footer}" IsEnabled="{Binding DataContext.IsBodyEnabled, RelativeSource={RelativeSource AncestorType=UserControl, AncestorLevel=1}}" />

@@ -4,9 +4,10 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:vm="clr-namespace:keycuts.GUI.ViewModels"
         xmlns:views="clr-namespace:keycuts.GUI.Views"
+        xmlns:controls="clr-namespace:keycuts.GUI.Controls"
         Title="{Binding Title}" Width="{StaticResource MainWidth}" SizeToContent="Height" ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True"
-        Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource TextBrush}"
+        AllowsTransparency="True" WindowStyle="None" Background="Transparent" Foreground="{DynamicResource TextBrush}"
         FontFamily="{StaticResource AppFontFamily}" FontSize="{StaticResource FontSizeBody}"
         KeyDown="Main_KeyDown">
   <!-- #218: no standard title bar. The tab bar (RailView) is the top row and does what a title bar does: WindowChrome makes
@@ -30,12 +31,20 @@
       <views:SettingsView />
     </DataTemplate>
   </Window.Resources>
-  <Grid x:Name="Frame">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="*" />
-    </Grid.RowDefinitions>
-    <views:RailView x:Name="Rail" Grid.Row="0" />
-    <ContentControl Grid.Row="1" Content="{Binding CurrentView}" Focusable="False" IsTabStop="False" />
+  <!-- The torn bottom-right corner (docs/mockups/torn-corner-v2, B2): the window is transparent (AllowsTransparency), the page
+       (Frame) is clipped to the torn shape in MainWindow, and TornCorner draws the frayed edge and threads over it. High contrast
+       keeps the plain rectangle. -->
+  <Grid>
+    <Grid x:Name="Frame" Background="{DynamicResource CanvasBrush}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <views:RailView x:Name="Rail" Grid.Row="0" />
+      <ContentControl Grid.Row="1" Content="{Binding CurrentView}" Focusable="False" IsTabStop="False" />
+      <!-- A transparent window gets no border from Windows, so the page draws its own; the clip cuts it off at the rip -->
+      <Border Grid.RowSpan="2" BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" IsHitTestVisible="False" />
+    </Grid>
+    <controls:TornCorner x:Name="Tear" Stroke="{DynamicResource ControlBorderBrush}" />
   </Grid>
 </Window>

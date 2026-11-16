@@ -11,32 +11,48 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
   </UserControl.Resources>
 
-  <Border x:Name="Bar" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-          BorderThickness="0,1,0,0" Padding="24,0" MinHeight="48"
-          Visibility="{Binding UpdateNotice.IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
-    <Grid>
-      <!-- The text is right-aligned in the space it gets, so the dismiss button follows it closely and the line is
-           right-justified; the text wraps when the space is narrow. -->
-      <Grid x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" Margin="0,8"
-            VerticalAlignment="Center"
-            Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
-            DataContextChanged="UpdateNotice_DataContextChanged">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <TextBlock x:Name="UpdateNoticeText" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"
-                   TextWrapping="Wrap" TextAlignment="Right"
-                   Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
-          <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
-              Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentTextBrush}"
-              AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">download</Hyperlink>
-        </TextBlock>
-        <Button x:Name="BtnDismissUpdate" Grid.Column="1" Style="{StaticResource IconButton}" VerticalAlignment="Center"
-                Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
-          <controls:Icon Kind="Close" Size="16" />
-        </Button>
+  <!-- The window's torn bottom-right corner (Controls/TornCorner) needs room: the bar's right padding (FooterBarPadding) clears
+       the rip, and while the bar is hidden the hem under the page (TornCornerHem) keeps the content above it. Both are palette
+       values, 0 extra in high contrast, which has no tear. -->
+  <Grid>
+    <Border x:Name="Hem" Height="{DynamicResource TornCornerHem}">
+      <Border.Style>
+        <Style TargetType="Border">
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding UpdateNotice.IsVisible}" Value="True">
+              <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Border.Style>
+    </Border>
+    <Border x:Name="Bar" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,1,0,0" Padding="{DynamicResource FooterBarPadding}" MinHeight="48"
+            Visibility="{Binding UpdateNotice.IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
+      <Grid>
+        <!-- The text is right-aligned in the space it gets, so the dismiss button follows it closely and the line is
+             right-justified; the text wraps when the space is narrow. -->
+        <Grid x:Name="UpdateNotice" DataContext="{Binding UpdateNotice}" Margin="0,8"
+              VerticalAlignment="Center"
+              Visibility="{Binding IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
+              DataContextChanged="UpdateNotice_DataContextChanged">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="UpdateNoticeText" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                     TextWrapping="Wrap" TextAlignment="Right"
+                     Foreground="{DynamicResource TextSecondaryBrush}" AutomationProperties.LiveSetting="Polite">
+            <Run Text="{Binding Message, Mode=OneWay}" /><Run Text=" &#x00B7; " /><Hyperlink x:Name="UpdateDownloadLink"
+                Command="{Binding DownloadCommand}" Foreground="{DynamicResource AccentTextBrush}"
+                AutomationProperties.Name="{Binding DownloadName, Mode=OneWay}">download</Hyperlink>
+          </TextBlock>
+          <Button x:Name="BtnDismissUpdate" Grid.Column="1" Style="{StaticResource IconButton}" VerticalAlignment="Center"
+                  Command="{Binding DismissCommand}" ToolTip="Dismiss" AutomationProperties.Name="Dismiss update notice">
+            <controls:Icon Kind="Close" Size="16" />
+          </Button>
+        </Grid>
       </Grid>
-    </Grid>
-  </Border>
+    </Border>
+  </Grid>
 </UserControl>

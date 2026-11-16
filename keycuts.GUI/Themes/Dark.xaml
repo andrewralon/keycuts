@@ -38,6 +38,10 @@
     <SolidColorBrush x:Key="ScrimBrush" Color="#99000000" />
     <Color x:Key="ShadowColor">#000000</Color>
     <sys:Double x:Key="ShadowOpacity">0.3</sys:Double>
+    <!-- The torn corner (B2, Controls/TornCorner): the room the pages keep under them when the bottom bar is hidden, and the bar's
+         padding, whose right side clears the rip. High contrast keeps the plain rectangle and needs neither. -->
+    <sys:Double x:Key="TornCornerHem">40</sys:Double>
+    <Thickness x:Key="FooterBarPadding">24,0,120,0</Thickness>
 
     <!-- Tab bar (#218): the bar, its tabs, the app icon's socket and the caption buttons. Gradients and textures live here, not in the views. -->
     <LinearGradientBrush x:Key="RailBrush" StartPoint="0,0" EndPoint="0,1">

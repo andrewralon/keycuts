@@ -68,6 +68,12 @@ namespace keycuts.Tests
             return LeftIn(element, ancestor) + element.ActualWidth;
         }
 
+        // The room a screen keeps under its page for the window's torn corner while the bar is hidden (a palette value)
+        static double TornCornerHem(Window window)
+        {
+            return (double)window.FindResource("TornCornerHem");
+        }
+
         static void SetManagerStatus(ManagerViewModel manager, string message, bool isError)
         {
             typeof(ManagerViewModel).GetMethod("SetStatus", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
@@ -276,8 +282,8 @@ namespace keycuts.Tests
                     var dismiss = Named(footer, "BtnDismissUpdate");
                     Assert.InRange(LeftIn(dismiss, footer) - RightIn(text, footer), -0.5, 4);
 
-                    // ...and the line is right-justified in the footer
-                    Assert.InRange(footer.ActualWidth - 24 - RightIn(dismiss, footer), -0.5, 1);
+                    // ...and the line is right-justified in the footer, short of the torn corner (FooterBarPadding)
+                    Assert.InRange(footer.ActualWidth - ((Thickness)footer.FindResource("FooterBarPadding")).Right - RightIn(dismiss, footer), -0.5, 1);
 
                     notice.DismissCommand.Execute(null);
                     Pump();
@@ -397,16 +403,16 @@ namespace keycuts.Tests
                     Assert.True(Bar(creatorWindow).IsVisible);
                     Assert.True(Bar(managerWindow).IsVisible);
                     Assert.False(Bar(plainWindow).IsVisible);
-                    Assert.Equal(0, Descendants<FooterView>(plainWindow).Single().ActualHeight);
+                    Assert.Equal(TornCornerHem(plainWindow), Descendants<FooterView>(plainWindow).Single().ActualHeight);
 
-                    // Dismissed: gone from every screen, and it takes no room
+                    // Dismissed: gone from every screen, and it takes only the hem the torn corner needs
                     notice.DismissCommand.Execute(null);
                     Pump();
                     creatorWindow.UpdateLayout();
                     managerWindow.UpdateLayout();
                     Assert.False(Bar(creatorWindow).IsVisible);
                     Assert.False(Bar(managerWindow).IsVisible);
-                    Assert.Equal(0, Descendants<FooterView>(managerWindow).Single().ActualHeight);
+                    Assert.Equal(TornCornerHem(managerWindow), Descendants<FooterView>(managerWindow).Single().ActualHeight);
                 }
                 finally
                 {

@@ -121,6 +121,7 @@ The Manager starts with the Creator's fields in one row, so a keycut can be adde
 ### The Manager's table
 
 - **The count** is a pill (22 high, fully round, `Caption` SemiBold in `TextSecondaryBrush` on `SurfaceSubtleBrush`) 12 to the right of the search box: "355 keycuts", or "4 of 355 keycuts" while a search is typed ([decision](#decisions)).
+- **The Manager's message** (Deleted, Copied, Restored, errors) sits between the search box and the count, 12 from each, only while there is one, and takes no room otherwise. It is at most 300 wide and trims with an ellipsis (its tooltip is the whole text). `undo` comes after "Deleted …", against the count, so it is always in the same place ([decision](#decisions)).
 - Header and rows are 36 high (`ManagerTable`).
 - **Columns**, left to right: Name (1.2 shares, at least 120), Type (104), Description (1 share, at least 100), Target (3.4 shares, at least 160), then Modified (112), Runs (64) and Last run (112), which make way when the table is narrow. The shared columns can be dragged. Target gets the most room, since targets are the longest values; the fixed ones fit their widest value (the Command badge, "20 minutes ago", the Runs header with its chevron) with the padding at both sides. Text cells have 12 at each side; a type badge, which has its own border, and a header, whose sort chevron may run into it, have 4 at the right ([decision](#decisions)).
 - **A column's label starts where its values do**, 12 in. The sort header's focus frame (1 border, 4 padding) would push the label 5 further; the header is pulled left by that much ([decision](#decisions)).
@@ -128,7 +129,7 @@ The Manager starts with the Creator's fields in one row, so a keycut can be adde
 
 ### The app footer
 
-All three screens end in `FooterView`. It is 48 high at least (`MinHeight`, today 46), with `Padding="24,0"` and a top border in `BorderBrush`, on `SurfaceSubtleBrush`. Left to right: the screen's message (the Manager's undo and status line) and the update line, right-aligned. Gaps are 8 between controls. The count is not here: it is beside the Manager's search box.
+All three screens end in `FooterView`, which is **there only while a newer version is out**: it shows on every screen until the notice is dismissed or the app is up to date, and takes no room otherwise ([decision](#decisions)). It is 48 high at least, with `Padding="24,0"` and a top border in `BorderBrush`, on `SurfaceSubtleBrush`, and holds the update line, right-aligned, with its dismiss button. The count and the Manager's messages are in the Manager's search row.
 
 ### Inset panels
 
@@ -252,7 +253,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | Menu item: one line / two lines (Browse menu) | 32 / 48 min | `AppMenuItem`, `BrowseMenuItem` |
 | Toggle switch | 36 × 20 drawn, **36 × 24 to click** | `ToggleSwitch` (its template adds a transparent hit area around the track) |
 | Check box and radio box | 18 drawn; the label is part of the click area | The implicit `CheckBox` and `RadioButton` styles |
-| Type badge, count pill | 22 high | `TypeBadge`, the footer pill |
+| Type badge, count pill | 22 high | `TypeBadge`, the Manager's count pill |
 | Icon tile | 40 × 40, `RadiusLg` | `IconTile` (new), `TileSize` |
 | App footer | 48 min | `FooterView` |
 | Tab bar, tab, caption button (#218) | 48 / 40 / 46 × 48 | `RailHeight`, `TabHeight`, `CaptionButtonWidth` |
@@ -403,6 +404,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-16 | The Manager's column widths | Name 1.7 shares (190 at least), Type 110, Description 1.5, Target 2.8 (120), Modified 110, Runs 72, Last run 110 | **Name 1.2 (120), Type 104, Description 1, Target 3.4 (160), Modified 112, Runs 64, Last run 112**, with 4 at the right of a badge and a header: names and descriptions are short, targets long |
 | 2026-11-16 | Tab icons | A 16 icon before `creator` and `manager` | **Text only**; the tabs are 24 narrower. The Creator stays 600 wide, so the empty bar grows to about 110 |
 | 2026-11-16 | The keycut count | A number in a pill at the left of every screen's footer; "4 of 355 shown" beside the search box while searching | **One pill, beside the Manager's search box**: "355 keycuts", or "4 of 355 keycuts" while searching. The other screens show no count |
+| 2026-11-16 | The bottom bar | On every screen: the count, the Manager's messages and undo, the update line | **Only while a newer version is out**, until dismissed or up to date. The Manager's messages move to its search row (chosen over a bar that comes and goes, and a toast over the table), with undo after the message |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

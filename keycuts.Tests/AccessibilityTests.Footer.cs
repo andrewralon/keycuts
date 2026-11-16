@@ -290,10 +290,10 @@ namespace keycuts.Tests
             });
         }
 
-        // Undo, then Download, then dismiss: the order they are in on screen (the gear is a tab now, #218). Real focus traversal,
-        // since the TabStops helper leaves out hyperlinks
+        // Undo right after the search box, and the bar's Download, then dismiss: the order they are in on screen. Real focus
+        // traversal, since the TabStops helper leaves out hyperlinks
         [Fact]
-        public void Footer_FocusGoesUndo_Download_Dismiss()
+        public void Footer_FocusGoesSearch_Undo_AndDownload_Dismiss()
         {
             RunSta(() =>
             {
@@ -308,23 +308,23 @@ namespace keycuts.Tests
                     Pump();
                     window.UpdateLayout();
 
-                    var footer = Descendants<FooterView>(window).Single();
+                    // Undo is in the search row, right after the search box
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
                     Assert.True(undo.IsVisible);
+                    search.Focus();
+                    Keyboard.Focus(search);
+                    search.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                    Assert.Equal("undo delete", FocusedName());
 
-                    undo.Focus();
-                    Keyboard.Focus(undo);
-                    var order = new List<string> { FocusedName() };
-
-                    for (var step = 0; step < 2; step++)
-                    {
-                        // Download is a Hyperlink, which is a content element, not a UIElement
-                        var request = new TraversalRequest(FocusNavigationDirection.Next);
-                        if (Keyboard.FocusedElement is UIElement element) { element.MoveFocus(request); } else { ((FrameworkContentElement)Keyboard.FocusedElement).MoveFocus(request); }
-                        order.Add(FocusedName());
-                    }
-
-                    Assert.Equal(new[] { "undo delete", "download keycuts 1.3.0", "Dismiss update notice" }, order);
+                    // The bar's link, then its dismiss button. Download is a Hyperlink, a content element, not a UIElement.
+                    var footer = Descendants<FooterView>(window).Single();
+                    var download = (System.Windows.Documents.Hyperlink)footer.FindName("UpdateDownloadLink");
+                    download.Focus();
+                    Keyboard.Focus(download);
+                    Assert.Equal("download keycuts 1.3.0", FocusedName());
+                    download.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                    Assert.Equal("Dismiss update notice", FocusedName());
                 }
                 finally
                 {
@@ -373,9 +373,86 @@ namespace keycuts.Tests
             });
         }
 
-        // The Manager's narrowest width: a long message is trimmed to its cap, Undo stays put, and the update line still has room
+        // The bar at the bottom is there only to say a newer version is out: not without one, and not once it is dismissed
         [Fact]
-        public void Footer_AtTheManagersNarrowestWidth_KeepsEverythingVisible_WhateverTheMessageSays()
+        public void TheBar_ShowsOnlyWhileANewerVersionIsOut_UntilDismissed()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var notice = NewUpdateNotice();
+                var withNotice = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings)
+                {
+                    UpdateNotice = notice
+                };
+                var creatorWindow = Host(new CreatorView(), withNotice);
+                var plainWindow = Host(new CreatorView(), NewCreator());
+                var managerWindow = Host(new ManagerView(), NewLoadedManager(notice, null, "alpha"));
+
+                try
+                {
+                    FrameworkElement Bar(Window window) => (FrameworkElement)Descendants<FooterView>(window).Single().FindName("Bar");
+
+                    Assert.True(notice.IsVisible);
+                    Assert.True(Bar(creatorWindow).IsVisible);
+                    Assert.True(Bar(managerWindow).IsVisible);
+                    Assert.False(Bar(plainWindow).IsVisible);
+                    Assert.Equal(0, Descendants<FooterView>(plainWindow).Single().ActualHeight);
+
+                    // Dismissed: gone from every screen, and it takes no room
+                    notice.DismissCommand.Execute(null);
+                    Pump();
+                    creatorWindow.UpdateLayout();
+                    managerWindow.UpdateLayout();
+                    Assert.False(Bar(creatorWindow).IsVisible);
+                    Assert.False(Bar(managerWindow).IsVisible);
+                    Assert.Equal(0, Descendants<FooterView>(managerWindow).Single().ActualHeight);
+                }
+                finally
+                {
+                    creatorWindow.Close();
+                    plainWindow.Close();
+                    managerWindow.Close();
+                }
+            });
+        }
+
+        // The Manager's message takes no room in the search row while there is none
+        [Fact]
+        public void SearchRow_TheMessage_TakesNoRoom_WhileThereIsNone()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = NewLoadedManager(null, new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+
+                try
+                {
+                    var view = (FrameworkElement)window.Content;
+                    var status = Descendants<ManagerStatusView>(window).Single();
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    var pill = (FrameworkElement)view.FindName("CountPill");
+                    Assert.Equal(0, status.ActualWidth);
+                    Assert.Equal(12, LeftIn(pill, view) - RightIn(search, view), 0.5);
+
+                    manager.DeleteKeycutAsync(manager.Rows[0]).GetAwaiter().GetResult();
+                    Pump();
+                    window.UpdateLayout();
+                    Assert.True(Descendants<Button>(status).Single(b => b.Name == "UndoButton").IsVisible);
+                    Assert.True(LeftIn(pill, view) - RightIn(search, view) > 12);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // The Manager's narrowest width: in the search row a long message is trimmed to its cap, Undo stays put, the search box keeps
+        // room and the count stays whole; the bar's update line has room of its own
+        [Fact]
+        public void SearchRow_AtTheManagersNarrowestWidth_KeepsEverythingVisible_WhateverTheMessageSays()
         {
             RunSta(() =>
             {
@@ -387,40 +464,47 @@ namespace keycuts.Tests
                 try
                 {
                     window.Width = GUI.WindowLayout.ManagerMinWidth;
+                    var view = (FrameworkElement)window.Content;
                     var footer = Descendants<FooterView>(window).Single();
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    var pill = (FrameworkElement)view.FindName("CountPill");
+                    var row = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(pill);
                     double? undoLeft = null;
 
                     void CheckEverythingFits(string scenario, bool undoShows)
                     {
                         Pump();
                         window.UpdateLayout();
-                        var width = footer.ActualWidth;
                         var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
                         var message = Descendants<TextBlock>(window).Single(t => t.Name == "StatusMessageText");
                         Assert.Equal(undoShows, undo.IsVisible);
 
-                        var line = Named(footer, "UpdateNotice");
-                        var link = Named(footer, "UpdateNoticeText");
-
-                        foreach (var element in new FrameworkElement[] { message, line }.Concat(undoShows ? new[] { undo } : Array.Empty<FrameworkElement>()))
-                        {
-                            Assert.True(LeftIn(element, footer) >= 0 && RightIn(element, footer) <= width + 0.5,
-                                $"{scenario}: {element.GetType().Name} {element.Name} runs from {LeftIn(element, footer)} to {RightIn(element, footer)} in a footer {width} wide");
-                        }
-
-                        // In order, never over each other, and the update text has real room
-                        // Undo first, then the message, then the update line
+                        // Left to right in the row, never over each other: the search box, the message, Undo, the count
+                        var order = new List<FrameworkElement> { search, message };
                         if (undoShows)
                         {
-                            Assert.True(RightIn(undo, footer) <= LeftIn(message, footer) + 0.5, scenario);
-
-                            // ...and always in the same place, whatever the message says
-                            undoLeft ??= LeftIn(undo, footer);
-                            Assert.Equal(undoLeft.Value, LeftIn(undo, footer), 0.5);
+                            order.Add(undo);
                         }
 
-                        Assert.True(RightIn(message, footer) <= LeftIn(line, footer) + 0.5, scenario);
-                        Assert.True(link.ActualWidth >= 150, $"{scenario}: the update text is only {link.ActualWidth} wide");
+                        order.Add(pill);
+                        for (var i = 1; i < order.Count; i++)
+                        {
+                            Assert.True(RightIn(order[i - 1], row) <= LeftIn(order[i], row) + 0.5, $"{scenario}: {order[i - 1].Name} runs into {order[i].Name}");
+                        }
+
+                        Assert.True(RightIn(pill, row) <= row.ActualWidth + 0.5, $"{scenario}: the count runs out of the row");
+                        Assert.True(message.ActualWidth <= 300, $"{scenario}: the message is {message.ActualWidth} wide");
+                        Assert.True(search.ActualWidth >= 200, $"{scenario}: the search box is only {search.ActualWidth} wide");
+
+                        // Undo always in the same place, whatever the message says
+                        if (undoShows)
+                        {
+                            undoLeft ??= LeftIn(undo, row);
+                            Assert.Equal(undoLeft.Value, LeftIn(undo, row), 0.5);
+                        }
+
+                        // The bar holds only the update line now, which has real room
+                        Assert.True(((FrameworkElement)footer.FindName("UpdateNoticeText")).ActualWidth >= 150, scenario);
                     }
 
                     manager.DeleteKeycutAsync(manager.Rows[0]).GetAwaiter().GetResult();

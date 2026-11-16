@@ -311,7 +311,7 @@
       </StackPanel>
     </Grid>
 
-    <!-- #205: the footer both screens share (Settings, the count, the update line) -->
+    <!-- #205: the bar the screens share, there only while a newer version is out -->
     <views:FooterView Grid.Row="1" />
   </Grid>
 </UserControl>

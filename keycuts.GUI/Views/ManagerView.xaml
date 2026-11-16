@@ -379,10 +379,11 @@
         </ContentControl.Resources>
       </ContentControl>
 
-      <!-- The search box, and the count at its right -->
+      <!-- The search box, then the Manager's message (Undo, Deleted, errors) while there is one, then the count -->
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <Grid>
@@ -404,8 +405,9 @@
           <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
                          IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
         </Grid>
+        <views:ManagerStatusView Grid.Column="1" VerticalAlignment="Center" />
         <!-- The count: "355 keycuts", or "4 of 355 keycuts" while a search hides some. Fully round: the radius is half its height. -->
-        <Border x:Name="CountPill" Grid.Column="1" Margin="12,0,0,0" Height="22" Padding="8,0" CornerRadius="11"
+        <Border x:Name="CountPill" Grid.Column="2" Margin="12,0,0,0" Height="22" Padding="8,0" CornerRadius="11"
                 Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                 VerticalAlignment="Center">
           <TextBlock x:Name="CountText" Text="{Binding CountText}" FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
@@ -620,12 +622,7 @@
       </StackPanel>
     </Grid>
 
-    <!-- #205: the footer both screens share. The status line (Deleted, errors) and Undo sit in it between the count and the
-         update line. -->
-    <views:FooterView Grid.Row="2">
-      <views:FooterView.Message>
-        <views:ManagerStatusView />
-      </views:FooterView.Message>
-    </views:FooterView>
+    <!-- #205: the footer the screens share, shown only while a newer version is out -->
+    <views:FooterView Grid.Row="2" />
   </Grid>
 </UserControl>

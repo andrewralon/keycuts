@@ -6,24 +6,14 @@ using keycuts.GUI.ViewModels;
 namespace keycuts.GUI.Views
 {
     /// <summary>
-    /// The footer of the screens (#205): an optional message of the screen's own and the update line. It takes its data
-    /// from the view model of the view it sits in.
+    /// The bar at the bottom of the screens (#205), there only while a newer version is out (#171). It takes its data from the
+    /// view model of the view it sits in.
     /// </summary>
     public partial class FooterView : UserControl
     {
-        public static readonly DependencyProperty MessageProperty = DependencyProperty.Register(
-            nameof(Message), typeof(object), typeof(FooterView), new PropertyMetadata(null));
-
         public FooterView()
         {
             InitializeComponent();
-        }
-
-        /// <summary>What the screen shows at the left of the update line (the manager's status message and Undo).</summary>
-        public object? Message
-        {
-            get { return GetValue(MessageProperty); }
-            set { SetValue(MessageProperty, value); }
         }
 
         // The update line (#171) appears after a background check, with focus elsewhere, so it has to be announced

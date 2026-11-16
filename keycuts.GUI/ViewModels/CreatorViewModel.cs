@@ -533,8 +533,20 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public bool IsDescriptionVisible
         {
-            get { return isDescriptionVisible; }
+            get { return isDescriptionVisible || DescriptionAlwaysShown; }
         }
+
+        /// <summary>
+        /// The form always shows its description box, with no way to hide it (the Manager's create row): what it holds is
+        /// always saved. The Creator's box can be hidden instead (<see cref="IsDescriptionVisible"/>).
+        /// </summary>
+        public bool DescriptionAlwaysShown { get; init; }
+
+        /// <summary>
+        /// A create empties the fields for the next keycut and puts the focus back in the target (the Manager's create row, where the
+        /// new keycut shows in the table below). The Creator keeps them instead (#205).
+        /// </summary>
+        public bool ClearsAfterCreate { get; init; }
 
         /// <summary>The label says "Add a description (optional)" because the field is hidden.</summary>
         public bool ShowAddDescription
@@ -980,7 +992,7 @@ namespace keycuts.GUI.ViewModels
             // resolves to its destination); the create itself still gets what was typed and resolves it again
             var confirmTarget = EffectiveTarget;
             // A hidden box is out of sight, so what it still holds isn't saved
-            var trimmedDescription = isDescriptionVisible ? description.Trim() : string.Empty;
+            var trimmedDescription = IsDescriptionVisible ? description.Trim() : string.Empty;
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;
@@ -1075,6 +1087,12 @@ namespace keycuts.GUI.ViewModels
             switch (result.Outcome)
             {
                 case CreateOutcome.Success:
+                    if (ClearsAfterCreate)
+                    {
+                        // Before the success, which typing in a field would clear
+                        ClearFields();
+                    }
+
                     SetSuccess(name);
                     NotifyKeycutCreated();
                     welcome?.OnKeycutCreated(string.IsNullOrEmpty(result.Keycut?.FilePath) ? null : System.IO.Path.GetDirectoryName(result.Keycut.FilePath));
@@ -1106,6 +1124,15 @@ namespace keycuts.GUI.ViewModels
                     ShowSubmitError(UnexpectedErrorMessage);
                     return;
             }
+        }
+
+        // Ready for the next keycut. The view model only asks for the focus: the fields are off while saving, and the view waits for them
+        private void ClearFields()
+        {
+            Target = string.Empty;
+            ShortcutName = string.Empty;
+            Description = string.Empty;
+            FocusRequested?.Invoke(this, CreatorFocusTarget.Target);
         }
 
         private void ShowSubmitError(string message)

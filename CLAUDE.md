@@ -6,7 +6,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 ## Commands
 
-.NET SDK 10, Windows only. `global.json` pins the 10.0.2xx band (`latestPatch`). Run from the repo root:
+.NET SDK 10, Windows only. `global.json` pins the 10.0.4xx band (`latestPatch`). Run from the repo root:
 
 - Build: `dotnet build keycuts.sln`
 - Test: `dotnet test keycuts.sln` (xUnit, `keycuts.Tests`); one test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`

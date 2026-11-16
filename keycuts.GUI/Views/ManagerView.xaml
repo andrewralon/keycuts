@@ -417,7 +417,8 @@
       </Grid>
     </StackPanel>
 
-    <Grid Grid.Row="1" Margin="24,0,24,12">
+    <!-- 24 at the bottom, like every page: the bar under it is there only while a newer version is out -->
+    <Grid Grid.Row="1" Margin="24,0,24,24">
       <!-- Populated -->
       <Border x:Name="TableHost" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
               CornerRadius="{StaticResource RadiusMd}" SizeChanged="TableHost_SizeChanged"

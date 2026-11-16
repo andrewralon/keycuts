@@ -59,7 +59,7 @@ Kept as they are: `RadiusSm/Md/Lg/Xl` (5/8/12/16), `Space1`-`Space8` and `Inset1
 |---|---|---|
 | `Space1` / `Inset1` | 4 | Control to its helper or note; icon to 12px text; between a label and its own note |
 | `Space2` / `Inset2` | 8 | Label to its control; between buttons; icon to 13-14px text; section label to its first row |
-| `Space3` / `Inset3` | 12 | Between groups inside a panel; text column beside an icon tile; bottom of the Manager's table |
+| `Space3` / `Inset3` | 12 | Between groups inside a panel; text column beside an icon tile |
 | `Space4` / `Inset4` | 16 | Top padding of screens and dialogs; between fields and setting rows; heading to content; panel padding; text to the control at the end of its row |
 | `Space5` | 20 | (spare; prefer 16 or 24) |
 | `Space6` / `Inset6` | 24 | Outer padding at the sides and bottom of every screen and dialog; between sections |

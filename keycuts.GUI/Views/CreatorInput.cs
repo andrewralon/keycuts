@@ -291,10 +291,11 @@ namespace keycuts.GUI.Views
 
         private void PlaceBrowseMenu()
         {
-            // Right-align the menu under the button
+            // Under the button, right edges lined up, whichever side Windows drops menus from
             browseMenu.PlacementTarget = browseButton;
-            browseMenu.Placement = PlacementMode.Bottom;
-            browseMenu.HorizontalOffset = browseButton.ActualWidth - browseMenu.Width;
+            browseMenu.Placement = PlacementMode.Custom;
+            browseMenu.CustomPopupPlacementCallback = MenuPlacement.UnderRightEdge;
+            browseMenu.HorizontalOffset = 0;
             browseMenu.VerticalOffset = 6;
         }
 

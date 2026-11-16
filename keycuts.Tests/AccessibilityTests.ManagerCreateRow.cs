@@ -115,6 +115,30 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void ManagerCreateRow_Browse_OpensItsMenuUnderTheButton_RightEdgesLinedUp()
+        {
+            WithCreateRow((parts, actions, creates, loads) =>
+            {
+                parts.Browse.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Pump();
+
+                // A custom placement, which Windows' menu side (right-handed on touch PCs) doesn't move a menu's width to the left
+                var menu = parts.Browse.ContextMenu;
+                try
+                {
+                    Assert.True(menu.IsOpen);
+                    Assert.Same(parts.Browse, menu.PlacementTarget);
+                    Assert.Equal(System.Windows.Controls.Primitives.PlacementMode.Custom, menu.Placement);
+                    Assert.Same(keycuts.GUI.Controls.MenuPlacement.UnderRightEdge, menu.CustomPopupPlacementCallback);
+                    Assert.Equal(0, menu.HorizontalOffset);
+                }
+                finally
+                {
+                    menu.IsOpen = false;
+                }
+            });
+        }
 
         [Fact]
         public void ManagerCreateRow_IsTargetNameDescriptionCreate_LeftToRight_AboveTheSearch()

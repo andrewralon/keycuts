@@ -1675,7 +1675,7 @@ namespace keycuts.Tests
                 {
                     var footer = (keycuts.GUI.Views.FooterView)window.FindName("Footer");
                     Assert.Same(footerSource, footer.DataContext);
-                    Assert.Equal("355", ((TextBlock)footer.FindName("CountText")).Text);
+                    Assert.Null(footer.FindName("CountText"));   // the count is the Manager's, beside its search box
                 }
                 finally
                 {

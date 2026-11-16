@@ -531,12 +531,13 @@ namespace keycuts.GUI.Views
             }
         }
 
-        // "4 of 355 shown" changes as the search is typed, with the focus in the search box: say so (LiveSetting alone doesn't)
+        // The count changes as a search is typed, with the focus in the search box, and after a create or a delete: say so
+        // (LiveSetting alone doesn't)
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ManagerViewModel.ShownText) && ViewModel?.HasShownText == true)
+            if (e.PropertyName == nameof(ManagerViewModel.CountText))
             {
-                LiveRegion.Announce(ShownTextBlock);
+                LiveRegion.Announce(CountText);
             }
         }
 

@@ -62,7 +62,7 @@ namespace keycuts.Tests
             // Fully round shapes use half their height
             new("Themes/Controls.xaml", "Border", "CornerRadius", "9", "radio box and check badge, 18 high"),
             new("Themes/Controls.xaml", "Border", "CornerRadius", "10", "toggle track, 20 high"),
-            new("Views/FooterView.xaml", "Border", "CornerRadius", "11", "count pill, 22 high"),
+            new("Views/ManagerView.xaml", "Border", "CornerRadius", "11", "count pill, 22 high"),
 
             // Negative margins that cancel a known inset
             new("Views/CreatorView.xaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),

@@ -379,7 +379,7 @@
         </ContentControl.Resources>
       </ContentControl>
 
-      <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
+      <!-- The search box, and the count at its right -->
       <Grid>
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
@@ -404,10 +404,14 @@
           <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
                          IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
         </Grid>
-        <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
-                   Text="{Binding ShownText}" AutomationProperties.LiveSetting="Polite"
-                   Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
+        <!-- The count: "355 keycuts", or "4 of 355 keycuts" while a search hides some. Fully round: the radius is half its height. -->
+        <Border x:Name="CountPill" Grid.Column="1" Margin="12,0,0,0" Height="22" Padding="8,0" CornerRadius="11"
+                Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                VerticalAlignment="Center">
+          <TextBlock x:Name="CountText" Text="{Binding CountText}" FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
+                     AutomationProperties.LiveSetting="Polite" />
+        </Border>
       </Grid>
     </StackPanel>
 

@@ -70,9 +70,7 @@ namespace keycuts.Tests
             Assert.Equal(ManagerState.Populated, manager.State);
             Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
             Assert.Equal(3, manager.KeycutCount);
-            Assert.Equal("3 keycuts", manager.CountDescription);
-            Assert.Equal(string.Empty, manager.ShownText);   // all of them are shown: nothing to say
-            Assert.False(manager.HasShownText);
+            Assert.Equal("3 keycuts", manager.CountText);   // all of them are shown: just the total
             Assert.True(manager.IsTableVisible);
             Assert.True(manager.CanSearch);
             Assert.False(manager.IsLoading);
@@ -85,7 +83,7 @@ namespace keycuts.Tests
 
             await manager.LoadAsync();
 
-            Assert.Equal("1 keycut", manager.CountDescription);
+            Assert.Equal("1 keycut", manager.CountText);
         }
 
         [Fact]
@@ -98,7 +96,7 @@ namespace keycuts.Tests
             Assert.Equal(ManagerState.Empty, manager.State);
             Assert.True(manager.IsEmpty);
             Assert.False(manager.CanSearch);
-            Assert.Equal("0 keycuts", manager.CountDescription);
+            Assert.Equal("0 keycuts", manager.CountText);
         }
 
         [Fact]

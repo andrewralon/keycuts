@@ -25,7 +25,7 @@ Behavior that spans several files. Read the section before changing that area. P
 
 ## Creator and footer
 
-- `FooterView` is shared by Creator and Manager: count pill (number only; `CountDescription` is its tooltip/automation name, announced via `LiveRegion.Announce`), a `Message` slot (Manager's Undo then status, via `ManagerStatusView`), and the update line, which is the only thing that shrinks or wraps.
+- `FooterView` is shared by the screens: a `Message` slot (Manager's Undo then status, via `ManagerStatusView`) and the update line, which is the only thing that shrinks or wraps. The count is `ManagerViewModel.CountText` in a pill beside the search box ("of" only while `SearchText` isn't blank, since the shell can set the total before the rows reload), announced via `LiveRegion.Announce` when it changes.
 - The Target box shows `TargetText` (the `%VAR%` form when Shift is held or the setting is on) only while it isn't focused (`IsTargetEditing`). `Target` always holds the real path.
 - Description visibility is `ShowDescription` in HKCU (`IDescriptionVisibilityStore`), written only when the user toggles it. Hidden text is kept but not saved.
 - Saving/Created is `NameStatusText` beside the Name label; the helper line under Name takes no room unless it has a warning. Fields stay filled after a create; Created clears after `SuccessDuration` (3 s).

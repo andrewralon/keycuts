@@ -75,7 +75,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Footer_OnBothScreens_HasNoSettingsGear_AndTheCountAsJustANumber()
+        public void Footer_HasNoSettingsGearNorCount_TheCountIsBesideTheManagersSearch()
         {
             RunSta(() =>
             {
@@ -89,37 +89,34 @@ namespace keycuts.Tests
 
                 try
                 {
-                    var creatorFooter = Descendants<FooterView>(creatorWindow).Single();
-                    // Settings is a tab in the bar above (#218), not a button here
-                    Assert.Null(creatorFooter.FindName("BtnSettings"));
-                    var count = (TextBlock)Named(creatorFooter, "CountText");
-                    Assert.Equal("355", count.Text);
-                    Assert.Equal("355 keycuts", AutomationProperties.GetName(count));
-                    Assert.Equal("355 keycuts", count.ToolTip);
+                    // Settings is a tab in the bar above (#218), and the count is the Manager's, beside its search box
+                    foreach (var footer in Descendants<FooterView>(creatorWindow).Concat(Descendants<FooterView>(managerWindow)))
+                    {
+                        Assert.Null(footer.FindName("BtnSettings"));
+                        Assert.Null(footer.FindName("CountText"));
+                    }
 
-                    var managerFooter = Descendants<FooterView>(managerWindow).Single();
-                    Assert.Null(managerFooter.FindName("BtnSettings"));
-                    var managerCount = (TextBlock)Named(managerFooter, "CountText");
-                    Assert.Equal("3", managerCount.Text);
-                    Assert.Equal("3 keycuts", AutomationProperties.GetName(managerCount));
+                    Assert.DoesNotContain(Descendants<TextBlock>(creatorWindow), t => t.Text.Contains("355"));
 
-                    // "X of Y shown" sits at the right of the search box only while a search hides some keycuts; the pill stays the total
-                    var shown = (TextBlock)((FrameworkElement)managerWindow.Content).FindName("ShownTextBlock");
-                    Assert.False(shown.IsVisible);
+                    // "3 keycuts", and "2 of 3 keycuts" while a search hides some, in a pill at the right of the search box
+                    var view = (FrameworkElement)managerWindow.Content;
+                    var count = (TextBlock)view.FindName("CountText");
+                    var pill = (FrameworkElement)view.FindName("CountPill");
+                    Assert.Equal("3 keycuts", count.Text);
+                    Assert.True(count.IsVisible);
 
                     manager.SearchText = "al";
                     Pump();
-                    Assert.True(shown.IsVisible);
-                    Assert.Equal("2 of 3 shown", shown.Text);
-                    Assert.Equal("3", managerCount.Text);
-                    Assert.Equal("3 keycuts", AutomationProperties.GetName(managerCount));
+                    Assert.Equal("2 of 3 keycuts", count.Text);
 
                     var search = Descendants<TextBox>(managerWindow).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
-                    Assert.True(RightIn(shown, (FrameworkElement)managerWindow.Content) > RightIn(search, (FrameworkElement)managerWindow.Content));
+                    Assert.True(LeftIn(pill, view) >= RightIn(search, view));
+                    Assert.Equal(search.TranslatePoint(new Point(0, search.ActualHeight / 2), view).Y,
+                        pill.TranslatePoint(new Point(0, pill.ActualHeight / 2), view).Y, 0.5);
 
                     manager.SearchText = string.Empty;
                     Pump();
-                    Assert.False(shown.IsVisible);
+                    Assert.Equal("3 keycuts", count.Text);
                 }
                 finally
                 {
@@ -129,49 +126,39 @@ namespace keycuts.Tests
             });
         }
 
-        // The visible count changes while the focus is elsewhere (a create, a delete) or in the search box (a search), and screen
-        // readers have to be told: LiveSetting alone raises nothing
+        // The count changes while the focus is in the search box (a search) or elsewhere (a create, a delete), and screen readers
+        // have to be told: LiveSetting alone raises nothing
         [Fact]
-        public void Announces_TheShownCount_WhenASearchNarrowsIt_AndTheTotal_WhenItChanges()
+        public void Announces_TheCount_WhenASearchNarrowsIt_AndWhenTheTotalChanges()
         {
             RunSta(() =>
             {
                 EnsureApplication();
                 var manager = NewLoadedManager(null, null, "alpha", "alpine", "beta");
                 var managerWindow = Host(new ManagerView(), manager);
-                var creator = NewCreator();
-                var creatorWindow = Host(new CreatorView(), creator);
                 var announced = new List<UIElement>();
                 Action<UIElement> record = announced.Add;
                 LiveRegion.Announced += record;
 
                 try
                 {
-                    var shown = (TextBlock)((FrameworkElement)managerWindow.Content).FindName("ShownTextBlock");
-                    var managerCount = Named(Descendants<FooterView>(managerWindow).Single(), "CountText");
+                    var count = (TextBlock)((FrameworkElement)managerWindow.Content).FindName("CountText");
 
                     manager.SearchText = "al";
-                    Assert.Same(shown, Assert.Single(announced));   // "2 of 3 shown"; the pill's total has not changed
+                    Assert.Same(count, Assert.Single(announced));   // "2 of 3 keycuts"
 
-                    manager.SearchText = "alp";
-                    Assert.Equal(new UIElement[] { shown, shown }, announced);
-
-                    manager.SearchText = string.Empty;   // everything is shown again: the text is gone, so there is nothing to say
-                    Assert.Equal(2, announced.Count);
+                    manager.SearchText = string.Empty;   // "3 keycuts" again
+                    Assert.Equal(new UIElement[] { count, count }, announced);
 
                     announced.Clear();
-                    manager.KeycutCount = 4;   // a keycut was made elsewhere: the total changes, and so does what is shown of it
-                    Assert.Contains(managerCount, announced);
-
-                    announced.Clear();
-                    creator.KeycutCount = 8;
-                    Assert.Same(Named(Descendants<FooterView>(creatorWindow).Single(), "CountText"), Assert.Single(announced));
+                    manager.KeycutCount = 4;   // a keycut was made elsewhere
+                    Assert.Contains(count, announced);
+                    Assert.Equal("4 keycuts", count.Text);
                 }
                 finally
                 {
                     LiveRegion.Announced -= record;
                     managerWindow.Close();
-                    creatorWindow.Close();
                 }
             });
         }
@@ -412,19 +399,17 @@ namespace keycuts.Tests
                         var message = Descendants<TextBlock>(window).Single(t => t.Name == "StatusMessageText");
                         Assert.Equal(undoShows, undo.IsVisible);
 
-                        var count = Named(footer, "CountText");
                         var line = Named(footer, "UpdateNotice");
                         var link = Named(footer, "UpdateNoticeText");
 
-                        foreach (var element in new FrameworkElement[] { count, message, line }.Concat(undoShows ? new[] { undo } : Array.Empty<FrameworkElement>()))
+                        foreach (var element in new FrameworkElement[] { message, line }.Concat(undoShows ? new[] { undo } : Array.Empty<FrameworkElement>()))
                         {
                             Assert.True(LeftIn(element, footer) >= 0 && RightIn(element, footer) <= width + 0.5,
                                 $"{scenario}: {element.GetType().Name} {element.Name} runs from {LeftIn(element, footer)} to {RightIn(element, footer)} in a footer {width} wide");
                         }
 
                         // In order, never over each other, and the update text has real room
-                        // Undo first, right after the count, then the message, then the update line
-                        Assert.True(RightIn(count, footer) <= LeftIn(undoShows ? undo : message, footer) + 0.5, scenario);
+                        // Undo first, then the message, then the update line
                         if (undoShows)
                         {
                             Assert.True(RightIn(undo, footer) <= LeftIn(message, footer) + 0.5, scenario);

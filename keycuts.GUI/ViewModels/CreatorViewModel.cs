@@ -604,17 +604,8 @@ namespace keycuts.GUI.ViewModels
             get { return keycutCount; }
             set
             {
-                if (SetProperty(ref keycutCount, value))
-                {
-                    OnPropertyChanged(nameof(CountDescription));
-                }
+                SetProperty(ref keycutCount, value);
             }
-        }
-
-        /// <summary>What a screen reader and the tooltip say for the footer's count pill, which shows just the number.</summary>
-        public string CountDescription
-        {
-            get { return keycutCount + (keycutCount == 1 ? " keycut" : " keycuts"); }
         }
 
         /// <summary>The kind the target resolved to. Set it after <see cref="Target"/>, which clears it.</summary>

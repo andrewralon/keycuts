@@ -1345,13 +1345,23 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
                 try
                 {
-                    var body = (StackPanel)((ScrollViewer)window.FindName("BodyScroller")).Content;
-                    var labels = body.Children.OfType<keycuts.GUI.Controls.SectionLabel>().ToList();
+                    // The page is two columns; at MainWidth they are stacked, the right one 24 under the left, as between two sections
+                    var body = (Grid)((ScrollViewer)window.FindName("BodyScroller")).Content;
+                    var left = (StackPanel)window.FindName("LeftColumn");
+                    var right = (StackPanel)window.FindName("RightColumn");
+                    Assert.False(window.View.IsTwoColumn);
+                    Assert.Equal(new Thickness(0, 24, 0, 0), right.Margin);
 
-                    Assert.DoesNotContain(body.Children.Cast<UIElement>(), child => child is Border or Separator);
-                    Assert.Equal(new[] { "Output", "Behavior", "Appearance", "Updates" }, labels.Select(l => l.Text));
-                    Assert.Equal(0, labels[0].Margin.Top);
-                    Assert.All(labels.Skip(1), l => Assert.Equal(new Thickness(0, 24, 0, 8), l.Margin));
+                    foreach (var column in new[] { left, right })
+                    {
+                        var labels = column.Children.OfType<keycuts.GUI.Controls.SectionLabel>().ToList();
+                        Assert.DoesNotContain(column.Children.Cast<UIElement>(), child => child is Border or Separator);
+                        Assert.Equal(0, labels[0].Margin.Top);
+                        Assert.All(labels.Skip(1), l => Assert.Equal(new Thickness(0, 24, 0, 8), l.Margin));
+                    }
+
+                    var all = left.Children.OfType<keycuts.GUI.Controls.SectionLabel>().Concat(right.Children.OfType<keycuts.GUI.Controls.SectionLabel>());
+                    Assert.Equal(new[] { "Output", "Behavior", "Appearance", "Updates" }, all.Select(l => l.Text));
                     Assert.Equal((Thickness)Application.Current.FindResource("PagePadding"), body.Margin);
                 }
                 finally

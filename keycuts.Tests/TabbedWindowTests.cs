@@ -289,6 +289,67 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Settings_IsTwoColumns_AtTheLargeSize_AndFitsWithoutScrolling()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Settle(window);
+
+                var view = Descendants<keycuts.GUI.Views.SettingsView>(window).Single();
+                Assert.True(view.IsTwoColumn);
+
+                // Output on the left and Appearance on the right, their section labels level at the top of the page
+                var output = Descendants<SectionLabel>(view).Single(l => l.Text == "Output");
+                var appearance = Descendants<SectionLabel>(view).Single(l => l.Text == "Appearance");
+                var outputAt = output.TranslatePoint(new Point(0, 0), view);
+                var appearanceAt = appearance.TranslatePoint(new Point(0, 0), view);
+                Assert.Equal(outputAt.Y, appearanceAt.Y, 0.5);
+                Assert.True(appearanceAt.X > view.ActualWidth / 2);
+
+                // The left column's toggles end before the rule, and the right one's buttons end inside the page
+                var folder = (FrameworkElement)Named(window, "TextboxOutputFolder");
+                var rule = (FrameworkElement)Named(window, "ColumnRule");
+                Assert.Equal(Visibility.Visible, rule.Visibility);
+                var ruleX = rule.TranslatePoint(new Point(0, 0), view).X;
+                Assert.True(folder.TranslatePoint(new Point(folder.ActualWidth, 0), view).X <= ruleX - 24 + 0.5);
+                var restore = (FrameworkElement)Named(window, "BtnRestoreDefaults");
+                Assert.True(restore.TranslatePoint(new Point(restore.ActualWidth, 0), view).X <= view.ActualWidth - 24 + 0.5);
+
+                // All of it fits at the large size the window opens at
+                Assert.Equal(0, ((ScrollViewer)Named(window, "BodyScroller")).ScrollableHeight, 0.5);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void Settings_StacksItsColumns_WhenTheWindowIsNarrow()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Settle(window);
+                window.Width = WindowLayout.ManagerMinWidth;
+                Settle(window);
+
+                var view = Descendants<keycuts.GUI.Views.SettingsView>(window).Single();
+                Assert.False(view.IsTwoColumn);
+                Assert.Equal(Visibility.Collapsed, ((FrameworkElement)Named(window, "ColumnRule")).Visibility);
+
+                // Appearance comes after Behavior, 24 under its last row, and starts at the page's left like Output
+                var lastBehavior = (FrameworkElement)Named(window, "ToggleEnvironmentVariables");
+                var output = Descendants<SectionLabel>(view).Single(l => l.Text == "Output");
+                var appearance = Descendants<SectionLabel>(view).Single(l => l.Text == "Appearance");
+                Assert.True(appearance.TranslatePoint(new Point(0, 0), view).Y > lastBehavior.TranslatePoint(new Point(0, 0), view).Y);
+                Assert.Equal(output.TranslatePoint(new Point(0, 0), view).X, appearance.TranslatePoint(new Point(0, 0), view).X, 0.5);
+
+                // And wide again, two columns again
+                window.Width = WindowLayout.ManagerDefaultWidth;
+                Settle(window);
+                Assert.True(view.IsTwoColumn);
+            }, withSettings: true);
+        }
+
+        [Fact]
         public void TheManagerAndSettings_ShareOneSize_AcrossTheCreator()
         {
             WithWindow((window, shell) =>

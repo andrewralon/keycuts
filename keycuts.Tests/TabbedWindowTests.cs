@@ -607,7 +607,21 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheTabBar_FitsInTheCreator_WithAbout60OfEmptyBar()
+        public void TheCreatorAndManagerTabs_AreTextOnly()
+        {
+            WithWindow((window, shell) =>
+            {
+                foreach (var (tab, text) in new[] { ("CreatorTab", "creator"), ("ManagerTab", "manager") })
+                {
+                    var item = (TabItem)Named(window, tab);
+                    Assert.Equal(text, item.Header);
+                    Assert.Empty(Descendants<keycuts.GUI.Controls.Icon>(item));
+                }
+            });
+        }
+
+        [Fact]
+        public void TheTabBar_FitsInTheCreator_WithRoomToGrab()
         {
             WithWindow((window, shell) =>
             {
@@ -619,8 +633,8 @@ namespace keycuts.Tests
                 var captionsStart = captions.TranslatePoint(new Point(0, 0), bar).X;
                 var empty = captionsStart - tabsEnd;
 
-                // "About 60 beyond the icon and name" (#218): enough to grab, not so much that it looks lost
-                Assert.InRange(empty, 56, 80);
+                // #218 asked for about 60 beyond the tabs; the text-only tabs leave about 110 at the same 600, which the owner kept
+                Assert.InRange(empty, 100, 125);
             });
         }
 

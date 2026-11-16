@@ -45,22 +45,9 @@
                                shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                IsEnabled="{Binding AreTabsEnabled, FallbackValue=True}"
                                AutomationProperties.Name="Screens">
-        <TabItem x:Name="CreatorTab" AutomationProperties.Name="creator" ToolTip="creator">
-          <TabItem.Header>
-            <StackPanel Orientation="Horizontal">
-              <controls:Icon Kind="Spark" Size="16" />
-              <TextBlock Text="creator" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-          </TabItem.Header>
-        </TabItem>
-        <TabItem x:Name="ManagerTab" AutomationProperties.Name="manager" ToolTip="manager">
-          <TabItem.Header>
-            <StackPanel Orientation="Horizontal">
-              <controls:Icon Kind="Table" Size="16" />
-              <TextBlock Text="manager" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-          </TabItem.Header>
-        </TabItem>
+        <!-- Text only: the tab is as wide as its name plus the padding and the slant -->
+        <TabItem x:Name="CreatorTab" Header="creator" AutomationProperties.Name="creator" ToolTip="creator" />
+        <TabItem x:Name="ManagerTab" Header="manager" AutomationProperties.Name="manager" ToolTip="manager" />
         <!-- The gear alone: the tooltip and the automation name say what it is -->
         <TabItem x:Name="SettingsTab" AutomationProperties.Name="settings" ToolTip="settings">
           <TabItem.Header>

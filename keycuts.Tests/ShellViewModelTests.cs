@@ -544,7 +544,7 @@ namespace keycuts.Tests
         [Fact]
         public void Sizes_MatchTheSpec()
         {
-            // What the tab bar needs plus about 60 of empty bar (#218); RailWindowTests checks it against MainWidth in Tokens.xaml
+            // What the tab bar needed plus about 60 of empty bar (#218), about 110 with text-only tabs; TabbedWindowTests checks it against MainWidth in Tokens.xaml
             Assert.Equal(600, WindowLayout.CreatorWidth);
             Assert.Equal(960, WindowLayout.ManagerDefaultWidth);
             Assert.Equal(540, WindowLayout.ManagerDefaultHeight);

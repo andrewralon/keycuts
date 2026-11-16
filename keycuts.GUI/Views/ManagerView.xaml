@@ -117,6 +117,8 @@
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="HorizontalAlignment" Value="Left" />
+      <!-- Pulled left by the frame's 1 border and 4 padding, so the label starts where its column's values do (12 in) -->
+      <Setter Property="Margin" Value="-5,0,0,0" />
       <Setter Property="FocusVisualStyle" Value="{x:Null}" />
       <Setter Property="ActiveColumn" Value="{Binding DataContext.SortColumn, RelativeSource={RelativeSource AncestorType=UserControl}}" />
       <Setter Property="IsDescending" Value="{Binding DataContext.SortDescending, RelativeSource={RelativeSource AncestorType=UserControl}}" />

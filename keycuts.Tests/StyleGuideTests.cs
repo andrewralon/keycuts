@@ -66,6 +66,7 @@ namespace keycuts.Tests
 
             // Negative margins that cancel a known inset
             new("Views/CreatorView.xaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),
+            new("Views/ManagerView.xaml", "Setter", "Margin", "-5,0,0,0", "sort header, its label lined up with its column's values past the frame's 1 + 4"),
 
             // Slim scroll thumbs
             new("Themes/Controls.xaml", "Border", "Margin", "2", "scroll thumb's inset"),

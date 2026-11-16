@@ -118,6 +118,11 @@ The Manager starts with the Creator's fields in one row, so a keycut can be adde
 - Enter creates from the name or the description; in the target it resolves the target and then creates if the name is filled, or moves on to the name. After a create the new keycut appears in the table and the fields clear, ready for the next one, with the focus back in Target. The screen still opens with the focus in the search box.
 - Name warnings, name errors and target errors use the Creator's helper line, under the whole row. A name that needs confirming asks in the same Confirm dialog.
 
+### The Manager's table
+
+- Header and rows are 36 high (`ManagerTable`); cells have 12 at each side.
+- **A column's label starts where its values do**, 12 in. The sort header's focus frame (1 border, 4 padding) would push the label 5 further; the header is pulled left by that much ([decision](#decisions)).
+
 ### The app footer
 
 All three screens end in `FooterView`. It is 48 high at least (`MinHeight`, today 46), with `Padding="24,0"` and a top border in `BorderBrush`, on `SurfaceSubtleBrush`. Left to right: the count pill, the screen's message (the Manager's undo and status line), and the update line, right-aligned. Gaps are 8 between controls and 12 before the message.
@@ -390,6 +395,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-16 | The Creator's description label | "Add a description (optional)" while the box is hidden, "Description (optional)" while it shows | **"Description (optional)" both ways**; it is still the button that shows and hides the box |
 | 2026-11-16 | Order in Settings' Appearance | Icon, then Theme | **Theme, then Icon** |
 | 2026-11-16 | Settings' version row | "Version 1.6.0" in SemiBold; "You're up to date (1.6.0)." | **"Version · 1.6.0"** like "Icon · Black & White" (the value in secondary text), and **"You're up to date."**: the version is on the line above |
+| 2026-11-16 | The Manager's column labels | 5 to the right of their values (the sort header's focus frame), most visible over Runs | **Lined up with the values**, 12 in |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

@@ -1010,6 +1010,42 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void Manager_EachHeaderLabel_StartsWhereItsColumnsValuesDo()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    // Wide enough for every column, Runs (short values under a short label) included
+                    window.Width = 1200;
+                    Pump();
+                    window.UpdateLayout();
+
+                    var table = Descendants<DataGrid>(window).Single();
+                    var row = (DataGridRow)table.ItemContainerGenerator.ContainerFromIndex(0);
+                    var headers = Descendants<SortHeaderButton>(window).Where(h => h.IsVisible).ToList();
+                    Assert.Contains(headers, h => (string)h.Content == "Runs");
+
+                    foreach (var header in headers)
+                    {
+                        var label = Descendants<ContentPresenter>(header).First();
+                        var column = table.Columns.Single(c => ReferenceEquals(c.Header, header));
+                        var value = column.GetCellContent(row);
+                        Assert.True(Math.Abs(label.TranslatePoint(new Point(0, 0), window).X - value.TranslatePoint(new Point(0, 0), window).X) < 0.5,
+                            $"{header.Content}: the label at {label.TranslatePoint(new Point(0, 0), window).X}, the values at {value.TranslatePoint(new Point(0, 0), window).X}");
+                    }
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         static T FindAncestor<T>(DependencyObject start)
             where T : DependencyObject
         {

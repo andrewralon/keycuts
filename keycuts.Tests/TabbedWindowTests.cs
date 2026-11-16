@@ -356,14 +356,15 @@ namespace keycuts.Tests
             {
                 shell.ShowManager();
                 Settle(window);
-                window.Width = 1000;
+                window.Width = 900;
                 window.Height = 640;
                 Settle(window);
 
-                // Resized in Settings, then the Creator, then the Manager again: the Manager comes back at Settings' size
+                // Resized in Settings, then the Creator, then the Manager again: the Manager comes back at Settings' size.
+                // Both sizes fit a 1024 × 768 screen (CI's), since a large size is clamped to the work area.
                 shell.ShowSettings();
                 Settle(window);
-                window.Width = 1100;
+                window.Width = 940;
                 window.Height = 600;
                 Settle(window);
                 shell.ShowCreator();
@@ -372,7 +373,7 @@ namespace keycuts.Tests
                 shell.ShowManager();
                 Settle(window);
 
-                Assert.Equal(1100, window.ActualWidth, 0.5);
+                Assert.Equal(940, window.ActualWidth, 0.5);
                 Assert.Equal(600, window.ActualHeight, 0.5);
 
                 // And Settings from the Creator comes back at it too
@@ -380,7 +381,7 @@ namespace keycuts.Tests
                 Settle(window);
                 shell.ShowSettings();
                 Settle(window);
-                Assert.Equal(1100, window.ActualWidth, 0.5);
+                Assert.Equal(940, window.ActualWidth, 0.5);
                 Assert.Equal(600, window.ActualHeight, 0.5);
             }, withSettings: true);
         }

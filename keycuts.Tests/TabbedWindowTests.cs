@@ -232,7 +232,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheSettingsTab_ShowsTheSettingsScreen_FixedSize_CappedToTheWorkArea()
+        public void TheSettingsTab_ShowsTheSettingsScreen_AtTheManagersSize()
         {
             WithWindow((window, shell) =>
             {
@@ -240,9 +240,13 @@ namespace keycuts.Tests
                 var settings = (TabItem)Named(window, "SettingsTab");
                 var maximize = (Button)Named(window, "BtnMaximize");
 
-                // From the Manager, so the window has a size of its own to give up
                 shell.ShowManager();
                 Settle(window);
+                window.Width = 1000;
+                window.Height = 640;
+                Settle(window);
+                var where = new Point(window.Left, window.Top);
+
                 rail.SelectedItem = settings;
                 Settle(window);
 
@@ -250,48 +254,42 @@ namespace keycuts.Tests
                 Assert.Same(settings, rail.SelectedItem);
                 Assert.Contains(Descendants<keycuts.GUI.Views.SettingsView>(window), v => ReferenceEquals(v.DataContext, shell.Settings));
 
-                // Like the Creator: MainWidth, its content's height, and no resizing; unlike it, never taller than the screen
+                // The large size the Manager left it at: nothing moves, nothing grows to fit Settings, and it is still resizable
+                Assert.Equal(1000, window.ActualWidth, 0.5);
+                Assert.Equal(640, window.ActualHeight, 0.5);
+                Assert.Equal(where, new Point(window.Left, window.Top));
+                Assert.Equal(SizeToContent.Manual, window.SizeToContent);
+                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+                Assert.False(maximize.IsEnabled);
+                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+
+                // The Creator is small again
+                shell.ShowCreator();
+                Settle(window);
                 Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
                 Assert.Equal(SizeToContent.Height, window.SizeToContent);
                 Assert.Equal(ResizeMode.CanMinimize, window.ResizeMode);
-                Assert.False(maximize.IsEnabled);
-                Assert.Equal(WindowLayout.GetWorkAreaInDips(window).Height, window.MaxHeight);
-                Assert.True(window.ActualHeight <= window.MaxHeight);
-
-                // The Manager can be as tall as any screen it is moved to (PR #225 review), and so is the Creator
-                shell.ShowManager();
-                Settle(window);
-                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
-                shell.ShowSettings();
-                Settle(window);
-                shell.ShowCreator();
-                Settle(window);
-                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
-                Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
             }, withSettings: true);
         }
 
-        // Settings measures its cap once the window has moved back (another monitor can be shorter); a switch to the Creator
-        // before that runs must not leave the Creator capped (PR #225 review)
         [Fact]
-        public void AQuickSwitchFromSettingsToTheCreator_LeavesTheCreatorUncapped()
+        public void SettingsFromTheCreator_TakesTheLargeSize()
         {
             WithWindow((window, shell) =>
             {
-                shell.ShowManager();
-                Settle(window);
-
                 shell.ShowSettings();
-                shell.ShowCreator();
                 Settle(window);
 
-                Assert.Equal(ShellMode.Creator, shell.Mode);
-                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+                Assert.Equal(WindowLayout.ManagerDefaultWidth, window.ActualWidth, 0.5);
+                Assert.Equal(WindowLayout.ManagerDefaultHeight, window.ActualHeight, 0.5);
+                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+                Assert.Equal(WindowLayout.ManagerMinWidth, window.MinWidth);
+                Assert.Equal(WindowLayout.ManagerMinHeight, window.MinHeight);
             }, withSettings: true);
         }
 
         [Fact]
-        public void TheManager_KeepsItsOwnSize_AcrossSettings()
+        public void TheManagerAndSettings_ShareOneSize_AcrossTheCreator()
         {
             WithWindow((window, shell) =>
             {
@@ -301,16 +299,28 @@ namespace keycuts.Tests
                 window.Height = 640;
                 Settle(window);
 
-                // Settings from the Manager, then the Creator, then the Manager again: the Creator and Settings don't overwrite its size
+                // Resized in Settings, then the Creator, then the Manager again: the Manager comes back at Settings' size
                 shell.ShowSettings();
+                Settle(window);
+                window.Width = 1100;
+                window.Height = 600;
                 Settle(window);
                 shell.ShowCreator();
                 Settle(window);
+                Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
                 shell.ShowManager();
                 Settle(window);
 
-                Assert.Equal(1000, window.ActualWidth, 0.5);
-                Assert.Equal(640, window.ActualHeight, 0.5);
+                Assert.Equal(1100, window.ActualWidth, 0.5);
+                Assert.Equal(600, window.ActualHeight, 0.5);
+
+                // And Settings from the Creator comes back at it too
+                shell.ShowCreator();
+                Settle(window);
+                shell.ShowSettings();
+                Settle(window);
+                Assert.Equal(1100, window.ActualWidth, 0.5);
+                Assert.Equal(600, window.ActualHeight, 0.5);
             }, withSettings: true);
         }
 

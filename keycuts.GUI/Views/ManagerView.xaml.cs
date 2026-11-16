@@ -517,6 +517,22 @@ namespace keycuts.GUI.Views
             }
         }
 
+        // Right-clicking a row opens its actions at the pointer, as in Explorer. Each row has its own copy of the menu, so the
+        // menu's bindings follow the row (a recycled row brings its menu along to its new keycut).
+        private void Table_LoadingRow(object? sender, DataGridRowEventArgs e)
+        {
+            if (e.Row.ContextMenu != null)
+            {
+                return;
+            }
+
+            var menu = (ContextMenu)FindResource("RowMenu");
+            menu.Placement = PlacementMode.MousePoint;
+            menu.CustomPopupPlacementCallback = null;
+            menu.VerticalOffset = 0;
+            e.Row.ContextMenu = menu;
+        }
+
         private void RowMenu_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuButton button || button.ContextMenu == null)
@@ -558,6 +574,12 @@ namespace keycuts.GUI.Views
             if (menu.DataContext is KeycutRowViewModel row)
             {
                 row.IsMenuOpen = true;
+
+                // A right-click selects the row it opened on, as in Explorer, so the keys act on it too
+                if (menu.PlacementTarget is DataGridRow && ViewModel != null)
+                {
+                    ViewModel.SelectedRow = row;
+                }
             }
 
             if (ViewModel != null)

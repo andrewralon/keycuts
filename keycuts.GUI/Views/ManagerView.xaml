@@ -302,6 +302,61 @@
         </Setter.Value>
       </Setter>
     </Style>
+
+    <!-- A row's actions: each row gets its own copy (x:Shared="False"), so the menu's bindings follow that row. 250 wide for the
+         key names beside the items. Right-clicking a row opens it at the pointer; the row's ... button opens it under the button, its
+         right edge under the button's, on right-handed PCs too. -->
+    <ContextMenu x:Key="RowMenu" x:Shared="False" Width="250" Placement="Custom" VerticalOffset="4"
+                 CustomPopupPlacementCallback="{x:Static controls:MenuPlacement.UnderRightEdge}"
+                 Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
+      <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
+        <MenuItem.Icon>
+          <controls:Icon Kind="Play" Size="16" />
+        </MenuItem.Icon>
+      </MenuItem>
+      <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
+      <MenuItem Header="Edit…" InputGestureText="Ctrl+E" Command="{Binding EditCommand}" Click="SafeItem_Click">
+        <MenuItem.Style>
+          <Style TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
+            <Setter Property="ToolTip" Value="{Binding EditTooltip}" />
+            <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+            <Setter Property="ToolTipService.IsEnabled" Value="False" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding CanEditInForm}" Value="False">
+                <Setter Property="ToolTipService.IsEnabled" Value="True" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </MenuItem.Style>
+        <MenuItem.Icon>
+          <controls:Icon Kind="File" Size="16" />
+        </MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Header="Edit in Notepad" InputGestureText="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
+        <MenuItem.Icon>
+          <controls:Icon Kind="External" Size="16" />
+        </MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Header="Open file location" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
+        <MenuItem.Icon>
+          <controls:Icon Kind="Folder" Size="16" />
+        </MenuItem.Icon>
+      </MenuItem>
+      <MenuItem Header="Copy target" InputGestureText="Ctrl+C" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
+        <MenuItem.Icon>
+          <controls:Icon Kind="Copy" Size="16" />
+        </MenuItem.Icon>
+      </MenuItem>
+      <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
+      <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
+      <MenuItem Header="Edit description" InputGestureText="Shift+F2" Command="{Binding EditDescriptionCommand}" />
+      <Separator />
+      <MenuItem Header="Delete" InputGestureText="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+        <MenuItem.Icon>
+          <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
+        </MenuItem.Icon>
+      </MenuItem>
+    </ContextMenu>
   </UserControl.Resources>
 
   <Grid>
@@ -351,7 +406,7 @@
               CornerRadius="{StaticResource RadiusMd}" SizeChanged="TableHost_SizeChanged"
               Visibility="{Binding IsTableVisible, Converter={StaticResource BoolToVisibility}}">
         <DataGrid x:Name="Table" Style="{StaticResource ManagerTable}" ItemsSource="{Binding Rows}"
-                  SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="keycuts"
+                  SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="keycuts" LoadingRow="Table_LoadingRow"
                   KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
             <!-- A click on the name or description cell of the selected row edits it in place (#202; see ManagerView_PreviewMouseDown) -->
@@ -498,62 +553,9 @@
                   <controls:MenuButton Style="{StaticResource IconButton}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                        AutomationProperties.Name="{Binding ActionsLabel}"
-                                       Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown">
+                                       Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown"
+                                       ContextMenu="{StaticResource RowMenu}">
                     <controls:Icon Kind="More" Size="16" />
-                    <Button.ContextMenu>
-                      <!-- 250 wide for the key names beside the items; its right edge under the button's, on right-handed PCs too -->
-                      <ContextMenu Width="250" Placement="Custom" VerticalOffset="4"
-                                   CustomPopupPlacementCallback="{x:Static controls:MenuPlacement.UnderRightEdge}"
-                                   Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
-                        <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
-                          <MenuItem.Icon>
-                            <controls:Icon Kind="Play" Size="16" />
-                          </MenuItem.Icon>
-                        </MenuItem>
-                        <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
-                        <MenuItem Header="Edit…" InputGestureText="Ctrl+E" Command="{Binding EditCommand}" Click="SafeItem_Click">
-                          <MenuItem.Style>
-                            <Style TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
-                              <Setter Property="ToolTip" Value="{Binding EditTooltip}" />
-                              <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
-                              <Setter Property="ToolTipService.IsEnabled" Value="False" />
-                              <Style.Triggers>
-                                <DataTrigger Binding="{Binding CanEditInForm}" Value="False">
-                                  <Setter Property="ToolTipService.IsEnabled" Value="True" />
-                                </DataTrigger>
-                              </Style.Triggers>
-                            </Style>
-                          </MenuItem.Style>
-                          <MenuItem.Icon>
-                            <controls:Icon Kind="File" Size="16" />
-                          </MenuItem.Icon>
-                        </MenuItem>
-                        <MenuItem Header="Edit in Notepad" InputGestureText="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Click="SafeItem_Click">
-                          <MenuItem.Icon>
-                            <controls:Icon Kind="External" Size="16" />
-                          </MenuItem.Icon>
-                        </MenuItem>
-                        <MenuItem Header="Open file location" InputGestureText="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Click="SafeItem_Click">
-                          <MenuItem.Icon>
-                            <controls:Icon Kind="Folder" Size="16" />
-                          </MenuItem.Icon>
-                        </MenuItem>
-                        <MenuItem Header="Copy target" InputGestureText="Ctrl+C" Command="{Binding CopyTargetCommand}" Click="SafeItem_Click">
-                          <MenuItem.Icon>
-                            <controls:Icon Kind="Copy" Size="16" />
-                          </MenuItem.Icon>
-                        </MenuItem>
-                        <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
-                        <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
-                        <MenuItem Header="Edit description" InputGestureText="Shift+F2" Command="{Binding EditDescriptionCommand}" />
-                        <Separator />
-                        <MenuItem Header="Delete" InputGestureText="Delete" Style="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
-                          <MenuItem.Icon>
-                            <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
-                          </MenuItem.Icon>
-                        </MenuItem>
-                      </ContextMenu>
-                    </Button.ContextMenu>
                   </controls:MenuButton>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>

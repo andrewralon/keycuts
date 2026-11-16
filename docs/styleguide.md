@@ -122,6 +122,7 @@ The Manager starts with the Creator's fields in one row, so a keycut can be adde
 
 - Header and rows are 36 high (`ManagerTable`); cells have 12 at each side.
 - **A column's label starts where its values do**, 12 in. The sort header's focus frame (1 border, 4 padding) would push the label 5 further; the header is pulled left by that much ([decision](#decisions)).
+- **Right-clicking a row** opens its actions menu at the pointer, as in Explorer, and selects the row.
 
 ### The app footer
 

@@ -425,6 +425,47 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Manager_RightClickingARow_OpensItsOwnMenuAtThePointer_AndSelectsIt()
+        {
+            WithManager(new[] { "alpha", "bravo" }, (window, manager, actions, search) =>
+            {
+                var table = Descendants<DataGrid>(window).Single();
+                var alpha = manager.Rows.Single(r => r.Name == "alpha");
+                var bravo = manager.Rows.Single(r => r.Name == "bravo");
+                var alphaRow = (DataGridRow)table.ItemContainerGenerator.ContainerFromItem(alpha);
+                var bravoRow = (DataGridRow)table.ItemContainerGenerator.ContainerFromItem(bravo);
+
+                // Each row has a menu of its own, opened where the pointer is
+                var menu = bravoRow.ContextMenu;
+                Assert.NotNull(menu);
+                Assert.NotSame(menu, alphaRow.ContextMenu);
+                Assert.Equal(System.Windows.Controls.Primitives.PlacementMode.MousePoint, menu.Placement);
+                Assert.Equal(
+                    new[] { "Open keycut", "Edit…", "Edit in Notepad", "Open file location", "Copy target", "Rename", "Edit description", "Delete" },
+                    menu.Items.OfType<MenuItem>().Select(i => (string)i.Header));
+
+                // What a right-click does: the menu opens on its row, which becomes the selected one, and its items act on that keycut
+                Assert.Null(manager.SelectedRow);
+                menu.PlacementTarget = bravoRow;
+                menu.IsOpen = true;
+                Pump();
+                try
+                {
+                    Assert.True(manager.IsMenuOpen);
+                    Assert.Same(bravo, manager.SelectedRow);
+                    Assert.Same(bravo.OpenCommand, menu.Items.OfType<MenuItem>().First().Command);
+                }
+                finally
+                {
+                    menu.IsOpen = false;
+                    Pump();
+                }
+
+                Assert.False(manager.IsMenuOpen);
+            });
+        }
+
+        [Fact]
         public void Manager_RowMenu_OpensUnderItsButton_RightEdgesLinedUp()
         {
             WithManager(new[] { "alpha" }, (window, manager, actions, search) =>

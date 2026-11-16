@@ -14,8 +14,6 @@ namespace keycuts.GUI
     {
         private readonly ShellViewModel shell;
 
-        private Point? creatorLocation;
-
         // The size the Manager and Settings share, once the window has left it for the Creator
         private Size? largeSize;
 
@@ -180,8 +178,6 @@ namespace keycuts.GUI
         // From the Creator to the Manager or Settings: the large size, as it was last left (by either), kept on the screen
         private void ShowLargeSize()
         {
-            creatorLocation = new Point(Left, Top);
-
             SizeToContent = SizeToContent.Manual;
             ResizeMode = ResizeMode.CanResize;
             SetResizeBorder(WindowLayout.GetFrameThickness(this));
@@ -197,7 +193,7 @@ namespace keycuts.GUI
             Height = bounds.Height;
         }
 
-        // Back to the Creator: MainWidth, its content's height, no resizing, where the Creator was
+        // Back to the Creator: MainWidth, its content's height, no resizing, at the top-left the large window was left at
         private void ShowSmallSize(bool leavingLarge)
         {
             if (leavingLarge)
@@ -220,12 +216,6 @@ namespace keycuts.GUI
             SetResizeBorder(new Thickness(0));
             Width = WindowLayout.CreatorWidth;
             SizeToContent = SizeToContent.Height;
-
-            if (leavingLarge && creatorLocation.HasValue)
-            {
-                Left = creatorLocation.Value.X;
-                Top = creatorLocation.Value.Y;
-            }
         }
     }
 }

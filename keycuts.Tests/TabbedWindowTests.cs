@@ -387,6 +387,27 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void TheCreator_KeepsTheTopLeft_TheManagerWasMovedTo()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+
+                // Moved up and to the left, still on the screen: the Creator opens right there, not where it was before
+                var workArea = WindowLayout.GetWorkAreaInDips(window);
+                window.Left = workArea.Left + 8;
+                window.Top = workArea.Top + 4;
+                Settle(window);
+                shell.ShowCreator();
+                Settle(window);
+
+                Assert.Equal(workArea.Left + 8, window.Left, 0.5);
+                Assert.Equal(workArea.Top + 4, window.Top, 0.5);
+            });
+        }
+
+        [Fact]
         public void WhileTheIconPickerIsOpen_TheTabsAreOff_ButTheCaptionButtonsArent()
         {
             WithWindow((window, shell) =>

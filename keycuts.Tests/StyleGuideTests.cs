@@ -53,9 +53,9 @@ namespace keycuts.Tests
             new("Themes/Controls.xaml", "Rectangle", "Margin", "-4,-2", "toggle focus ring, 2 outside the track"),
             new("Themes/Controls.xaml", "Rectangle", "RadiusX", "12", "toggle focus ring: the track's 10 + 2"),
             new("Themes/Controls.xaml", "Rectangle", "RadiusY", "12", "toggle focus ring: the track's 10 + 2"),
-            new("Views/CreatorView.xaml", "Setter", "Margin", "-3", "drop area glow, 3 outside it"),
-            new("Views/CreatorView.xaml", "Setter", "CornerRadius", "15", "drop area glow: RadiusLg + 3"),
-            new("Views/CreatorView.xaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
+            new("Views/CreatorForm.xaml", "Setter", "Margin", "-3", "drop area glow, 3 outside it"),
+            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "15", "drop area glow: RadiusLg + 3"),
+            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
 
             // Fully round shapes use half their height
             new("Themes/Controls.xaml", "Border", "CornerRadius", "9", "radio box and check badge, 18 high"),
@@ -74,7 +74,7 @@ namespace keycuts.Tests
             new("Themes/Controls.xaml", "Setter", "Margin", "0,0,2,0", "toggle thumb when on, 2 inside the track"),
             new("Themes/Controls.xaml", "Icon", "Margin", "0,2,4,0", "helper text icon lowered onto the first line"),
             new("ConfirmWindow.xaml", "Icon", "Margin", "0,1,8,0", "warning icon lowered onto the first line of its text"),
-            new("Views/CreatorView.xaml", "TextBlock", "Margin", "2,0,0,0", "target placeholder, where the text box draws its first character"),
+            new("Views/CreatorForm.xaml", "TextBlock", "Margin", "2,0,0,0", "target placeholder, where the text box draws its first character"),
             new("Views/ManagerView.xaml", "Border", "Padding", "4,2", "sort header's focus frame, close to its 12px label"),
 
             // Selection borders: a card whose border goes from 1 to 2 takes 1 off its padding, so nothing moves

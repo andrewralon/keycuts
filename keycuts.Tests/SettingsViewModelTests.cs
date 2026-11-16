@@ -1586,7 +1586,13 @@ namespace keycuts.Tests
                     var checkNow = (Button)window.FindName("BtnCheckNow");
                     Assert.True(checkNow.IsVisible);
                     Assert.Equal("check for updates now", AutomationProperties.GetName(checkNow));
-                    Assert.Equal("Version 1.1.1", ((TextBlock)window.FindName("CurrentVersionText")).Text);
+                    // "Version · 1.1.1", like the icon's row; a screen reader hears "Version 1.1.1"
+                    var version = (TextBlock)window.FindName("CurrentVersionText");
+                    Assert.Equal("Version · 1.1.1", version.Text);
+                    Assert.Equal("Version 1.1.1", AutomationProperties.GetName(version));
+                    var runs = version.Inlines.OfType<Run>().ToList();
+                    Assert.Equal(FontWeights.SemiBold, runs[0].FontWeight);
+                    Assert.Equal(FontWeights.Normal, runs[2].FontWeight);
                     Assert.False(((TextBlock)window.FindName("UpdateStatusMessage")).IsVisible);
                     Assert.False(((Hyperlink)window.FindName("SettingsDownloadLink")).IsEnabled);
                 }

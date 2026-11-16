@@ -279,7 +279,11 @@
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
-              <TextBlock x:Name="CurrentVersionText" Text="{Binding CurrentVersionText}" Style="{StaticResource SettingName}" />
+              <!-- "Version · 1.6.0", like "Icon · Black & White": the name SemiBold, the value in secondary text -->
+              <TextBlock x:Name="CurrentVersionText" Style="{StaticResource SettingName}" AutomationProperties.Name="{Binding CurrentVersionText}">
+                <Run Text="Version" /><Run Text=" &#x00B7; " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
+                    Text="{Binding CurrentVersionNumber, Mode=OneWay}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+              </TextBlock>
               <WrapPanel Margin="0,4,0,0" Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVisibility}}">
                 <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Style="{StaticResource Caption}"
                            AutomationProperties.LiveSetting="Polite" />

@@ -59,9 +59,10 @@
       </Setter>
     </Style>
 
+    <!-- 12 at the left, like the cells; 4 at the right, which the label's sort chevron may run into, 16 short of the next label -->
     <Style x:Key="ManagerHeader" TargetType="DataGridColumnHeader">
       <Setter Property="Height" Value="36" />
-      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="Padding" Value="12,0,4,0" />
       <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
@@ -229,6 +230,12 @@
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+    </Style>
+
+    <!-- A type badge has its own border and fill, so 4 at its right is enough: 16 short of the description, and the widest badge
+         (Command) fits a 104 column -->
+    <Style x:Key="ManagerBadgeCell" TargetType="DataGridCell" BasedOn="{StaticResource ManagerCell}">
+      <Setter Property="Padding" Value="12,0,4,0" />
     </Style>
 
     <Style x:Key="ManagerTable" TargetType="DataGrid">
@@ -451,7 +458,7 @@
             <!-- Type, Modified, Runs and Last run are fixed: the same MinWidth as Width, or the grid squeezes them to its default 20
                  when the table jumps narrower than all the columns need (a snap, a restore), and keeps them squeezed after the
                  Modified column has made way again -->
-            <DataGridTemplateColumn Width="104" MinWidth="104" CanUserResize="False">
+            <DataGridTemplateColumn Width="104" MinWidth="104" CanUserResize="False" CellStyle="{StaticResource ManagerBadgeCell}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Type" Content="Type" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -504,7 +511,7 @@
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
             <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
-            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="104" MinWidth="104" CanUserResize="False"
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="112" MinWidth="112" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
@@ -529,7 +536,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn x:Name="LastRunColumn" Width="104" MinWidth="104" CanUserResize="False"
+            <DataGridTemplateColumn x:Name="LastRunColumn" Width="112" MinWidth="112" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="LastRun" Content="Last run" Style="{StaticResource SortHeaderButtonStyle}" />

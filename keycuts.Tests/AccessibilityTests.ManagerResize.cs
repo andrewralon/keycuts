@@ -409,9 +409,9 @@ namespace keycuts.Tests
                 Settle(window);
 
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(104, WidthOf(table, ModifiedColumn), 1);
+                Assert.Equal(112, WidthOf(table, ModifiedColumn), 1);
                 Assert.Equal(64, WidthOf(table, RunsColumn), 1);
-                Assert.Equal(104, WidthOf(table, LastRunColumn), 1);
+                Assert.Equal(112, WidthOf(table, LastRunColumn), 1);
                 Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
 

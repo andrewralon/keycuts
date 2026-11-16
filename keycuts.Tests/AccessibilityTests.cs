@@ -1025,15 +1025,22 @@ namespace keycuts.Tests
                         return element.DesiredSize.Width;
                     }
 
-                    // The widest badge, the longest "how long ago" and the Runs header with its chevron (its margin pulls it 5 into
-                    // the cell's 12), each after the cell's 12 at the left
-                    var command = Measured(new TypeBadge { Kind = KeycutKind.Command });
-                    var ago = Measured(new TextBlock { Text = "20 minutes ago", Style = (Style)view.FindResource("CellText") });
-                    var runs = Measured(new SortHeaderButton { Content = "Runs", Style = (Style)view.FindResource("SortHeaderButtonStyle") });
-                    Assert.True(12 + command <= type, $"Command is {command} wide, in a {type} column");
-                    Assert.True(12 + ago <= Width("ModifiedColumn"), $"\"20 minutes ago\" is {ago} wide");
-                    Assert.True(12 + ago <= Width("LastRunColumn"), $"\"20 minutes ago\" is {ago} wide");
-                    Assert.True(12 + runs <= Width("RunsColumn"), $"The Runs header is {runs} wide");
+                    double Sides(string style)
+                    {
+                        var padding = (Thickness)((Style)view.FindResource(style)).Setters.OfType<Setter>()
+                            .Single(s => s.Property == Control.PaddingProperty).Value;
+                        return padding.Left + padding.Right;
+                    }
+
+                    // The widest badge, the longest "how long ago" and the Runs header with its chevron (its margin already takes
+                    // the 5 it is pulled left), each with its cell's or header's padding at both sides
+                    var command = Sides("ManagerBadgeCell") + Measured(new TypeBadge { Kind = KeycutKind.Command });
+                    var ago = Sides("ManagerCell") + Measured(new TextBlock { Text = "20 minutes ago", Style = (Style)view.FindResource("CellText") });
+                    var runs = Sides("ManagerHeader") + Measured(new SortHeaderButton { Content = "Runs", Style = (Style)view.FindResource("SortHeaderButtonStyle") });
+                    Assert.True(command <= type, $"Command needs {command}, in a {type} column");
+                    Assert.True(ago <= Width("ModifiedColumn"), $"\"20 minutes ago\" needs {ago}");
+                    Assert.True(ago <= Width("LastRunColumn"), $"\"20 minutes ago\" needs {ago}");
+                    Assert.True(runs <= Width("RunsColumn"), $"The Runs header needs {runs}");
                 }
                 finally
                 {

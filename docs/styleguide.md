@@ -100,9 +100,23 @@ Edit and Confirm end in the same footer, one shared style, `DialogFooter`: `Surf
 
 ### Window widths
 
-- **The Creator and Settings**: `MainWidth`, the width the whole tab bar needs plus about 60 of empty, draggable bar (#218; about 600, measured when it is built). It must also fit two icon cards side by side in Settings' picker, as 500 does today. Both are fixed-width and fit their content's height; Settings stays inside the work area and scrolls when the screen is short.
-- **The Manager**: resizable, and remembers its size.
+The main window has **two sizes** ([decision](#decisions), mockup [`window-sizes-v1`](mockups/window-sizes-v1.png)):
+
+- **Small, the Creator**: `MainWidth`, the width the whole tab bar needs plus about 60 of empty, draggable bar (#218; 600). It must also fit two icon cards side by side in Settings' picker. Fixed-width, and it fits its content's height.
+- **Large, the Manager and Settings**: one size for both, resizable (960 × 700 at first, 720 × 480 at the least) and remembered while the app runs. Settings never grows the window to fit its content: it takes the size the Manager last had, lays itself out in two columns, and scrolls when the window is shorter than it. Switching between the Manager and Settings doesn't move or resize the window; resizing either resizes both.
+- The window keeps its top-left corner as it changes size, and stays inside the work area.
 - **Confirm**: 440 (`ConfirmWidth`); **Edit**: 480 (`EditWidth`). They keep their widths while the main window grows ([decision](#decisions)). Dialogs size to their content's height (`SizeToContent="Height"`) and can't be resized.
+
+### The Manager's create row
+
+The Manager starts with the Creator's fields in one row, so a keycut can be added without leaving the list. It is an [inset panel](#inset-panels) (16 below it, then the search box), with a label row, a control row and the Creator's helper line under them:
+
+- Left to right: **Target**, **Name**, **Description (optional)**, then the Create button. The fields share the row about 2 : 1 : 1.5, 12 apart (`Space3`), so a long target has the most room.
+- **Target** is the drop area squeezed to one line: a 36 high box (`RadiusSm`) with the Creator's dashed outline, fill and glow, the target's type icon (16) at its left and the text on one line, then the Browse square button 8 to its right. A drop on the row, a paste or Browse fills it.
+- **Name** is a plain text box with the Creator's "Saving…"/"Created" status at the right of its label. **Description** is always shown here; there is no "Add a description" link.
+- The Create button (`PrimarySquareButton`, the rocket) ends the row, 8 after the description.
+- Enter creates from the name or the description; in the target it resolves the target and then creates if the name is filled, or moves on to the name. After a create the new keycut appears in the table and the fields clear, ready for the next one, with the focus back in Target. The screen still opens with the focus in the search box.
+- Name warnings, name errors and target errors use the Creator's helper line, under the whole row. A name that needs confirming asks in the same Confirm dialog.
 
 ### The app footer
 
@@ -135,7 +149,7 @@ The main window has no Windows title bar. Its top row is the **tab bar** (#218 c
 - **Caption buttons**: `CaptionButtonWidth` (46) by `RailHeight`, with 10px glyphs: the Windows standard sizes, an exception to the grid and the icon sizes. Hover is a light wash (`CaptionHoverBrush`); close turns `#c42b1c` with a white glyph in both themes, as Windows does (`CaptionCloseBrush`, the one fixed color). **Maximize is disabled on every screen**, the resizable Manager included, and the window can't be maximized any other way either: not by double-clicking the bar, Win+Up, dragging to the top of the screen or the window menu ([decision](#decisions)). The Manager is still resized from its edges and snapped to the side of the screen.
 - **Accessibility**: the tabs are a tab list. Their names are `creator`, `manager` and `settings` (the gear tab's tooltip too), with their selected state; Tab and the arrow keys reach them. The caption buttons are named `Minimize`, `Maximize` and `Close`, with matching tooltips. Each screen's content is announced with its tab's name.
 - **No screen headings**: the selected tab names the screen, so `keycuts creator`, `keycuts manager` and the creator/manager buttons beside them go, and the Settings screen has no heading. Content starts `PagePadding` (16) below the bar.
-- **The Settings screen** follows the rest of this guide: `SectionLabel`s, setting rows 16 apart with no lines, 36 high buttons and text boxes, the output folder's two icon-only square buttons, the note "Changes are saved as you make them." as `Caption` text with a 12 check, and a last row with `show welcome` at the left and `restore defaults` at the right.
+- **The Settings screen** follows the rest of this guide: `SectionLabel`s, setting rows 16 apart with no lines, 36 high buttons and text boxes, the output folder's two icon-only square buttons, the note "Changes are saved as you make them." as `Caption` text with a 12 check, and a last row with `show welcome` at the left and `restore defaults` at the right. At the large size it has **two columns** with a 1px `BorderBrush` rule between them, 24 (`Space6`) from each: Output and Behavior on the left; Appearance, Updates, the note and the last row on the right. Each column starts with its section label at the top of the page. Below 840 wide (the window dragged narrow) the columns stack into one, in the same order.
 
 ### Empty, loading and error states
 
@@ -370,6 +384,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-13 | Placeholder contrast (PR #220 review) | Light `TextTertiaryBrush` `#818b9d`, 3.44:1, allowed for placeholders | **4.5:1 for placeholders too**: light `TextTertiaryBrush` becomes `#646e80`; dark is unchanged |
 | 2026-11-14 | Gap between the name and the first tab (#218, mockup v7) | 4, from #218's item 6; v6 drew it and it looked cramped (v3 had asked for more room, v5 had about 18) | **16** (`Space4`). The tabs stay 4 apart. At `MainWidth` 600 the empty, draggable bar is still about 66 |
 | 2026-11-14 | Maximizing the main window (#218) | Maximize on the Manager only (button, double click on the bar, Win+Up, drag to the top, window menu), with Windows 11's snap layouts over the button; disabled on the Creator and Settings | **Off on every screen, every way**: the button is always disabled, and the window refuses the maximize command. The Manager keeps its resize edges and snapping to the sides. Snap layouts over the button go with it |
+| 2026-11-15 | Window sizes (mockup `window-sizes-v1`) | The Creator and Settings `MainWidth` wide and as tall as their content; the Manager resizable on its own | **Two sizes**: small for the Creator (unchanged), large for the Manager and Settings, which share it. Settings never grows the window: **two columns** (option C; one column that scrolls was option D), stacking into one when the window is narrow. The Manager gets the Creator's fields as one row on top (Target, Name, Description); a create there clears the fields for the next one, and Enter creates from any field |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

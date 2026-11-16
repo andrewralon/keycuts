@@ -5,9 +5,10 @@ Behavior that spans several files. Read the section before changing that area. P
 ## Window and shell
 
 - One window, three screens (`ShellMode`). The top row is `RailView`: a `RailTabControl` (a `TabControl` showing only headers, so screen readers get a real tab list) plus our own caption buttons. `WindowChrome` makes the bar draggable; tabs and buttons are `IsHitTestVisibleInChrome`. No tab keyboard shortcuts.
-- Never maximized: `NoMaximizeHook` strips `WS_MAXIMIZEBOX`, refuses `SC_MAXIMIZE` and undoes `WindowState.Maximized`. The Manager keeps resize edges and side snapping. Resize border is 0 on the Creator and `WindowLayout.GetFrameThickness` on the Manager.
+- Never maximized: `NoMaximizeHook` strips `WS_MAXIMIZEBOX`, refuses `SC_MAXIMIZE` and undoes `WindowState.Maximized`. The Manager and Settings keep resize edges and side snapping. Resize border is 0 on the Creator and `WindowLayout.GetFrameThickness` on the Manager and Settings.
 - A selected tab's shadow is its own shape (`Shadow` in `RailTabItem`). A shared effect set from a trigger can't be frozen and fails across test threads.
-- Settings gets MainWidth and its content height capped to the work area, so it scrolls. Only the Manager's size is remembered.
+- Two sizes (`MainWindow.ApplyMode`). Small, the Creator: MainWidth, `SizeToContent.Height`, no resize border. Large, the Manager and Settings: one shared, resizable size (`largeSize`, 960 × 700 until the window first leaves it), clamped to the work area. Switching between the two large screens touches nothing, so resizing either resizes both; Settings never grows the window and scrolls instead. The window keeps its top-left corner, and goes back to where the Creator was when it shrinks.
+- Settings is two columns (`SettingsView.UseTwoColumns`) at `TwoColumnMinWidth` (840) and up; narrower, the right column moves under the left one.
 - The shell numbers its reloads; only the latest may set the count or reach the welcome panel. A count-only reload cancels a running Manager load (`ManagerViewModel.CancelLoad`).
 - Tests: tab bar names are in `RailView`'s name scope (not `Window.FindName`); a `TabItem`'s automation peer comes from the tab list's peer.
 
@@ -28,6 +29,8 @@ Behavior that spans several files. Read the section before changing that area. P
 - Description visibility is `ShowDescription` in HKCU (`IDescriptionVisibilityStore`), written only when the user toggles it. Hidden text is kept but not saved.
 - Saving/Created is `NameStatusText` beside the Name label; the helper line under Name takes no room unless it has a warning. Fields stay filled after a create; Created clears after `SuccessDuration` (3 s).
 - `HelperText` controls announce their own changes; don't also call `LiveRegion.Announce`.
+- **Two forms.** The Creator and the Manager's create row are each a `CreatorViewModel` (`ShellViewModel.Forms`); the row's is `ManagerViewModel.CreateRow`, with `DescriptionAlwaysShown` and `ClearsAfterCreate`. What the app reads once (the environment-variables setting, the path variables) goes to both. Their views attach a `CreatorInput` (drop, paste, Ctrl+V, Browse, resolve while typing, the name check, Shift, the confirm dialog), which lets go of the view model while the view is unloaded, so a hidden view never answers a Browse. Shared styles are in `Views/CreatorForm.xaml`; the drop area's triggers find an element named `DropArea` in the view.
+- **The Manager's create row.** `CreateRowView`, in a `ContentControl` with an implicit template, so a Manager without a `CreateRow` (tests) builds none. `TargetEnterCreates`: Enter in its target resolves, then creates if the name is filled, else moves to the name. `ManagerView_PreviewKeyDown` ignores keys from inside the row except Ctrl+F. A create there reloads the table (the shell listens to `KeycutCreated`). The Manager opens with the focus in the search box, not the row.
 
 ## Welcome panel
 

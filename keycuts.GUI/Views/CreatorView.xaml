@@ -9,10 +9,6 @@
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.CreatorUrl}"
              Background="{DynamicResource SurfaceBrush}" Loaded="CreatorView_Loaded"
-             PreviewKeyDown="CreatorView_PreviewKeyDown" PreviewKeyUp="CreatorView_PreviewKeyUp"
-             IsKeyboardFocusWithinChanged="CreatorView_IsKeyboardFocusWithinChanged"
-             PreviewDragEnter="Creator_DragEnter" PreviewDragOver="Creator_DragOver" PreviewDragLeave="Creator_DragLeave"
-             PreviewDrop="Creator_Drop"
              AllowDrop="{Binding IsInputEnabled}">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
@@ -320,21 +316,17 @@
                      Text="{Binding TargetText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap"
                      themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, or URL"
                      IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
-                     AutomationProperties.HelpText="{Binding TargetHelpText}"
-                     PreviewKeyDown="TextboxTarget_PreviewKeyDown" TextChanged="TextboxTarget_TextChanged"
-                     LostFocus="TextboxTarget_LostFocus"
-                     IsKeyboardFocusWithinChanged="TextboxTarget_IsKeyboardFocusWithinChanged" />
+                     AutomationProperties.HelpText="{Binding TargetHelpText}" />
           </StackPanel>
 
           <!-- Icon-only, like the Settings window's folder button: the tooltip and the automation name say "Browse". Centered in
                the box, so it stays so when a long target wraps and the box grows. -->
           <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Style="{StaticResource SquareButton}" VerticalAlignment="Center"
-                  Click="Browse_Click" PreviewKeyDown="Browse_PreviewKeyDown" ContextMenuOpening="Browse_ContextMenuOpening" IsEnabled="{Binding IsInputEnabled}"
+                  IsEnabled="{Binding IsInputEnabled}"
                   ToolTip="Browse" AutomationProperties.Name="Browse">
             <controls:Icon Kind="Folder" Size="20" VerticalAlignment="Center" />
             <Button.ContextMenu>
-              <ContextMenu x:Name="BrowseMenu" Width="190" Opened="BrowseMenu_Opened" Closed="BrowseMenu_Closed"
-                           PreviewKeyDown="BrowseMenu_PreviewKeyDown">
+              <ContextMenu x:Name="BrowseMenu" Width="190">
                 <MenuItem Style="{StaticResource BrowseMenuItem}" AutomationProperties.Name="File…"
                           Command="{Binding BrowseFileCommand}">
                   <MenuItem.Icon>
@@ -392,8 +384,7 @@
                    themes:TextBoxChrome.HasError="{Binding IsNameError}"
                    themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
                    IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
-                   AutomationProperties.HelpText="{Binding NameHelpText}"
-                   TextChanged="TextboxShortcut_TextChanged">
+                   AutomationProperties.HelpText="{Binding NameHelpText}">
             <TextBox.InputBindings>
               <!-- Enter creates only from the name field; Shift+Enter too, with the environment-variables setting flipped -->
               <KeyBinding Key="Return" Command="{Binding CreateCommand}" />

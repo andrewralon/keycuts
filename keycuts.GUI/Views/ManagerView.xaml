@@ -404,7 +404,7 @@
                   KeyboardNavigation.TabNavigation="Continue">
           <DataGrid.Columns>
             <!-- A click on the name or description cell of the selected row edits it in place (#202; see ManagerView_PreviewMouseDown) -->
-            <DataGridTemplateColumn x:Name="NameColumn" Width="1.7*" MinWidth="190">
+            <DataGridTemplateColumn x:Name="NameColumn" Width="1.2*" MinWidth="120">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Shortcut" Content="Name" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -451,7 +451,7 @@
             <!-- Type, Modified, Runs and Last run are fixed: the same MinWidth as Width, or the grid squeezes them to its default 20
                  when the table jumps narrower than all the columns need (a snap, a restore), and keeps them squeezed after the
                  Modified column has made way again -->
-            <DataGridTemplateColumn Width="110" MinWidth="110" CanUserResize="False">
+            <DataGridTemplateColumn Width="104" MinWidth="104" CanUserResize="False">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Type" Content="Type" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -461,7 +461,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn x:Name="DescriptionColumn" Width="1.5*" MinWidth="100">
+            <DataGridTemplateColumn x:Name="DescriptionColumn" Width="*" MinWidth="100">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Description" Content="Description" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -492,7 +492,7 @@
             </DataGridTemplateColumn>
             <!-- Target is resizable, and the columns to its left give way to it. Its right edge is pinned by the fixed columns
                  beside it, which the grid can't move, so there is no gripper there (#202) -->
-            <DataGridTemplateColumn Width="2.8*" MinWidth="120" HeaderStyle="{StaticResource ManagerHeaderPinnedRight}">
+            <DataGridTemplateColumn Width="3.4*" MinWidth="160" HeaderStyle="{StaticResource ManagerHeaderPinnedRight}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Target" Content="Target" Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
@@ -504,7 +504,7 @@
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
             <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
-            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="110" MinWidth="110" CanUserResize="False"
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="104" MinWidth="104" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
@@ -518,7 +518,7 @@
             </DataGridTemplateColumn>
             <!-- #187: how often each keycut runs and when it last did, for cleaning up. They make way only after Modified does
                  (TableHost_SizeChanged). A dash is no record, which isn't the same as 0. -->
-            <DataGridTemplateColumn x:Name="RunsColumn" Width="72" MinWidth="72" CanUserResize="False"
+            <DataGridTemplateColumn x:Name="RunsColumn" Width="64" MinWidth="64" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="Runs" Content="Runs" Style="{StaticResource SortHeaderButtonStyle}" />
@@ -529,7 +529,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn x:Name="LastRunColumn" Width="110" MinWidth="110" CanUserResize="False"
+            <DataGridTemplateColumn x:Name="LastRunColumn" Width="104" MinWidth="104" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
                 <controls:SortHeaderButton Column="LastRun" Content="Last run" Style="{StaticResource SortHeaderButtonStyle}" />

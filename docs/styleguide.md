@@ -121,6 +121,7 @@ The Manager starts with the Creator's fields in one row, so a keycut can be adde
 ### The Manager's table
 
 - Header and rows are 36 high (`ManagerTable`); cells have 12 at each side.
+- **Columns**, left to right: Name (1.2 shares, at least 120), Type (104), Description (1 share, at least 100), Target (3.4 shares, at least 160), then Modified (104), Runs (64) and Last run (104), which make way when the table is narrow. The shared columns can be dragged. Target gets the most room, since targets are the longest values; the fixed ones fit their widest value (the Command badge, "20 minutes ago", the Runs header with its chevron) after the cell's 12 ([decision](#decisions)).
 - **A column's label starts where its values do**, 12 in. The sort header's focus frame (1 border, 4 padding) would push the label 5 further; the header is pulled left by that much ([decision](#decisions)).
 - **Right-clicking a row** opens its actions menu at the pointer, as in Explorer, and selects the row. **There is no `...` column** ([decision](#decisions)): Shift+F10 and the Menu key open the selected row's menu under the row, its left edge where the name starts (while the search box is empty, as for Delete), and every item has its own key, shown beside it. A screen reader names the menu "Actions for <name>".
 
@@ -398,6 +399,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-16 | Settings' version row | "Version 1.6.0" in SemiBold; "You're up to date (1.6.0)." | **"Version · 1.6.0"** like "Icon · Black & White" (the value in secondary text), and **"You're up to date."**: the version is on the line above |
 | 2026-11-16 | The Manager's column labels | 5 to the right of their values (the sort header's focus frame), most visible over Runs | **Lined up with the values**, 12 in |
 | 2026-11-16 | The Manager's row menu | A 44 wide column of `...` buttons | **No column**: right-click a row, or Shift+F10 and the Menu key for the selected one. The room goes to the other columns |
+| 2026-11-16 | The Manager's column widths | Name 1.7 shares (190 at least), Type 110, Description 1.5, Target 2.8 (120), Modified 110, Runs 72, Last run 110 | **Name 1.2 (120), Type 104, Description 1, Target 3.4 (160), Modified 104, Runs 64, Last run 104**: names and descriptions are short, targets long |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

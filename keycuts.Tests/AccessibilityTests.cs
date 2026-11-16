@@ -1006,6 +1006,43 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void Manager_FixedColumns_FitTheirWidestValues()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    var view = (FrameworkElement)window.Content;
+                    double Width(string column) => ((DataGridColumn)view.FindName(column)).Width.Value;
+                    var type = ((DataGrid)view.FindName("Table")).Columns[1].Width.Value;
+
+                    static double Measured(FrameworkElement element)
+                    {
+                        element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        return element.DesiredSize.Width;
+                    }
+
+                    // The widest badge, the longest "how long ago" and the Runs header with its chevron (its margin pulls it 5 into
+                    // the cell's 12), each after the cell's 12 at the left
+                    var command = Measured(new TypeBadge { Kind = KeycutKind.Command });
+                    var ago = Measured(new TextBlock { Text = "20 minutes ago", Style = (Style)view.FindResource("CellText") });
+                    var runs = Measured(new SortHeaderButton { Content = "Runs", Style = (Style)view.FindResource("SortHeaderButtonStyle") });
+                    Assert.True(12 + command <= type, $"Command is {command} wide, in a {type} column");
+                    Assert.True(12 + ago <= Width("ModifiedColumn"), $"\"20 minutes ago\" is {ago} wide");
+                    Assert.True(12 + ago <= Width("LastRunColumn"), $"\"20 minutes ago\" is {ago} wide");
+                    Assert.True(12 + runs <= Width("RunsColumn"), $"The Runs header is {runs} wide");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void Manager_EachHeaderLabel_StartsWhereItsColumnsValuesDo()
         {
             RunSta(() =>

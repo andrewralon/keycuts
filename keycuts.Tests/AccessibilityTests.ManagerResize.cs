@@ -402,17 +402,17 @@ namespace keycuts.Tests
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
                 Assert.Equal(Visibility.Collapsed, table.Columns[RunsColumn].Visibility);
                 Assert.Equal(Visibility.Collapsed, table.Columns[LastRunColumn].Visibility);
-                Assert.Equal(110, WidthOf(table, TypeColumn), 1);
+                Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
 
                 Resize(window, 1200);
                 Settle(window);
 
                 Assert.Equal(Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(110, WidthOf(table, ModifiedColumn), 1);
-                Assert.Equal(72, WidthOf(table, RunsColumn), 1);
-                Assert.Equal(110, WidthOf(table, LastRunColumn), 1);
-                Assert.Equal(110, WidthOf(table, TypeColumn), 1);
+                Assert.Equal(104, WidthOf(table, ModifiedColumn), 1);
+                Assert.Equal(64, WidthOf(table, RunsColumn), 1);
+                Assert.Equal(104, WidthOf(table, LastRunColumn), 1);
+                Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
 
                 // The proportions the user chose are what the star columns still hold
@@ -456,7 +456,7 @@ namespace keycuts.Tests
                 Settle(window);
 
                 Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(110, WidthOf(table, TypeColumn), 1);
+                Assert.Equal(104, WidthOf(table, TypeColumn), 1);
                 AssertFillsTheTable(table);
             });
         }

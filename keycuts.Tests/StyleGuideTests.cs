@@ -56,6 +56,8 @@ namespace keycuts.Tests
             new("Views/CreatorForm.xaml", "Setter", "Margin", "-3", "drop area glow, 3 outside it"),
             new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "15", "drop area glow: RadiusLg + 3"),
             new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
+            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "8", "the create row's one-line drop area glow: RadiusSm + 3"),
+            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "9", "the create row's one-line drop area glow while dragging: RadiusSm + 4"),
 
             // Fully round shapes use half their height
             new("Themes/Controls.xaml", "Border", "CornerRadius", "9", "radio box and check badge, 18 high"),

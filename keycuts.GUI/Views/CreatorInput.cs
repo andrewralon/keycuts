@@ -93,8 +93,19 @@ namespace keycuts.GUI.Views
             browseMenu.Closed += BrowseMenu_Closed;
             browseMenu.PreviewKeyDown += BrowseMenu_PreviewKeyDown;
 
+            // A view that left the screen (the Manager's row while the Creator shows) must not answer the view model's requests: a
+            // Browse would open two dialogs
+            view.Loaded += (sender, e) => Attach(view.DataContext as CreatorViewModel);
+            view.Unloaded += (sender, e) => Attach(null);
+
             Attach(view.DataContext as CreatorViewModel);
         }
+
+        /// <summary>
+        /// Enter in the target resolves it and then creates the keycut when the name is filled, or else moves on to the name (the
+        /// Manager's create row). On the Creator, Enter there never creates: it only moves on to the name.
+        /// </summary>
+        public bool TargetEnterCreates { get; init; }
 
         private CreatorViewModel? ViewModel
         {
@@ -355,9 +366,9 @@ namespace keycuts.GUI.Views
         {
             if (e.Key == Key.Enter)
             {
-                // Enter here resolves and moves on to the name; it never creates
+                // Enter here resolves and moves on to the name; it creates only where TargetEnterCreates says so
                 e.Handled = true;
-                _ = ResolveCurrentAsync(showError: true, normalize: true, focusName: true);
+                _ = ResolveCurrentAsync(showError: true, normalize: true, focusName: true, create: TargetEnterCreates);
             }
         }
 
@@ -467,7 +478,7 @@ namespace keycuts.GUI.Views
             }
         }
 
-        private async Task ResolveCurrentAsync(bool showError, bool normalize, bool focusName)
+        private async Task ResolveCurrentAsync(bool showError, bool normalize, bool focusName, bool create = false)
         {
             var current = ViewModel;
             if (current == null || !current.HasTarget)
@@ -508,6 +519,13 @@ namespace keycuts.GUI.Views
             {
                 targetBox.CaretIndex = targetBox.Text.Length;
                 targetBox.ScrollToEnd();
+            }
+
+            // The Manager's row: a name already typed means the form is done, so Enter makes the keycut (Shift as read then)
+            if (result.IsValid && create && current.CreateCommand.CanExecute(null))
+            {
+                await current.CreateCommand.ExecuteAsync();
+                return;
             }
 
             if (result.IsValid && focusName)

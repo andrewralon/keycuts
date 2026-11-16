@@ -116,6 +116,13 @@ namespace keycuts.GUI.Views
                 return;
             }
 
+            // The create row's keys are its own: Enter creates there, and Delete, the arrows, Home and End edit its text. Only
+            // Ctrl+F still goes to the search.
+            if (CreateRowHost.IsKeyboardFocusWithin && !(e.Key == Key.F && e.KeyboardDevice.Modifiers == ModifierKeys.Control))
+            {
+                return;
+            }
+
             // Ctrl+Z undoes a delete while the status bar offers it, even from the search box, where it would otherwise be
             // the box's own undo. Any other time the box keeps it.
             if (e.Key == Key.Z && e.KeyboardDevice.Modifiers == ModifierKeys.Control && ViewModel.CanUndoDelete)

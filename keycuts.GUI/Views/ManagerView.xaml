@@ -4,6 +4,7 @@
              xmlns:controls="clr-namespace:keycuts.GUI.Controls"
              xmlns:themes="clr-namespace:keycuts.GUI.Themes"
              xmlns:views="clr-namespace:keycuts.GUI.Views"
+             xmlns:vm="clr-namespace:keycuts.GUI.ViewModels"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:design="clr-namespace:keycuts.GUI.DesignData"
@@ -308,26 +309,39 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
-    <Grid Grid.Row="0" Margin="24,16,24,12">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="Auto" />
-      </Grid.ColumnDefinitions>
+    <StackPanel Grid.Row="0" Margin="24,16,24,12">
+      <!-- The Creator's fields in one row (docs/styleguide.md, The Manager's create row), 16 above the search box. Its keys are its
+           own: ManagerView_PreviewKeyDown leaves them alone. A Manager without one (tests, design data) builds nothing here. -->
+      <ContentControl x:Name="CreateRowHost" Margin="0,0,0,16" Content="{Binding CreateRow}" Focusable="False" IsTabStop="False"
+                      Visibility="{Binding HasCreateRow, Converter={StaticResource BoolToVisibility}}">
+        <ContentControl.Resources>
+          <DataTemplate DataType="{x:Type vm:CreatorViewModel}">
+            <views:CreateRowView />
+          </DataTemplate>
+        </ContentControl.Resources>
+      </ContentControl>
+
+      <!-- The total is the footer's pill (#205). "4 of 355 shown" sits at the right of the search box only while a search hides some -->
       <Grid>
-        <TextBox x:Name="SearchBox" Style="{StaticResource AppTextBox}" Padding="36,0,12,0"
-                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                 IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
-                 themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
-                 AutomationProperties.Name="Search keycuts" />
-        <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
-                       IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid>
+          <TextBox x:Name="SearchBox" Style="{StaticResource AppTextBox}" Padding="36,0,12,0"
+                   Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                   IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
+                   themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
+                   AutomationProperties.Name="Search keycuts" />
+          <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
+                         IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
+        </Grid>
+        <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
+                   FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
+                   Text="{Binding ShownText}" AutomationProperties.LiveSetting="Polite"
+                   Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
       </Grid>
-      <TextBlock x:Name="ShownTextBlock" Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center"
-                 FontSize="{StaticResource FontSizeBody}" Foreground="{DynamicResource TextSecondaryBrush}"
-                 Text="{Binding ShownText}" AutomationProperties.LiveSetting="Polite"
-                 Visibility="{Binding HasShownText, Converter={StaticResource BoolToVisibility}}" />
-    </Grid>
+    </StackPanel>
 
     <Grid Grid.Row="1" Margin="24,0,24,12">
       <!-- Populated -->

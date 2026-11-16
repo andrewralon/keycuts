@@ -312,6 +312,18 @@ namespace keycuts.GUI.ViewModels
         /// <summary>The "new version is out" line in the footer (#171), shared with the creator; null without one (tests, design data).</summary>
         public UpdateNoticeViewModel? UpdateNotice { get; init; }
 
+        /// <summary>
+        /// The create row at the top of the Manager (the Creator's fields in one row): a form of its own, apart from the Creator's, that
+        /// always shows its description and clears after a create. The shell makes it and reloads the table when it creates a keycut.
+        /// Null without one (tests, design data), and the row is hidden.
+        /// </summary>
+        public CreatorViewModel? CreateRow { get; init; }
+
+        public bool HasCreateRow
+        {
+            get { return CreateRow != null; }
+        }
+
         public string NoResultsMessage
         {
             get { return "No keycuts match \u201C" + searchText + "\u201D"; }

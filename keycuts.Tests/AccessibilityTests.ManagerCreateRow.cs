@@ -203,8 +203,9 @@ namespace keycuts.Tests
                 Assert.Equal(string.Empty, parts.Name.Text);
                 Assert.Equal(string.Empty, parts.Description.Text);
                 Assert.True(parts.Form.IsSuccess);
-                PumpUntil(() => parts.Target.IsKeyboardFocused);
-                Assert.True(parts.Target.IsKeyboardFocused);
+                // Logical focus: keyboard focus also needs the window to be active, which a parallel test run can take away
+                PumpUntil(() => parts.Target.IsFocused);
+                Assert.True(parts.Target.IsFocused);
             });
         }
 
@@ -218,8 +219,8 @@ namespace keycuts.Tests
                 Keyboard.Focus(parts.Target);
                 Pump();
                 Assert.True(Press(parts.Target, Key.Enter));
-                PumpUntil(() => parts.Name.IsKeyboardFocused);
-                Assert.True(parts.Name.IsKeyboardFocused);
+                PumpUntil(() => parts.Name.IsFocused);
+                Assert.True(parts.Name.IsFocused);
                 Assert.Empty(creates.Calls);
 
                 // With one, the same Enter makes the keycut

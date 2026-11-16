@@ -122,7 +122,7 @@ The Manager starts with the Creator's fields in one row, so a keycut can be adde
 
 - Header and rows are 36 high (`ManagerTable`); cells have 12 at each side.
 - **A column's label starts where its values do**, 12 in. The sort header's focus frame (1 border, 4 padding) would push the label 5 further; the header is pulled left by that much ([decision](#decisions)).
-- **Right-clicking a row** opens its actions menu at the pointer, as in Explorer, and selects the row.
+- **Right-clicking a row** opens its actions menu at the pointer, as in Explorer, and selects the row. **There is no `...` column** ([decision](#decisions)): Shift+F10 and the Menu key open the selected row's menu under the row, its left edge where the name starts (while the search box is empty, as for Delete), and every item has its own key, shown beside it. A screen reader names the menu "Actions for <name>".
 
 ### The app footer
 
@@ -244,7 +244,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | Text box | 36 high | `AppTextBox`, `InputHeight` (views stop setting `Height="38"`) |
 | Text button (primary or secondary) | 36 high, `Padding="12,0"` | `BaseButton`, `ControlHeight` |
 | Icon-only button with a border or fill, beside a text box or in the drop area (Create, Browse, and Settings' choose a folder and open the output folder, which never show text; [decision](#decisions)) | 36 × 36 | `SquareButton` (new, based on `SecondaryButton`/`PrimaryButton`), `ControlHeight` |
-| Ghost icon button (no border: dismiss, sheet close, row menu) | 32 × 32 | `IconButton`, `IconButtonSize` |
+| Ghost icon button (no border: dismiss, sheet close) | 32 × 32 | `IconButton`, `IconButtonSize` |
 | Text box editing inside a Manager row (rename, description) | 30 high | The **only** 30; it has to fit a 36 row |
 | Manager table: header / row | 36 / 36 (40 if a name plus a 12px marker doesn't fit; #219 checks) | `ManagerTable` |
 | Menu item: one line / two lines (Browse menu) | 32 / 48 min | `AppMenuItem`, `BrowseMenuItem` |
@@ -259,7 +259,7 @@ The owner's decision says icon buttons are 32. This guide reads that as the ghos
 
 **Pointer targets are at least 24 × 24** (WCAG 2.5.8, Target Size (Minimum)). That is the area that takes the click, which isn't always the area that is drawn:
 
-- **By size**: text boxes, text and square buttons (36), ghost icon buttons (32, the row menu button up from 28), menu items, tabs and caption buttons. Check boxes and radio buttons pass with their label, which WPF makes part of the click area; one without a visible label needs a 24 hit area of its own.
+- **By size**: text boxes, text and square buttons (36), ghost icon buttons (32), menu items, tabs and caption buttons. Check boxes and radio buttons pass with their label, which WPF makes part of the click area; one without a visible label needs a 24 hit area of its own.
 - **The toggle** is drawn 20 high, so its template wraps the track in a transparent border 24 high. It then passes by size wherever it is placed, rather than depending on the space around it.
 - **Anything smaller than 24** passes only by WCAG's spacing exception, where a 24px circle centered on it overlaps no other target, or its inline exception for a link inside a sentence. Today that is the sort headers (inside a 36 header row, with the next header well clear), the status line's undo, and the footer's download link (inline in the update sentence). A new small target must show which exception it meets, or grow to 24.
 
@@ -281,7 +281,7 @@ Icons are the app's own `controls:Icon` glyphs (`Themes/Icons.xaml`), drawn in t
 |---|---|
 | 12 | Beside 12px text: row markers (Missing, Warning), helper-line status icons, the sort chevron, the check badge's tick |
 | 10 | Only the caption buttons' glyphs (Windows' size) |
-| 16 | **The default**: in buttons with text, ghost icon buttons (dismiss, close, the row menu), menu items, list warnings, the tabs (the gear included) |
+| 16 | **The default**: in buttons with text, ghost icon buttons (dismiss, close), menu items, list warnings, the tabs (the gear included) |
 | 20 | Square buttons (Create's rocket, Browse, choose a folder, open the output folder), the app icon in the tab bar, the welcome bubbles' arrow and the welcome helper line |
 | 24 | In a 40 icon tile |
 | 32 | In the 56 empty-state illustration |
@@ -397,6 +397,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-16 | Order in Settings' Appearance | Icon, then Theme | **Theme, then Icon** |
 | 2026-11-16 | Settings' version row | "Version 1.6.0" in SemiBold; "You're up to date (1.6.0)." | **"Version · 1.6.0"** like "Icon · Black & White" (the value in secondary text), and **"You're up to date."**: the version is on the line above |
 | 2026-11-16 | The Manager's column labels | 5 to the right of their values (the sort header's focus frame), most visible over Runs | **Lined up with the values**, 12 in |
+| 2026-11-16 | The Manager's row menu | A 44 wide column of `...` buttons | **No column**: right-click a row, or Shift+F10 and the Menu key for the selected one. The room goes to the other columns |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

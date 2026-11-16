@@ -982,7 +982,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Manager_RowMenuButton_FitsItsCell()
+        public void Manager_HasNoMenuColumn_RightClickOrTheKeysOpenTheRowMenu()
         {
             RunSta(() =>
             {
@@ -991,17 +991,12 @@ namespace keycuts.Tests
                 var window = Host(new ManagerView(), manager);
                 try
                 {
-                    // The whole 32 button, its click area and its hover and focus look, is inside the 44 cell, centered
-                    var menuButton = Descendants<MenuButton>(window).Single();
-                    var cell = FindAncestor<DataGridCell>(menuButton);
-                    Assert.Equal((32.0, 32.0), (menuButton.ActualWidth, menuButton.ActualHeight));
-                    var left = menuButton.TranslatePoint(new Point(0, 0), cell).X;
-                    Assert.InRange(left, 5.5, 6.5);
-                    Assert.InRange(left + menuButton.ActualWidth, 0, cell.ActualWidth);
-                    // A slot narrower than the button clips it, wherever it is centered
-                    var slot = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(menuButton);
-                    Assert.True(slot.ActualWidth >= menuButton.ActualWidth, $"The button's slot is {slot.ActualWidth} wide");
-                    Assert.Null(LayoutInformation.GetLayoutClip(menuButton));
+                    // No ... button in the rows: a right-click, Shift+F10 or the Menu key opens a row's actions
+                    Assert.Empty(Descendants<MenuButton>(window));
+                    var table = Descendants<DataGrid>(window).Single();
+                    Assert.All(table.Columns, c => Assert.NotNull(c.Header));
+                    var row = (DataGridRow)table.ItemContainerGenerator.ContainerFromIndex(0);
+                    Assert.NotNull(row.ContextMenu);
                 }
                 finally
                 {
@@ -1075,9 +1070,9 @@ namespace keycuts.Tests
                     manager.MoveSelection(1);
                     Pump();
 
-                    var menuButton = Descendants<MenuButton>(window).Single();
+                    var button = Descendants<SortHeaderButton>(window).First();
 
-                    Assert.False(Press(menuButton, Key.Enter));
+                    Assert.False(Press(button, Key.Enter));
                     Assert.Empty(actions.Launched);
                 }
                 finally
@@ -1141,9 +1136,7 @@ namespace keycuts.Tests
                             "SortHeaderButton:Name",
                             "SortHeaderButton:Type",
                             "SortHeaderButton:Description",
-                            "SortHeaderButton:Target",
-                            "Actions for alpha",
-                            "Actions for bravo"
+                            "SortHeaderButton:Target"
                         },
                         TabStops(window));
                     Assert.Equal("Search keycuts", FocusedName());
@@ -1162,9 +1155,11 @@ namespace keycuts.Tests
 
         static MenuItem OpenRowMenuItem(Window window, string rowName, string header, out ContextMenu menu)
         {
-            var button = Descendants<MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for " + rowName);
-            menu = button.ContextMenu;
-            menu.PlacementTarget = button;
+            // As a right-click on the row opens it
+            var table = Descendants<DataGrid>(window).Single();
+            var row = Descendants<DataGridRow>(table).Single(r => (r.DataContext as KeycutRowViewModel)?.Name == rowName);
+            menu = row.ContextMenu;
+            menu.PlacementTarget = row;
             menu.IsOpen = true;
             Pump();
             return menu.Items.OfType<MenuItem>().Single(i => i.Header as string == header);
@@ -1260,7 +1255,7 @@ namespace keycuts.Tests
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "SortHeaderButton:Runs", "SortHeaderButton:Last run", "Actions for alpha" },
+                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "SortHeaderButton:Runs", "SortHeaderButton:Last run" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

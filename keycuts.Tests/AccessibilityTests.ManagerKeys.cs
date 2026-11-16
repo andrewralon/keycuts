@@ -207,28 +207,6 @@ namespace keycuts.Tests
             });
         }
 
-        // The row whose menu button has the focus is the row the user is on, as it is for the arrow keys
-        [Fact]
-        public void Manager_RowKeys_ActOnTheRowWhoseMenuButtonHasTheFocus()
-        {
-            WithManager(new[] { "alpha", "bravo", "charlie" }, (window, manager, actions, search) =>
-            {
-                Assert.True(Press(search, Key.Down));
-                Assert.Equal("alpha", manager.SelectedRow?.Name);
-
-                var button = Descendants<MenuButton>(window).Single(b => AutomationProperties.GetName(b) == "Actions for charlie");
-                button.Focus();
-                Keyboard.Focus(button);
-                Pump();
-                Assert.True(Keyboard.FocusedElement == button, "the menu button should have the keyboard focus");
-
-                Assert.True(Press(button, Key.O, ModifierKeys.Control | ModifierKeys.Shift));
-
-                Assert.Equal(new[] { @"C:\fixture\charlie.bat" }, actions.Located);
-                Assert.Equal("charlie", manager.SelectedRow?.Name);
-            });
-        }
-
         #endregion Copy, edit, notepad, location
 
         #region Moving further
@@ -327,7 +305,8 @@ namespace keycuts.Tests
             {
                 manager.SearchText = "br";
                 Pump();
-                var button = Descendants<MenuButton>(window).First();
+                // Somewhere else in the screen: a column's sort button
+                var button = Descendants<SortHeaderButton>(window).First();
                 button.Focus();
                 Keyboard.Focus(button);
                 Pump();
@@ -466,22 +445,63 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Manager_RowMenu_OpensUnderItsButton_RightEdgesLinedUp()
+        public void Manager_ShiftF10AndTheMenuKey_OpenTheSelectedRowsMenu_UnderTheRow()
         {
-            WithManager(new[] { "alpha" }, (window, manager, actions, search) =>
+            foreach (var (key, modifiers) in new[] { (Key.F10, ModifierKeys.Shift), (Key.Apps, ModifierKeys.None) })
             {
-                OpenRowMenuItem(window, "alpha", "Open keycut", out var menu);
-                var target = menu.PlacementTarget;
-                var placement = menu.Placement;
-                var callback = menu.CustomPopupPlacementCallback;
-                var offset = menu.HorizontalOffset;
-                menu.IsOpen = false;
+                WithManager(new[] { "alpha", "bravo" }, (window, manager, actions, search) =>
+                {
+                    Assert.True(Press(search, Key.Down));
+                    Assert.True(Press(search, Key.Down));
+                    var table = Descendants<DataGrid>(window).Single();
+                    var row = (DataGridRow)table.ItemContainerGenerator.ContainerFromItem(manager.SelectedRow);
+                    var menu = row.ContextMenu;
 
-                // A custom placement, which Windows' menu side (right-handed on touch PCs) doesn't move a menu's width to the left
-                Assert.IsType<MenuButton>(target);
-                Assert.Equal(System.Windows.Controls.Primitives.PlacementMode.Custom, placement);
-                Assert.Same(keycuts.GUI.Controls.MenuPlacement.UnderRightEdge, callback);
-                Assert.Equal(0, offset);
+                    Assert.True(Press(search, key, modifiers), key + " opens the menu");
+                    Pump();
+                    try
+                    {
+                        // The selected row's own menu, under that row where its name starts; a custom placement, which Windows'
+                        // menu side (right-handed on touch PCs) doesn't move
+                        Assert.True(menu.IsOpen);
+                        Assert.Equal("bravo", manager.SelectedRow?.Name);
+                        Assert.Same(row, menu.PlacementTarget);
+                        Assert.Equal(System.Windows.Controls.Primitives.PlacementMode.Custom, menu.Placement);
+                        Assert.Same(MenuPlacement.UnderLeftEdge, menu.CustomPopupPlacementCallback);
+                        Assert.Equal(12, menu.HorizontalOffset);
+                        Assert.Equal("Actions for bravo", AutomationProperties.GetName(menu));
+                    }
+                    finally
+                    {
+                        menu.IsOpen = false;
+                        Pump();
+                    }
+
+                    // A right-click opens it at the pointer again
+                    Assert.Equal(System.Windows.Controls.Primitives.PlacementMode.MousePoint, menu.Placement);
+                    Assert.Null(menu.CustomPopupPlacementCallback);
+                    Assert.Equal(0, menu.HorizontalOffset);
+                });
+            }
+        }
+
+        [Fact]
+        public void Manager_ShiftF10_StaysWithTheSearchBox_WhileItHasText_OrNothingIsSelected()
+        {
+            WithManager(new[] { "alpha", "bravo" }, (window, manager, actions, search) =>
+            {
+                // Nothing selected: no row to open a menu for
+                Assert.False(Press(search, Key.F10, ModifierKeys.Shift));
+                Assert.False(manager.IsMenuOpen);
+
+                // Text in the box: its own Cut, Copy, Paste menu, as Delete stays with the box then
+                manager.SearchText = "a";
+                Pump();
+                Assert.True(Press(search, Key.Down));
+                Assert.Equal("a", search.Text);
+                Assert.False(Press(search, Key.F10, ModifierKeys.Shift));
+                Assert.False(Press(search, Key.Apps));
+                Assert.False(manager.IsMenuOpen);
             });
         }
 

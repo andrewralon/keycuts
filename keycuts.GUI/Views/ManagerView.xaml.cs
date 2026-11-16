@@ -88,7 +88,7 @@ namespace keycuts.GUI.Views
         }
 
         // Double-clicking a divider is how a grid is told to fit a column to its content, and the grid does it by making the
-        // column Auto-sized. A long description then pushes the other columns, the menu button included, out of a table that
+        // column Auto-sized. A long description then pushes the other columns out of a table that
         // can't scroll sideways, and nothing puts them back until the app restarts. So a double-click on a divider does nothing.
         // PreviewMouseDoubleClick is a Direct event, so only the thumb itself sees it (the gripper style wires this up), and
         // the framework doesn't raise the MouseDoubleClick the grid listens to when this handles it.
@@ -151,6 +151,11 @@ namespace keycuts.GUI.Views
                     Table.ScrollIntoView(describing);
                     ViewModel.BeginEditDescription(describing);
                 }
+                // F10 is a system key: with Shift it comes as Key.System
+                else if (e.Key == Key.F10 || (e.Key == Key.System && e.SystemKey == Key.F10))
+                {
+                    OpenRowMenuFromKeyboard(e);
+                }
             }
             else if (modifiers == ModifierKeys.None)
             {
@@ -171,17 +176,9 @@ namespace keycuts.GUI.Views
             return e.OriginalSource is TextBox { SelectionLength: > 0 };
         }
 
-        /// <summary>
-        /// The row a key acts on: the selected one. Tabbing to a row's menu button puts the user on that row, so a key
-        /// pressed there acts on it, and the selection follows. Null with nothing selected, and the key does nothing.
-        /// </summary>
+        /// <summary>The row a key acts on: the selected one. Null with nothing selected, and the key does nothing.</summary>
         private KeycutRowViewModel? ActionRow()
         {
-            if ((Keyboard.FocusedElement as MenuButton)?.DataContext is KeycutRowViewModel focused)
-            {
-                ViewModel!.SelectedRow = focused;
-            }
-
             return ViewModel!.SelectedRow;
         }
 
@@ -257,7 +254,38 @@ namespace keycuts.GUI.Views
                     e.Handled = true;
                     _ = ViewModel!.DeleteKeycutAsync(doomed);
                     break;
+                case Key.Apps:
+                    OpenRowMenuFromKeyboard(e);
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Shift+F10 or the Menu key: the selected row's actions menu, under the row where its name starts, as a right-click opens
+        /// it at the pointer. Like Delete, the keys stay with the search box while it has text (its own Cut, Copy, Paste menu).
+        /// </summary>
+        private void OpenRowMenuFromKeyboard(KeyEventArgs e)
+        {
+            if (SearchBoxHasText(e) || ActionRow() is not { } row)
+            {
+                return;
+            }
+
+            Table.ScrollIntoView(row);
+            Table.UpdateLayout();
+
+            if (Table.ItemContainerGenerator.ContainerFromItem(row) is not DataGridRow container || container.ContextMenu is not { } menu)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            menu.PlacementTarget = container;
+            menu.Placement = PlacementMode.Custom;
+            menu.CustomPopupPlacementCallback = MenuPlacement.UnderLeftEdge;
+            // Where the name cell's text starts
+            menu.HorizontalOffset = 12;
+            menu.IsOpen = true;
         }
 
         /// <summary>How far Page Up and Page Down move: the rows the table shows, less one so the last one stays in view.</summary>
@@ -268,28 +296,13 @@ namespace keycuts.GUI.Views
 
         private void MoveSelection(KeyEventArgs e, Func<ManagerViewModel, bool> move)
         {
-            // Tabbing to a row's menu button puts the user on that row, so move from there and keep the focus with the selection
-            var focusedRow = (Keyboard.FocusedElement as MenuButton)?.DataContext as KeycutRowViewModel;
-
-            if (focusedRow != null)
-            {
-                ViewModel!.SelectedRow = focusedRow;
-            }
-
             if (!move(ViewModel!))
             {
                 return;
             }
 
             e.Handled = true;
-
-            var row = ViewModel!.SelectedRow!;
-            Table.ScrollIntoView(row);
-
-            if (focusedRow != null)
-            {
-                FocusRowMenuButton(row);
-            }
+            Table.ScrollIntoView(ViewModel!.SelectedRow!);
         }
 
         #region Rename
@@ -526,44 +539,7 @@ namespace keycuts.GUI.Views
                 return;
             }
 
-            var menu = (ContextMenu)FindResource("RowMenu");
-            menu.Placement = PlacementMode.MousePoint;
-            menu.CustomPopupPlacementCallback = null;
-            menu.VerticalOffset = 0;
-            e.Row.ContextMenu = menu;
-        }
-
-        private void RowMenu_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not MenuButton button || button.ContextMenu == null)
-            {
-                return;
-            }
-
-            var menu = button.ContextMenu;
-
-            // A click on the button while its menu is open dismisses the menu first, so don't reopen it.
-            if (menu.IsOpen || (Environment.TickCount64 - menuClosedAtTick < 250 && button.IsMouseOver))
-            {
-                menu.IsOpen = false;
-                return;
-            }
-
-            menu.PlacementTarget = button;
-            menu.IsOpen = true;
-        }
-
-        private void RowMenu_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            var altDown = (e.Key == Key.Down && e.KeyboardDevice.Modifiers == ModifierKeys.Alt) ||
-                          (e.Key == Key.System && e.SystemKey == Key.Down);
-
-            if (altDown && sender is MenuButton button && button.ContextMenu != null)
-            {
-                e.Handled = true;
-                button.ContextMenu.PlacementTarget = button;
-                button.ContextMenu.IsOpen = true;
-            }
+            e.Row.ContextMenu = (ContextMenu)FindResource("RowMenu");
         }
 
         private void RowMenu_Opened(object sender, RoutedEventArgs e)
@@ -587,7 +563,6 @@ namespace keycuts.GUI.Views
                 ViewModel.IsMenuOpen = true;
             }
 
-            (menu.PlacementTarget as MenuButton)?.RaiseMenuStateChanged(false);
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
             {
                 if (menu.IsOpen && menu.ItemContainerGenerator.ContainerFromIndex(0) is MenuItem first)
@@ -617,7 +592,10 @@ namespace keycuts.GUI.Views
                 }
             }
 
-            (menu.PlacementTarget as MenuButton)?.RaiseMenuStateChanged(true);
+            // Opened from the keyboard, it was placed under its row; a right-click opens it at the pointer again
+            menu.Placement = PlacementMode.MousePoint;
+            menu.CustomPopupPlacementCallback = null;
+            menu.HorizontalOffset = 0;
         }
 
         private void RowMenuPopup_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -625,35 +603,31 @@ namespace keycuts.GUI.Views
             if (e.Key == Key.Escape)
             {
                 e.Handled = true;
-                var menu = (ContextMenu)sender;
-                menu.IsOpen = false;
-                menu.PlacementTarget?.Focus();
+                ((ContextMenu)sender).IsOpen = false;
+                FocusSearchBox();
             }
         }
 
-        // After a non-destructive action the focus goes back to the row's menu button.
+        // Rows take no focus, so after a non-destructive action the focus goes back to the search box, where the row keys work
         private void SafeItem_Click(object sender, RoutedEventArgs e)
         {
-            if (ItemsControl.ItemsControlFromItemContainer((MenuItem)sender) is ContextMenu menu &&
-                menu.PlacementTarget is UIElement button)
-            {
-                Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => button.Focus()));
-            }
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(FocusSearchBox));
         }
 
-        // After a delete the focus moves to the next row's menu button, or to the search box (or the create button) if no rows are left.
+        // After a delete, a restore or an edit in place: the row comes into view, and the focus goes to the search box (or the
+        // create button while there are no keycuts), where the row keys act on the selected row.
         private void ViewModel_FocusRowRequested(object? sender, KeycutRowViewModel? row)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
-                if (row != null && FocusRowMenuButton(row))
+                if (row != null)
                 {
-                    return;
+                    Table.ScrollIntoView(row);
                 }
 
                 if (SearchBox.IsEnabled)
                 {
-                    SearchBox.Focus();
+                    FocusSearchBox();
                 }
                 else
                 {
@@ -662,43 +636,13 @@ namespace keycuts.GUI.Views
             }));
         }
 
-        private bool FocusRowMenuButton(KeycutRowViewModel row)
+        private void FocusSearchBox()
         {
-            Table.ScrollIntoView(row);
-            Table.UpdateLayout();
-
-            if (Table.ItemContainerGenerator.ContainerFromItem(row) is DataGridRow container &&
-                FindDescendant<MenuButton>(container) is MenuButton button)
+            if (SearchBox.IsEnabled)
             {
-                button.Focus();
-                Keyboard.Focus(button);
-                return true;
+                SearchBox.Focus();
+                Keyboard.Focus(SearchBox);
             }
-
-            return false;
-        }
-
-        private static T? FindDescendant<T>(DependencyObject parent)
-            where T : DependencyObject
-        {
-            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-
-                if (child is T match)
-                {
-                    return match;
-                }
-
-                var found = FindDescendant<T>(child);
-
-                if (found != null)
-                {
-                    return found;
-                }
-            }
-
-            return null;
         }
 
         #endregion Row actions menu

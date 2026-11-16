@@ -24,7 +24,7 @@ Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
   <img src="docs/images/creator-light.png" alt="The creator." width="580">
 </picture>
 
-**Manage:** add keycuts from the row at the top, search, sort, open, rename, edit, delete (with undo). Missing targets are flagged. Each keycut counts its runs, so sorting by **Runs** or **Last run** shows which ones you never use.
+**Manage:** add keycuts from the row at the top, search, sort, and right-click a keycut to open, rename, edit or delete it (with undo). Missing targets are flagged. Each keycut counts its runs, so sorting by **Runs** or **Last run** shows which ones you never use.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark.png">

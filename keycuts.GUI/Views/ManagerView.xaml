@@ -104,7 +104,7 @@
       <Setter Property="Tag" Value="NoRightGripper" />
     </Style>
 
-    <!-- The fixed columns (Modified, the menu): their left divider would resize the column before them, whose right edge is pinned -->
+    <!-- The fixed columns (Modified, Runs, Last run): their left divider would resize the column before them, whose right edge is pinned -->
     <Style x:Key="ManagerHeaderFixed" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ManagerHeader}">
       <Setter Property="Tag" Value="NoGrippers" />
     </Style>
@@ -231,11 +231,6 @@
       </Setter>
     </Style>
 
-    <!-- The menu column is 44 wide: the 32 button needs the whole cell, centered, not the text cells' 12 at each side -->
-    <Style x:Key="ManagerMenuCell" TargetType="DataGridCell" BasedOn="{StaticResource ManagerCell}">
-      <Setter Property="Padding" Value="0" />
-    </Style>
-
     <Style x:Key="ManagerTable" TargetType="DataGrid">
       <Setter Property="AutoGenerateColumns" Value="False" />
       <Setter Property="IsReadOnly" Value="True" />
@@ -304,10 +299,9 @@
     </Style>
 
     <!-- A row's actions: each row gets its own copy (x:Shared="False"), so the menu's bindings follow that row. 250 wide for the
-         key names beside the items. Right-clicking a row opens it at the pointer; the row's ... button opens it under the button, its
-         right edge under the button's, on right-handed PCs too. -->
-    <ContextMenu x:Key="RowMenu" x:Shared="False" Width="250" Placement="Custom" VerticalOffset="4"
-                 CustomPopupPlacementCallback="{x:Static controls:MenuPlacement.UnderRightEdge}"
+         key names beside the items. Right-clicking a row opens it at the pointer; Shift+F10 or the Menu key opens the selected
+         row's under that row (ManagerView.OpenRowMenuFromKeyboard). A screen reader names it after its keycut. -->
+    <ContextMenu x:Key="RowMenu" x:Shared="False" Width="250" AutomationProperties.Name="{Binding ActionsLabel}"
                  Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
       <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
         <MenuItem.Icon>
@@ -347,7 +341,7 @@
           <controls:Icon Kind="Copy" Size="16" />
         </MenuItem.Icon>
       </MenuItem>
-      <!-- No SafeItem_Click: the focus goes to the name box, not back to the menu button -->
+      <!-- No SafeItem_Click: the focus goes to the name or description box -->
       <MenuItem Header="Rename" InputGestureText="F2" Command="{Binding RenameCommand}" />
       <MenuItem Header="Edit description" InputGestureText="Shift+F2" Command="{Binding EditDescriptionCommand}" />
       <Separator />
@@ -454,7 +448,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <!-- Type, Modified and the menu are fixed: the same MinWidth as Width, or the grid squeezes them to its default 20
+            <!-- Type, Modified, Runs and Last run are fixed: the same MinWidth as Width, or the grid squeezes them to its default 20
                  when the table jumps narrower than all the columns need (a snap, a restore), and keeps them squeezed after the
                  Modified column has made way again -->
             <DataGridTemplateColumn Width="110" MinWidth="110" CanUserResize="False">
@@ -543,20 +537,6 @@
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <TextBlock Style="{StaticResource CellText}" Text="{Binding LastRunText}" ToolTip="{Binding RunsTooltip}" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-            <DataGridTemplateColumn Width="44" MinWidth="44" CanUserResize="False" HeaderStyle="{StaticResource ManagerHeaderFixed}"
-                                    CellStyle="{StaticResource ManagerMenuCell}">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <controls:MenuButton Style="{StaticResource IconButton}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       AutomationProperties.Name="{Binding ActionsLabel}"
-                                       Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown"
-                                       ContextMenu="{StaticResource RowMenu}">
-                    <controls:Icon Kind="More" Size="16" />
-                  </controls:MenuButton>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>

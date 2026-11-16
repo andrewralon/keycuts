@@ -67,9 +67,6 @@ namespace keycuts.GUI.ViewModels
 
         public const string UpdateCheckFailedMessage = "Couldn\u2019t check for updates.";
 
-        /// <summary>The note near the bottom of the screen, since there is no Save button.</summary>
-        public const string SavedAsYouGoNote = "Changes are saved as you make them.";
-
         private readonly ISettingsStore store;
 
         private readonly Func<string, string?> pickFolder;

@@ -1018,7 +1018,7 @@ namespace keycuts.Tests
         #region Screen (#218)
 
         [Fact]
-        public void Screen_HasNoHeadingNoSaveButton_AndSaysChangesAreSaved()
+        public void Screen_HasNoHeadingNoSaveButton_AndNoNoteAboutSaving()
         {
             RunSta(() =>
             {
@@ -1034,12 +1034,9 @@ namespace keycuts.Tests
                     Assert.Null(window.FindName("BtnSave"));
                     Assert.DoesNotContain(Descendants<Button>(window), b => b.IsDefault || b.IsCancel);
 
-                    var note = (FrameworkElement)window.FindName("SavedNote");
-                    Assert.True(note.IsVisible);
-                    Assert.Contains(SettingsViewModel.SavedAsYouGoNote, texts);
-                    Assert.Equal(12, Descendants<keycuts.GUI.Controls.Icon>(note).Single().Size);
-                    var noteText = Descendants<TextBlock>(note).Single();
-                    Assert.Same(Application.Current.FindResource("Caption"), noteText.Style);
+                    // Saving as you go goes without saying: no note about it
+                    Assert.Null(window.FindName("SavedNote"));
+                    Assert.DoesNotContain(texts, t => t.StartsWith("Changes are saved", StringComparison.Ordinal));
 
                     // The last row: show welcome at the left, restore defaults at the right, both lowercase
                     var welcome = (Button)window.FindName("BtnShowWelcome");

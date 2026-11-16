@@ -299,15 +299,9 @@
           <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Style="{StaticResource ErrorText}" Margin="0,16,0,0"
                      Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVisibility}}" />
 
-          <!-- There is no Save button, so the page says so -->
-          <StackPanel x:Name="SavedNote" Orientation="Horizontal" Margin="0,24,0,0">
-            <controls:Icon Kind="Check" Size="12" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="{x:Static vm:SettingsViewModel.SavedAsYouGoNote}" Style="{StaticResource Caption}" Margin="4,0,0,0"
-                       VerticalAlignment="Center" />
-          </StackPanel>
-
-          <!-- Show welcome goes back to the creator with the first-run panel; restore defaults asks first, never touches the folder -->
-          <Grid Margin="0,16,0,0">
+          <!-- Show welcome goes back to the creator with the first-run panel; restore defaults asks first, never touches the folder.
+               24 above, as between sections. -->
+          <Grid Margin="0,24,0,0">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
               <ColumnDefinition Width="*" />

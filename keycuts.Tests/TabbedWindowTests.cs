@@ -194,7 +194,10 @@ namespace keycuts.Tests
                     var peer = TabPeer(window, tabName);
                     Assert.Equal(AutomationControlType.TabItem, peer.GetAutomationControlType());
                     Assert.Equal(name, peer.GetName());
-                    Assert.Equal(name, tab.ToolTip);
+                    // The key that picks it, in the tooltip after the name and as the accelerator a screen reader reads
+                    var number = Array.IndexOf(new[] { "creator", "manager", "settings" }, name) + 1;
+                    Assert.Equal(name + " (Ctrl+" + number + ")", tab.ToolTip);
+                    Assert.Equal("Ctrl+" + number, AutomationProperties.GetAcceleratorKey(tab));
                 }
 
                 // The gear is the tab, with no text of its own
@@ -405,6 +408,57 @@ namespace keycuts.Tests
                 Assert.Equal(workArea.Left + 8, window.Left, 0.5);
                 Assert.Equal(workArea.Top + 4, window.Top, 0.5);
             });
+        }
+
+        /// <summary>A key that reaches the window, as one no control took bubbles up to it. True if the window took it.</summary>
+        static bool KeyDown(UIElement source, Key key, ModifierKeys modifiers)
+        {
+            var args = new KeyEventArgs(new FakeKeyboardDevice(modifiers), PresentationSource.FromVisual(source), 0, key)
+            {
+                RoutedEvent = Keyboard.KeyDownEvent
+            };
+            source.RaiseEvent(args);
+            return args.Handled;
+        }
+
+        [Fact]
+        public void CtrlOneTwoAndThree_PickTheTabs_LeftToRight()
+        {
+            WithWindow((window, shell) =>
+            {
+                var rail = (RailTabControl)Named(window, "TabStrip");
+
+                // From anywhere in the window, a text box included, and from the number pad too
+                foreach (var (key, mode, tab) in new[]
+                {
+                    (Key.D2, ShellMode.Manager, "ManagerTab"),
+                    (Key.D3, ShellMode.Settings, "SettingsTab"),
+                    (Key.D1, ShellMode.Creator, "CreatorTab"),
+                    (Key.NumPad2, ShellMode.Manager, "ManagerTab")
+                })
+                {
+                    var box = Descendants<TextBox>(window).First(t => t.IsVisible);
+                    Assert.True(KeyDown(box, key, ModifierKeys.Control), key + " is taken");
+                    Settle(window);
+                    Assert.Equal(mode, shell.Mode);
+                    Assert.Same(Named(window, tab), rail.SelectedItem);
+                }
+
+                // Not without Ctrl, nor with Ctrl+Shift
+                Assert.False(KeyDown(window, Key.D1, ModifierKeys.None));
+                Assert.False(KeyDown(window, Key.D1, ModifierKeys.Control | ModifierKeys.Shift));
+                Assert.Equal(ShellMode.Manager, shell.Mode);
+
+                // While the icon picker has the tabs off, the keys don't switch either
+                shell.ShowSettings();
+                Settle(window);
+                shell.Settings!.IsIconPickerOpen = true;
+                Settle(window);
+                Assert.True(KeyDown(window, Key.D1, ModifierKeys.Control));
+                Settle(window);
+                Assert.Equal(ShellMode.Settings, shell.Mode);
+                shell.Settings.IsIconPickerOpen = false;
+            }, withSettings: true);
         }
 
         [Fact]

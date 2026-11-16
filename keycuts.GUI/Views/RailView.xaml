@@ -45,11 +45,14 @@
                                shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                IsEnabled="{Binding AreTabsEnabled, FallbackValue=True}"
                                AutomationProperties.Name="Screens">
-        <!-- Text only: the tab is as wide as its name plus the padding and the slant -->
-        <TabItem x:Name="CreatorTab" Header="creator" AutomationProperties.Name="creator" ToolTip="creator" />
-        <TabItem x:Name="ManagerTab" Header="manager" AutomationProperties.Name="manager" ToolTip="manager" />
+        <!-- Text only: the tab is as wide as its name plus the padding and the slant. Ctrl+1, 2 and 3 pick the tabs (MainWindow). -->
+        <TabItem x:Name="CreatorTab" Header="creator" AutomationProperties.Name="creator" AutomationProperties.AcceleratorKey="Ctrl+1"
+                 ToolTip="creator (Ctrl+1)" />
+        <TabItem x:Name="ManagerTab" Header="manager" AutomationProperties.Name="manager" AutomationProperties.AcceleratorKey="Ctrl+2"
+                 ToolTip="manager (Ctrl+2)" />
         <!-- The gear alone: the tooltip and the automation name say what it is -->
-        <TabItem x:Name="SettingsTab" AutomationProperties.Name="settings" ToolTip="settings">
+        <TabItem x:Name="SettingsTab" AutomationProperties.Name="settings" AutomationProperties.AcceleratorKey="Ctrl+3"
+                 ToolTip="settings (Ctrl+3)">
           <TabItem.Header>
             <controls:Icon Kind="Settings" Size="16" />
           </TabItem.Header>

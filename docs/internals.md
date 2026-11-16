@@ -5,6 +5,7 @@ Behavior that spans several files. Read the section before changing that area. P
 ## Window and shell
 
 - One window, three screens (`ShellMode`). The top row is `RailView`: a `RailTabControl` (a `TabControl` showing only headers, so screen readers get a real tab list) plus our own caption buttons. `WindowChrome` makes the bar draggable; tabs and buttons are `IsHitTestVisibleInChrome`. No tab keyboard shortcuts.
+- Ctrl+1, Ctrl+2 and Ctrl+3 pick the tabs (`MainWindow.Main_KeyDown`, on the bubbling `KeyDown`, so a control that wants the key keeps it); not while `AreTabsEnabled` is off.
 - Never maximized: `NoMaximizeHook` strips `WS_MAXIMIZEBOX`, refuses `SC_MAXIMIZE` and undoes `WindowState.Maximized`. The Manager and Settings keep resize edges and side snapping. Resize border is 0 on the Creator and `WindowLayout.GetFrameThickness` on the Manager and Settings.
 - A selected tab's shadow is its own shape (`Shadow` in `RailTabItem`). A shared effect set from a trigger can't be frozen and fails across test threads.
 - Two sizes (`MainWindow.ApplyMode`). Small, the Creator: MainWidth, `SizeToContent.Height`, no resize border. Large, the Manager and Settings: one shared, resizable size (`largeSize`, 960 × 540 until the window first leaves it), clamped to the work area. Switching between the two large screens touches nothing, so resizing either resizes both; Settings never grows the window and scrolls instead. The window keeps its top-left corner both ways: a Manager moved elsewhere leaves the Creator there too.

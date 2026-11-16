@@ -126,6 +126,18 @@ namespace keycuts.GUI
                 return;
             }
 
+            // Ctrl+1, Ctrl+2 and Ctrl+3 pick the tabs left to right, as in a browser; nothing while the tabs are off (the icon picker)
+            if (e.KeyboardDevice.Modifiers == ModifierKeys.Control && TabNumber(e.Key) is int tab)
+            {
+                e.Handled = true;
+                if (shell.AreTabsEnabled)
+                {
+                    ShowTab(tab);
+                }
+
+                return;
+            }
+
             if (e.Key != Key.Escape)
             {
                 return;
@@ -135,6 +147,35 @@ namespace keycuts.GUI
             if (shell.HandleEscape() == EscapeResult.CloseWindow)
             {
                 Close();
+            }
+        }
+
+        private static int? TabNumber(Key key)
+        {
+            return key switch
+            {
+                Key.D1 or Key.NumPad1 => 1,
+                Key.D2 or Key.NumPad2 => 2,
+                Key.D3 or Key.NumPad3 => 3,
+                _ => null
+            };
+        }
+
+        private void ShowTab(int tab)
+        {
+            switch (tab)
+            {
+                case 1:
+                    shell.ShowCreator();
+                    break;
+                case 2:
+                    shell.ShowManager();
+                    break;
+                default:
+                    shell.ShowSettings();
+                    // Without a way to make its screen (a test's shell), Settings can't open, and the screen's own tab stays selected
+                    SelectTabForMode();
+                    break;
             }
         }
 

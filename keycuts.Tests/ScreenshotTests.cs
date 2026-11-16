@@ -112,24 +112,25 @@ namespace keycuts.Tests
             creator.ShortcutName = "gmail";
             Render(HideCarets(HostWithTabs(new CreatorView(), creator, rail => rail.CreatorItem, null)), folder, "creator-" + suffix);
 
-            // The Manager's table keeps the height it had before the tab bar (#218): 560 under the bar
-            var manager = new ManagerViewModel(noop, noop);
+            // The Manager and Settings at the large size the window opens them at. The Manager's create row is empty, ready for a keycut.
+            var manager = new ManagerViewModel(noop, noop)
+            {
+                CreateRow = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { DescriptionAlwaysShown = true, ClearsAfterCreate = true }
+            };
             manager.ShowKeycuts(SampleKeycuts());
-            Render(HideCarets(HostWithTabs(new ManagerView(), manager, rail => rail.ManagerItem, 960, 560 + RailHeight)), folder, "manager-" + suffix);
+            Render(HideCarets(HostWithTabs(new ManagerView(), manager, rail => rail.ManagerItem, WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)), folder, "manager-" + suffix);
 
             // Settings (#218, a screen of the main window), with the update row the real app has (#171) but without the version
             // row (the version and check now), so the screenshot doesn't go stale at every release. Its footer is the creator's.
             var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState());
             var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersionRow = false, Footer = creator };
-            Render(HideCarets(HostWithTabs(new SettingsView(), settings, rail => rail.SettingsItem, null)), folder, "settings-" + suffix);
+            Render(HideCarets(HostWithTabs(new SettingsView(), settings, rail => rail.SettingsItem, WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)), folder, "settings-" + suffix);
         }
-
-        private const double RailHeight = 48;
 
         /// <summary>
         /// A screen under the tab bar, as the main window shows it (#218), with its tab selected. Not the main window itself: that
-        /// would make the shell's own view models, and the creator's name check would read the real PATH. The fixed-size screens are
-        /// MainWidth wide. Maximize is off on every screen, as in the app.
+        /// would make the shell's own view models, and the creator's name check would read the real PATH. The Creator is MainWidth
+        /// wide, the others take the size they are given. Maximize is off on every screen, as in the app.
         /// </summary>
         private static Window HostWithTabs(FrameworkElement view, object viewModel, Func<RailView, TabItem> tab, double? width, double? height = null)
         {

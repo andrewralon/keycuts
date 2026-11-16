@@ -368,7 +368,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Window_TheIconRowIsFirstInAppearance_AndItsButtonShowsTheCurrentIcon()
+        public void Window_TheIconRowFollowsTheTheme_AndItsButtonShowsTheCurrentIcon()
         {
             RunSta(() =>
             {
@@ -378,7 +378,7 @@ namespace keycuts.Tests
                 {
                     var button = (Button)window.FindName("BtnIcon");
                     var themes = (Panel)window.FindName("ThemeChoices");
-                    Assert.True(button.TranslatePoint(new Point(0, 0), window).Y < themes.TranslatePoint(new Point(0, 0), window).Y);
+                    Assert.True(button.TranslatePoint(new Point(0, 0), window).Y > themes.TranslatePoint(new Point(0, 0), window).Y);
                     Assert.Equal("Icon: Black & White. Change", AutomationProperties.GetName(button));
                     Assert.Equal("Porcelain in light mode, Onyx in dark mode.", ((TextBlock)window.FindName("IconDescription")).Text);
 

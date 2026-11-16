@@ -388,6 +388,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-16 | Large size at first | 960 × 700 | **960 × 540**: the owner's pick from the running app. Settings still fits in two columns without scrolling |
 | 2026-11-16 | Settings' "Changes are saved as you make them." | A `Caption` note with a check above the last row | **Gone**: with no Save button, saving as you go is what people expect |
 | 2026-11-16 | The Creator's description label | "Add a description (optional)" while the box is hidden, "Description (optional)" while it shows | **"Description (optional)" both ways**; it is still the button that shows and hides the box |
+| 2026-11-16 | Order in Settings' Appearance | Icon, then Theme | **Theme, then Icon** |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

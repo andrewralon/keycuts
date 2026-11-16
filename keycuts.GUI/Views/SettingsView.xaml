@@ -223,9 +223,26 @@
 
         <!-- Its first section label starts at the top of the page beside the left column's; stacked, 24 under the left column -->
         <StackPanel x:Name="RightColumn" Grid.Row="0" Grid.Column="2">
-          <!-- Appearance. The icon: its name and what it does, and the icon itself as the button that opens the picker. -->
+          <!-- Appearance. The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
           <controls:SectionLabel Text="Appearance" />
           <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Theme" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
+            <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+              <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
+                           AutomationProperties.Name="System theme" Checked="Theme_Checked" Margin="0,0,16,0" />
+              <RadioButton Content="Light" GroupName="Theme" Tag="{x:Static common:ThemePreference.Light}"
+                           AutomationProperties.Name="Light theme" Checked="Theme_Checked" Margin="0,0,16,0" />
+              <RadioButton Content="Dark" GroupName="Theme" Tag="{x:Static common:ThemePreference.Dark}"
+                           AutomationProperties.Name="Dark theme" Checked="Theme_Checked" />
+            </StackPanel>
+          </Grid>
+
+          <!-- The icon: its name and what it does, and the icon itself as the button that opens the picker -->
+          <Grid Style="{StaticResource SettingRow}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
@@ -240,23 +257,6 @@
             <Button x:Name="BtnIcon" Grid.Column="1" Margin="16,0,0,0" Padding="4" VerticalAlignment="Center"
                     Command="{Binding OpenIconPickerCommand}" Content="{Binding SelectedIcon}" ContentTemplate="{StaticResource IconPreview}"
                     ToolTip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
-          </Grid>
-
-          <!-- The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
-          <Grid Style="{StaticResource SettingRow}">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Theme" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
-            <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
-              <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
-                           AutomationProperties.Name="System theme" Checked="Theme_Checked" Margin="0,0,16,0" />
-              <RadioButton Content="Light" GroupName="Theme" Tag="{x:Static common:ThemePreference.Light}"
-                           AutomationProperties.Name="Light theme" Checked="Theme_Checked" Margin="0,0,16,0" />
-              <RadioButton Content="Dark" GroupName="Theme" Tag="{x:Static common:ThemePreference.Dark}"
-                           AutomationProperties.Name="Dark theme" Checked="Theme_Checked" />
-            </StackPanel>
           </Grid>
 
           <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->

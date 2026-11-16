@@ -424,6 +424,26 @@ namespace keycuts.Tests
             });
         }
 
+        [Fact]
+        public void Manager_RowMenu_OpensUnderItsButton_RightEdgesLinedUp()
+        {
+            WithManager(new[] { "alpha" }, (window, manager, actions, search) =>
+            {
+                OpenRowMenuItem(window, "alpha", "Open keycut", out var menu);
+                var target = menu.PlacementTarget;
+                var placement = menu.Placement;
+                var callback = menu.CustomPopupPlacementCallback;
+                var offset = menu.HorizontalOffset;
+                menu.IsOpen = false;
+
+                // A custom placement, which Windows' menu side (right-handed on touch PCs) doesn't move a menu's width to the left
+                Assert.IsType<MenuButton>(target);
+                Assert.Equal(System.Windows.Controls.Primitives.PlacementMode.Custom, placement);
+                Assert.Same(keycuts.GUI.Controls.MenuPlacement.UnderRightEdge, callback);
+                Assert.Equal(0, offset);
+            });
+        }
+
         #endregion The menu shows the keys
     }
 }

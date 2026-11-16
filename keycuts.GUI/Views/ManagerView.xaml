@@ -499,8 +499,9 @@
                                        Click="RowMenu_Click" PreviewKeyDown="RowMenu_PreviewKeyDown">
                     <controls:Icon Kind="More" Size="16" />
                     <Button.ContextMenu>
-                      <!-- 250 wide for the key names beside the items; the offset keeps the menu's right edge under the button (250 - 32) -->
-                      <ContextMenu Width="250" Placement="Bottom" HorizontalOffset="-218" VerticalOffset="4"
+                      <!-- 250 wide for the key names beside the items; its right edge under the button's, on right-handed PCs too -->
+                      <ContextMenu Width="250" Placement="Custom" VerticalOffset="4"
+                                   CustomPopupPlacementCallback="{x:Static controls:MenuPlacement.UnderRightEdge}"
                                    Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
                         <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
                           <MenuItem.Icon>

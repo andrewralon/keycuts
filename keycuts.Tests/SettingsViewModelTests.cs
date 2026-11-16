@@ -1082,7 +1082,7 @@ namespace keycuts.Tests
                         {
                             "Output folder", "Choose a folder", "Open the output folder", "Ask before replacing a keycut", "Right-click context menus",
                             "Use environment variables in paths", "Icon: Black & White. Change", "System theme", "Light theme", "Dark theme",
-                            "Check for updates", "show the welcome panel", "restore defaults"
+                            "Check for updates daily", "show the welcome panel", "restore defaults"
                         },
                         stops);
                 }
@@ -1383,11 +1383,11 @@ namespace keycuts.Tests
                     var texts = Descendants<TextBlock>(window).Where(t => t.IsVisible).Select(t => t.Text).ToList();
 
                     Assert.DoesNotContain(texts, t => t.StartsWith("Confirm before a new keycut", StringComparison.Ordinal));
-                    Assert.Contains("Once a day, ask GitHub whether a newer version is out.", texts);
+                    Assert.Contains("Check for updates daily", texts);
+                    Assert.DoesNotContain(texts, t => t.StartsWith("Once a day", StringComparison.Ordinal));
                     Assert.Contains(@"Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.", texts);
 
-                    Assert.Equal("Once a day, ask GitHub whether a newer version is out.",
-                        AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleCheckForUpdates")));
+                    Assert.Equal("", AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleCheckForUpdates")));
                     Assert.Equal("Confirm before a new keycut replaces one with the same name.",
                         AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleAskBeforeReplacing")));
 
@@ -1644,7 +1644,7 @@ namespace keycuts.Tests
                     var toggles = Descendants<ToggleButton>(window).Where(t => t is not RadioButton).ToList();
 
                     Assert.Equal(
-                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Check for updates" },
+                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Check for updates daily" },
                         toggles.Select(AutomationProperties.GetName));
                     Assert.All(toggles, toggle => Assert.NotNull(UIElementAutomationPeer.CreatePeerForElement(toggle).GetPattern(PatternInterface.Toggle)));
                 }

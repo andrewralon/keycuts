@@ -333,7 +333,7 @@ Not elsewhere: the Creator's target placeholder "Drop or paste a file, folder, U
 ### Punctuation
 
 - **No period** on labels, buttons, menu items, tooltips that are fragments, column headers, headings and placeholders.
-- **Periods** on full sentences: notes, helper text, messages, errors. A setting's note is a sentence ("Once a day, ask GitHub whether a newer version is out.").
+- **Periods** on full sentences: notes, helper text, messages, errors. A setting's note is a sentence ("Add “keycut this!” to File Explorer menus.").
 - **Exclamation marks** only in the four places that have them ([decision](#decisions)): "Welcome to keycuts!", the Explorer verb "keycut this!", "Created. Now try it out!" and the Classic icon's description. Nowhere else.
 - **Apostrophes and quotes** in the GUI are typographic: `’` and `“ ”`. Today the GUI mixes them with `'` ("Can't load your keycuts", "Couldn't delete"). The CLI's console output stays plain ASCII, because the console's code page may not show them.
 - **Em dash** without spaces around it ("dashes, or dots—no \ / :"). Better still, rewrite the sentence without one.

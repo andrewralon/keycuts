@@ -266,13 +266,9 @@
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel>
-              <TextBlock Text="Check for updates" Style="{StaticResource SettingName}" />
-              <TextBlock Text="Once a day, ask GitHub whether a newer version is out." Style="{StaticResource SettingNote}" />
-            </StackPanel>
+            <TextBlock Text="Check for updates daily" Style="{StaticResource SettingName}" VerticalAlignment="Center" />
             <ToggleButton x:Name="ToggleCheckForUpdates" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                          VerticalAlignment="Center" IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates"
-                          AutomationProperties.HelpText="Once a day, ask GitHub whether a newer version is out." />
+                          VerticalAlignment="Center" IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates daily" />
           </Grid>
 
           <!-- The version, the update status and check now: hidden only for the README's screenshots -->

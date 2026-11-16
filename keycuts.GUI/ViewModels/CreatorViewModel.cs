@@ -267,8 +267,8 @@ namespace keycuts.GUI.ViewModels
         public AsyncRelayCommand CreateCommand { get; }
 
         /// <summary>
-        /// The description label: "Add a description (optional)" shows the field and moves the focus into it, "Description (optional)"
-        /// hides it again. Either way the choice is remembered.
+        /// The description label, "Description (optional)" either way: it shows the field and moves the focus into it, or hides it
+        /// again. Either way the choice is remembered.
         /// </summary>
         public ICommand ToggleDescriptionCommand { get; }
 
@@ -548,23 +548,25 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public bool ClearsAfterCreate { get; init; }
 
-        /// <summary>The label says "Add a description (optional)" because the field is hidden.</summary>
+        /// <summary>The field is hidden, and pressing the label shows it.</summary>
         public bool ShowAddDescription
         {
             get { return !isDescriptionVisible; }
         }
 
-        /// <summary>The label above the description field, which is also the button that hides it.</summary>
+        /// <summary>The label above the description field, which is also the button that shows or hides it. The same both ways.</summary>
         public string DescriptionToggleText
         {
-            get { return isDescriptionVisible ? "Description (optional)" : "Add a description (optional)"; }
+            get { return DescriptionLabel; }
         }
 
-        /// <summary>What a screen reader calls the label button: what pressing it does.</summary>
+        /// <summary>What a screen reader calls the label button: the label, or what pressing it does while the field is shown.</summary>
         public string DescriptionToggleName
         {
-            get { return isDescriptionVisible ? "Hide description" : "Add a description (optional)"; }
+            get { return isDescriptionVisible ? "Hide description" : DescriptionLabel; }
         }
+
+        private const string DescriptionLabel = "Description (optional)";
 
         private void ToggleDescription()
         {

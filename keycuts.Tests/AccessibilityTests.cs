@@ -206,12 +206,12 @@ namespace keycuts.Tests
                 try
                 {
                     var stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Add a description (optional)" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Description (optional)" }, stops);
 
                     creator.ShortcutName = "ex";
                     Pump();
                     stops = TabStops(window);
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, stops);
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)" }, stops);
 
                     creator.IsSaving = true;
                     Pump();
@@ -224,8 +224,8 @@ namespace keycuts.Tests
             });
         }
 
-        // #162, #205: the description label is a button. "Add a description (optional)" shows a named field that follows Create (Enter there
-        // creates), and "Description (optional)", now named "Hide description", hides it again
+        // #162, #205: the description label, "Description (optional)", is a button. It shows a named field that follows Create (Enter there
+        // creates), and the same label, now named "Hide description", hides it again
         [Fact]
         public void Creator_TheDescriptionLabel_ShowsANamedField_AndHidesItAgain()
         {
@@ -240,7 +240,7 @@ namespace keycuts.Tests
                     var box = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Description");
                     Assert.True(toggle.IsVisible);
                     Assert.False(box.IsVisible);
-                    Assert.Equal("Add a description (optional)", toggle.Content);
+                    Assert.Equal("Description (optional)", toggle.Content);
 
                     toggle.Command.Execute(null);
                     Pump();
@@ -258,7 +258,7 @@ namespace keycuts.Tests
                     Pump();
 
                     Assert.False(box.IsVisible);
-                    Assert.Equal("Add a description (optional)", toggle.Content);
+                    Assert.Equal("Description (optional)", toggle.Content);
                 }
                 finally
                 {
@@ -288,13 +288,13 @@ namespace keycuts.Tests
                         {
                             "got it",
                             "URL google.com, creates the keycut g", "Folder Downloads, creates the keycut dl", "File keycuts, creates the keycut kc",
-                            "Target", "Browse", "keycut name", "Create", "Add a description (optional)"
+                            "Target", "Browse", "keycut name", "Create", "Description (optional)"
                         },
                         TabStops(window));
 
                     welcome.Dismiss();
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)" }, TabStops(window));
                 }
                 finally
                 {
@@ -368,14 +368,14 @@ namespace keycuts.Tests
                 try
                 {
                     Assert.Equal(
-                        new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)", "Dismiss update notice" },
+                        new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)", "Dismiss update notice" },
                         TabStops(window));
                     var link = (System.Windows.Documents.Hyperlink)Descendants<FooterView>(window).Single().FindName("UpdateDownloadLink");
                     Assert.Equal("download keycuts 1.2.0", AutomationProperties.GetName(link));
 
                     notice.DismissCommand.Execute(null);
                     Pump();
-                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Add a description (optional)" }, TabStops(window));
+                    Assert.Equal(new[] { "Target", "Browse", "keycut name", "Create", "Description (optional)" }, TabStops(window));
                 }
                 finally
                 {

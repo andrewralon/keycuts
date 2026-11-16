@@ -343,8 +343,8 @@ namespace keycuts.Tests
             var focus = new List<CreatorFocusTarget>();
             creator.FocusRequested += (sender, e) => focus.Add(e);
 
-            Assert.Equal("Add a description (optional)", creator.DescriptionToggleText);
-            Assert.Equal("Add a description (optional)", creator.DescriptionToggleName);
+            Assert.Equal("Description (optional)", creator.DescriptionToggleText);
+            Assert.Equal("Description (optional)", creator.DescriptionToggleName);
 
             creator.ToggleDescriptionCommand.Execute(null);
             Assert.Equal("Description (optional)", creator.DescriptionToggleText);
@@ -353,7 +353,7 @@ namespace keycuts.Tests
             creator.ToggleDescriptionCommand.Execute(null);
             Assert.False(creator.IsDescriptionVisible);
             Assert.True(creator.ShowAddDescription);
-            Assert.Equal("Add a description (optional)", creator.DescriptionToggleText);
+            Assert.Equal("Description (optional)", creator.DescriptionToggleText);
             Assert.Equal(new[] { CreatorFocusTarget.Description }, focus);   // only showing moves the focus into the box
         }
 

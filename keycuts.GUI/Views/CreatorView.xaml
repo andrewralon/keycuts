@@ -19,7 +19,7 @@
 
       <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-      <!-- A field label that is also a button (#205): "Description (optional)" hides its box, "Add a description (optional)" shows it. It looks
+      <!-- A field label that is also a button (#205): "Description (optional)" shows or hides its box. It looks
            like the "Name" label, and turns to the accent on hover so it reads as clickable. -->
       <Style x:Key="FieldLabelButton" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
@@ -291,8 +291,8 @@
         <controls:HelperText x:Name="HelperTextBlock" Style="{StaticResource NameHelper}" Text="{Binding HelperText}"
                              Visibility="{Binding ShowHelperLine, Converter={StaticResource BoolToVisibility}}" />
 
-        <!-- #162, #205: the description is optional. Its label is a button: "Add a description (optional)" shows the box and
-             "Description (optional)" hides it, the choice being remembered between launches. Styled like the "Name" label,
+        <!-- #162, #205: the description is optional. Its label, "Description (optional)", is a button that shows the box and
+             hides it, the choice being remembered between launches. Styled like the "Name" label,
              with the same 16 above it as between Target and Name. -->
         <Button x:Name="BtnToggleDescription" Style="{StaticResource FieldLabelButton}" HorizontalAlignment="Left"
                 Margin="0,16,0,0" Command="{Binding ToggleDescriptionCommand}"

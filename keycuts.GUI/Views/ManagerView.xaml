@@ -11,7 +11,7 @@
              mc:Ignorable="d" d:DataContext="{x:Static design:DesignViewModels.ManagerTwoItems}"
              Background="{DynamicResource SurfaceBrush}"
              Loaded="ManagerView_Loaded" PreviewKeyDown="ManagerView_PreviewKeyDown"
-             PreviewMouseDown="ManagerView_PreviewMouseDown">
+             PreviewMouseDown="ManagerView_PreviewMouseDown" ContextMenuOpening="ManagerView_ContextMenuOpening">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
@@ -307,7 +307,7 @@
 
     <!-- A row's actions: each row gets its own copy (x:Shared="False"), so the menu's bindings follow that row. 250 wide for the
          key names beside the items. Right-clicking a row opens it at the pointer; Shift+F10 or the Menu key opens the selected
-         row's under that row (ManagerView.OpenRowMenuFromKeyboard). A screen reader names it after its keycut. -->
+         row's under that row (ManagerView_ContextMenuOpening). A screen reader names it after its keycut. -->
     <ContextMenu x:Key="RowMenu" x:Shared="False" Width="250" AutomationProperties.Name="{Binding ActionsLabel}"
                  Opened="RowMenu_Opened" Closed="RowMenu_Closed" PreviewKeyDown="RowMenuPopup_PreviewKeyDown">
       <MenuItem Header="Open keycut" InputGestureText="Enter" Command="{Binding OpenCommand}" Click="SafeItem_Click">
@@ -390,7 +390,17 @@
                    Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                    IsEnabled="{Binding CanSearch}" IsEnabledChanged="SearchBox_IsEnabledChanged"
                    themes:TextBoxChrome.Placeholder="Search names, types, descriptions, or targets"
-                   AutomationProperties.Name="Search keycuts" />
+                   AutomationProperties.Name="Search keycuts">
+            <!-- A box's own menu, as WPF would build it. Set here, so WPF doesn't open its built-in one before the view can give
+                 Shift+F10 and the Menu key to the selected row while the box is empty (ManagerView_ContextMenuOpening) -->
+            <TextBox.ContextMenu>
+              <ContextMenu>
+                <MenuItem Command="ApplicationCommands.Cut" />
+                <MenuItem Command="ApplicationCommands.Copy" />
+                <MenuItem Command="ApplicationCommands.Paste" />
+              </ContextMenu>
+            </TextBox.ContextMenu>
+          </TextBox>
           <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
                          IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
         </Grid>

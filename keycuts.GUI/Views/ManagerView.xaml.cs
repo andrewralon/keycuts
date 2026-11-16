@@ -151,11 +151,6 @@ namespace keycuts.GUI.Views
                     Table.ScrollIntoView(describing);
                     ViewModel.BeginEditDescription(describing);
                 }
-                // F10 is a system key: with Shift it comes as Key.System
-                else if (e.Key == Key.F10 || (e.Key == Key.System && e.SystemKey == Key.F10))
-                {
-                    OpenRowMenuFromKeyboard(e);
-                }
             }
             else if (modifiers == ModifierKeys.None)
             {
@@ -254,21 +249,36 @@ namespace keycuts.GUI.Views
                     e.Handled = true;
                     _ = ViewModel!.DeleteKeycutAsync(doomed);
                     break;
-                case Key.Apps:
-                    OpenRowMenuFromKeyboard(e);
-                    break;
             }
         }
 
         /// <summary>
         /// Shift+F10 or the Menu key: the selected row's actions menu, under the row where its name starts, as a right-click opens
-        /// it at the pointer. Like Delete, the keys stay with the search box while it has text (its own Cut, Copy, Paste menu).
+        /// it at the pointer. WPF asks for a menu when the key is let go (a context menu request without a pointer position, raised
+        /// on whatever has the focus), so this answers that request: opening one on the key press would be closed by it. Like
+        /// Delete, the keys stay with the search box while it has text (its own Cut, Copy, Paste menu), and with the create row.
         /// </summary>
-        private void OpenRowMenuFromKeyboard(KeyEventArgs e)
+        private void ManagerView_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            if (SearchBoxHasText(e) || ActionRow() is not { } row)
+            var fromKeyboard = e.CursorLeft < 0 && e.CursorTop < 0;
+
+            if (!fromKeyboard || ViewModel == null || ViewModel.IsEditing || CreateRowHost.IsKeyboardFocusWithin ||
+                e.OriginalSource is TextBox { Text.Length: > 0 })
             {
                 return;
+            }
+
+            if (OpenSelectedRowMenu())
+            {
+                e.Handled = true;
+            }
+        }
+
+        private bool OpenSelectedRowMenu()
+        {
+            if (ActionRow() is not { } row)
+            {
+                return false;
             }
 
             Table.ScrollIntoView(row);
@@ -276,16 +286,16 @@ namespace keycuts.GUI.Views
 
             if (Table.ItemContainerGenerator.ContainerFromItem(row) is not DataGridRow container || container.ContextMenu is not { } menu)
             {
-                return;
+                return false;
             }
 
-            e.Handled = true;
             menu.PlacementTarget = container;
             menu.Placement = PlacementMode.Custom;
             menu.CustomPopupPlacementCallback = MenuPlacement.UnderLeftEdge;
             // Where the name cell's text starts
             menu.HorizontalOffset = 12;
             menu.IsOpen = true;
+            return true;
         }
 
         /// <summary>How far Page Up and Page Down move: the rows the table shows, less one so the last one stays in view.</summary>

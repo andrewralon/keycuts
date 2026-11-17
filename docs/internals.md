@@ -115,4 +115,5 @@ When REM type/target lines are missing or invalid, the launch line is tried in o
 - `OUTPUTFOLDER` is an MSI directory (trailing backslash, trimmed by `GetOutputFolder`); default from `[%USERPROFILE]`, matched to `Runner.DefaultOutputFolder` by a test.
 - `UserPathUpdater` is a no-op when old and new folders match; the installer first adds the folder. Machine PATH entries are left alone.
 - CLI help: `-h`/`--version` → stdout, exit 0; parse errors → stderr, exit 1. `paste` sets the clipboard via Win32 (no WinForms).
+- `list` (#173's first verb, #237): loads through `KeycutRepository` with `UsageLog.CreateDefault()` like the GUI, and `KeycutListing` filters (name, type, target, description), sorts (the Manager's orders) and lines up the columns. `--usage` adds Runs and Last run (ISO local time); a dash is no record. Parser logging goes to stderr while loading, so stdout is only the table. An unreadable folder exits 3 (`CannotFindPath`).
 - Windows 11 shows the verbs under "Show more options"; top-level needs a packaged `IExplorerCommand`.

@@ -37,6 +37,20 @@ namespace keycuts.CLI
         /// <summary>Set once a usage error has been explained on stderr, so <see cref="Program.Main"/> doesn't add a second line.</summary>
         public static bool WroteError { get; private set; }
 
+        /// <summary>For a verb that explained its own error on stderr.</summary>
+        public static void MarkErrorWritten()
+        {
+            WroteError = true;
+        }
+
+        /// <summary>The verb a parse was for, as typed: help and errors name it.</summary>
+        private static string VerbName(ParserResult<object> result)
+        {
+            var type = result.TypeInfo.Current;
+
+            return type == typeof(PasteOptions) ? "paste" : type == typeof(ListOptions) ? "list" : "create";
+        }
+
         /// <summary>Prints help or version to <paramref name="output"/>, or the reasons a parse failed to <paramref name="error"/>.</summary>
         public static ExitCode Show(ParserResult<object> result, IEnumerable<Error> errors, TextWriter output, TextWriter error)
         {
@@ -52,7 +66,7 @@ namespace keycuts.CLI
             {
                 // "keycuts --help" asks for the verb list; "keycuts paste --help" for one verb's options
                 var topLevel = list.OfType<HelpVerbRequestedError>().Any(e => e.Type == null);
-                var verb = result.TypeInfo.Current == typeof(PasteOptions) ? "paste" : "create";
+                var verb = VerbName(result);
 
                 var text = HelpText.AutoBuild(
                     result,
@@ -99,6 +113,7 @@ namespace keycuts.CLI
                     "  keycuts [create] -t <path> -s <name> [options]  Create a keycut",
                     "  keycuts paste <name>                            Copy target to clipboard",
                     "    keypaste <name>                                 ",
+                    "  keycuts list [<search>] [--usage]               List the keycuts",
                     "  keycuts <command> --help                        Help for that command",
                     "  keycuts --help                                  Open this help message",
                     "",
@@ -109,7 +124,9 @@ namespace keycuts.CLI
             {
                 help.AddPreOptionsLines(new[]
                 {
-                    verb == "paste" ? "Usage: keycuts paste <name>" : "Usage: keycuts [create] -t <path> -s <name> [options]",
+                    verb == "paste" ? "Usage: keycuts paste <name>"
+                        : verb == "list" ? "Usage: keycuts list [<search>] [--usage] [--sort name|runs|last-run]"
+                        : "Usage: keycuts [create] -t <path> -s <name> [options]",
                     "",
                     "Options:"
                 });
@@ -125,6 +142,7 @@ namespace keycuts.CLI
             "  keycuts -t C:\\Users\\MyUser\\Desktop -s desktop" + Environment.NewLine +
             "  keycuts -t https://mail.google.com -s gmail --description \"Work email\"" + Environment.NewLine +
             "  keycuts paste gmail" + Environment.NewLine +
+            "  keycuts list --usage --sort runs" + Environment.NewLine +
             "  keypaste gmail";
 
         /// <summary>The error shown when create is missing what it needs.</summary>

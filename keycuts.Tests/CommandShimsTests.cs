@@ -107,6 +107,35 @@ namespace keycuts.Tests
             Assert.Single(recorded);
         }
 
+        // Found installing the MSI: it puts the shims in the keycuts folder without a record, and the first folder change (the
+        // CLI's -o before the app ever ran) left them in the old folder. With no record, the folder moved from is cleaned.
+        [Fact]
+        public void Keep_WithNoRecord_CleansTheFolderMovedFrom()
+        {
+            CommandShims.Ensure(_other);
+            var recorded = new System.Collections.Generic.List<string>();
+
+            CommandShims.Keep(null, _folder, recorded.Add, previousFolder: _other);
+
+            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
+            Assert.Empty(Directory.GetFiles(_other, "*.cmd"));
+            Assert.Equal(new[] { _folder }, recorded);
+        }
+
+        [Fact]
+        public void Keep_PrefersTheRecord_OverTheFolderMovedFrom()
+        {
+            var recordedFolder = Path.Combine(_root, "Recorded");
+            Directory.CreateDirectory(recordedFolder);
+            CommandShims.Ensure(recordedFolder);
+            CommandShims.Ensure(_other);
+
+            CommandShims.Keep(recordedFolder, _folder, null, previousFolder: _other);
+
+            Assert.Empty(Directory.GetFiles(recordedFolder, "*.cmd"));
+            Assert.Equal(2, Directory.GetFiles(_other, "*.cmd").Length);   // not ours to clean: the record says where they were
+        }
+
         [Fact]
         public void Keep_WithNoRecord_JustWritesTheShims()
         {

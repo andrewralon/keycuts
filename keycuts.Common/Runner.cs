@@ -114,7 +114,7 @@ namespace keycuts.Common
                         // -o moved the folder, and PATH with it: the keycuts and keypaste commands follow (#248)
                         if (_fixedOutputFolder == null && !NameConflicts.IsSameFolder(currentOutputFolder, outputFolder))
                         {
-                            KeepCommandShims(outputFolder);
+                            KeepCommandShims(outputFolder, currentOutputFolder);
                         }
 
                         var createShortcutResult = CreateShortcutFile(shortcut, force, description);
@@ -250,7 +250,7 @@ namespace keycuts.Common
 
             if (_fixedOutputFolder == null && !NameConflicts.IsSameFolder(currentOutputFolder, outputFolder))
             {
-                KeepCommandShims(outputFolder);
+                KeepCommandShims(outputFolder, currentOutputFolder);
             }
 
             return pathUpdated;
@@ -262,13 +262,14 @@ namespace keycuts.Common
         /// (<see cref="CommandShims.ShouldKeep"/>). Wherever the folder changes, the GUI's Settings or the CLI's <c>-o</c>, and at the
         /// GUI's start. Never throws.
         /// </summary>
-        public void KeepCommandShims(string folder)
+        /// <param name="previousFolder">The folder a change moved from: where the shims are when none was recorded yet.</param>
+        public void KeepCommandShims(string folder, string previousFolder = null)
         {
             try
             {
                 if (CommandShims.ShouldKeep(RegistryStuff.GetInstallFolder(), AppContext.BaseDirectory, DebugOverrides.GetOutputFolder() != null))
                 {
-                    CommandShims.Keep(RegistryStuff.GetCommandShimFolder(), folder, RegistryStuff.SetCommandShimFolder);
+                    CommandShims.Keep(RegistryStuff.GetCommandShimFolder(), folder, RegistryStuff.SetCommandShimFolder, previousFolder);
                 }
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Security.SecurityException)

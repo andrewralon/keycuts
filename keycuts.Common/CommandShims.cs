@@ -127,19 +127,21 @@ namespace keycuts.Common
 
         /// <summary>
         /// The app's step at startup and on a folder change: the shims into <paramref name="folder"/>, out of the folder they were
-        /// last put in (<paramref name="recordedFolder"/>, kept in HKCU, so a folder changed while the app was closed, by the CLI's
-        /// <c>-o</c> say, is cleaned up at the next start), then <paramref name="record"/> the new one when it changed.
+        /// last put in (<paramref name="recordedFolder"/>, kept in HKCU), then <paramref name="record"/> the new one when it changed.
+        /// With nothing recorded yet (the MSI put them in, and the app hasn't moved them since), a folder change cleans the folder
+        /// it moved from, <paramref name="previousFolder"/>.
         /// </summary>
-        public static void Keep(string recordedFolder, string folder, Action<string> record)
+        public static void Keep(string recordedFolder, string folder, Action<string> record, string previousFolder = null)
         {
             if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
             {
                 return;
             }
 
-            Move(recordedFolder, folder);
+            var lastFolder = string.IsNullOrWhiteSpace(recordedFolder) ? previousFolder : recordedFolder;
+            Move(lastFolder, folder);
 
-            if (record != null && !NameConflicts.IsSameFolder(recordedFolder, folder))
+            if (record != null && (string.IsNullOrWhiteSpace(recordedFolder) || !NameConflicts.IsSameFolder(recordedFolder, folder)))
             {
                 record(folder);
             }

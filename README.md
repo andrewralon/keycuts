@@ -58,4 +58,4 @@ dotnet test keycuts.sln
 pwsh -File tools/Build-Installer.ps1
 ```
 
-To release: bump `<Version>` in `Directory.Build.props`, run `tools/New-Screenshots.ps1`, merge `develop` into `main`.
+To release: bump `<Version>` in `Directory.Build.props`, run `tools/New-Screenshots.ps1` (the screenshots and walkthrough GIFs in `docs/images`) and commit what changed, merge `develop` into `main`.

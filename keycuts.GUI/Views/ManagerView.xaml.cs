@@ -543,8 +543,60 @@ namespace keycuts.GUI.Views
 
         // Right-clicking a row opens its actions at the pointer, as in Explorer. Each row has its own copy of the menu, so the
         // menu's bindings follow the row (a recycled row brings its menu along to its new keycut).
+        #region Whole rows
+
+        // A row as drawn: RowHeight plus its template's 1px divider. Measured from the first row that loads; until then, that sum.
+        private double rowHeight;
+
+        private const double RowSlack = 1;
+
+        private void TableArea_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            FitTableToRows();
+        }
+
+        /// <summary>
+        /// The table's height for <paramref name="available"/> room: its <paramref name="chrome"/> (the header and the border) and as
+        /// many whole rows as fit, so the last row at the bottom is never shown in part. With less room than one row, all of it.
+        /// </summary>
+        public static double FitToRows(double available, double chrome, double rowHeight)
+        {
+            if (rowHeight <= 0 || available < chrome + rowHeight)
+            {
+                return available;
+            }
+
+            // A pixel of slack: layout rounding at some scalings leaves the area a fraction short of a whole row
+            return chrome + Math.Floor((available - chrome + RowSlack) / rowHeight) * rowHeight;
+        }
+
+        private void FitTableToRows()
+        {
+            var row = rowHeight > 0 ? rowHeight : Table.RowHeight + 1;
+            var chrome = TableHost.BorderThickness.Top + TableHost.BorderThickness.Bottom + Table.ColumnHeaderHeight;
+            TableHost.Height = FitToRows(TableArea.ActualHeight, chrome, row);
+        }
+
+        private void Row_Loaded(object sender, RoutedEventArgs e)
+        {
+            var row = (DataGridRow)sender;
+            row.Loaded -= Row_Loaded;
+            if (rowHeight <= 0 && row.ActualHeight > 0)
+            {
+                rowHeight = row.ActualHeight;
+                FitTableToRows();
+            }
+        }
+
+        #endregion Whole rows
+
         private void Table_LoadingRow(object? sender, DataGridRowEventArgs e)
         {
+            if (rowHeight <= 0)
+            {
+                e.Row.Loaded += Row_Loaded;
+            }
+
             if (e.Row.ContextMenu != null)
             {
                 return;

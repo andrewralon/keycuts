@@ -754,6 +754,12 @@ namespace keycuts.Common
         {
             var path = keycut.FilePath;
 
+            // The keycuts and keypaste commands live beside the keycuts (#248) but aren't keycuts: never deleted from here
+            if (CommandShims.IsShimFileName(path))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidName, $"\"{Path.GetFileName(path)}\" is the {Path.GetFileNameWithoutExtension(path)} command, not a keycut, so it can't be deleted here.");
+            }
+
             try
             {
                 if (!File.Exists(path))

@@ -48,6 +48,8 @@ namespace keycuts.GUI
                 // #196, #207: older keycuts to the current format, once per folder, with a backup
                 var migration = MigrateFolder();
                 AddRunCounting();
+                // #248: the keycuts and keypaste commands beside the keycuts
+                KeepCommandShims();
                 return (Renamed: renamed, Migration: migration);
             });
             var welcome = new ViewModels.WelcomeViewModel(
@@ -102,6 +104,7 @@ namespace keycuts.GUI
                 {
                     var result = MigrateFolder();
                     AddRunCounting();
+                    KeepCommandShims();
                     return result;
                 });
                 ShowMigrationNotice(mainWindow, migration);
@@ -213,6 +216,33 @@ namespace keycuts.GUI
             }
         }
 
+        /// <summary>The folder the shims were last put in this session, so a folder change takes them out of it.</summary>
+        private static string? commandShimFolder;
+
+        /// <summary>
+        /// Puts keycuts.cmd and keypaste.cmd in the keycuts folder (#248), rewriting them if they've changed, and takes them out of
+        /// the folder used before (only files that are exactly the shims). Only the installed copy does it, never under the Debug
+        /// folder override (<see cref="Common.CommandShims.ShouldKeep"/>). Runs on a worker thread. Never fails.
+        /// </summary>
+        private static void KeepCommandShims()
+        {
+            try
+            {
+                if (!Common.CommandShims.ShouldKeep(Common.RegistryStuff.GetInstallFolder(), AppContext.BaseDirectory, Common.DebugOverrides.GetOutputFolder() != null))
+                {
+                    return;
+                }
+
+                var folder = new Common.Runner().GetOutputFolder();
+                Common.CommandShims.Move(commandShimFolder, folder);
+                commandShimFolder = folder;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't put the keycuts commands in the keycuts folder: " + ex.Message);
+            }
+        }
+
         /// <summary>
         /// Brings the folder's keycuts written by older versions to the current format (<see cref="Common.KeycutMigration"/>), with a
         /// backup, once per folder (recorded in HKCU when nothing was left over). Runs on a worker thread. Never fails. The Debug folder
@@ -235,8 +265,8 @@ namespace keycuts.GUI
         }
 
         /// <summary>
-        /// Renames keycuts named keycuts or keypaste, which clash with those commands on PATH (bin\keycuts.cmd and
-        /// bin\keypaste.cmd). Runs on a worker thread. Never fails: if the folder can't be read, nothing is renamed.
+        /// Renames keycuts named keycuts or keypaste, which clash with those commands in the keycuts folder (keycuts.cmd and
+        /// keypaste.cmd; Win+R would run the .bat instead, #209). Runs on a worker thread. Never fails: if the folder can't be read, nothing is renamed.
         /// </summary>
         private static IReadOnlyList<Common.RenamedKeycut> MoveAsideCommandNames()
         {

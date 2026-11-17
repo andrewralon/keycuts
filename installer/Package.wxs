@@ -33,10 +33,7 @@
 
     <StandardDirectory Id="LocalAppDataFolder">
       <Directory Id="UserProgramsFolder" Name="Programs">
-        <Directory Id="INSTALLFOLDER" Name="keycuts">
-          <!-- The folder on PATH: only the keycuts.cmd and keypaste.cmd shims, so the runtime DLLs stay off PATH -->
-          <Directory Id="BINFOLDER" Name="bin" />
-        </Directory>
+        <Directory Id="INSTALLFOLDER" Name="keycuts" />
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
@@ -47,12 +44,20 @@
 
     <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
       <Files Include="$(PublishDir)\**">
-        <Exclude Files="$(PublishDir)\bin\**" />
+        <Exclude Files="$(PublishDir)\shims\**" />
       </Files>
     </ComponentGroup>
 
-    <ComponentGroup Id="BinFiles" Directory="BINFOLDER">
-      <Files Include="$(PublishDir)\bin\**" />
+    <!-- #248: the keycuts and keypaste commands, in the keycuts folder beside the keycuts (already on PATH). They find keycuts.exe
+         through InstallFolder below, so their bytes are the same everywhere; the app keeps them there (CommandShims). -->
+    <ComponentGroup Id="ShimFiles" Directory="OUTPUTFOLDER">
+      <!-- One component with a fixed GUID and an HKCU key path, like Core: the keycuts folder isn't a standard directory, so WiX
+           can't make the GUIDs, and a per-user component keys on the registry -->
+      <Component Id="CommandShims" Guid="42BC3857-ACC0-4CAA-B817-F7648CF89C51">
+        <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="CommandShimsInstalled" Type="integer" Value="1" KeyPath="yes" />
+        <File Id="KeycutsCmd" Source="$(PublishDir)\shims\keycuts.cmd" KeyPath="no" />
+        <File Id="KeypasteCmd" Source="$(PublishDir)\shims\keypaste.cmd" KeyPath="no" />
+      </Component>
     </ComponentGroup>
 
     <ComponentGroup Id="UserIntegration" Directory="INSTALLFOLDER">
@@ -62,10 +67,10 @@
         <!-- Uninstall leaves the folder alone unless it is empty, so keycuts survive -->
         <CreateFolder Directory="OUTPUTFOLDER" />
 
-        <!-- Win+R finds keycuts through the output folder; bin exposes the keycuts and keypaste commands as .cmd shims.
-             Not the install folder itself, which would put the runtime's DLLs and createdump.exe on PATH. -->
+        <!-- Win+R finds keycuts, and terminals the keycuts and keypaste commands, through the output folder. Not the install folder,
+             which would put the runtime's DLLs and createdump.exe on PATH. Before #248 the install's bin was on PATH too; a major
+             upgrade removes that entry with the old version (Permanent="no"). -->
         <Environment Id="PathOutputFolder" Name="PATH" Value="[OUTPUTFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
-        <Environment Id="PathBinFolder" Name="PATH" Value="[BINFOLDER]" Action="set" Part="last" System="no" Permanent="no" />
 
         <!-- Settings can add these after install, so uninstall removes them even when the component below is absent -->
         <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Directory\shell\keycuts" />
@@ -73,7 +78,6 @@
         <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\*\shell\keycuts" />
         <RemoveRegistryKey Action="removeOnUninstall" Root="HKCU" Key="Software\Classes\Folder\shell\keycuts" />
 
-        <RemoveFolder Id="RemoveBinFolder" Directory="BINFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
         <RemoveFolder Id="RemoveUserProgramsFolder" Directory="UserProgramsFolder" On="uninstall" />
       </Component>
@@ -123,7 +127,7 @@
 
     <Feature Id="Main" Title="keycuts">
       <ComponentGroupRef Id="AppFiles" />
-      <ComponentGroupRef Id="BinFiles" />
+      <ComponentGroupRef Id="ShimFiles" />
       <ComponentGroupRef Id="UserIntegration" />
     </Feature>
 

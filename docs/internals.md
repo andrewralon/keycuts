@@ -120,7 +120,7 @@ When REM type/target lines are missing or invalid, the launch line is tried in o
 
 ## Install, PATH, CLI
 
-- PATH gets only the install's `bin\` (`BINFOLDER`), holding `keycuts.cmd` and `keypaste.cmd` (CRLF). `keycuts.exe` can't move there: a self-contained apphost needs its runtime beside it.
+- PATH gets only the output folder (#248). The `keycuts.cmd` and `keypaste.cmd` shims (CRLF, `Common.CommandShims`, the same bytes as `keycuts.CLI/shims`, a test compares them) live there beside the keycuts, and run `keycuts.exe` from the install folder the MSI records in HKCU (`InstallFolder`), so their bytes are the same on every machine. The MSI installs them into `OUTPUTFOLDER`; the installed app rewrites them there at startup and on a folder change, and deletes them from the old folder only if they are exactly the shims (`RemoveFrom`). Not under the Debug folder override, nor from a copy that isn't the installed one. `keycuts.exe` can't go on PATH itself: a self-contained apphost needs its runtime beside it. Before #248 the install's `bin\` was on PATH; a major upgrade removes that entry with the old product.
 - `OUTPUTFOLDER` is an MSI directory (trailing backslash, trimmed by `GetOutputFolder`); default from `[%USERPROFILE]`, matched to `Runner.DefaultOutputFolder` by a test.
 - `UserPathUpdater` is a no-op when old and new folders match; the installer first adds the folder. Machine PATH entries are left alone.
 - CLI help: `-h`/`--version` → stdout, exit 0; parse errors → stderr, exit 1. `paste` sets the clipboard via Win32 (no WinForms).

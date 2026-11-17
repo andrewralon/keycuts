@@ -300,6 +300,12 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>Where the MSI installed keycuts (<c>InstallFolder</c>, with a trailing backslash); null for a copy that wasn't installed.</summary>
+        public static string GetInstallFolder()
+        {
+            return ReadValue("InstallFolder") as string;
+        }
+
         /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>
         public static bool IsMigrationDone(string folder)
         {

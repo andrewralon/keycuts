@@ -38,7 +38,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 - `keycuts.Common`: domain logic, no UI, no logging (`Runner`'s "Shortcut created" line excepted). `.lnk` via late-bound `WScript.Shell` COM.
 - `keycuts.GUI`: WPF, one window, three screens (Creator, Manager, Settings) switched by `ShellViewModel`. No Windows title bar: `Views/RailView` is a folder-tab bar with own caption buttons under `WindowChrome`. **The window is never maximized** (owner's decision; `NoMaximizeHook`). `NoSystemCaptionHook` stops Windows painting classic caption buttons over the bar. Side effects go through `IKeycutActions`. Settings save immediately (no Save button); the folder only on commit.
-- `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected), `paste <name>` and `list [<search>] [--usage] [--sort]` (output built by `Common.KeycutListing`). Bare `keycuts` launches the GUI. PATH gets only the install's `bin\` with `keycuts.cmd`/`keypaste.cmd` shims.
+- `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected), `paste <name>` and `list [<search>] [--usage] [--sort]` (output built by `Common.KeycutListing`). Bare `keycuts` launches the GUI. PATH gets only the output folder; the `keycuts.cmd`/`keypaste.cmd` shims live there (`Common.CommandShims`, #248) and find `keycuts.exe` through HKCU `InstallFolder`.
 - `keycuts.Tests`: references Common and GUI.
 
 **UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it, with deliberate exceptions listed in its `Exceptions`.

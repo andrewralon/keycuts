@@ -1,0 +1,250 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>App icon v2</title>
+<style>
+/* icon-size v1: the icon art with a bigger key (A, B) and bigger in the tab bar (R1-R3). Palettes and tab bar copied from window-tabs-v7. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172033}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#465064;margin-top:12px}
+.cap:first-child{margin-top:0}
+.note{font-size:12.5px;color:#465064;line-height:1.5}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:2px 0}
+
+/* ---------- palettes: Themes/Light.xaml and Dark.xaml after #219, plus the proposed tab bar keys (#218) ---------- */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--hover:#eef3fb;--glow:rgba(37,99,235,.22);
+  --uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --socket1:#f9fafb;--socket2:#e2e7ee;--socketBorder:#bdc5d2;--capGlyph:#172033;--capHover:rgba(23,32,51,.08);--hcLine:transparent}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentText:#6a9eff;--accentSoft:#182a4d;--onAccent:#06090f;--hover:#2c3441;--glow:rgba(79,140,255,.3);
+  --uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a;
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --socket1:#14171d;--socket2:#20242c;--socketBorder:#363d48;--capGlyph:#f3f5f8;--capHover:rgba(255,255,255,.08);--hcLine:transparent}
+/* high contrast (Night sky): Window black, WindowText white, no textures */
+.hc{--surface:#000;--subtle:#000;--border:#fff;--strong:#fff;--text:#fff;--text2:#fff;--text3:#a0a0a0;
+  --rail1:#000;--rail2:#000;--railTex:transparent;--grip:transparent;
+  --tab1:#000;--tab2:#000;--tabTex:transparent;--tabBorder:#fff;--tabBorderOn:#fff;--tabText:#fff;--tabShadow:transparent;
+  --socket1:#000;--socket2:#000;--socketBorder:#fff;--capGlyph:#fff;--capHover:transparent;--hcLine:#fff}
+
+/* ---------- window ---------- */
+.win{background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+.w-main{width:600px}             /* MainWidth: what the tab bar needs plus about 60 of empty bar */
+.w-wide{width:840px;height:470px}
+
+/* ---------- tab bar: RailHeight 48 ---------- */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.rail::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--hcLine);z-index:4}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 12px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.socket{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--socket2),var(--socket1));border:1px solid var(--socketBorder);box-shadow:inset 0 1px 3px var(--tabShadow)}
+.socket img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+
+/* folder tab: TabHeight 40, 8 cut corner, 16 slant, padding 12 left and slant + 8 right, 4 apart */
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 0 12px;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));z-index:0}
+.hc .tw:not(.on) .tab::after{display:none}
+/* high contrast: the line under the bar sits behind the tabs; inactive tabs close their own outline at the base,
+   and the selected tab leaves it open, so its outline runs into the page */
+.hc .rail::after{z-index:0}
+.hc .tw:not(.on) .tab::before{inset:1px}
+.hc .tw.on{filter:none;clip-path:none}
+.hc .tw.on .tab{clip-path:polygon(0 calc(100% + 3px),0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% calc(100% + 3px))}
+.hc .tw.on .tab::after{left:1px;right:1px;height:6px;bottom:-3px}  /* covers the bar's line at the zoomed close-up's fractional pixels */
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+/* caption buttons: CaptionButtonWidth 46 x RailHeight, 10px glyphs */
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.dis{color:var(--text3);opacity:.7}
+.cb.hot{background:var(--capHover)}
+.cb.close-hot{background:#c42b1c;color:#fff}
+
+/* ---------- page: PagePadding 24,16,24,24 ---------- */
+.body{padding:16px 24px 24px;flex:1;display:flex;flex-direction:column}
+.flabel{font-size:13px;font-weight:600;margin-bottom:8px}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface)}
+.field.focus{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.field.ph{color:var(--text3)}
+.btn{height:36px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;font-size:13px;font-weight:600;flex:none}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.sq.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.row{display:flex;gap:8px;align-items:center}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+a{color:var(--accentText);font-weight:600;text-decoration:none}
+
+/* creator */
+.drop{border:1.5px dashed var(--strong);border-radius:12px;background:var(--subtle);padding:16px;display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.tv{font-size:13px;color:var(--text2);word-break:break-all;margin-top:4px;line-height:1.35}
+.gap16{height:16px}
+
+/* footer: 48 min, padding 24,0 */
+.foot{min-height:48px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;color:var(--text2);flex:none}
+.pill{height:22px;border:1px solid var(--strong);border-radius:11px;background:var(--surface);padding:0 10px;display:flex;align-items:center;font-weight:600;font-size:12px;color:var(--text)}
+.upd{display:flex;align-items:center;gap:8px}
+.ghost{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:5px}
+
+/* manager */
+.srch{flex:1;height:36px;border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+.tbl{margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{height:36px;text-align:left;color:var(--text2);padding:0 12px;background:var(--subtle);border-bottom:1px solid var(--border);font-size:12px;font-weight:600}
+td{height:36px;padding:0 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+td.n{font-weight:600;color:var(--text)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+
+/* settings */
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:24px 0 8px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:16px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:4px}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.radio{display:flex;gap:16px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconbtn img{width:20px;height:20px}
+.saved{font-size:12px;color:var(--text2);margin-top:24px;display:flex;align-items:center;gap:4px}
+.endrow{display:flex;justify-content:space-between;margin-top:16px}
+
+/* close-up annotation */
+.anno .brand,.anno .drag{outline:1.5px dashed #2563eb;outline-offset:-1.5px;background-color:rgba(37,99,235,.14)}
+.anno .drag{-webkit-mask-image:none}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:rgba(37,99,235,.3);outline:1px dashed #2563eb}
+.keys{border-collapse:collapse;font-size:12px;width:100%;margin-top:4px}
+.keys th,.keys td{height:auto;padding:4px 8px;border-bottom:1px solid #cfd5df;text-align:left;color:#172033;background:none;font-size:12px}
+.keys th{color:#465064}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.25);vertical-align:-2px;margin-right:6px}
+code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px}
+/* ---------- icon size v2 ---------- */
+body{background:#e3e7ee}
+.title{font-size:16px;font-weight:700;color:#172033;margin:0 0 4px}
+.lede{font-size:13px;color:#465064;margin:0 0 18px;max-width:1500px;line-height:1.5}
+.sect{font-size:15px;font-weight:700;color:#172033;margin:26px 0 10px}
+.bgs{display:grid;grid-template-columns:repeat(3,auto);gap:16px;justify-content:start}
+.bg{border-radius:10px;padding:14px 16px 10px}
+.bg.l{background:#f3f3f3;color:#1b1b1b}
+.bg.d{background:#202020;color:#e8e8e8}
+.bg.w{background:radial-gradient(120% 90% at 20% 10%,#7fb2ff 0%,#3a6fd8 35%,#1c2f7a 70%,#0d1640 100%);color:#fff}
+.bg h3{font-size:13px;font-weight:700;margin:0 0 10px}
+.row{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.row .rl{width:92px;font-size:12px;opacity:.85;line-height:1.3}
+.set{display:flex;align-items:end;gap:8px}
+.set+.set{margin-left:10px}
+.rails{display:grid;grid-template-columns:repeat(2,auto);gap:16px 28px;justify-content:start}
+.railbox{width:430px;border:1px solid var(--strong);border-radius:8px;overflow:hidden;background:var(--surface)}
+.railbox .rail{width:430px}
+.zoom{width:430px;height:150px;overflow:hidden;border:1px solid var(--strong);border-radius:8px;background:var(--surface)}
+.zoom .rail{transform:scale(3);transform-origin:0 0;width:144px}
+.brand .bare{display:block}
+.tab{padding:0 calc(var(--slant) + 8px) 0 12px}
+.rcap{font-size:13px;color:#172033;margin:4px 0 6px}
+.rcap b{font-weight:700}
+.rcap span{color:#465064}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+ </defs>
+</svg>
+<p class="title">The app icon, bigger &mdash; v2 (B, with and without its tile)</p>
+<p class="lede">Art <b>B</b>: on its tile the key takes 96% of it at 48 px and up (the shadow clipped to the tile) and all of it below. <b>Transparent</b> is the same key with no tile and no shadow (a shadow cut off at the square edge of the image would show), filling its frame. Porcelain&rsquo;s transparent version is the charcoal key, onyx&rsquo;s the white key, and cobalt and twilight share the blue key. Each panel is a background the icon can land on: light, dark and a wallpaper. The tab bar is R3: no socket, 36 px.</p>
+
+<div class="sect">1 &middot; Normal and transparent, on three backgrounds</div>
+<div class="bgs" id="bgs"></div>
+
+<div class="sect">3 &middot; The tab bar, R3 (36, no socket)</div>
+<div class="rails" id="rails"></div>
+
+<script src="../../tools/icons/keycap.js"></script>
+<script>
+const VIEW = { azimuth: 26, elevation: 48 };
+const KEYS = {
+  white:    { side: '#dfe3ea', top: '#fbfcfd', dishShade: 0.05, legendColor: '#2563eb' },
+  charcoal: { side: '#2a2f38', top: '#353b46', ambient: 0.75, diffuse: 0.55, dishLight: 0.08, rim: 0.05, dishShade: 0.05, legendColor: '#4f8cff' },
+  blue:     { side: '#1f56d0', top: '#2f6df0', ambient: 0.7, diffuse: 0.42, rim: 0.3, dishLight: 0.12, legendColor: '#ffffff' },
+};
+const DARK_TILE = '#20242c', LIGHT_TILE = '#e8ecf2';
+const ICONS = {
+  porcelain: { key: 'charcoal', tile: LIGHT_TILE, shadow: 0.22 },
+  onyx:      { key: 'white', tile: DARK_TILE, shadow: 0.5 },
+  cobalt:    { key: 'blue', tile: LIGHT_TILE, shadow: 0.22 },
+  twilight:  { key: 'blue', tile: DARK_TILE, shadow: 0.5 },
+};
+const B = { big: 0.96, mid: 1.0, small: 1.0 };
+let clipId = 0;
+// clear: the key alone on nothing (no tile, no shadow), filling the frame
+function draw(name, px, clear) {
+  const icon = ICONS[name], key = KEYS[icon.key];
+  const small = px <= 24;
+  const withShadow = !clear && px >= 48;
+  const svg = renderKey({
+    ...key, ...VIEW,
+    flat: small,
+    tight: !withShadow,
+    keyBounds: withShadow,
+    shadowOpacity: icon.shadow,
+    legend: K(key.legendColor, small ? 9.8 : 8.4, small ? 700 : 600),
+  });
+  if (clear) {
+    return svg.replace('<svg ', `<svg width="${px}" height="${px}" `);
+  }
+  const share = withShadow ? B.big : small ? B.small : B.mid;
+  const k = 100 * share, o = (100 - k) / 2, id = 'tc' + (clipId++);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 100 100">
+    <defs><clipPath id="${id}"><rect width="100" height="100" rx="20"/></clipPath></defs>
+    <rect width="100" height="100" rx="20" fill="${icon.tile}"/>
+    <g clip-path="url(#${id})">${svg.replace('<svg ', `<svg x="${o}" y="${o}" width="${k}" height="${k}" `)}</g></svg>`;
+}
+
+const SIZES = [64, 48, 32, 24, 16];
+const BGS = [['l', 'Light (#f3f3f3)'], ['d', 'Dark (#202020)'], ['w', 'A wallpaper']];
+document.getElementById('bgs').innerHTML = BGS.map(([c, title]) => `<div class="bg ${c}"><h3>${title}</h3>` +
+  Object.keys(ICONS).map(n => `<div class="row"><div class="rl"><b>${n}</b></div>` +
+    `<div class="set">${SIZES.map(s => draw(n, s, false)).join('')}</div>` +
+    `<div class="set">${SIZES.map(s => draw(n, s, true)).join('')}</div></div>`).join('') +
+  `<div class="row" style="margin:0"><div class="rl"></div><div class="set" style="width:${SIZES.reduce((a, s) => a + s + 8, -8)}px;font-size:11px;opacity:.7">normal</div><div class="set" style="font-size:11px;opacity:.7">transparent</div></div></div>`).join('');
+
+// ---- tab bar ----
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+function rail(theme, clear) {
+  const name = theme === 'light' ? 'porcelain' : 'onyx';
+  const icon = draw(name, 36, clear).replace('<svg ', '<svg class="bare" ');
+  const tab = (label, on) => `<div class="tw${on ? ' on' : ''}"><div class="tab"><span>${label}</span></div></div>`;
+  return `<div class="rail"><div class="brand" style="padding:0 16px 0 8px">${icon}keycuts</div><div class="tabs">${tab('creator', true)}${tab('manager')}${tab('', false).replace('<span></span>', use('i-gear', 16))}</div><div class="drag"></div></div>`;
+}
+const CAPS = { false: '<b>Normal</b> <span>&middot; the icon on its tile</span>', true: '<b>Transparent</b> <span>&middot; the key alone</span>' };
+document.getElementById('rails').innerHTML = [false, true].map(clear => ['dark', 'light'].map(t => `<div>
+  <div class="rcap">${CAPS[clear]} &middot; ${t}</div>
+  <div class="railbox ${t}">${rail(t, clear)}</div>
+  <div class="zoom ${t}" style="margin-top:6px">${rail(t, clear)}</div></div>`).join('')).join('');
+</script>
+</body></html>

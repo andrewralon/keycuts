@@ -16,6 +16,19 @@ namespace keycuts.Common
         Shadows
     }
 
+    /// <summary>How a bare name is turned into a file (#209).</summary>
+    public enum NameLookup
+    {
+        /// <summary>
+        /// Win+R, and <c>ShellExecuteEx</c> with a bare name: a fixed list of extensions, <see cref="NameConflicts.RunDialogExtensions"/>,
+        /// whatever PATHEXT says. What a keycut's name competes with.
+        /// </summary>
+        RunDialog,
+
+        /// <summary>cmd (a keycut's own <c>START</c> line): the PATHEXT extensions, in order. What the target check uses.</summary>
+        Cmd
+    }
+
     /// <summary>Where the other command was found, in the order <c>ShellExecuteEx</c> searches.</summary>
     public enum NameConflictSource
     {
@@ -197,7 +210,8 @@ namespace keycuts.Common
     /// <summary>
     /// Finds what else a keycut's name opens from Win+R (#153). A keycut is a .bat in a PATH folder, so its name competes
     /// with every command Windows finds by name. <c>ShellExecuteEx</c> looks in the Windows folder, System32, each PATH
-    /// folder (machine, then user), and last in App Paths; in each folder it tries the PATHEXT extensions in order.
+    /// folder (machine, then user), and last in App Paths. Each folder is searched in full before the next, and in a folder
+    /// Win+R tries <see cref="RunDialogExtensions"/> in order, not PATHEXT (#209, checked through the real Run dialog).
     /// Whatever comes before the keycut hides it, and whatever comes after is shadowed by it. The keycut's own .bat in the
     /// output folder isn't a conflict (replacing it is the overwrite check's job), but a keycut in another folder is.
     /// cmd built-ins (dir, start) are out of scope: they only matter in a cmd prompt, not in Win+R.
@@ -208,11 +222,25 @@ namespace keycuts.Common
         public const string DefaultPathExt = ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC";
 
         /// <summary>
-        /// Everything <paramref name="name"/> resolves to besides the keycut <paramref name="name"/>.bat in
+        /// What Win+R adds to a bare name, in the order it tries them (#209). Measured on Windows 10 22H2 through the real Run
+        /// dialog and through <c>ShellExecuteEx</c>, which agreed: PATHEXT changes nothing (a .bat runs with <c>PATHEXT=.COM;.EXE</c>),
+        /// and .js, .vbs and .ps1 never run from a bare name, even listed in PATHEXT. So a <c>name.exe</c> beside a keycut hides it,
+        /// and a <c>name.lnk</c> or <c>name.cmd</c> is shadowed by it.
+        /// </summary>
+        public static readonly IReadOnlyList<string> RunDialogExtensions = new[] { ".COM", ".EXE", ".BAT", ".LNK", ".CMD" };
+
+        /// <summary>
+        /// Everything <paramref name="name"/> resolves to from Win+R besides the keycut <paramref name="name"/>.bat in
         /// <paramref name="outputFolder"/>, in search order. An output folder that isn't on PATH is treated as the last
         /// PATH entry, which is where adding it puts it. An empty or unusable name has no conflicts.
         /// </summary>
         public static IReadOnlyList<NameConflict> Find(string name, string outputFolder, NameConflictEnvironment environment)
+        {
+            return Find(name, outputFolder, environment, NameLookup.RunDialog);
+        }
+
+        /// <summary><see cref="Find(string, string, NameConflictEnvironment)"/>, with the extensions <paramref name="lookup"/> tries.</summary>
+        public static IReadOnlyList<NameConflict> Find(string name, string outputFolder, NameConflictEnvironment environment, NameLookup lookup)
         {
             if (environment == null)
             {
@@ -226,7 +254,7 @@ namespace keycuts.Common
                 return Array.Empty<NameConflict>();
             }
 
-            var finder = new Finder(name, environment, outputFolder);
+            var finder = new Finder(name, environment, outputFolder, lookup);
 
             finder.CheckFolder(environment.WindowsFolder, NameConflictEffect.Hidden, NameConflictSource.WindowsFolder);
             finder.CheckFolder(environment.SystemFolder, NameConflictEffect.Hidden, NameConflictSource.SystemFolder);
@@ -349,17 +377,17 @@ namespace keycuts.Common
 
             private readonly HashSet<string> _seenFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Without .BAT in PATHEXT, Win+R never runs a keycut, so nothing it finds is shadowed: it all wins
+            // Without .BAT among the extensions (cmd with a PATHEXT that lacks it), the keycut never runs, so nothing found is shadowed: it all wins
             private readonly bool _keycutRuns;
 
             // The keycut's own .bat, skipped wherever it's found (the output folder could even be System32)
             private readonly string _ownBat;
 
-            public Finder(string name, NameConflictEnvironment environment, string outputFolder)
+            public Finder(string name, NameConflictEnvironment environment, string outputFolder, NameLookup lookup)
             {
                 _name = name;
                 _environment = environment;
-                _extensions = ParsePathExt(environment.PathExt);
+                _extensions = lookup == NameLookup.RunDialog ? RunDialogExtensions : ParsePathExt(environment.PathExt);
                 _keycutRuns = IndexOf(ShortcutFile.Extension) >= 0;
                 _ownBat = IsUsableFolder(outputFolder) ? NormalizeFolder(Path.Combine(outputFolder, name + ShortcutFile.Extension)) : null;
             }
@@ -430,7 +458,7 @@ namespace keycuts.Common
             }
 
             /// <summary>
-            /// The files the name can mean in a folder: the name as typed when it already ends with a PATHEXT extension
+            /// The files the name can mean in a folder: the name as typed when it already ends with one of the extensions tried
             /// (<c>tool.exe</c>), then the name plus each extension in order.
             /// </summary>
             private IEnumerable<(string Path, int Index, bool IsAppended)> Candidates(string folder)

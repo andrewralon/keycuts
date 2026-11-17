@@ -1286,8 +1286,9 @@ namespace keycuts.Common
                         var environment = lookup.Value;
 
                         // No output folder: that argument gives a name its conflict rules (the keycut's own .bat is skipped, the
-                        // folder is searched even when it isn't on PATH), and this only asks what Windows would find
-                        if (NameConflicts.Find(path, null, environment).Count > 0)
+                        // folder is searched even when it isn't on PATH), and this only asks what Windows would find. The keycut's
+                        // START runs under cmd, which tries the PATHEXT extensions (Win+R's fixed list is for the keycut's own name).
+                        if (NameConflicts.Find(path, null, environment, NameLookup.Cmd).Count > 0)
                         {
                             return new CheckResult(TargetStatus.Ok, path);
                         }
@@ -1351,7 +1352,7 @@ namespace keycuts.Common
             }
 
             // No output folder: that argument gives a name its conflict rules, and this only asks what Windows would find
-            var found = NameConflicts.Find(programName, null, environment);
+            var found = NameConflicts.Find(programName, null, environment, NameLookup.Cmd);
             var foundByName = found.Any(c => c.Source != NameConflictSource.AppPaths);
             var inAppPaths = found.Any(c => c.Source == NameConflictSource.AppPaths);
 

@@ -141,20 +141,61 @@ namespace keycuts.Tests
             Assert.Equal(NameConflictSource.OutputFolder, conflict.Source);
         }
 
+        // #209, through the real Run dialog: .com, .exe, .bat, .lnk, .cmd in that order, and nothing else (.js, .vbs, .ps1 and
+        // .msc never run from a bare name)
         [Fact]
-        public void EveryPathExtExtension_IsTried_InPathExtOrder()
+        public void WinR_TriesComExeBatLnkCmd_InThatOrder_AndNothingElse()
         {
-            var conflicts = Find("x", @"C:\Tools\After\x.vbs", @"C:\Tools\After\x.com", @"C:\Tools\After\x.msc");
+            var files = new[] { "x.vbs", "x.cmd", "x.js", "x.lnk", "x.exe", "x.ps1", "x.com", "x.msc", "x.bat" }.Select(f => Path.Combine(After, f)).ToArray();
+
+            var conflicts = Find("x", files);
+
+            Assert.Equal(new[] { "x.com", "x.exe", "x.bat", "x.lnk", "x.cmd" }.Select(f => Path.Combine(After, f)), conflicts.Select(c => c.Path));
+        }
+
+        [Fact]
+        public void WinR_IgnoresPathExt()
+        {
+            // A PATHEXT without .BAT still runs the keycut, and one with .PY doesn't make x.py a command
+            var env = Environment(new[] { Path.Combine(Output, "x.py"), Path.Combine(Output, "x.exe"), Path.Combine(Output, "x.cmd") }, pathExt: ".PY;.EXE");
+
+            var conflicts = NameConflicts.Find("x", Output, env);
+
+            Assert.Equal(new[] { (Path.Combine(Output, "x.exe"), NameConflictEffect.Hidden), (Path.Combine(Output, "x.cmd"), NameConflictEffect.Shadows) },
+                conflicts.Select(c => (c.Path, c.Effect)));
+        }
+
+        [Fact]
+        public void InTheOutputFolder_ALnkWithTheName_IsShadowed()
+        {
+            var conflict = Assert.Single(Find("tool", Path.Combine(Output, "tool.lnk")));
+
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+        }
+
+        [Fact]
+        public void AFolderEarlierOnPath_WinsWhateverItsExtension()
+        {
+            // Each folder is searched in full before the next: a .cmd before the output folder hides the keycut's .bat
+            var conflict = Assert.Single(Find("tool", Path.Combine(Before, "tool.cmd"), Path.Combine(Output, "tool.bat")));
+
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+        }
+
+        [Fact]
+        public void Cmd_TriesThePathExtExtensions_InPathExtOrder()
+        {
+            var conflicts = NameConflicts.Find("x", Output, Environment(new[] { @"C:\Tools\After\x.vbs", @"C:\Tools\After\x.com", @"C:\Tools\After\x.msc" }), NameLookup.Cmd);
 
             Assert.Equal(new[] { @"C:\Tools\After\x.com", @"C:\Tools\After\x.vbs", @"C:\Tools\After\x.msc" }, conflicts.Select(c => c.Path));
         }
 
         [Fact]
-        public void ACustomPathExt_DecidesTheOrder_AndWhatCounts()
+        public void Cmd_ACustomPathExt_DecidesTheOrder_AndWhatCounts()
         {
             var env = Environment(new[] { Path.Combine(Output, "x.py"), Path.Combine(Output, "x.exe") }, pathExt: ".PY;.BAT");
 
-            var conflict = Assert.Single(NameConflicts.Find("x", Output, env));
+            var conflict = Assert.Single(NameConflicts.Find("x", Output, env, NameLookup.Cmd));
             Assert.Equal(Path.Combine(Output, "x.py"), conflict.Path);
             Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
         }
@@ -255,13 +296,13 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void WithoutBatInPathExt_TheKeycutNeverRuns_SoEveryMatchHidesIt()
+        public void Cmd_WithoutBatInPathExt_TheKeycutNeverRuns_SoEveryMatchHidesIt()
         {
             const string word = @"C:\Office\WINWORD.EXE";
             var env = Environment(new[] { word, @"C:\Tools\After\winword.cmd", Path.Combine(Output, "winword.cmd") },
                 pathExt: ".EXE;.CMD", appPaths: new Dictionary<string, string> { ["winword.exe"] = word });
 
-            var conflicts = NameConflicts.Find("winword", Output, env);
+            var conflicts = NameConflicts.Find("winword", Output, env, NameLookup.Cmd);
 
             Assert.Equal(3, conflicts.Count);
             Assert.All(conflicts, c => Assert.Equal(NameConflictEffect.Hidden, c.Effect));
@@ -309,7 +350,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void ANameThatAlreadyEndsWithAPathExtExtension_IsAlsoTriedAsTyped()
+        public void ANameThatAlreadyEndsWithAnExtensionTried_IsAlsoTriedAsTyped()
         {
             var conflict = Assert.Single(Find("tool.exe", @"C:\Tools\After\tool.exe"));
 

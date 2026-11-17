@@ -78,7 +78,8 @@ Behavior that spans several files. Read the section before changing that area. P
 
 ## Name warnings
 
-- `NameConflicts.Find` (pure; inputs via `NameConflictEnvironment`) lists what else a name opens from Win+R, in ShellExecuteEx order: Windows folder, System32, machine then user PATH (with PATHEXT), App Paths. Before the output folder hides the keycut, after it is shadowed.
+- `NameConflicts.Find` (pure; inputs via `NameConflictEnvironment`) lists what else a name opens from Win+R, in ShellExecuteEx order: Windows folder, System32, machine then user PATH, App Paths, each folder in full before the next. Before the output folder hides the keycut, after it is shadowed.
+- Win+R ignores PATHEXT (#209, checked through the real Run dialog and ShellExecuteEx, which agree): it tries `.com`, `.exe`, `.bat`, `.lnk`, `.cmd` in that order (`RunDialogExtensions`), and never runs `.js`, `.vbs` or `.ps1` from a bare name. So `name.exe` beside a keycut hides it; `name.lnk`/`name.cmd` are shadowed. The target check passes `NameLookup.Cmd` instead, since a keycut's `START` runs under cmd, which does use PATHEXT.
 - `NameCheck.Run` adds the existing keycut while "Ask before replacing" is on. GUI asks via `ConfirmWindow`; the CLI via `CreateConfirmation.Decide`, exiting 14 with redirected input.
 - `AskBeforeReplacing` in HKCU; if unset, the old `ForceOverwrite` decides, inverted.
 - `keycuts` and `keypaste` (`CommandNames`) are refused; `MoveAsideCommandNames` renames existing ones to `<name>_previous` at startup.

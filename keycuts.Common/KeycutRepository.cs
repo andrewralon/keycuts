@@ -503,6 +503,32 @@ namespace keycuts.Common
             return added;
         }
 
+        /// <summary>
+        /// <see cref="AddRunCounting"/> once per folder (#187, #238), so lines taken out by hand stay out: at startup, and when
+        /// Settings changes the folder. Makes the usage folder too, so counting starts now. <paramref name="isDone"/> says whether
+        /// a folder already had its turn and <paramref name="markDone"/> records one that did (only if it exists, so a folder made
+        /// later still gets its turn); without them (the Debug folder override, which never writes the registry) it runs every
+        /// time, which changes nothing in a file that already counts. Returns false if the folder was already done.
+        /// </summary>
+        public bool AddRunCountingOnce(Func<string, bool> isDone, Action<string> markDone)
+        {
+            _usage?.EnsureFolder();
+
+            if (isDone != null && isDone(_outputFolder))
+            {
+                return false;
+            }
+
+            AddRunCounting();
+
+            if (markDone != null && !string.IsNullOrWhiteSpace(_outputFolder) && Directory.Exists(_outputFolder))
+            {
+                markDone(_outputFolder);
+            }
+
+            return true;
+        }
+
         private static bool TryAddRunCounting(string file)
         {
             var bytes = File.ReadAllBytes(file);
@@ -676,6 +702,7 @@ namespace keycuts.Common
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
                     Target = shortcut.Target ?? "",
+                    ResolvedTarget = ScriptVariables.Resolve(lines, shortcut.Target, Environment.GetEnvironmentVariable),
                     Program = shortcut.Program ?? "",
                     Arguments = shortcut.Arguments ?? "",
                     StartInFolder = shortcut.StartInFolder ?? "",
@@ -726,6 +753,12 @@ namespace keycuts.Common
         private DeletedKeycut Delete(Keycut keycut)
         {
             var path = keycut.FilePath;
+
+            // The keycuts and keypaste commands live beside the keycuts (#248) but aren't keycuts: never deleted from here
+            if (CommandShims.IsShimFileName(path))
+            {
+                throw new KeycutRepositoryException(KeycutRepositoryError.InvalidName, $"\"{Path.GetFileName(path)}\" is the {Path.GetFileNameWithoutExtension(path)} command, not a keycut, so it can't be deleted here.");
+            }
 
             try
             {
@@ -1057,7 +1090,7 @@ namespace keycuts.Common
         /// Writes <paramref name="content"/> to a temp file beside <paramref name="path"/> and swaps it in only once it's
         /// complete: writing in place truncates first, so a failed write (a full disk) would leave the keycut empty or half written.
         /// </summary>
-        private static void ReplaceFileContent(string path, byte[] content)
+        internal static void ReplaceFileContent(string path, byte[] content)
         {
             var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
 
@@ -1086,7 +1119,7 @@ namespace keycuts.Common
         private static readonly char[] LineBreaks = { '\r', '\n' };
 
         /// <summary>Where each line of <paramref name="text"/> starts and how long it is, without its line break (<c>\r\n</c>, <c>\n</c> or <c>\r</c>), as <see cref="StringReader.ReadLine"/> splits it.</summary>
-        private static List<(int Start, int Length)> ScanLines(string text)
+        internal static List<(int Start, int Length)> ScanLines(string text)
         {
             var lines = new List<(int, int)>();
             var position = 0;
@@ -1260,8 +1293,9 @@ namespace keycuts.Common
                         var environment = lookup.Value;
 
                         // No output folder: that argument gives a name its conflict rules (the keycut's own .bat is skipped, the
-                        // folder is searched even when it isn't on PATH), and this only asks what Windows would find
-                        if (NameConflicts.Find(path, null, environment).Count > 0)
+                        // folder is searched even when it isn't on PATH), and this only asks what Windows would find. The keycut's
+                        // START runs under cmd, which tries the PATHEXT extensions (Win+R's fixed list is for the keycut's own name).
+                        if (NameConflicts.Find(path, null, environment, NameLookup.Cmd).Count > 0)
                         {
                             return new CheckResult(TargetStatus.Ok, path);
                         }
@@ -1325,7 +1359,7 @@ namespace keycuts.Common
             }
 
             // No output folder: that argument gives a name its conflict rules, and this only asks what Windows would find
-            var found = NameConflicts.Find(programName, null, environment);
+            var found = NameConflicts.Find(programName, null, environment, NameLookup.Cmd);
             var foundByName = found.Any(c => c.Source != NameConflictSource.AppPaths);
             var inAppPaths = found.Any(c => c.Source == NameConflictSource.AppPaths);
 

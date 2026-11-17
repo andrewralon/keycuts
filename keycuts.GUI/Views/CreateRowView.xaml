@@ -37,65 +37,68 @@
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <!-- Target: the Creator's drop area squeezed to one text box's height, the type icon at its left, then Browse -->
+      <!-- Target: the Creator's drop area squeezed to one text box's height, the type icon at its left, then Browse. Each field is
+           in a StarCell, so a long target or description never takes a pixel from the next box (#252). -->
       <TextBlock Grid.Row="0" Grid.Column="0" Text="Target" Style="{StaticResource FieldLabel}" />
-      <Grid Grid.Row="1" Grid.Column="0">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <Grid x:Name="DropArea" Height="{StaticResource InputHeight}">
-          <Border Style="{StaticResource RowDropGlow}" />
-          <Border Style="{StaticResource RowDropFill}" />
-          <Rectangle Style="{StaticResource RowDropStroke}" />
-          <Grid Margin="12,0">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <controls:Icon Kind="{Binding TargetIcon}" Size="16" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
-            <!-- One line: a long target scrolls in the box, and its tooltip shows all of it. Not being edited, it shows the path as
-                 it will be saved (#31), as the Creator's does. -->
-            <TextBox x:Name="TextboxTarget" Grid.Column="1" Style="{StaticResource InlineTextBox}" Margin="8,0,0,0"
-                     Text="{Binding TargetText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="NoWrap"
-                     themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, or URL"
-                     IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
-                     AutomationProperties.HelpText="{Binding TargetHelpText}" />
+      <controls:StarCell Grid.Row="1" Grid.Column="0">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Grid x:Name="DropArea" Height="{StaticResource InputHeight}">
+            <Border Style="{StaticResource RowDropGlow}" />
+            <Border Style="{StaticResource RowDropFill}" />
+            <Rectangle Style="{StaticResource RowDropStroke}" />
+            <Grid Margin="12,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <controls:Icon Kind="{Binding TargetIcon}" Size="16" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
+              <!-- One line: a long target scrolls in the box, and its tooltip shows all of it. Not being edited, it shows the path as
+                   it will be saved (#31), as the Creator's does. -->
+              <TextBox x:Name="TextboxTarget" Grid.Column="1" Style="{StaticResource InlineTextBox}" Margin="8,0,0,0"
+                       Text="{Binding TargetText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="NoWrap"
+                       themes:TextBoxChrome.Placeholder="Drop or paste a file, folder, or URL"
+                       IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
+                       AutomationProperties.HelpText="{Binding TargetHelpText}" />
+            </Grid>
           </Grid>
+          <controls:MenuButton x:Name="BtnBrowse" Grid.Column="1" Style="{StaticResource SquareButton}" Margin="8,0,0,0"
+                               IsEnabled="{Binding IsInputEnabled}" ToolTip="Browse" AutomationProperties.Name="Browse">
+            <controls:Icon Kind="Folder" Size="20" VerticalAlignment="Center" />
+            <Button.ContextMenu>
+              <ContextMenu x:Name="BrowseMenu" Width="190">
+                <MenuItem Style="{StaticResource BrowseMenuItem}" AutomationProperties.Name="File…" Command="{Binding BrowseFileCommand}">
+                  <MenuItem.Icon>
+                    <controls:Icon Kind="File" Size="16" Foreground="{DynamicResource AccentBrush}" />
+                  </MenuItem.Icon>
+                  <MenuItem.Header>
+                    <StackPanel>
+                      <TextBlock Text="File…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
+                      <TextBlock Text="Choose a single file" FontSize="{StaticResource FontSizeCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Style="{StaticResource BrowseMenuItem}" AutomationProperties.Name="Folder…" Command="{Binding BrowseFolderCommand}">
+                  <MenuItem.Icon>
+                    <controls:Icon Kind="Folder" Size="16" Foreground="{DynamicResource AccentBrush}" />
+                  </MenuItem.Icon>
+                  <MenuItem.Header>
+                    <StackPanel>
+                      <TextBlock Text="Folder…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
+                      <TextBlock Text="Choose a directory" FontSize="{StaticResource FontSizeCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+              </ContextMenu>
+            </Button.ContextMenu>
+          </controls:MenuButton>
         </Grid>
-        <controls:MenuButton x:Name="BtnBrowse" Grid.Column="1" Style="{StaticResource SquareButton}" Margin="8,0,0,0"
-                             IsEnabled="{Binding IsInputEnabled}" ToolTip="Browse" AutomationProperties.Name="Browse">
-          <controls:Icon Kind="Folder" Size="20" VerticalAlignment="Center" />
-          <Button.ContextMenu>
-            <ContextMenu x:Name="BrowseMenu" Width="190">
-              <MenuItem Style="{StaticResource BrowseMenuItem}" AutomationProperties.Name="File…" Command="{Binding BrowseFileCommand}">
-                <MenuItem.Icon>
-                  <controls:Icon Kind="File" Size="16" Foreground="{DynamicResource AccentBrush}" />
-                </MenuItem.Icon>
-                <MenuItem.Header>
-                  <StackPanel>
-                    <TextBlock Text="File…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
-                    <TextBlock Text="Choose a single file" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-              <MenuItem Style="{StaticResource BrowseMenuItem}" AutomationProperties.Name="Folder…" Command="{Binding BrowseFolderCommand}">
-                <MenuItem.Icon>
-                  <controls:Icon Kind="Folder" Size="16" Foreground="{DynamicResource AccentBrush}" />
-                </MenuItem.Icon>
-                <MenuItem.Header>
-                  <StackPanel>
-                    <TextBlock Text="Folder…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
-                    <TextBlock Text="Choose a directory" FontSize="{StaticResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                  </StackPanel>
-                </MenuItem.Header>
-              </MenuItem>
-            </ContextMenu>
-          </Button.ContextMenu>
-        </controls:MenuButton>
-      </Grid>
+      </controls:StarCell>
 
       <!-- Name, with "Saving…" and then "Created" at the right of its label, as on the Creator -->
       <Grid Grid.Row="0" Grid.Column="1" Margin="12,0,0,0">
@@ -108,31 +111,35 @@
                              Text="{Binding NameStatusText}"
                              Visibility="{Binding HasNameStatus, Converter={StaticResource BoolToVisibility}}" />
       </Grid>
-      <TextBox x:Name="TextboxShortcut" Grid.Row="1" Grid.Column="1" Margin="12,0,0,0"
-               Text="{Binding ShortcutName, UpdateSourceTrigger=PropertyChanged}"
-               themes:TextBoxChrome.Placeholder="e.g. art"
-               themes:TextBoxChrome.HasError="{Binding IsNameError}"
-               themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
-               IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
-               AutomationProperties.HelpText="{Binding NameHelpText}">
-        <TextBox.InputBindings>
-          <!-- Shift+Enter too, with the environment-variables setting flipped -->
-          <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
-          <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
-        </TextBox.InputBindings>
-      </TextBox>
+      <controls:StarCell Grid.Row="1" Grid.Column="1">
+        <TextBox x:Name="TextboxShortcut" Margin="12,0,0,0"
+                 Text="{Binding ShortcutName, UpdateSourceTrigger=PropertyChanged}"
+                 themes:TextBoxChrome.Placeholder="e.g. art"
+                 themes:TextBoxChrome.HasError="{Binding IsNameError}"
+                 themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
+                 AutomationProperties.HelpText="{Binding NameHelpText}">
+          <TextBox.InputBindings>
+            <!-- Shift+Enter too, with the environment-variables setting flipped -->
+            <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+            <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
+          </TextBox.InputBindings>
+        </TextBox>
+      </controls:StarCell>
 
       <!-- Description: always shown here, so there is no Add a description link -->
       <TextBlock Grid.Row="0" Grid.Column="2" Margin="12,0,0,8" Text="Description" Style="{StaticResource FieldLabel}" />
-      <TextBox x:Name="TextboxDescription" Grid.Row="1" Grid.Column="2" Margin="12,0,0,0"
-               Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-               themes:TextBoxChrome.Placeholder="e.g. my paintings (optional)"
-               IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description">
-        <TextBox.InputBindings>
-          <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
-          <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
-        </TextBox.InputBindings>
-      </TextBox>
+      <controls:StarCell Grid.Row="1" Grid.Column="2">
+        <TextBox x:Name="TextboxDescription" Margin="12,0,0,0"
+                 Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                 themes:TextBoxChrome.Placeholder="e.g. my paintings (optional)"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description">
+          <TextBox.InputBindings>
+            <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
+            <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
+          </TextBox.InputBindings>
+        </TextBox>
+      </controls:StarCell>
 
       <!-- Create ends the row: the Creator's rocket, which gives way to the spinner while the keycut is written -->
       <Button x:Name="BtnCreateShortcut" Grid.Row="1" Grid.Column="3" Style="{StaticResource PrimarySquareButton}" Margin="8,0,0,0"

@@ -178,6 +178,68 @@ namespace keycuts.Tests
             Assert.Same(shell.Creator, shell.Settings.Footer);
         }
 
+        static async Task WaitUntil(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (!condition() && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(10);
+            }
+        }
+
+        // #238: a folder chosen in Settings gets the run-counting lines before it is counted, not at the next start
+        [Fact]
+        public async Task ANewFolder_IsPrepared_ThenCounted()
+        {
+            var steps = new List<string>();
+            var prepared = new TaskCompletionSource();
+            var (shell, _, _) = CreateShellWithSettings(() =>
+            {
+                steps.Add("count");
+                return Task.FromResult(5);
+            });
+            shell.PrepareOutputFolder = () =>
+            {
+                steps.Add("prepare");
+                return prepared.Task;
+            };
+            shell.ShowSettings();
+            steps.Clear();
+
+            shell.Settings!.OutputFolder = @"D:\New";
+            Assert.True(shell.Settings.CommitOutputFolder());
+            Assert.Equal(new[] { "prepare" }, steps);
+
+            prepared.SetResult();
+            await WaitUntil(() => steps.Count == 2);
+            Assert.Equal(new[] { "prepare", "count" }, steps);
+            Assert.Equal(5, shell.Creator.KeycutCount);
+
+            // The same folder again stores nothing, so nothing is prepared
+            Assert.True(shell.Settings.CommitOutputFolder());
+            Assert.Equal(new[] { "prepare", "count" }, steps);
+        }
+
+        [Fact]
+        public async Task AFolderThatCantBePrepared_IsStillCounted()
+        {
+            var counts = 0;
+            var (shell, _, _) = CreateShellWithSettings(() =>
+            {
+                counts++;
+                return Task.FromResult(2);
+            });
+            shell.PrepareOutputFolder = () => Task.FromException(new InvalidOperationException("offline"));
+            shell.ShowSettings();
+            counts = 0;
+
+            shell.Settings!.OutputFolder = @"D:\New";
+            shell.Settings.CommitOutputFolder();
+            await WaitUntil(() => counts == 1);
+
+            Assert.Equal(1, counts);
+        }
+
         [Fact]
         public void WithoutAWayToMakeIt_SettingsCantOpen()
         {

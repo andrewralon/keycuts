@@ -14,8 +14,8 @@
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The commands on PATH: a bin folder beside keycuts.exe holding only these shims, so PATH reaches keycuts and
-         keypaste (#97, "keycuts paste") but not the self-contained runtime's DLLs next to the exe -->
-    <None Update="shims\*.cmd" Link="bin\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The keycuts and keypaste commands (#97, #248): published into a shims folder, which the MSI installs into the keycuts
+         folder (on PATH already), so PATH never reaches the self-contained runtime's DLLs next to the exe -->
+    <None Update="shims\*.cmd" Link="shims\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

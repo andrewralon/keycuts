@@ -51,6 +51,103 @@ namespace keycuts.Tests
             Assert.False(manager.IsTableVisible);
         }
 
+        // #212: a script's SET variables filled in, for display only
+        static Keycut Resolved(string name, string target, string resolved)
+        {
+            return NewKeycut(name, KeycutKind.Url, target) with
+            {
+                ResolvedTarget = new ResolvedTarget(resolved, new[] { new ScriptVariable("BASE", resolved, true), new ScriptVariable("QUERY", "", true) }, true)
+            };
+        }
+
+        [Fact]
+        public void AResolvedTarget_IsShown_AndTheTooltipSaysWhereItCameFrom()
+        {
+            var row = new KeycutRowViewModel(Resolved("g", " %BASE%%QUERY%", "https://github.com/GolfNowEng"), null);
+
+            Assert.Equal("https://github.com/GolfNowEng", row.DisplayTarget);
+            Assert.Equal(" %BASE%%QUERY%", row.Target);   // what Copy target and every edit use
+            Assert.Equal(string.Join("\n",
+                "https://github.com/GolfNowEng",
+                "",
+                "From the script, with no arguments:",
+                "  BASE = https://github.com/GolfNowEng",
+                "  QUERY = (empty)",
+                "",
+                "As written: %BASE%%QUERY%"), row.TargetTooltip);
+        }
+
+        [Fact]
+        public void WithoutAResolvedTarget_TheTargetIsShownAsWritten()
+        {
+            var row = new KeycutRowViewModel(NewKeycut("a", target: @"C:\temp\a.txt"), null);
+
+            Assert.Equal(@"C:\temp\a.txt", row.DisplayTarget);
+            Assert.Equal(@"C:\temp\a.txt", row.TargetTooltip);
+        }
+
+        [Fact]
+        public async Task Search_MatchesTheTargetAsWrittenAndAsShown_AndSortUsesWhatIsShown()
+        {
+            var manager = NewManager(Returning(Resolved("g", "%BASE%%QUERY%", "https://github.com/GolfNowEng"), NewKeycut("b", KeycutKind.Url, "https://bing.com")));
+            await manager.LoadAsync();
+
+            manager.SearchText = "github";
+            Assert.Equal(new[] { "g" }, manager.Rows.Select(r => r.Name));
+            manager.SearchText = "%QUERY%";
+            Assert.Equal(new[] { "g" }, manager.Rows.Select(r => r.Name));
+
+            manager.SearchText = string.Empty;
+            manager.SortCommand.Execute(SortColumn.Target);
+            Assert.Equal(new[] { "b", "g" }, manager.Rows.Select(r => r.Name));   // bing before github, though %BASE% sorts first
+        }
+
+        // #235: a low count may only mean the keycut is new, so the Manager says when counting started
+        [Fact]
+        public async Task CountingSinceText_SaysWhenCountingStarted_ReadOnEachLoad()
+        {
+            DateTime? since = null;
+            var manager = NewManager(Returning(NewKeycut("a")));
+            manager.CountingSince = () => since;
+
+            await manager.LoadAsync();
+            Assert.Equal(string.Empty, manager.CountingSinceText);
+
+            since = new DateTime(2026, 11, 15, 9, 30, 0);
+            await manager.LoadAsync();
+            Assert.Equal(ManagerViewModel.FormatCountingSince(since), manager.CountingSinceText);
+            Assert.StartsWith("Counting since ", manager.CountingSinceText);
+            Assert.Contains("2026", manager.CountingSinceText);
+        }
+
+        [Fact]
+        public async Task CountingSinceText_IsEmpty_WithoutASource_OrWhenItFails()
+        {
+            var manager = NewManager(Returning(NewKeycut("a")));
+            await manager.LoadAsync();
+            Assert.Equal(string.Empty, manager.CountingSinceText);
+
+            manager.CountingSince = () => throw new IOException("gone");
+            await manager.LoadAsync();
+            Assert.Equal(string.Empty, manager.CountingSinceText);
+        }
+
+        [Fact]
+        public void FormatCountingSince_IsMonthDayYear()
+        {
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+                Assert.Equal("Counting since Nov 15, 2026", ManagerViewModel.FormatCountingSince(new DateTime(2026, 11, 15)));
+                Assert.Equal(string.Empty, ManagerViewModel.FormatCountingSince(null));
+            }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentCulture = culture;
+            }
+        }
+
         [Fact]
         public void StatusMessages_ShowForThreeSeconds_ByDefault_AndDeletedWithItsUndoLongerSinceAButtonNeedsReaching()
         {

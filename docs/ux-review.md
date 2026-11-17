@@ -93,7 +93,7 @@ Checked and partly fixed (#160, 2026-11-13). Measured with `ShellExecuteEx` (wha
   - *`.lnk`* resolves from a bare name with **no `PATHEXT` change**, for exe and folder targets, with no console. A same-named `.bat` wins over a `.lnk` in the same folder. It isn't hand-editable, so it would give up "the `.bat` is the whole product". The only candidate worth revisiting.
   - *`.url`, `.js` and `.vbs`* don't resolve from a bare name at all (also with `.JS` in `PATHEXT`), so Win+R can't run them. VBScript is also being deprecated.
   - A windowless exe launcher was not tested; it needs one exe per name in the folder.
-- **Open: `PATHEXT`.** `NameConflicts` models Win+R as trying each `PATHEXT` extension in order. In these tests a `.bat` ran with `PATHEXT=.COM;.EXE`, and a `.js` did not run with `.JS` in it, so `ShellExecuteEx` seems to use a fixed list (`.bat` and `.lnk` resolved; `.js`, `.vbs` and `.url` did not). Worth confirming through the real Run dialog, since #153's name warnings depend on it.
+- **Settled: `PATHEXT` (#209).** Through the real Run dialog and `ShellExecuteEx` alike, Win+R ignores `PATHEXT` and tries `.com`, `.exe`, `.bat`, `.lnk`, `.cmd`, in that order, each PATH folder in full before the next; `.js`, `.vbs` and `.ps1` never run from a bare name. `NameConflicts` now models that list.
 
 #### 2. Delete has no confirmation and no undo
 

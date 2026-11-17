@@ -334,10 +334,35 @@ namespace keycuts.GUI.ViewModels
             Creator.UpdateNotice?.Refresh();
         }
 
-        // The count is the new folder's
+        /// <summary>
+        /// What a folder newly chosen in Settings gets before it is loaded (#238): the app wires the run-counting lines, which
+        /// startup gives the folder it opens with. Off the UI thread; null does nothing.
+        /// </summary>
+        public Func<Task>? PrepareOutputFolder { get; set; }
+
+        // The count is the new folder's, read once the folder is ready
         private void Settings_OutputFolderChanged(object? sender, EventArgs e)
         {
-            _ = ReloadAsync();
+            _ = PrepareThenReloadAsync();
+        }
+
+        private async Task PrepareThenReloadAsync()
+        {
+            var prepare = PrepareOutputFolder;
+            if (prepare != null)
+            {
+                try
+                {
+                    await prepare();
+                }
+                catch (Exception ex)
+                {
+                    // The folder still loads; its older keycuts just don't count yet
+                    System.Diagnostics.Debug.WriteLine("keycuts: couldn't prepare the new folder: " + ex.Message);
+                }
+            }
+
+            await ReloadAsync();
         }
 
         private void Settings_ShowWelcomeRequested(object? sender, EventArgs e)

@@ -66,23 +66,72 @@ namespace keycuts.GUI.Controls
             return descending ? SortHeaderState.Descending : SortHeaderState.Ascending;
         }
 
+        /// <summary>
+        /// A line about the column (#235: "Counting since Nov 15, 2026" on Runs and Last run): the header's tooltip, and read
+        /// after the sort state, so a screen reader hears what the tooltip shows. Empty shows no tooltip.
+        /// </summary>
+        public string Note
+        {
+            get => (string)GetValue(NoteProperty);
+            set => SetValue(NoteProperty, value);
+        }
+
+        public static readonly DependencyProperty NoteProperty = DependencyProperty.Register(
+            nameof(Note), typeof(string), typeof(SortHeaderButton), new PropertyMetadata(string.Empty, OnNoteChanged));
+
+        /// <summary>The help text for a sort state and a note: either, both (the state first), or empty.</summary>
+        public static string GetHelpText(SortHeaderState state, string? note)
+        {
+            var sorted = state switch
+            {
+                SortHeaderState.Ascending => "Sorted ascending",
+                SortHeaderState.Descending => "Sorted descending",
+                _ => string.Empty
+            };
+
+            if (string.IsNullOrEmpty(note))
+            {
+                return sorted;
+            }
+
+            return sorted.Length == 0 ? note : sorted + ". " + note;
+        }
+
         private static void OnSortChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var button = (SortHeaderButton)d;
-            var state = GetState(button.Column, button.ActiveColumn, button.IsDescending);
-            button.SetValue(StatePropertyKey, state);
+            button.SetValue(StatePropertyKey, GetState(button.Column, button.ActiveColumn, button.IsDescending));
+            button.UpdateHelpText();
+        }
 
-            switch (state)
+        private static void OnNoteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var button = (SortHeaderButton)d;
+            var note = e.NewValue as string;
+
+            if (string.IsNullOrEmpty(note))
             {
-                case SortHeaderState.Ascending:
-                    AutomationProperties.SetHelpText(button, "Sorted ascending");
-                    break;
-                case SortHeaderState.Descending:
-                    AutomationProperties.SetHelpText(button, "Sorted descending");
-                    break;
-                default:
-                    button.ClearValue(AutomationProperties.HelpTextProperty);
-                    break;
+                button.ClearValue(ToolTipProperty);
+            }
+            else
+            {
+                button.ToolTip = note;
+            }
+
+            button.UpdateHelpText();
+        }
+
+        private void UpdateHelpText()
+        {
+            var text = GetHelpText(State, Note);
+
+            if (text.Length == 0)
+            {
+                ClearValue(AutomationProperties.HelpTextProperty);
+            }
+            else
+            {
+                AutomationProperties.SetHelpText(this, text);
             }
         }
     }

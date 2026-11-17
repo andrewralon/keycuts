@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Publishes the GUI and CLI self-contained into artifacts\publish\<runtime>, then packages that folder. The CLI's
-    keycuts.cmd and keypaste.cmd shims go in its bin subfolder, the only folder of it the MSI puts on PATH. Self-contained because a non-admin install can't add the .NET runtime to the machine.
+    keycuts.cmd and keypaste.cmd shims go in its shims subfolder, which the MSI installs into the keycuts folder (#248), the only folder it puts on PATH. Self-contained because a non-admin install can't add the .NET runtime to the machine.
     Needs only the .NET SDK; the WiX toolset restores from NuGet. Each runtime builds into its own folders, so building
     one doesn't delete the other.
 

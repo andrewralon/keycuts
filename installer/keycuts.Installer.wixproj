@@ -9,8 +9,10 @@
          product regardless, and those rules only matter for roaming profiles.
          ICE61 objects to MajorUpgrade AllowSameVersionUpgrades, which Package.wxs uses on purpose so reinstalling the
          same version replaces it. It is only a warning, but TreatWarningsAsErrors (Directory.Build.props) makes it fail
-         the MSI build. -->
-    <SuppressIces>ICE38;ICE61;ICE64;ICE91</SuppressIces>
+         the MSI build.
+         ICE57 sees the shims' component (#248) as per-machine files with a per-user key path: OUTPUTFOLDER is declared under
+         TARGETDIR only so the folder dialog can edit it, and it always resolves to a folder in the user's profile. -->
+    <SuppressIces>ICE38;ICE57;ICE61;ICE64;ICE91</SuppressIces>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WixToolset.UI.wixext" />

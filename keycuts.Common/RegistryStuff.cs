@@ -27,6 +27,9 @@ namespace keycuts.Common
         /// <summary>The app icon picked in Settings, by its <see cref="AppIconChoice"/> name. Written as soon as one is picked.</summary>
         public static readonly string AppIconKeyName = "AppIcon";
 
+        /// <summary>Show the app icon without its background (the keycap alone) on the windows and the shortcuts. Off unless set to 1.</summary>
+        public static readonly string AppIconTransparentKeyName = "AppIconTransparent";
+
         /// <summary>Save new file and folder keycuts with environment variables (#31). Off unless set.</summary>
         public static readonly string UseEnvironmentVariablesKeyName = "UseEnvironmentVariables";
 
@@ -147,6 +150,11 @@ namespace keycuts.Common
             return AppIconChoices.Parse(ReadValue(AppIconKeyName) as string);
         }
 
+        public static bool GetAppIconTransparent()
+        {
+            return ReadValue(AppIconTransparentKeyName) is int raw && raw != 0;
+        }
+
         public static bool GetWelcomeDismissed()
         {
             return ReadValue(WelcomeDismissedKeyName) is int raw && raw != 0;
@@ -250,6 +258,11 @@ namespace keycuts.Common
         public static void SetAppIcon(AppIconChoice choice)
         {
             SetRegistryValue(AppIconKeyName, choice.ToString(), RegistryValueKind.String);
+        }
+
+        public static void SetAppIconTransparent(bool transparent)
+        {
+            SetRegistryValue(AppIconTransparentKeyName, transparent ? 1 : 0, RegistryValueKind.DWord);
         }
 
         public static void SetWelcomeDismissed()

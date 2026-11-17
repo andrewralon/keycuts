@@ -104,6 +104,7 @@ When REM type/target lines are missing or invalid, the launch line is tried in o
 
 - `AppIconChoice` saved as `AppIcon` (unknown → default). Black & White and Accent follow the theme; high contrast picks by window color. Names and descriptions in `Themes/AppIcons` are the owner's wording, pinned by a test.
 - `AppIconManager` sets `Window.Icon` on load and on theme change. Applies and saves immediately (`IAppIconService`).
+- **Transparent icon background** (`AppIconTransparent`, a DWORD, off unless 1) swaps the drawing for its own without a background (`AppIcons.GetTransparent`: Porcelain → `key-charcoal`, Onyx → `key-white`, Cobalt and Twilight → `key-blue`, Classic → `classic-transparent`) on the windows and the shortcuts. Saved at once through `IAppIconService` like the choice; restore defaults turns it off. The picker's previews show the transparent drawings while it is on. **The tab bar always shows the transparent one** (`AppIconManager.TabBar`), whatever the setting.
 - `ShortcutIcons.PointAt` repoints `.lnk` files (Start menu, desktop, pinned taskbar) whose target is the running exe to `icons\<name>.ico`, then `SHChangeNotify`. Runs at start too. The exe's and MSI's own icons are fixed (Porcelain).
 - The picker overlay disables the page and the tabs (`AreTabsEnabled`), not the caption buttons.
 

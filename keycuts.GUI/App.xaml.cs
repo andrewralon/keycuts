@@ -35,7 +35,7 @@ namespace keycuts.GUI
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
             // After the theme, which the icon options that follow it read
-            Themes.AppIconManager.Initialize(this, Common.RegistryStuff.GetAppIcon(), UpdateShortcutIcons);
+            Themes.AppIconManager.Initialize(this, Common.RegistryStuff.GetAppIcon(), Common.RegistryStuff.GetAppIconTransparent(), UpdateShortcutIcons);
 
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").

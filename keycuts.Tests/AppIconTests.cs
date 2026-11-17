@@ -95,6 +95,34 @@ namespace keycuts.Tests
             Assert.Equal(expected, AppIcons.IsLight(variant, (Color)ColorConverter.ConvertFromString(window)));
         }
 
+        // Each drawing without its background (the owner's ask, 2026-11-16): the keycap alone in its own color, the monogram alone
+        [Theory]
+        [InlineData(AppIconArt.Porcelain, AppIconArt.KeyCharcoal)]
+        [InlineData(AppIconArt.Onyx, AppIconArt.KeyWhite)]
+        [InlineData(AppIconArt.Cobalt, AppIconArt.KeyBlue)]
+        [InlineData(AppIconArt.Twilight, AppIconArt.KeyBlue)]
+        [InlineData(AppIconArt.Classic, AppIconArt.ClassicTransparent)]
+        [InlineData(AppIconArt.KeyWhite, AppIconArt.KeyWhite)]
+        [InlineData(AppIconArt.KeyCharcoal, AppIconArt.KeyCharcoal)]
+        [InlineData(AppIconArt.KeyBlue, AppIconArt.KeyBlue)]
+        [InlineData(AppIconArt.ClassicTransparent, AppIconArt.ClassicTransparent)]
+        public void GetTransparent_GivesEachDrawingItsOwnWithoutABackground(AppIconArt art, AppIconArt expected)
+        {
+            Assert.Equal(expected, AppIcons.GetTransparent(art));
+        }
+
+        [Theory]
+        [InlineData(AppIconArt.Porcelain, "porcelain.ico")]
+        [InlineData(AppIconArt.Classic, "classic.ico")]
+        [InlineData(AppIconArt.KeyWhite, "key-white.ico")]
+        [InlineData(AppIconArt.KeyCharcoal, "key-charcoal.ico")]
+        [InlineData(AppIconArt.KeyBlue, "key-blue.ico")]
+        [InlineData(AppIconArt.ClassicTransparent, "classic-transparent.ico")]
+        public void GetFileName_IsTheIconsNameInAssets(AppIconArt art, string expected)
+        {
+            Assert.Equal(expected, AppIcons.GetFileName(art));
+        }
+
         [Fact]
         public void Options_AreTheSevenChoicesInThePickersOrder_WithTheOwnersNamesAndDescriptions()
         {
@@ -292,6 +320,63 @@ namespace keycuts.Tests
                 Applied.Add(choice);
                 return Message;
             }
+
+            public bool Transparent { get; private set; }
+
+            public List<bool> AppliedTransparent { get; } = new();
+
+            public string? ApplyTransparent(bool transparent)
+            {
+                Transparent = transparent;
+                AppliedTransparent.Add(transparent);
+                return Message;
+            }
+        }
+
+        [Fact]
+        public void TransparentIcon_StartsAtTheSavedValue_AndAppliesAtOnce_NotOnSave()
+        {
+            var icons = new RecordingIconService();
+            var store = new FakeStore();
+            var viewModel = new SettingsViewModel(store, appIcon: icons);
+            Assert.False(viewModel.TransparentIcon);
+
+            viewModel.TransparentIcon = true;
+            viewModel.TransparentIcon = true;
+
+            Assert.Equal(new[] { true }, icons.AppliedTransparent);
+            Assert.Equal(0, store.Saves);
+            Assert.Null(viewModel.SaveError);
+        }
+
+        [Fact]
+        public void Window_TheTransparentToggle_SitsUnderTheIcon_AndTheButtonShowsTheDrawingsWithoutABackground()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var viewModel = new SettingsViewModel(new FakeStore(), appIcon: new RecordingIconService());
+                var window = ShowOffscreen(viewModel);
+                try
+                {
+                    var button = (Button)window.FindName("BtnIcon");
+                    var toggle = (System.Windows.Controls.Primitives.ToggleButton)window.FindName("ToggleTransparentIcon");
+                    Assert.True(toggle.TranslatePoint(new Point(0, 0), window).Y > button.TranslatePoint(new Point(0, 0), window).Y);
+                    Assert.Equal("Transparent icon background", AutomationProperties.GetName(toggle));
+
+                    toggle.IsChecked = true;
+                    window.UpdateLayout();
+
+                    Assert.True(viewModel.TransparentIcon);
+                    var images = Descendants<Image>(button).Where(i => i.IsVisible).ToList();
+                    Assert.Same(AppIcons.GetPreview(AppIconArt.KeyCharcoal), images.Single(i => i.ActualWidth > 33).Source);
+                    Assert.Same(AppIcons.GetPreview(AppIconArt.KeyWhite), images.Single(i => i.ActualWidth <= 33).Source);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
         }
 
         private class FakeStore : ISettingsStore

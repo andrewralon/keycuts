@@ -41,6 +41,9 @@ namespace keycuts.GUI
         /// <summary>The icon a new install shows (#218, restore defaults).</summary>
         public const AppIconChoice DefaultAppIcon = AppIconChoice.BlackAndWhite;
 
+        /// <summary>A new install's icon keeps its background.</summary>
+        public const bool DefaultAppIconTransparent = false;
+
         /// <summary>
         /// What a new install has, for Settings' restore defaults (#218): ask before replacing, the right-click menu on (the
         /// installer adds it), no environment variables, the system theme, and update checks on. The output folder isn't a

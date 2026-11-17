@@ -41,6 +41,8 @@
     <Color x:Key="ShadowColor">Transparent</Color>
     <!-- A shadow's strength. DropShadowEffect ignores a color's alpha, so a Transparent ShadowColor alone still draws a shadow: high contrast turns it off here -->
     <sys:Double x:Key="ShadowOpacity">0</sys:Double>
+    <!-- No torn corner in high contrast: the bottom bar as it was -->
+    <Thickness x:Key="FooterBarPadding">24,0</Thickness>
 
     <!-- Tab bar (#218): no gradients, textures or shadow. The bar is the window color, the tabs are outlined in the text color,
          and the selected tab is the one whose outline runs into the page. -->

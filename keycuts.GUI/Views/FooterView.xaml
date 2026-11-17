@@ -11,8 +11,10 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
   </UserControl.Resources>
 
+  <!-- The window's torn bottom-right corner (Controls/TornCorner): the bar's right padding (FooterBarPadding, a palette value)
+       clears the rip, so Download and the dismiss button stay whole. The pages above have no extra room: the rip cuts into them. -->
   <Border x:Name="Bar" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
-          BorderThickness="0,1,0,0" Padding="24,0" MinHeight="48"
+          BorderThickness="0,1,0,0" Padding="{DynamicResource FooterBarPadding}" MinHeight="48"
           Visibility="{Binding UpdateNotice.IsVisible, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}">
     <Grid>
       <!-- The text is right-aligned in the space it gets, so the dismiss button follows it closely and the line is

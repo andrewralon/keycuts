@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using keycuts.GUI.Controls;
+using keycuts.GUI.Themes;
 using keycuts.GUI.ViewModels;
 
 namespace keycuts.GUI
@@ -43,6 +45,12 @@ namespace keycuts.GUI
             noMaximize = new NoMaximizeHook(this);
             // Windows would paint its classic caption buttons over the tab bar, after a drag from the bar
             noSystemCaption = new NoSystemCaptionHook(this);
+
+            // The torn corner follows the page's size and the theme (high contrast keeps the rectangle)
+            Frame.SizeChanged += (sender, e) => UpdateTear();
+            ThemeManager.Applied += ThemeManager_Applied;
+            Closed += (sender, e) => ThemeManager.Applied -= ThemeManager_Applied;
+            UpdateTear();
 
             // Pick up keycuts changed outside the app
             Activated += (sender, e) =>
@@ -200,6 +208,25 @@ namespace keycuts.GUI
             // Between the Manager and Settings the window stays as it is
         }
 
+        /// <summary>Whether the window shows its torn corner: always, except in high contrast, which keeps the plain rectangle.</summary>
+        public static bool ShowsTear(ThemeVariant variant)
+        {
+            return variant != ThemeVariant.HighContrast;
+        }
+
+        private void ThemeManager_Applied(object? sender, EventArgs e)
+        {
+            UpdateTear();
+        }
+
+        // The page is clipped to the torn shape, so the desktop shows through the tear; the tear's own drawing sits on top
+        private void UpdateTear()
+        {
+            var torn = ShowsTear(ThemeManager.Current);
+            Frame.Clip = torn ? TornCornerShape.Default.GetWindowClip(Frame.RenderSize) : null;
+            Tear.Visibility = torn ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         /// <summary>The Manager and Settings share the large size; the Creator has the small one.</summary>
         public static bool IsLarge(ShellMode mode)
         {
@@ -222,6 +249,7 @@ namespace keycuts.GUI
             SizeToContent = SizeToContent.Manual;
             ResizeMode = ResizeMode.CanResize;
             SetResizeBorder(WindowLayout.GetFrameThickness(this));
+            Tear.IsResizeGrip = true;
             MinWidth = WindowLayout.ManagerMinWidth;
             MinHeight = WindowLayout.ManagerMinHeight;
 
@@ -255,6 +283,7 @@ namespace keycuts.GUI
             MinHeight = 0;
             ResizeMode = ResizeMode.CanMinimize;
             SetResizeBorder(new Thickness(0));
+            Tear.IsResizeGrip = false;
             Width = WindowLayout.CreatorWidth;
             SizeToContent = SizeToContent.Height;
         }

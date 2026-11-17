@@ -16,7 +16,8 @@ namespace keycuts.GUI
 
         public const double ManagerDefaultWidth = 960;
 
-        public const double ManagerDefaultHeight = 540;
+        /// <summary>544, not 540: the Manager's table area is then a whole number of rows (the header and 7 rows, 297) with 24 under it, so the torn corner bites into a full last row.</summary>
+        public const double ManagerDefaultHeight = 544;
 
         public const double ManagerMinWidth = 720;
 

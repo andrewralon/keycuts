@@ -276,8 +276,8 @@ namespace keycuts.Tests
                     var dismiss = Named(footer, "BtnDismissUpdate");
                     Assert.InRange(LeftIn(dismiss, footer) - RightIn(text, footer), -0.5, 4);
 
-                    // ...and the line is right-justified in the footer
-                    Assert.InRange(footer.ActualWidth - 24 - RightIn(dismiss, footer), -0.5, 1);
+                    // ...and the line is right-justified in the footer, short of the torn corner (FooterBarPadding)
+                    Assert.InRange(footer.ActualWidth - ((Thickness)footer.FindResource("FooterBarPadding")).Right - RightIn(dismiss, footer), -0.5, 1);
 
                     notice.DismissCommand.Execute(null);
                     Pump();

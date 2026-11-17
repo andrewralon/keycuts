@@ -38,6 +38,12 @@ namespace keycuts.CLI
 
         public static ExitCode Run(string[] args)
         {
+            // Before the -h rewrite and the parser: what follows an open's name is the keycut's, dashes and all
+            if (KeycutCommands.TryReadOpen(args, out var openName, out var openArguments))
+            {
+                return RunManage(context => KeycutCommands.Open(context, openName, openArguments));
+            }
+
             // "create" is the default verb, so the original "keycuts -t … -s …" still works
             // -h is the usual short form of --help; the parser only knows the long one
             args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
@@ -48,7 +54,7 @@ namespace keycuts.CLI
                 (ListOptions parsed) => RunList(parsed),
                 (RemoveOptions parsed) => RunManage(context => KeycutCommands.Remove(context, parsed.Name)),
                 (RenameOptions parsed) => RunManage(context => KeycutCommands.Rename(context, parsed.OldName, parsed.NewName, parsed.Force)),
-                (OpenOptions parsed) => RunManage(context => KeycutCommands.Open(context, parsed.Name, JoinArguments(parsed.Arguments))),
+                (OpenOptions parsed) => RunManage(context => KeycutCommands.Open(context, parsed.Name, KeycutCommands.JoinArguments((parsed.Arguments ?? Enumerable.Empty<string>()).ToArray(), 0))),
                 errors => Usage.Show(result, errors, Console.Out, Console.Error));
         }
 
@@ -89,12 +95,6 @@ namespace keycuts.CLI
             }
         }
 
-        /// <summary>The arguments after a keycut's name, joined for the .bat, each quoted when it holds a space.</summary>
-        private static string JoinArguments(IEnumerable<string> arguments)
-        {
-            return string.Join(" ", (arguments ?? Enumerable.Empty<string>())
-                .Select(argument => argument.IndexOfAny(new[] { ' ', '\t' }) >= 0 && !argument.StartsWith("\"") ? "\"" + argument + "\"" : argument));
-        }
 
         /// <summary>
         /// <c>keycuts list</c> (#173, #237): the keycuts folder's keycuts, read like the Manager reads them, with this user's run

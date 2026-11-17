@@ -200,6 +200,28 @@ namespace keycuts.Tests
             Assert.Equal(new[] { (path, "inbox \"two words\"") }, _launched);
         }
 
+        // Review of #253: what follows the name is the keycut's, so the option parser must not see it
+        // The command line, its arguments separated by |
+        [Theory]
+        [InlineData("open|search|-x|--draft", "search", "-x --draft")]
+        [InlineData("OPEN|g|-h", "g", "-h")]
+        [InlineData("open|g|two words|", "g", "\"two words\" \"\"")]
+        [InlineData("open|g", "g", "")]
+        public void TryReadOpen_KeepsEverythingAfterTheName_ForTheKeycut(string commandLine, string name, string arguments)
+        {
+            Assert.True(KeycutCommands.TryReadOpen(commandLine.Split('|'), out var readName, out var readArguments));
+            Assert.Equal((name, arguments), (readName, readArguments));
+        }
+
+        [Theory]
+        [InlineData("open")]
+        [InlineData("open|--help")]
+        [InlineData("list|g")]
+        public void TryReadOpen_LeavesTheRestToTheParser(string commandLine)
+        {
+            Assert.False(KeycutCommands.TryReadOpen(commandLine.Split('|'), out _, out _));
+        }
+
         [Fact]
         public void Open_ANameThatIsntAKeycut_ExitsCannotFindFile_AndRunsNothing()
         {

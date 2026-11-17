@@ -150,6 +150,42 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// <c>keycuts open &lt;name&gt; …</c> read before the option parser sees it: everything after the name belongs to the keycut, so
+        /// <c>keycuts open search -x --draft</c> passes <c>-x --draft</c> on instead of failing as unknown options (review of #253).
+        /// False when it isn't an open with a name (no name, or <c>open --help</c>), which the parser then handles.
+        /// </summary>
+        public static bool TryReadOpen(string[] args, out string name, out string arguments)
+        {
+            name = null;
+            arguments = null;
+
+            if (args == null || args.Length < 2 || !string.Equals(args[0], "open", StringComparison.OrdinalIgnoreCase) || args[1].StartsWith("-", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            name = args[1];
+            arguments = JoinArguments(args, 2);
+            return true;
+        }
+
+        /// <summary>The arguments from <paramref name="start"/> on, joined for the .bat, each quoted when it holds a space and isn't already.</summary>
+        public static string JoinArguments(string[] args, int start)
+        {
+            var parts = new System.Collections.Generic.List<string>();
+
+            for (var i = start; i < args.Length; i++)
+            {
+                var argument = args[i] ?? "";
+                parts.Add(argument.Length == 0 || (argument.IndexOfAny(new[] { ' ', '\t' }) >= 0 && !argument.StartsWith("\"", StringComparison.Ordinal))
+                    ? "\"" + argument + "\""
+                    : argument);
+            }
+
+            return string.Join(" ", parts);
+        }
+
         /// <summary>The keycut named <paramref name="name"/> (any case, without .bat), or null after saying it isn't there.</summary>
         private static Keycut Find(KeycutCommandContext context, string name, out ExitCode notFound)
         {

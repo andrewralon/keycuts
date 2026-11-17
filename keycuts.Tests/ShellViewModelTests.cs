@@ -611,7 +611,7 @@ namespace keycuts.Tests
             Assert.Equal(960, WindowLayout.ManagerDefaultWidth);
             Assert.Equal(544, WindowLayout.ManagerDefaultHeight);
             Assert.Equal(720, WindowLayout.ManagerMinWidth);
-            Assert.Equal(480, WindowLayout.ManagerMinHeight);
+            Assert.Equal(470, WindowLayout.ManagerMinHeight);
         }
     }
 

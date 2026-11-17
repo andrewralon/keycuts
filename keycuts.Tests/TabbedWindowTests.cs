@@ -275,6 +275,27 @@ namespace keycuts.Tests
             }, withSettings: true);
         }
 
+        // The table is whole rows, and what is left goes under it. At the smallest height that is the same space as at the
+        // default size, with no part row's worth added to it.
+        [Fact]
+        public void Manager_AtItsMinimumHeight_HasTheDefaultSpaceUnderItsLastRow()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+                var host = (FrameworkElement)Named(window, "TableHost");
+                double Under() => window.ActualHeight - host.TranslatePoint(new Point(0, host.ActualHeight), window).Y;
+                var atDefault = Under();
+
+                window.Height = WindowLayout.ManagerMinHeight;
+                Settle(window);
+
+                Assert.Equal(WindowLayout.ManagerMinHeight, window.ActualHeight, 0.5);
+                Assert.True(Math.Abs(atDefault - Under()) < 0.5, $"under the table: {atDefault} at the default size, {Under()} at the minimum");
+            }, withKeycuts: true);
+        }
+
         [Fact]
         public void SettingsFromTheCreator_TakesTheLargeSize()
         {

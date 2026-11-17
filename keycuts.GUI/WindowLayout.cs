@@ -21,7 +21,8 @@ namespace keycuts.GUI
 
         public const double ManagerMinWidth = 720;
 
-        public const double ManagerMinHeight = 480;
+        /// <summary>470, not 480: the header and 5 rows with the same 24 under them as at the default height (480 left 34, a part row's worth more).</summary>
+        public const double ManagerMinHeight = 470;
 
         /// <summary>
         /// Shrinks the bounds to fit the work area, then slides them so they lie fully inside it.

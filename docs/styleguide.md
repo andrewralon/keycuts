@@ -103,7 +103,7 @@ Edit and Confirm end in the same footer, one shared style, `DialogFooter`: `Surf
 The main window has **two sizes** ([decision](#decisions), mockup [`window-sizes-v1`](mockups/window-sizes-v1.png)):
 
 - **Small, the Creator**: `MainWidth`, 600: what the whole tab bar needed plus about 60 of empty, draggable bar (#218), and about 110 since the tabs lost their icons. It must also fit two icon cards side by side in Settings' picker. Fixed-width, and it fits its content's height.
-- **Large, the Manager and Settings**: one size for both, resizable (960 × 544 at first, 720 × 480 at the least) and remembered while the app runs. Settings never grows the window to fit its content: it takes the size the Manager last had, lays itself out in two columns, and scrolls when the window is shorter than it. Switching between the Manager and Settings doesn't move or resize the window; resizing either resizes both.
+- **Large, the Manager and Settings**: one size for both, resizable (960 × 544 at first, 720 × 470 at the least, so the space under the last whole row is the same 24 as at 544) and remembered while the app runs. Settings never grows the window to fit its content: it takes the size the Manager last had, lays itself out in two columns, and scrolls when the window is shorter than it. Switching between the Manager and Settings doesn't move or resize the window; resizing either resizes both.
 - The window keeps its top-left corner as it changes size, and stays inside the work area.
 - **Confirm**: 440 (`ConfirmWidth`); **Edit**: 480 (`EditWidth`). They keep their widths while the main window grows ([decision](#decisions)). Dialogs size to their content's height (`SizeToContent="Height"`) and can't be resized.
 

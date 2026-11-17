@@ -273,12 +273,12 @@
             </Grid.ColumnDefinitions>
             <StackPanel>
               <TextBlock Text="Transparent icon background" Style="{StaticResource SettingName}" />
-              <TextBlock Text="Show the keycap alone on the taskbar, in Alt+Tab and on shortcuts." Style="{StaticResource SettingNote}" />
+              <TextBlock Text="Affects the taskbar, Alt+Tab, and shortcuts." Style="{StaticResource SettingNote}" />
             </StackPanel>
             <ToggleButton x:Name="ToggleTransparentIcon" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
                           VerticalAlignment="Center" IsChecked="{Binding TransparentIcon}"
                           AutomationProperties.Name="Transparent icon background"
-                          AutomationProperties.HelpText="Show the keycap alone on the taskbar, in Alt+Tab and on shortcuts." />
+                          AutomationProperties.HelpText="Affects the taskbar, Alt+Tab, and shortcuts." />
           </Grid>
 
           <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->

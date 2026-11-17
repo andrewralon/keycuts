@@ -14,7 +14,19 @@ namespace keycuts.GUI.Themes
         Onyx,
         Cobalt,
         Twilight,
-        Classic
+        Classic,
+
+        /// <summary>Onyx's white keycap alone, on a transparent background.</summary>
+        KeyWhite,
+
+        /// <summary>Porcelain's charcoal keycap alone.</summary>
+        KeyCharcoal,
+
+        /// <summary>Cobalt's and Twilight's blue keycap alone.</summary>
+        KeyBlue,
+
+        /// <summary>Classic's monogram without its white square.</summary>
+        ClassicTransparent
     }
 
     /// <summary>A choice in the Settings icon picker: its name, what it shows, and which drawing it uses in light and dark mode.</summary>
@@ -51,6 +63,11 @@ namespace keycuts.GUI.Themes
         public ImageSource LightImage => AppIcons.GetPreview(LightArt);
 
         public ImageSource DarkImage => AppIcons.GetPreview(DarkArt);
+
+        /// <summary>The drawings without their background, which the picker shows while the icon is transparent.</summary>
+        public ImageSource LightTransparentImage => AppIcons.GetPreview(AppIcons.GetTransparent(LightArt));
+
+        public ImageSource DarkTransparentImage => AppIcons.GetPreview(AppIcons.GetTransparent(DarkArt));
     }
 
     /// <summary>The app icons: the choices Settings offers, which drawing each one shows, and the images themselves.</summary>
@@ -107,9 +124,34 @@ namespace keycuts.GUI.Themes
             };
         }
 
+        /// <summary>
+        /// The drawing without its background: the keycap alone, or the monogram without its square. The tab bar always shows this
+        /// one; the windows and the shortcuts do when the icon is set to transparent. A transparent drawing is its own.
+        /// </summary>
+        public static AppIconArt GetTransparent(AppIconArt art)
+        {
+            return art switch
+            {
+                AppIconArt.Porcelain => AppIconArt.KeyCharcoal,
+                AppIconArt.Onyx => AppIconArt.KeyWhite,
+                AppIconArt.Cobalt or AppIconArt.Twilight => AppIconArt.KeyBlue,
+                AppIconArt.Classic => AppIconArt.ClassicTransparent,
+                _ => art
+            };
+        }
+
+        /// <summary>The .ico's name, as in assets/icons: porcelain.ico, key-white.ico, classic-transparent.ico.</summary>
         public static string GetFileName(AppIconArt art)
         {
-            return art.ToString().ToLowerInvariant() + ".ico";
+            var name = art switch
+            {
+                AppIconArt.KeyWhite => "key-white",
+                AppIconArt.KeyCharcoal => "key-charcoal",
+                AppIconArt.KeyBlue => "key-blue",
+                AppIconArt.ClassicTransparent => "classic-transparent",
+                _ => art.ToString().ToLowerInvariant()
+            };
+            return name + ".ico";
         }
 
         public static Uri GetPackUri(AppIconArt art)

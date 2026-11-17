@@ -119,6 +119,8 @@ namespace keycuts.GUI.ViewModels
 
         private string? iconError;
 
+        private bool transparentIcon;
+
         /// <param name="pickFolder">Shows a folder picker seeded with the given folder; null when cancelled.</param>
         /// <param name="openFolder">Opens the folder in Explorer.</param>
         /// <param name="checkFolder">Creates the folder if needed and proves it is writable; returns an error message or null. Tests use temp folders.</param>
@@ -142,6 +144,7 @@ namespace keycuts.GUI.ViewModels
         {
             this.appIcon = appIcon ?? new InMemoryAppIconService();
             selectedIcon = AppIcons.Get(this.appIcon.Choice);
+            transparentIcon = this.appIcon.Transparent;
             var view = new ListCollectionView(new List<AppIconOption>(AppIcons.Options));
             view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AppIconOption.Group)));
             IconOptionsView = view;
@@ -357,6 +360,22 @@ namespace keycuts.GUI.ViewModels
                 IconError = appIcon.Apply(value.Choice);
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IconButtonName));
+            }
+        }
+
+        /// <summary>
+        /// The icon without its background (the keycap alone) on the taskbar, Alt+Tab and the app's shortcuts. The tab bar shows it
+        /// that way either way. Applies and saves at once; a save that fails says so on the page.
+        /// </summary>
+        public bool TransparentIcon
+        {
+            get { return transparentIcon; }
+            set
+            {
+                if (SetProperty(ref transparentIcon, value))
+                {
+                    SaveError = appIcon.ApplyTransparent(value);
+                }
             }
         }
 
@@ -605,12 +624,39 @@ namespace keycuts.GUI.ViewModels
 
             var iconChanged = selectedIcon.Choice != Settings.DefaultAppIcon;
             SelectedIcon = AppIcons.Get(Settings.DefaultAppIcon);
+
+            string? transparentError = null;
+            if (transparentIcon != Settings.DefaultAppIconTransparent)
+            {
+                transparentIcon = Settings.DefaultAppIconTransparent;
+                transparentError = appIcon.ApplyTransparent(transparentIcon);
+                OnPropertyChanged(nameof(TransparentIcon));
+            }
+
             Store();
 
             // An icon that couldn't be saved says so in the picker, which is closed now: the page says it too, after any other problem
             if (iconChanged && HasIconError)
             {
-                SaveError = SaveError == null ? IconError : SaveError + Environment.NewLine + IconError;
+                AddSaveError(IconError!);
+            }
+
+            if (transparentError != null)
+            {
+                AddSaveError(transparentError);
+            }
+        }
+
+        /// <summary>Adds a problem under any other on the page, once.</summary>
+        private void AddSaveError(string message)
+        {
+            if (SaveError == null)
+            {
+                SaveError = message;
+            }
+            else if (!SaveError.Contains(message, StringComparison.Ordinal))
+            {
+                SaveError = SaveError + Environment.NewLine + message;
             }
         }
 

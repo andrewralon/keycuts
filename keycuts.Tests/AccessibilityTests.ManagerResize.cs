@@ -18,7 +18,7 @@ using Xunit;
 namespace keycuts.Tests
 {
     // Resizing the Manager's columns by dragging the dividers (#202). The columns are Name (0), Type (1), Description (2),
-    // Target (3), Modified (4), Runs (5) and Last run (6). A drag is sent the way the table's own header gets
+    // Target (3), Runs (4), Last run (5) and Modified (6). A drag is sent the way the table's own header gets
     // it, as the grippers' Thumb events, so no pointer is needed. The window is 1200 wide where all of them should show.
     public partial class AccessibilityTests
     {
@@ -26,9 +26,9 @@ namespace keycuts.Tests
         const int TypeColumn = 1;
         const int DescriptionColumn = 2;
         const int TargetColumn = 3;
-        const int ModifiedColumn = 4;
-        const int RunsColumn = 5;
-        const int LastRunColumn = 6;
+        const int ModifiedColumn = 6;
+        const int RunsColumn = 4;
+        const int LastRunColumn = 5;
 
         /// <summary>
         /// Runs <paramref name="body"/> with a Manager of a few keycuts <paramref name="width"/> wide. The width is the view's,

@@ -4,7 +4,7 @@ Open any file, folder or URL by typing a nickname in Win+R.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/walkthrough-dark.gif">
-  <img src="docs/images/walkthrough-light.gif" alt="Creating a keycut: a Gmail link is the target, the name gmail is typed, Enter creates it. Then Win+R, gmail, Enter opens it." width="424">
+  <img src="docs/images/walkthrough-light.gif" alt="Creating a keycut: a Gmail link is the target, the name gmail is typed, Enter creates it. Then Win+R, gmail, Enter opens it." width="580">
 </picture>
 
 Each keycut is a small `.bat` file in a folder on your `PATH`: `npp` opens Notepad++, `gmail` opens your email, `db` opens Dropbox.
@@ -31,7 +31,7 @@ Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
   <img src="docs/images/manager-light.png" alt="The manager: a row for a new keycut over a searchable table of keycuts." width="830">
 </picture>
 
-**Settings:** output folder, theme, icon, right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
+**Settings:** output folder, theme, icon (with or without its background), right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
@@ -58,4 +58,4 @@ dotnet test keycuts.sln
 pwsh -File tools/Build-Installer.ps1
 ```
 
-To release: bump `<Version>` in `Directory.Build.props`, run `tools/New-Screenshots.ps1`, merge `develop` into `main`.
+To release: bump `<Version>` in `Directory.Build.props`, run `tools/New-Screenshots.ps1` (the screenshots and walkthrough GIFs in `docs/images`) and commit what changed, merge `develop` into `main`.

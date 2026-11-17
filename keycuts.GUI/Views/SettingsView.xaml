@@ -72,7 +72,7 @@
         <Border x:Name="Front" Width="33" Height="33" Padding="1" CornerRadius="{StaticResource RadiusMd}" HorizontalAlignment="Right"
                 VerticalAlignment="Bottom" Visibility="Collapsed"
                 Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Border, AncestorLevel=1}}">
-          <Image Source="{Binding DarkImage}" />
+          <Image x:Name="FrontImage" Source="{Binding DarkImage}" />
         </Border>
       </Grid>
       <DataTemplate.Triggers>
@@ -80,6 +80,12 @@
           <Setter TargetName="Single" Property="Visibility" Value="Collapsed" />
           <Setter TargetName="Back" Property="Visibility" Value="Visible" />
           <Setter TargetName="Front" Property="Visibility" Value="Visible" />
+        </DataTrigger>
+        <!-- With a transparent background, the drawings the taskbar and the shortcuts will show -->
+        <DataTrigger Binding="{Binding DataContext.TransparentIcon, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+          <Setter TargetName="Single" Property="Source" Value="{Binding LightTransparentImage}" />
+          <Setter TargetName="Back" Property="Source" Value="{Binding LightTransparentImage}" />
+          <Setter TargetName="FrontImage" Property="Source" Value="{Binding DarkTransparentImage}" />
         </DataTrigger>
       </DataTemplate.Triggers>
     </DataTemplate>
@@ -257,6 +263,22 @@
             <Button x:Name="BtnIcon" Grid.Column="1" Margin="16,0,0,0" Padding="4" VerticalAlignment="Center"
                     Command="{Binding OpenIconPickerCommand}" Content="{Binding SelectedIcon}" ContentTemplate="{StaticResource IconPreview}"
                     ToolTip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
+          </Grid>
+
+          <!-- The icon without its background everywhere but the tab bar, which always shows it so. Applies and is stored at once. -->
+          <Grid Style="{StaticResource SettingRow}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Transparent icon background" Style="{StaticResource SettingName}" />
+              <TextBlock Text="Affects the taskbar, Alt+Tab, and shortcuts." Style="{StaticResource SettingNote}" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleTransparentIcon" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding TransparentIcon}"
+                          AutomationProperties.Name="Transparent icon background"
+                          AutomationProperties.HelpText="Affects the taskbar, Alt+Tab, and shortcuts." />
           </Grid>
 
           <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->

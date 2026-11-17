@@ -333,19 +333,8 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public bool Matches(string search)
         {
-            if (string.IsNullOrWhiteSpace(search))
-            {
-                return true;
-            }
-
-            var term = search.Trim();
-            return Contains(Name, term) || Contains(TypeLabel, term) || Contains(Description, term) || Contains(Target, term) ||
-                Contains(DisplayTarget, term);
-        }
-
-        private static bool Contains(string value, string term)
-        {
-            return value.Contains(term, System.StringComparison.CurrentCultureIgnoreCase);
+            // The rule keycuts list uses too, so the two never drift apart
+            return KeycutListing.Matches(Keycut, search);
         }
 
         /// <summary>Call on a reload that kept the row, so "3 days ago" doesn't go stale while the window stays open.</summary>

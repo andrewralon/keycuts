@@ -104,6 +104,19 @@ namespace keycuts.Tests
             Assert.Equal(3, KeycutListing.Filter(keycuts, "  ").Count);
         }
 
+        // Review of #253: the same rule as the Manager's search, so a resolved target (#212) is found by what it shows
+        [Fact]
+        public void Filter_MatchesAResolvedTarget_AsTheManagerDoes()
+        {
+            var g = K("g", target: "%BASE%%QUERY%") with
+            {
+                ResolvedTarget = new ResolvedTarget("https://github.com/GolfNowEng", Array.Empty<ScriptVariable>(), true)
+            };
+
+            Assert.Equal(new[] { "g" }, KeycutListing.Filter(new[] { g, K("b") }, "github").Select(k => k.Name));
+            Assert.Equal(new[] { "g" }, KeycutListing.Filter(new[] { g, K("b") }, "%QUERY%").Select(k => k.Name));
+        }
+
         [Fact]
         public async System.Threading.Tasks.Task TheListing_ReadsRunCounts_ThroughTheRepository_WithItsUsageLog()
         {

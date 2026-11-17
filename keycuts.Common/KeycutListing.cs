@@ -60,18 +60,24 @@ namespace keycuts.Common
         /// </summary>
         public static IReadOnlyList<Keycut> Filter(IEnumerable<Keycut> keycuts, string search)
         {
+            return keycuts.Where(keycut => Matches(keycut, search)).ToList();
+        }
+
+        /// <summary>
+        /// The search rule the Manager's box and <c>keycuts list</c> share: the name, the type (url, file, folder, command, as the
+        /// badges name them), the description, and the target both as written and as shown with a script's variables filled in
+        /// (#212), any case. A blank search matches everything.
+        /// </summary>
+        public static bool Matches(Keycut keycut, string search)
+        {
             var term = (search ?? "").Trim();
 
-            if (term.Length == 0)
-            {
-                return keycuts.ToList();
-            }
-
-            return keycuts.Where(keycut =>
+            return term.Length == 0 ||
                 Contains(keycut.Name, term) ||
                 Contains(TypeText(keycut), term) ||
+                Contains(keycut.Description, term) ||
                 Contains(keycut.Target, term) ||
-                Contains(keycut.Description, term)).ToList();
+                Contains(keycut.ResolvedTarget?.Text, term);
         }
 
         public static IReadOnlyList<Keycut> Sort(IEnumerable<Keycut> keycuts, KeycutListSort sort)

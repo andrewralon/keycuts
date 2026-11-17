@@ -66,6 +66,12 @@ namespace keycuts.Common
         public static readonly string RunCountingFoldersKeyName = "RunCountingFolders";
 
         /// <summary>
+        /// Every keycuts folder brought to the current format (<c>KeycutMigration</c>, #196, #207), one per line (<c>REG_MULTI_SZ</c>).
+        /// Added only once nothing was left for a later start to do, so a locked file is tried again next time.
+        /// </summary>
+        public static readonly string MigratedFoldersKeyName = "MigratedFolders";
+
+        /// <summary>
         /// The update cache's names before #191. They are never read: the first write of a new value deletes them, and the cost of
         /// not migrating is one more daily check (or Check now) and, at worst, a dismissed notice showing once more.
         /// </summary>
@@ -286,7 +292,7 @@ namespace keycuts.Common
         /// <summary>Adds <paramref name="folder"/> to <see cref="RunCountingFoldersKeyName"/>, unless it is there already.</summary>
         public static void MarkRunCountingDone(string folder)
         {
-            var folders = AddRunCountingFolder(ReadValue(RunCountingFoldersKeyName) as string[], folder);
+            var folders = AddFolder(ReadValue(RunCountingFoldersKeyName) as string[], folder);
 
             if (folders != null)
             {
@@ -294,8 +300,25 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>
+        public static bool IsMigrationDone(string folder)
+        {
+            return IsRunCountingDone(null, ReadValue(MigratedFoldersKeyName) as string[], folder);
+        }
+
+        /// <summary>Adds <paramref name="folder"/> to <see cref="MigratedFoldersKeyName"/>, unless it is there already.</summary>
+        public static void MarkMigrationDone(string folder)
+        {
+            var folders = AddFolder(ReadValue(MigratedFoldersKeyName) as string[], folder);
+
+            if (folders != null)
+            {
+                SetRegistryValue(MigratedFoldersKeyName, folders, RegistryValueKind.MultiString);
+            }
+        }
+
         /// <summary>The list with <paramref name="folder"/> added, or null when there is nothing to store (it is there, or blank).</summary>
-        public static string[] AddRunCountingFolder(string[] folders, string folder)
+        public static string[] AddFolder(string[] folders, string folder)
         {
             var current = folders ?? Array.Empty<string>();
 

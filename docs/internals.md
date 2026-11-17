@@ -69,6 +69,13 @@ Behavior that spans several files. Read the section before changing that area. P
 - Rename and the Edit form's rename move the record (replacing a leftover under the new name); delete removes it into `DeletedKeycut.Usage` and Undo restores it with its time. A brand-new keycut clears a leftover record for its name (`Runner.Usage`, set only by the CLI and `CreateOptions.Usage` from the GUI); overwriting keeps the count.
 - Manager: Runs and Last run columns, sorted most/latest first. Modified makes way first (table < 1040), then Runs and Last run (< 780). Their headers' tooltip and help text say "Counting since <date>" (`CountingSinceText`, from `UsageLog.CountingSince`, the usage folder's creation time, read on each load; nothing before it exists), via `SortHeaderButton.Note` (#235).
 
+## Migrating older keycuts (#196, #207)
+
+- `KeycutMigration` in one pass: `REM <destination>` → `REM <target>`, and a launch line that is exactly `"%SystemRoot%\explorer.exe" "<one quoted argument>"` gets `START "" /B ` in front. Nothing else: not a commented-out copy, an unquoted argument or a second argument.
+- Strict UTF-8 text with the file's own line breaks and BOM; a file that isn't valid UTF-8 is never rewritten (`NotUtf8`, doesn't block completion). Read-only, locked or changed-while-read files are `Skipped` and tried again next start.
+- Every file that will change is copied to `<folder>\.keycuts-backup\<yyyyMMdd-HHmmss>\` (hidden, off PATH, never overwritten: `-2`, `-3`) before any is touched; if the backup fails nothing changes. Writes go through `ReplaceFileContent` (temp + `File.Replace`), and the last write and access times are put back.
+- The GUI runs it once per folder (`RunOnce`, `MigratedFolders` in HKCU, added only when `IsComplete`): at startup next to `MoveAsideCommandNames`, before the first load, and on a folder change from Settings (`PrepareOutputFolder`). `MigrationNotice` says how many and where the backup is. The CLI never migrates. The Debug folder override runs it every start (idempotent).
+
 ## Target check (Missing / Warning / Unknown)
 
 - Missing = a specific path was looked for and isn't there. Anything uncertain is Unknown (no label).

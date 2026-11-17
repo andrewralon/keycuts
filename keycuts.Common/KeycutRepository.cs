@@ -1083,7 +1083,7 @@ namespace keycuts.Common
         /// Writes <paramref name="content"/> to a temp file beside <paramref name="path"/> and swaps it in only once it's
         /// complete: writing in place truncates first, so a failed write (a full disk) would leave the keycut empty or half written.
         /// </summary>
-        private static void ReplaceFileContent(string path, byte[] content)
+        internal static void ReplaceFileContent(string path, byte[] content)
         {
             var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
 
@@ -1112,7 +1112,7 @@ namespace keycuts.Common
         private static readonly char[] LineBreaks = { '\r', '\n' };
 
         /// <summary>Where each line of <paramref name="text"/> starts and how long it is, without its line break (<c>\r\n</c>, <c>\n</c> or <c>\r</c>), as <see cref="StringReader.ReadLine"/> splits it.</summary>
-        private static List<(int Start, int Length)> ScanLines(string text)
+        internal static List<(int Start, int Length)> ScanLines(string text)
         {
             var lines = new List<(int, int)>();
             var position = 0;

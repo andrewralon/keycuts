@@ -45,8 +45,10 @@ namespace keycuts.GUI
             var moveAside = Task.Run(() =>
             {
                 var renamed = MoveAsideCommandNames();
+                // #196, #207: older keycuts to the current format, once per folder, with a backup
+                var migration = MigrateFolder();
                 AddRunCounting();
-                return renamed;
+                return (Renamed: renamed, Migration: migration);
             });
             var welcome = new ViewModels.WelcomeViewModel(
                 Common.RegistryStuff.GetWelcomeDismissed,
@@ -92,8 +94,18 @@ namespace keycuts.GUI
                 Common.NameConflictEnvironment.GetDefault());
             // #235: the Runs and Last run headers say when counting started on this machine
             shell.Manager.CountingSince = Common.UsageLog.CreateDefault().CountingSince;
-            // #238: a folder chosen in Settings counts its keycuts' runs at once, not from the next start
-            shell.PrepareOutputFolder = () => Task.Run(AddRunCounting);
+            // #238: a folder chosen in Settings counts its keycuts' runs at once, not from the next start, and is brought to the
+            // current format the same way startup's is (#196, #207)
+            shell.PrepareOutputFolder = async () =>
+            {
+                var migration = await Task.Run(() =>
+                {
+                    var result = MigrateFolder();
+                    AddRunCounting();
+                    return result;
+                });
+                ShowMigrationNotice(mainWindow, migration);
+            };
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             var useEnvironmentVariables = Common.RegistryStuff.GetUseEnvironmentVariables();
@@ -115,7 +127,7 @@ namespace keycuts.GUI
             Themes.AppIconManager.ApplyTo(mainWindow);
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell);
-            _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
+            _ = ShowStartupNoticesAsync(mainWindow, moveAside);
             _ = CheckForUpdatesAsync(updateNotice);
         }
 
@@ -173,15 +185,52 @@ namespace keycuts.GUI
             }
         }
 
-        /// <summary>Says what <see cref="MoveAsideCommandNames"/> renamed, once it's done, unless the window is already closed.</summary>
-        private static async Task ShowCommandNameNoticeAsync(Window owner, Task<IReadOnlyList<Common.RenamedKeycut>> moveAside)
+        /// <summary>
+        /// Says what <see cref="MoveAsideCommandNames"/> renamed and what <see cref="MigrateFolder"/> updated, once they're done,
+        /// unless the window is already closed.
+        /// </summary>
+        private static async Task ShowStartupNoticesAsync(Window owner, Task<(IReadOnlyList<Common.RenamedKeycut> Renamed, Common.MigrationResult Migration)> startup)
         {
             // Resumes on the UI thread, which the message box needs
-            var renamed = await moveAside;
+            var (renamed, migration) = await startup;
 
             if (renamed.Count > 0 && owner.IsLoaded)
             {
                 MessageBox.Show(owner, ViewModels.CommandNameNotice.Format(renamed), "keycuts", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            ShowMigrationNotice(owner, migration);
+        }
+
+        /// <summary>The one-time notice after keycuts were updated (#196, #207): how many, and where the originals are.</summary>
+        private static void ShowMigrationNotice(Window? owner, Common.MigrationResult migration)
+        {
+            var text = ViewModels.MigrationNotice.Format(migration);
+
+            if (text != null && owner != null && owner.IsLoaded)
+            {
+                MessageBox.Show(owner, text, "keycuts", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        /// <summary>
+        /// Brings the folder's keycuts written by older versions to the current format (<see cref="Common.KeycutMigration"/>), with a
+        /// backup, once per folder (recorded in HKCU when nothing was left over). Runs on a worker thread. Never fails. The Debug folder
+        /// override never writes the registry, so it runs on every start there, and finds nothing the second time.
+        /// </summary>
+        private static Common.MigrationResult MigrateFolder()
+        {
+            try
+            {
+                var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
+                return Common.KeycutMigration.RunOnce(new Common.Runner().GetOutputFolder(), DateTime.Now,
+                    usesDebugFolder ? null : Common.RegistryStuff.IsMigrationDone,
+                    usesDebugFolder ? null : Common.RegistryStuff.MarkMigrationDone);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't update older keycuts: " + ex.Message);
+                return new Common.MigrationResult();
             }
         }
 

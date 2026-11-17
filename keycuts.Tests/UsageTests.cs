@@ -549,12 +549,12 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void AddRunCountingFolder_AppendsANewFolderOnly()
+        public void AddFolder_AppendsANewFolderOnly()
         {
-            Assert.Equal(new[] { @"C:\Shortcuts" }, RegistryStuff.AddRunCountingFolder(null, @"C:\Shortcuts"));
-            Assert.Equal(new[] { @"C:\Shortcuts", @"D:\Other" }, RegistryStuff.AddRunCountingFolder(new[] { @"C:\Shortcuts" }, @"D:\Other"));
-            Assert.Null(RegistryStuff.AddRunCountingFolder(new[] { @"C:\Shortcuts" }, @"c:\shortcuts\"));
-            Assert.Null(RegistryStuff.AddRunCountingFolder(new[] { @"C:\Shortcuts" }, " "));
+            Assert.Equal(new[] { @"C:\Shortcuts" }, RegistryStuff.AddFolder(null, @"C:\Shortcuts"));
+            Assert.Equal(new[] { @"C:\Shortcuts", @"D:\Other" }, RegistryStuff.AddFolder(new[] { @"C:\Shortcuts" }, @"D:\Other"));
+            Assert.Null(RegistryStuff.AddFolder(new[] { @"C:\Shortcuts" }, @"c:\shortcuts\"));
+            Assert.Null(RegistryStuff.AddFolder(new[] { @"C:\Shortcuts" }, " "));
         }
 
         [Fact]

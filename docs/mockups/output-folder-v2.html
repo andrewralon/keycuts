@@ -1,0 +1,204 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Output folder: User / System, v2</title>
+<!-- v2: v1 redrawn for the tabbed window of 1.6.x (docs/styleguide.md, Tabbed window): Settings is the gear tab, 960 x 544, two columns,
+     no heading and no Save button. The choice is a radio pair on the Output folder label's line (like Theme); a change asks first in the
+     Confirm dialog (like restore defaults), which now also holds the sync preview; the result stays under the folder in Settings.
+     Light palette only, drawn without the torn corner. A sketch, not a screenshot of the app. -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172033}
+.page{width:960px;margin:0 auto}
+.title{font-size:16px;font-weight:700;margin:0 0 4px}
+.lede{font-size:13px;color:#465064;margin:0 0 6px;line-height:1.5}
+.cap2{font-size:13px;margin:26px 0 8px}.cap2 span{color:#465064}
+.notes{font-size:12.5px;color:#465064;line-height:1.5;margin-top:26px}
+.notes b{color:#172033}
+.notes ul{margin:4px 0 0;padding-left:18px}.notes li{margin:3px 0}
+code,.mono{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px}
+
+/* Themes/Light.xaml, as in creator-polish-v1 */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--glow:rgba(37,99,235,.22);--warn:#b45309;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --capGlyph:#172033}
+
+.stage{position:relative;width:960px}
+.win{width:960px;height:544px;background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+
+/* tab bar: RailHeight 48 */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:4px 24px 0 8px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 4px 12px;display:flex;align-items:center;gap:8px;
+  font-size:16px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));z-index:0}
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.dis{color:var(--text3);opacity:.7}
+
+/* Settings: PagePadding 24,16,24,24; two columns with a rule 24 from each */
+.cols{flex:1;display:grid;grid-template-columns:1fr auto 1fr;padding:16px 24px 24px;min-height:0}
+.rule{width:1px;background:var(--border);margin:0 24px}
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:24px 0 8px}
+.sec:first-child{margin-top:0}
+.flabel{font-size:13px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 12px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface);white-space:nowrap;overflow:hidden}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.btn{height:36px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;font-size:13px;font-weight:600;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent);gap:8px}
+.help{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:16px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.radio{display:flex;gap:16px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;border:1px solid var(--ctl);display:inline-block}
+.dot.on{border:5px solid var(--accent)}
+.iconbtn{width:60px;height:60px;border:1px solid var(--ctl);border-radius:5px;position:relative;flex:none}
+.iconbtn img{position:absolute;display:block}
+.iconbtn .f{position:absolute;right:4px;bottom:4px;width:33px;height:33px;border-radius:8px;background:#20242c}
+.endrow{display:flex;justify-content:space-between;margin-top:24px}
+
+/* the sync result: an inset panel (RadiusLg, PanelPadding 16, SurfaceSubtleBrush, 1px border) under the folder box */
+.panel{border:1px solid var(--border);border-radius:12px;background:var(--subtle);padding:16px;margin-top:16px;position:relative}
+.panel .h{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;padding-right:32px}
+.panel .x{position:absolute;right:8px;top:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text2)}
+
+/* the Confirm dialog: its own window, 440 wide, PagePadding, DialogFooter */
+.dlg{position:absolute;z-index:50;left:260px;top:34px;width:440px;background:var(--surface);border:1px solid var(--strong);border-radius:8px;overflow:hidden;
+  box-shadow:0 16px 44px rgba(15,23,42,.38)}
+.dtitle{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 0 0 12px;font-size:12px;background:#fff;border-bottom:1px solid var(--border)}
+.dtitle .cb{height:32px;width:46px}
+.dbody{padding:16px 24px 24px}
+.dhead{display:flex;gap:12px;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--subtle);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex:none;color:var(--warn)}
+.dhead h3{margin:0;font-size:20px;font-weight:600;line-height:1.2}
+.dhead p{margin:4px 0 0;font-size:13px;color:var(--text2);line-height:1.4}
+.dpanel{border:1px solid var(--border);border-radius:12px;background:var(--subtle);padding:16px;font-size:13px;line-height:1.4}
+.dpanel .sec{margin:12px 0 8px}.dpanel .sec:first-child{margin-top:0}
+.dnote{font-size:13px;color:var(--text2);margin-top:16px;line-height:1.4}
+.dfoot{border-top:1px solid var(--border);background:var(--subtle);padding:12px 24px;display:flex;align-items:center}
+.dfoot .sp{flex:1}
+.dfoot .btn+.btn{margin-left:8px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.1"/></g></symbol>
+</defs></svg>
+
+<div class="page light" id="page">
+<p class="title">Output folder: User / System &mdash; v2</p>
+<p class="lede">v1 redrawn for the tabbed window now on <code>develop</code> (1.6.1): Settings is the gear tab at 960 &times; 544, in two columns, with no heading and no Save button. The User / System choice sits on the <i>Output folder</i> label&rsquo;s line, as Theme&rsquo;s choices do. A change asks first in the Confirm dialog, as <i>restore defaults</i> does, and that dialog now also shows what the sync would do, so there is no separate preview step.</p>
+<div id="frames"></div>
+<div class="notes"><b>What changed from v1, and why</b>
+<ul>
+<li><b>No cards, no Apply.</b> Two radio cards and an &ldquo;Unsaved change&rdquo; box would not fit the left column (it has about 150 to spare) and Settings has no Save step. Choosing a side, or committing a new path, asks at once, the way <i>restore defaults</i> does: it stores immediately, so it asks first. Cancel puts the choice back.</li>
+<li><b>The other side&rsquo;s path stays visible</b> in the helper line (&ldquo;The System folder is &hellip;&rdquo;), so nothing is ever lost from view.</li>
+<li><b>Preview folded into Confirm.</b> One dialog: from, to, and what a sync would do. Buttons follow the style guide: the secondary action that isn&rsquo;t cancel at the left edge, <i>cancel</i> then the primary at the right, all lowercase.</li>
+<li><b>The result stays in Settings</b> as an inset panel under the folder box (there is no status line on this screen), with <i>undo sync</i> and <i>open backups</i>, until you undo or dismiss it.</li>
+<li><b>Open:</b> to change the <i>other</i> side&rsquo;s path you switch to it first, so a first-time custom System folder can ask twice. Say if you want to edit it without switching.</li>
+<li><b>Unchanged:</b> <i>restore defaults</i> still never touches the folder, and now also leaves the choice and both paths alone.</li>
+<li>Drawn in the light palette and without the torn corner. The tab bar and the two columns follow <code>docs/styleguide.md</code>.</li>
+</ul></div>
+</div>
+
+<script>
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+const USER = 'C:\\Users\\sample\\Shortcuts', SYS = 'D:\\Tools\\Shortcuts';
+const BACKUP = SYS + '\\.backups\\2026-11-17_v1.6.1';
+
+const rail = () => `<div class="rail">
+  <div class="brand"><img src="../../assets/icons/key-charcoal/key-charcoal-256.png" width="36" height="36" alt="">keycuts</div>
+  <div class="tabs"><div class="tw"><div class="tab"><span>creator</span></div></div><div class="tw"><div class="tab"><span>manager</span></div></div>
+    <div class="tw on"><div class="tab">${use('i-gear', 20)}</div></div></div>
+  <div class="drag"></div>
+  <div class="caps"><div class="cb">${use('i-min', 10)}</div><div class="cb dis">${use('i-max', 10)}</div><div class="cb">${use('i-close', 10)}</div></div></div>`;
+
+// active: 'user' | 'system'; result: show the sync result panel
+function settings(active, result) {
+  const path = active === 'user' ? USER : SYS;
+  const other = active === 'user' ? `The System folder is ${SYS}.` : `The User folder is ${USER}.`;
+  const panel = result ? `<div class="panel">
+      <div class="x" title="Dismiss">${use('i-close', 10)}</div>
+      <div class="h"><span style="color:var(--accent);display:flex">${use('i-check', 20)}</span>Synced 40 keycuts to the System folder</div>
+      <div class="help">38 added, 2 replaced, 3 already the same. The 2 replaced were backed up first, in <span class="mono">.backups\\2026-11-17_v1.6.1</span>.</div>
+      <div class="row" style="margin-top:12px"><div class="btn">undo sync</div><div class="btn">open backups</div></div></div>` : '';
+  return `<div class="win">${rail()}
+  <div class="cols">
+    <div>
+      <div class="sec">Output</div>
+      <div class="set" style="margin-bottom:8px"><div class="flabel">Output folder</div>
+        <div class="radio"><span><i class="dot${active === 'user' ? ' on' : ''}"></i>User</span><span><i class="dot${active === 'system' ? ' on' : ''}"></i>System</span></div></div>
+      <div class="row"><div class="field">${path}</div><div class="sq">${use('i-folder', 20)}</div><div class="sq">${use('i-ext', 20)}</div></div>
+      <div class="help">New keycuts are saved here. ${other}</div>
+      ${panel}
+      <div class="sec">Behavior</div>
+      <div class="set"><div class="t">Ask before replacing a keycut</div><div class="tog"></div></div>
+      <div class="set"><div><div class="t">Right-click context menus</div><div class="n">Add \u201ckeycut this!\u201d to File Explorer menus.</div></div><div class="tog"></div></div>
+      <div class="set"><div><div class="t">Use environment variables in paths</div><div class="n">Save paths as %USERPROFILE%\\\u2026 or similar. Hold Shift to preview or create a keycut like this, even when disabled.</div></div><div class="tog"></div></div>
+    </div>
+    <div class="rule"></div>
+    <div>
+      <div class="sec">Appearance</div>
+      <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>
+      <div class="set"><div><div class="t">Icon <span class="v">\u00b7 Black &amp; White</span></div><div class="n">Porcelain in light mode, Onyx in dark mode.</div></div>
+        <div class="iconbtn"><img src="../../assets/icons/key-charcoal/key-charcoal-64.png" width="40" height="40" style="left:5px;top:5px" alt=""><div class="f"><img src="../../assets/icons/key-white/key-white-64.png" width="31" height="31" style="left:1px;top:1px" alt=""></div></div></div>
+      <div class="set"><div><div class="t">Transparent icon background</div><div class="n">Affects the taskbar, Alt+Tab, and shortcuts.</div></div><div class="tog off"></div></div>
+      <div class="sec">Updates</div>
+      <div class="set"><div class="t">Check for updates daily</div><div class="tog"></div></div>
+      <div class="endrow"><div class="btn">show welcome</div><div class="btn">restore defaults</div></div>
+    </div>
+  </div></div>`;
+}
+
+const dialog = `<div class="dlg">
+  <div class="dtitle"><span>change output folder</span><div class="cb">${use('i-close', 10)}</div></div>
+  <div class="dbody">
+    <div class="dhead"><div class="tile">${use('i-warn', 24)}</div>
+      <div><h3>Change the output folder?</h3><p>Win+R finds your keycuts in the output folder, so the ones you have need to be copied to the new one.</p></div></div>
+    <div class="dpanel">
+      <div class="sec">From</div><div>User \u00b7 ${USER}</div>
+      <div class="sec">To</div><div>System \u00b7 ${SYS}</div>
+      <div class="sec">Syncing would</div>
+      <div>Copy 38 new keycuts, skip 3 that are the same, and replace 2 that differ. The 2 are backed up to <span class="mono">${BACKUP}</span> first.</div>
+    </div>
+    <div class="dnote">Nothing is deleted from the old folder, and you can undo a sync from Settings.</div>
+  </div>
+  <div class="dfoot"><div class="btn">save without syncing</div><div class="sp"></div><div class="btn">cancel</div><div class="btn primary">${use('i-check', 16)}save and sync</div></div>
+</div>`;
+
+const frame = (cap, sub, inner) => `<div class="cap2"><b>${cap}</b> <span>\u00b7 ${sub}</span></div><div class="stage">${inner}</div>`;
+document.getElementById('frames').innerHTML =
+  frame('1. Settings', 'User is in use; System has a custom folder it remembers', settings('user', false)) +
+  frame('2. Choosing System', 'the Confirm dialog opens over the page; cancel puts User back', settings('system', false) + dialog) +
+  frame('3. After the sync', 'System is in use; the result stays under the folder until you dismiss it', settings('system', true));
+</script>
+</body></html>

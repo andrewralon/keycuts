@@ -702,6 +702,7 @@ namespace keycuts.Common
                     RawType = shortcut.Type,
                     Description = shortcut.Description ?? "",
                     Target = shortcut.Target ?? "",
+                    ResolvedTarget = ScriptVariables.Resolve(lines, shortcut.Target, Environment.GetEnvironmentVariable),
                     Program = shortcut.Program ?? "",
                     Arguments = shortcut.Arguments ?? "",
                     StartInFolder = shortcut.StartInFolder ?? "",

@@ -58,6 +58,7 @@ Behavior that spans several files. Read the section before changing that area. P
   6. A column that starts hidden builds its header off the visual tree, and a `RelativeSource FindAncestor` binding there fails for good. Header bindings to the Manager go through `ManagerProxy` (a `BindingProxy` in the view's resources).
   Widths aren't remembered; if they ever are, store star proportions.
 - Status messages last 3 s (`StatusMessageDuration`), errors 6 s.
+- **Resolved targets (#212).** `ScriptVariables.Resolve` fills a hand-written keycut's `SET` variables into its target for the Target column (`Keycut.ResolvedTarget`, `KeycutRowViewModel.DisplayTarget`), only when the target names a variable the script sets. It evaluates the lines before the launch line for the no-arguments case (args empty, `IF [NOT] "%~n"==""` decided on that); any other `IF`, `SET /A`/`/P`, delayed `!X!`, labels, `GOTO`, `CALL`, `FOR` leave variables unknown (`%NAME%`). Display only: `Keycut.Target`, Copy target, `CanEditInForm`, edits and writes use the file's text. Search matches both; sorting by Target uses what's shown. The tooltip lists the variables and the target as written. Fixtures in `tests/corpus/variables/` (outside `legacy`, so the characterization snapshots don't see them).
 
 ## Run counts (#187)
 

@@ -1399,7 +1399,8 @@ namespace keycuts.GUI.ViewModels
                         result = CompareText(x.Description, y.Description);
                         break;
                     case SortColumn.Target:
-                        result = CompareText(x.Target, y.Target);
+                        // By what the column shows (#212)
+                        result = CompareText(x.DisplayTarget, y.DisplayTarget);
                         break;
                     case SortColumn.Modified:
                         result = x.Modified.CompareTo(y.Modified);
@@ -1499,7 +1500,7 @@ namespace keycuts.GUI.ViewModels
                 if (old.FilePath != next.FilePath || old.Name != next.Name || old.Kind != next.Kind ||
                     old.Description != next.Description || old.Target != next.Target || old.Modified != next.Modified ||
                     old.Program != next.Program || old.Arguments != next.Arguments || old.CanEditInForm != next.CanEditInForm ||
-                    old.Runs != next.Runs || old.LastRun != next.LastRun)
+                    old.Runs != next.Runs || old.LastRun != next.LastRun || old.ResolvedTarget?.Text != next.ResolvedTarget?.Text)
                 {
                     return false;
                 }

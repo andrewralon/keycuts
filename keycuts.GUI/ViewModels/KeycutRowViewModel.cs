@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Input;
 using keycuts.Common;
 using keycuts.GUI.Controls;
@@ -183,14 +185,35 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
+        /// What the Target cell shows: the target with the script's variables filled in when there are some to fill in (#212,
+        /// <c>https://github.com/GolfNowEng</c> rather than <c>%BASE%%QUERY%</c>), else <see cref="Target"/>. Display only; copying,
+        /// editing and every write use <see cref="Target"/>.
+        /// </summary>
+        public string DisplayTarget
+        {
+            get { return Keycut.ResolvedTarget?.Text ?? Target; }
+        }
+
+        /// <summary>
         /// The tooltip of the Target cell (#203): the program with its arguments, as they'd be typed, where the cell itself
         /// shows the program (<see cref="Target"/>) so it stays a path to copy. A launcher such as Chrome with a profile shows
-        /// which one here. The same as the target when there are no arguments.
+        /// which one here. The same as the target when there are no arguments. A resolved target (#212) lists the variables it
+        /// used and the target as written, so the row can be checked against the file.
         /// </summary>
         public string TargetTooltip
         {
             get
             {
+                var resolved = Keycut.ResolvedTarget;
+                if (resolved != null)
+                {
+                    var lines = new List<string> { resolved.Text, string.Empty, resolved.AssumesNoArguments ? "From the script, with no arguments:" : "From the script:" };
+                    lines.AddRange(resolved.Variables.Select(v => "  " + v.Name + " = " + (!v.Known ? "(unknown)" : v.Value.Length == 0 ? "(empty)" : v.Value)));
+                    lines.Add(string.Empty);
+                    lines.Add("As written: " + Target.Trim());
+                    return string.Join("\n", lines);
+                }
+
                 var program = string.IsNullOrEmpty(Keycut.Program) ? Target : Keycut.Program;
 
                 return string.IsNullOrEmpty(Keycut.Arguments) ? Target : program + " " + Keycut.Arguments;
@@ -305,8 +328,8 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// Case-insensitive substring match over name, type label, description and target.
-        /// Blank search text matches everything.
+        /// Case-insensitive substring match over name, type label, description and target: the target as written and as shown
+        /// (#212), so both <c>%BASE%</c> and <c>github.com</c> find a resolved one. Blank search text matches everything.
         /// </summary>
         public bool Matches(string search)
         {
@@ -316,7 +339,8 @@ namespace keycuts.GUI.ViewModels
             }
 
             var term = search.Trim();
-            return Contains(Name, term) || Contains(TypeLabel, term) || Contains(Description, term) || Contains(Target, term);
+            return Contains(Name, term) || Contains(TypeLabel, term) || Contains(Description, term) || Contains(Target, term) ||
+                Contains(DisplayTarget, term);
         }
 
         private static bool Contains(string value, string term)

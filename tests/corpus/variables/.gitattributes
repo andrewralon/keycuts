@@ -1,0 +1,4 @@
+# These fixtures are the specification. Line endings are part of what is
+# being tested (see lf-line-endings.bat vs. everything else, which is CRLF
+# as Windows actually wrote it). Never let git normalize them.
+* -text

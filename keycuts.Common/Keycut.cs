@@ -31,6 +31,13 @@ namespace keycuts.Common
         public string Target { get; init; }
 
         /// <summary>
+        /// The target with the script's <c>SET</c> variables filled in (#212, <see cref="ScriptVariables"/>), for the Manager to show;
+        /// null when there is nothing to fill in. Display only: <see cref="Target"/> is still what the file says, and is what every
+        /// edit, comparison and write uses.
+        /// </summary>
+        public ResolvedTarget ResolvedTarget { get; init; }
+
+        /// <summary>
         /// For a File keycut: the path of the program, without its arguments (<see cref="ShortcutFile.Program"/>), which is what
         /// the Missing check looks for. Empty when the parser couldn't tell it apart from the arguments; the check then has
         /// nothing specific to look for. Folders and the rest have none.

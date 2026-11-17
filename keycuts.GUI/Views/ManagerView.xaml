@@ -527,8 +527,9 @@
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <!-- The cell shows the program; the tooltip adds its arguments (#203) -->
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" ToolTip="{Binding TargetTooltip}" />
+                  <!-- The cell shows the program; the tooltip adds its arguments (#203). A script's SET variables are filled in,
+                       and the tooltip lists them (#212). -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding DisplayTarget}" ToolTip="{Binding TargetTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>

@@ -51,6 +51,52 @@ namespace keycuts.Tests
             Assert.False(manager.IsTableVisible);
         }
 
+        // #235: a low count may only mean the keycut is new, so the Manager says when counting started
+        [Fact]
+        public async Task CountingSinceText_SaysWhenCountingStarted_ReadOnEachLoad()
+        {
+            DateTime? since = null;
+            var manager = NewManager(Returning(NewKeycut("a")));
+            manager.CountingSince = () => since;
+
+            await manager.LoadAsync();
+            Assert.Equal(string.Empty, manager.CountingSinceText);
+
+            since = new DateTime(2026, 11, 15, 9, 30, 0);
+            await manager.LoadAsync();
+            Assert.Equal(ManagerViewModel.FormatCountingSince(since), manager.CountingSinceText);
+            Assert.StartsWith("Counting since ", manager.CountingSinceText);
+            Assert.Contains("2026", manager.CountingSinceText);
+        }
+
+        [Fact]
+        public async Task CountingSinceText_IsEmpty_WithoutASource_OrWhenItFails()
+        {
+            var manager = NewManager(Returning(NewKeycut("a")));
+            await manager.LoadAsync();
+            Assert.Equal(string.Empty, manager.CountingSinceText);
+
+            manager.CountingSince = () => throw new IOException("gone");
+            await manager.LoadAsync();
+            Assert.Equal(string.Empty, manager.CountingSinceText);
+        }
+
+        [Fact]
+        public void FormatCountingSince_IsMonthDayYear()
+        {
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            try
+            {
+                System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("en-US");
+                Assert.Equal("Counting since Nov 15, 2026", ManagerViewModel.FormatCountingSince(new DateTime(2026, 11, 15)));
+                Assert.Equal(string.Empty, ManagerViewModel.FormatCountingSince(null));
+            }
+            finally
+            {
+                System.Globalization.CultureInfo.CurrentCulture = culture;
+            }
+        }
+
         [Fact]
         public void StatusMessages_ShowForThreeSeconds_ByDefault_AndDeletedWithItsUndoLongerSinceAButtonNeedsReaching()
         {

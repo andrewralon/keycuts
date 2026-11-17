@@ -1133,6 +1133,56 @@ namespace keycuts.Tests
             });
         }
 
+        // #235: the Runs and Last run headers say when counting started, in their tooltip and to screen readers, after the sort state
+        [Fact]
+        public void Manager_RunsAndLastRunHeaders_SayWhenCountingStarted()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                manager.CountingSince = () => new DateTime(2026, 11, 15);
+                manager.LoadAsync().GetAwaiter().GetResult();
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    // Wide enough that Runs and Last run aren't making way
+                    window.Width = 1100;
+                    Pump();
+                    window.UpdateLayout();
+                    var headers = Descendants<SortHeaderButton>(window).ToDictionary(h => h.Column);
+                    var note = manager.CountingSinceText;
+                    Assert.StartsWith("Counting since", note);
+
+                    foreach (var column in new[] { SortColumn.Runs, SortColumn.LastRun })
+                    {
+                        Assert.Equal(note, headers[column].ToolTip);
+                        Assert.Equal(note, AutomationProperties.GetHelpText(headers[column]));
+                    }
+
+                    Assert.Null(headers[SortColumn.Target].ToolTip);
+
+                    manager.SortCommand.Execute(SortColumn.Runs);
+                    Pump();
+                    Assert.Equal("Sorted descending. " + note, AutomationProperties.GetHelpText(headers[SortColumn.Runs]));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Theory]
+        [InlineData(SortHeaderState.None, "", "")]
+        [InlineData(SortHeaderState.Ascending, "", "Sorted ascending")]
+        [InlineData(SortHeaderState.None, "Counting since Nov 15, 2026", "Counting since Nov 15, 2026")]
+        [InlineData(SortHeaderState.Descending, "Counting since Nov 15, 2026", "Sorted descending. Counting since Nov 15, 2026")]
+        public void SortHeaderHelpText_IsTheSortStateThenTheNote(SortHeaderState state, string note, string expected)
+        {
+            Assert.Equal(expected, SortHeaderButton.GetHelpText(state, note));
+        }
+
         [Fact]
         public void Manager_EnterOnAButtonStaysWithTheButton()
         {

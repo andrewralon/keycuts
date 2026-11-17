@@ -90,6 +90,8 @@ namespace keycuts.GUI
             // off because the rename refuses a taken keycut name itself
             shell.Manager.CheckRename = name => Common.NameCheck.Run(name, new Common.Runner().GetOutputFolder(), false,
                 Common.NameConflictEnvironment.GetDefault());
+            // #235: the Runs and Last run headers say when counting started on this machine
+            shell.Manager.CountingSince = Common.UsageLog.CreateDefault().CountingSince;
             // #238: a folder chosen in Settings counts its keycuts' runs at once, not from the next start
             shell.PrepareOutputFolder = () => Task.Run(AddRunCounting);
 

@@ -172,6 +172,45 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public Func<EditKeycutViewModel, bool>? ShowEditForm { get; set; }
 
+        /// <summary>
+        /// When run counting started on this machine (#235): the usage folder's creation time (<see cref="UsageLog.CountingSince"/>),
+        /// or null before it exists. The app sets it; without one (tests) the Manager says nothing. Read on each load.
+        /// </summary>
+        public Func<DateTime?>? CountingSince { get; set; }
+
+        private string countingSinceText = string.Empty;
+
+        /// <summary>
+        /// "Counting since Nov 15, 2026", on the Runs and Last run headers (their tooltip and help text), so a low count reads
+        /// as "new" rather than "unused" while sorting by them. Empty when counting hasn't started.
+        /// </summary>
+        public string CountingSinceText
+        {
+            get { return countingSinceText; }
+            private set { SetProperty(ref countingSinceText, value); }
+        }
+
+        /// <summary>The text of <see cref="CountingSinceText"/> for a start date; empty for none.</summary>
+        public static string FormatCountingSince(DateTime? since)
+        {
+            return since == null ? string.Empty : "Counting since " + since.Value.ToString("MMM d, yyyy", System.Globalization.CultureInfo.CurrentCulture);
+        }
+
+        private void RefreshCountingSince()
+        {
+            DateTime? since;
+            try
+            {
+                since = CountingSince?.Invoke();
+            }
+            catch (Exception)
+            {
+                since = null;
+            }
+
+            CountingSinceText = FormatCountingSince(since);
+        }
+
         /// <summary>True while a row's name is being edited (F2 or Rename…). Reloads wait until it ends.</summary>
         public bool IsRenaming
         {
@@ -1235,6 +1274,9 @@ namespace keycuts.GUI.ViewModels
             {
                 return;
             }
+
+            // The folder appears with the first counted run, or with startup's
+            RefreshCountingSince();
 
             // Keep the existing rows (and the scroll position) when nothing changed on disk.
             if (IsSameContent(keycuts))

@@ -1299,7 +1299,7 @@ namespace keycuts.Tests
 
                     Assert.Equal(Visibility.Visible, column.Visibility);
                     Assert.Equal(
-                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Modified", "SortHeaderButton:Runs", "SortHeaderButton:Last run" },
+                        new[] { "Search keycuts", "SortHeaderButton:Name", "SortHeaderButton:Type", "SortHeaderButton:Description", "SortHeaderButton:Target", "SortHeaderButton:Runs", "SortHeaderButton:Last run", "SortHeaderButton:Modified" },
                         TabStops(window));
 
                     var text = Descendants<TextBlock>(window).Single(t => t.Text == "3 days ago");

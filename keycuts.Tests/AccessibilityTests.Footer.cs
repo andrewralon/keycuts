@@ -75,7 +75,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void Footer_OnBothScreens_HasNoSettingsGear_AndTheCountAsJustANumber()
+        public void Footer_HasNoSettingsGearNorCount_TheCountIsBesideTheManagersSearch()
         {
             RunSta(() =>
             {
@@ -89,37 +89,34 @@ namespace keycuts.Tests
 
                 try
                 {
-                    var creatorFooter = Descendants<FooterView>(creatorWindow).Single();
-                    // Settings is a tab in the bar above (#218), not a button here
-                    Assert.Null(creatorFooter.FindName("BtnSettings"));
-                    var count = (TextBlock)Named(creatorFooter, "CountText");
-                    Assert.Equal("355", count.Text);
-                    Assert.Equal("355 keycuts", AutomationProperties.GetName(count));
-                    Assert.Equal("355 keycuts", count.ToolTip);
+                    // Settings is a tab in the bar above (#218), and the count is the Manager's, beside its search box
+                    foreach (var footer in Descendants<FooterView>(creatorWindow).Concat(Descendants<FooterView>(managerWindow)))
+                    {
+                        Assert.Null(footer.FindName("BtnSettings"));
+                        Assert.Null(footer.FindName("CountText"));
+                    }
 
-                    var managerFooter = Descendants<FooterView>(managerWindow).Single();
-                    Assert.Null(managerFooter.FindName("BtnSettings"));
-                    var managerCount = (TextBlock)Named(managerFooter, "CountText");
-                    Assert.Equal("3", managerCount.Text);
-                    Assert.Equal("3 keycuts", AutomationProperties.GetName(managerCount));
+                    Assert.DoesNotContain(Descendants<TextBlock>(creatorWindow), t => t.Text.Contains("355"));
 
-                    // "X of Y shown" sits at the right of the search box only while a search hides some keycuts; the pill stays the total
-                    var shown = (TextBlock)((FrameworkElement)managerWindow.Content).FindName("ShownTextBlock");
-                    Assert.False(shown.IsVisible);
+                    // "3 keycuts", and "2 of 3 keycuts" while a search hides some, in a pill at the right of the search box
+                    var view = (FrameworkElement)managerWindow.Content;
+                    var count = (TextBlock)view.FindName("CountText");
+                    var pill = (FrameworkElement)view.FindName("CountPill");
+                    Assert.Equal("3 keycuts", count.Text);
+                    Assert.True(count.IsVisible);
 
                     manager.SearchText = "al";
                     Pump();
-                    Assert.True(shown.IsVisible);
-                    Assert.Equal("2 of 3 shown", shown.Text);
-                    Assert.Equal("3", managerCount.Text);
-                    Assert.Equal("3 keycuts", AutomationProperties.GetName(managerCount));
+                    Assert.Equal("2 of 3 keycuts", count.Text);
 
                     var search = Descendants<TextBox>(managerWindow).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
-                    Assert.True(RightIn(shown, (FrameworkElement)managerWindow.Content) > RightIn(search, (FrameworkElement)managerWindow.Content));
+                    Assert.True(LeftIn(pill, view) >= RightIn(search, view));
+                    Assert.Equal(search.TranslatePoint(new Point(0, search.ActualHeight / 2), view).Y,
+                        pill.TranslatePoint(new Point(0, pill.ActualHeight / 2), view).Y, 0.5);
 
                     manager.SearchText = string.Empty;
                     Pump();
-                    Assert.False(shown.IsVisible);
+                    Assert.Equal("3 keycuts", count.Text);
                 }
                 finally
                 {
@@ -129,49 +126,39 @@ namespace keycuts.Tests
             });
         }
 
-        // The visible count changes while the focus is elsewhere (a create, a delete) or in the search box (a search), and screen
-        // readers have to be told: LiveSetting alone raises nothing
+        // The count changes while the focus is in the search box (a search) or elsewhere (a create, a delete), and screen readers
+        // have to be told: LiveSetting alone raises nothing
         [Fact]
-        public void Announces_TheShownCount_WhenASearchNarrowsIt_AndTheTotal_WhenItChanges()
+        public void Announces_TheCount_WhenASearchNarrowsIt_AndWhenTheTotalChanges()
         {
             RunSta(() =>
             {
                 EnsureApplication();
                 var manager = NewLoadedManager(null, null, "alpha", "alpine", "beta");
                 var managerWindow = Host(new ManagerView(), manager);
-                var creator = NewCreator();
-                var creatorWindow = Host(new CreatorView(), creator);
                 var announced = new List<UIElement>();
                 Action<UIElement> record = announced.Add;
                 LiveRegion.Announced += record;
 
                 try
                 {
-                    var shown = (TextBlock)((FrameworkElement)managerWindow.Content).FindName("ShownTextBlock");
-                    var managerCount = Named(Descendants<FooterView>(managerWindow).Single(), "CountText");
+                    var count = (TextBlock)((FrameworkElement)managerWindow.Content).FindName("CountText");
 
                     manager.SearchText = "al";
-                    Assert.Same(shown, Assert.Single(announced));   // "2 of 3 shown"; the pill's total has not changed
+                    Assert.Same(count, Assert.Single(announced));   // "2 of 3 keycuts"
 
-                    manager.SearchText = "alp";
-                    Assert.Equal(new UIElement[] { shown, shown }, announced);
-
-                    manager.SearchText = string.Empty;   // everything is shown again: the text is gone, so there is nothing to say
-                    Assert.Equal(2, announced.Count);
+                    manager.SearchText = string.Empty;   // "3 keycuts" again
+                    Assert.Equal(new UIElement[] { count, count }, announced);
 
                     announced.Clear();
-                    manager.KeycutCount = 4;   // a keycut was made elsewhere: the total changes, and so does what is shown of it
-                    Assert.Contains(managerCount, announced);
-
-                    announced.Clear();
-                    creator.KeycutCount = 8;
-                    Assert.Same(Named(Descendants<FooterView>(creatorWindow).Single(), "CountText"), Assert.Single(announced));
+                    manager.KeycutCount = 4;   // a keycut was made elsewhere
+                    Assert.Contains(count, announced);
+                    Assert.Equal("4 keycuts", count.Text);
                 }
                 finally
                 {
                     LiveRegion.Announced -= record;
                     managerWindow.Close();
-                    creatorWindow.Close();
                 }
             });
         }
@@ -208,9 +195,9 @@ namespace keycuts.Tests
             });
         }
 
-        // Saving and Created are on the Name label's row, not under the field, so the window keeps its height (#205)
+        // Saving and Created (#205) show under the name box, where warnings go, and are announced
         [Fact]
-        public void Creator_SavingAndCreated_ShowByTheNameLabel_AndAreAnnounced()
+        public void Creator_SavingAndCreated_ShowUnderTheNameBox_AndAreAnnounced()
         {
             RunSta(() =>
             {
@@ -226,8 +213,7 @@ namespace keycuts.Tests
                     var view = (FrameworkElement)window.Content;
                     var status = (HelperText)view.FindName("NameStatusTextBlock");
                     var helper = (HelperText)view.FindName("HelperTextBlock");
-                    var nameLabel = Descendants<TextBlock>(window).Single(t => t.Text == "Name");
-                    var heightBefore = view.ActualHeight;
+                    var name = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "keycut name");
                     Assert.False(status.IsVisible);
 
                     creator.IsSaving = true;
@@ -237,12 +223,9 @@ namespace keycuts.Tests
                     Assert.False(helper.IsVisible);
                     Assert.Same(status, announced.Last());
 
-                    // At the right of the label, on its row, at the page's 24 padding
-                    Assert.True(LeftIn(status, view) > RightIn(nameLabel, view));
-                    Assert.InRange(RightIn(status, view), view.ActualWidth - 25, view.ActualWidth - 23);
-                    Assert.InRange(status.TranslatePoint(new Point(0, status.ActualHeight / 2), view).Y,
-                        nameLabel.TranslatePoint(new Point(0, 0), view).Y,
-                        nameLabel.TranslatePoint(new Point(0, nameLabel.ActualHeight), view).Y);
+                    // Under the name box, from its left edge (the owner, 2026-11-17: the label is at the box's left now)
+                    Assert.Equal(LeftIn(name, view), LeftIn(status, view), 1);
+                    Assert.Equal(name.TranslatePoint(new Point(0, name.ActualHeight), view).Y + 4, status.TranslatePoint(new Point(0, 0), view).Y, 1);
 
                     // A very long name changes nothing: the message is just "Created", and the name is in the box
                     creator.IsSaving = false;
@@ -253,8 +236,7 @@ namespace keycuts.Tests
                     Assert.Equal(CreatorViewModel.CreatedText, status.Text);
                     Assert.Equal(HelperTextState.Success, status.State);
                     Assert.False(helper.IsVisible);
-                    Assert.Equal(heightBefore, view.ActualHeight, 0.5);   // the window did not grow
-                    Assert.True(LeftIn(status, view) > RightIn(nameLabel, view), "Created runs over the Name label");
+                    Assert.Equal(LeftIn(name, view), LeftIn(status, view), 1);
                     Assert.True(RightIn(status, view) <= view.ActualWidth, "Created runs off the right edge");
                 }
                 finally
@@ -289,8 +271,8 @@ namespace keycuts.Tests
                     var dismiss = Named(footer, "BtnDismissUpdate");
                     Assert.InRange(LeftIn(dismiss, footer) - RightIn(text, footer), -0.5, 4);
 
-                    // ...and the line is right-justified in the footer
-                    Assert.InRange(footer.ActualWidth - 24 - RightIn(dismiss, footer), -0.5, 1);
+                    // ...and the line is right-justified in the footer, short of the torn corner (FooterBarPadding)
+                    Assert.InRange(footer.ActualWidth - ((Thickness)footer.FindResource("FooterBarPadding")).Right - RightIn(dismiss, footer), -0.5, 1);
 
                     notice.DismissCommand.Execute(null);
                     Pump();
@@ -303,10 +285,10 @@ namespace keycuts.Tests
             });
         }
 
-        // Undo, then Download, then dismiss: the order they are in on screen (the gear is a tab now, #218). Real focus traversal,
-        // since the TabStops helper leaves out hyperlinks
+        // Undo right after the search box, and the bar's Download, then dismiss: the order they are in on screen. Real focus
+        // traversal, since the TabStops helper leaves out hyperlinks
         [Fact]
-        public void Footer_FocusGoesUndo_Download_Dismiss()
+        public void Footer_FocusGoesSearch_Undo_AndDownload_Dismiss()
         {
             RunSta(() =>
             {
@@ -321,23 +303,23 @@ namespace keycuts.Tests
                     Pump();
                     window.UpdateLayout();
 
-                    var footer = Descendants<FooterView>(window).Single();
+                    // Undo is in the search row, right after the search box
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
                     var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
                     Assert.True(undo.IsVisible);
+                    search.Focus();
+                    Keyboard.Focus(search);
+                    search.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                    Assert.Equal("undo delete", FocusedName());
 
-                    undo.Focus();
-                    Keyboard.Focus(undo);
-                    var order = new List<string> { FocusedName() };
-
-                    for (var step = 0; step < 2; step++)
-                    {
-                        // Download is a Hyperlink, which is a content element, not a UIElement
-                        var request = new TraversalRequest(FocusNavigationDirection.Next);
-                        if (Keyboard.FocusedElement is UIElement element) { element.MoveFocus(request); } else { ((FrameworkContentElement)Keyboard.FocusedElement).MoveFocus(request); }
-                        order.Add(FocusedName());
-                    }
-
-                    Assert.Equal(new[] { "undo delete", "download keycuts 1.3.0", "Dismiss update notice" }, order);
+                    // The bar's link, then its dismiss button. Download is a Hyperlink, a content element, not a UIElement.
+                    var footer = Descendants<FooterView>(window).Single();
+                    var download = (System.Windows.Documents.Hyperlink)footer.FindName("UpdateDownloadLink");
+                    download.Focus();
+                    Keyboard.Focus(download);
+                    Assert.Equal("download keycuts 1.3.0", FocusedName());
+                    download.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                    Assert.Equal("Dismiss update notice", FocusedName());
                 }
                 finally
                 {
@@ -386,9 +368,86 @@ namespace keycuts.Tests
             });
         }
 
-        // The Manager's narrowest width: a long message is trimmed to its cap, Undo stays put, and the update line still has room
+        // The bar at the bottom is there only to say a newer version is out: not without one, and not once it is dismissed
         [Fact]
-        public void Footer_AtTheManagersNarrowestWidth_KeepsEverythingVisible_WhateverTheMessageSays()
+        public void TheBar_ShowsOnlyWhileANewerVersionIsOut_UntilDismissed()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var notice = NewUpdateNotice();
+                var withNotice = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), checkName: TestNameChecks.NoWarnings)
+                {
+                    UpdateNotice = notice
+                };
+                var creatorWindow = Host(new CreatorView(), withNotice);
+                var plainWindow = Host(new CreatorView(), NewCreator());
+                var managerWindow = Host(new ManagerView(), NewLoadedManager(notice, null, "alpha"));
+
+                try
+                {
+                    FrameworkElement Bar(Window window) => (FrameworkElement)Descendants<FooterView>(window).Single().FindName("Bar");
+
+                    Assert.True(notice.IsVisible);
+                    Assert.True(Bar(creatorWindow).IsVisible);
+                    Assert.True(Bar(managerWindow).IsVisible);
+                    Assert.False(Bar(plainWindow).IsVisible);
+                    Assert.Equal(0, Descendants<FooterView>(plainWindow).Single().ActualHeight);
+
+                    // Dismissed: gone from every screen, and it takes no room
+                    notice.DismissCommand.Execute(null);
+                    Pump();
+                    creatorWindow.UpdateLayout();
+                    managerWindow.UpdateLayout();
+                    Assert.False(Bar(creatorWindow).IsVisible);
+                    Assert.False(Bar(managerWindow).IsVisible);
+                    Assert.Equal(0, Descendants<FooterView>(managerWindow).Single().ActualHeight);
+                }
+                finally
+                {
+                    creatorWindow.Close();
+                    plainWindow.Close();
+                    managerWindow.Close();
+                }
+            });
+        }
+
+        // The Manager's message takes no room in the search row while there is none
+        [Fact]
+        public void SearchRow_TheMessage_TakesNoRoom_WhileThereIsNone()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = NewLoadedManager(null, new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+
+                try
+                {
+                    var view = (FrameworkElement)window.Content;
+                    var status = Descendants<ManagerStatusView>(window).Single();
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    var pill = (FrameworkElement)view.FindName("CountPill");
+                    Assert.Equal(0, status.ActualWidth);
+                    Assert.Equal(12, LeftIn(pill, view) - RightIn(search, view), 0.5);
+
+                    manager.DeleteKeycutAsync(manager.Rows[0]).GetAwaiter().GetResult();
+                    Pump();
+                    window.UpdateLayout();
+                    Assert.True(Descendants<Button>(status).Single(b => b.Name == "UndoButton").IsVisible);
+                    Assert.True(LeftIn(pill, view) - RightIn(search, view) > 12);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // The Manager's narrowest width: in the search row a long message is trimmed to its cap, Undo stays put, the search box keeps
+        // room and the count stays whole; the bar's update line has room of its own
+        [Fact]
+        public void SearchRow_AtTheManagersNarrowestWidth_KeepsEverythingVisible_WhateverTheMessageSays()
         {
             RunSta(() =>
             {
@@ -400,42 +459,47 @@ namespace keycuts.Tests
                 try
                 {
                     window.Width = GUI.WindowLayout.ManagerMinWidth;
+                    var view = (FrameworkElement)window.Content;
                     var footer = Descendants<FooterView>(window).Single();
+                    var search = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "Search keycuts");
+                    var pill = (FrameworkElement)view.FindName("CountPill");
+                    var row = (FrameworkElement)System.Windows.Media.VisualTreeHelper.GetParent(pill);
                     double? undoLeft = null;
 
                     void CheckEverythingFits(string scenario, bool undoShows)
                     {
                         Pump();
                         window.UpdateLayout();
-                        var width = footer.ActualWidth;
                         var undo = Descendants<Button>(window).Single(b => b.Name == "UndoButton");
                         var message = Descendants<TextBlock>(window).Single(t => t.Name == "StatusMessageText");
                         Assert.Equal(undoShows, undo.IsVisible);
 
-                        var count = Named(footer, "CountText");
-                        var line = Named(footer, "UpdateNotice");
-                        var link = Named(footer, "UpdateNoticeText");
-
-                        foreach (var element in new FrameworkElement[] { count, message, line }.Concat(undoShows ? new[] { undo } : Array.Empty<FrameworkElement>()))
-                        {
-                            Assert.True(LeftIn(element, footer) >= 0 && RightIn(element, footer) <= width + 0.5,
-                                $"{scenario}: {element.GetType().Name} {element.Name} runs from {LeftIn(element, footer)} to {RightIn(element, footer)} in a footer {width} wide");
-                        }
-
-                        // In order, never over each other, and the update text has real room
-                        // Undo first, right after the count, then the message, then the update line
-                        Assert.True(RightIn(count, footer) <= LeftIn(undoShows ? undo : message, footer) + 0.5, scenario);
+                        // Left to right in the row, never over each other: the search box, the message, Undo, the count
+                        var order = new List<FrameworkElement> { search, message };
                         if (undoShows)
                         {
-                            Assert.True(RightIn(undo, footer) <= LeftIn(message, footer) + 0.5, scenario);
-
-                            // ...and always in the same place, whatever the message says
-                            undoLeft ??= LeftIn(undo, footer);
-                            Assert.Equal(undoLeft.Value, LeftIn(undo, footer), 0.5);
+                            order.Add(undo);
                         }
 
-                        Assert.True(RightIn(message, footer) <= LeftIn(line, footer) + 0.5, scenario);
-                        Assert.True(link.ActualWidth >= 150, $"{scenario}: the update text is only {link.ActualWidth} wide");
+                        order.Add(pill);
+                        for (var i = 1; i < order.Count; i++)
+                        {
+                            Assert.True(RightIn(order[i - 1], row) <= LeftIn(order[i], row) + 0.5, $"{scenario}: {order[i - 1].Name} runs into {order[i].Name}");
+                        }
+
+                        Assert.True(RightIn(pill, row) <= row.ActualWidth + 0.5, $"{scenario}: the count runs out of the row");
+                        Assert.True(message.ActualWidth <= 300, $"{scenario}: the message is {message.ActualWidth} wide");
+                        Assert.True(search.ActualWidth >= 200, $"{scenario}: the search box is only {search.ActualWidth} wide");
+
+                        // Undo always in the same place, whatever the message says
+                        if (undoShows)
+                        {
+                            undoLeft ??= LeftIn(undo, row);
+                            Assert.Equal(undoLeft.Value, LeftIn(undo, row), 0.5);
+                        }
+
+                        // The bar holds only the update line now, which has real room
+                        Assert.True(((FrameworkElement)footer.FindName("UpdateNoticeText")).ActualWidth >= 150, scenario);
                     }
 
                     manager.DeleteKeycutAsync(manager.Rows[0]).GetAwaiter().GetResult();

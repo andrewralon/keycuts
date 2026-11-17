@@ -51,19 +51,21 @@ function draw(name, px) {
     ...key, ...VIEW,
     flat: small,
     tight: !withShadow,
-    square: withShadow,
+    keyBounds: withShadow,
     shadowOpacity: icon.shadow,
     legend: K(key.legendColor, small ? 9.8 : 8.4, small ? 700 : 600),
   });
   if (!icon.tile) {
     return svg.replace('<svg ', `<svg width="${px}" height="${px}" `);
   }
-  // The key's share of the tile; the shadowed box has room around the key already
-  const share = withShadow ? 0.94 : small ? 0.9 : 0.82;
-  const k = 100 * share, o = (100 - k) / 2;
+  // The key's share of the tile (docs/mockups/icon-size-v2): the box is the key alone, so with a shadow it is 96% and the
+  // shadow runs off the tile, clipped to its rounded corners; without one the key fills the tile
+  const share = withShadow ? 0.96 : 1;
+  const k = 100 * share, o = (100 - k) / 2, clip = `tile${px}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 100 100">
+    <defs><clipPath id="${clip}"><rect width="100" height="100" rx="20"/></clipPath></defs>
     <rect width="100" height="100" rx="20" fill="${icon.tile}"/>
-    ${svg.replace('<svg ', `<svg x="${o}" y="${o}" width="${k}" height="${k}" `)}</svg>`;
+    <g clip-path="url(#${clip})">${svg.replace('<svg ', `<svg x="${o}" y="${o}" width="${k}" height="${k}" `)}</g></svg>`;
 }
 
 const params = new URLSearchParams(location.search);

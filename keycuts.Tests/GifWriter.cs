@@ -4,7 +4,7 @@ using System.IO;
 
 namespace keycuts.Tests
 {
-    /// <summary>One frame of an animated GIF: opaque BGRA pixels, and how long it shows.</summary>
+    /// <summary>One frame of an animated GIF: BGRA pixels (straight alpha; a pixel less than half opaque is transparent), and how long it shows.</summary>
     internal sealed class GifFrame
     {
         public GifFrame(int width, int height, byte[] bgra, int delayCentiseconds)
@@ -34,7 +34,8 @@ namespace keycuts.Tests
     /// Writes an animated GIF (89a, looping forever) from frames of the same size, with one palette for all of them.
     /// It is the tool behind the README's walkthrough (<c>ScreenshotTests</c>), here so nothing is downloaded to make it.
     /// The palette is a median cut over the colors that occur (to 6 bits a channel), so an image with up to 256 such
-    /// colors, which a flat UI mostly is, comes out exact.
+    /// colors, which a flat UI mostly is, comes out exact. A pixel less than half opaque is transparent: GIF has one
+    /// transparent color and no partial opacity, so the palette then keeps its last entry for it (the torn corner).
     /// </summary>
     internal static class GifWriter
     {
@@ -51,6 +52,10 @@ namespace keycuts.Tests
         private const int MaxCodeBits = 12;
 
         private const int TableLimit = 1 << MaxCodeBits;
+
+        private const byte TransparentIndex = 255;
+
+        private static bool IsTransparent(byte[] bgra, int offset) => bgra[offset + 3] < 128;
 
         public static byte[] Write(IReadOnlyList<GifFrame> frames)
         {
@@ -70,7 +75,17 @@ namespace keycuts.Tests
                 }
             }
 
-            BuildPalette(frames, out var palette, out var binToIndex);
+            var hasTransparency = false;
+
+            foreach (var frame in frames)
+            {
+                for (var offset = 0; offset < frame.Bgra.Length && !hasTransparency; offset += 4)
+                {
+                    hasTransparency = IsTransparent(frame.Bgra, offset);
+                }
+            }
+
+            BuildPalette(frames, hasTransparency ? 255 : 256, out var palette, out var binToIndex);
 
             using (var stream = new MemoryStream())
             using (var writer = new BinaryWriter(stream))
@@ -90,9 +105,11 @@ namespace keycuts.Tests
 
                 foreach (var frame in frames)
                 {
-                    writer.Write(new byte[] { 0x21, 0xF9, 0x04, 0x04 });   // graphic control: leave the frame in place
+                    // Graphic control: leave the frame in place, or with a transparent color, clear it before the next one, so a
+                    // transparent pixel never shows the frame before it
+                    writer.Write(new byte[] { 0x21, 0xF9, 0x04, (byte)(hasTransparency ? 0x09 : 0x04) });
                     writer.Write((ushort)Math.Max(2, frame.DelayCentiseconds));
-                    writer.Write(new byte[] { 0x00, 0x00 });               // no transparent color; end of block
+                    writer.Write(new byte[] { hasTransparency ? TransparentIndex : (byte)0, 0x00 });   // the transparent color; end of block
 
                     writer.Write((byte)0x2C);
                     writer.Write((ushort)0);
@@ -124,14 +141,16 @@ namespace keycuts.Tests
             for (var i = 0; i < indexes.Length; i++)
             {
                 var offset = i * 4;
-                indexes[i] = (byte)binToIndex[BinOf(frame.Bgra[offset + 2], frame.Bgra[offset + 1], frame.Bgra[offset])];
+                indexes[i] = IsTransparent(frame.Bgra, offset)
+                    ? TransparentIndex
+                    : (byte)binToIndex[BinOf(frame.Bgra[offset + 2], frame.Bgra[offset + 1], frame.Bgra[offset])];
             }
 
             return indexes;
         }
 
-        /// <summary>Median cut over the colors that occur, weighted by how many pixels have them.</summary>
-        private static void BuildPalette(IReadOnlyList<GifFrame> frames, out byte[] palette, out int[] binToIndex)
+        /// <summary>Median cut over the colors of the opaque pixels, weighted by how many pixels have them, to at most <paramref name="colors"/>.</summary>
+        private static void BuildPalette(IReadOnlyList<GifFrame> frames, int colors, out byte[] palette, out int[] binToIndex)
         {
             var count = new long[BinCount];
             var sumRed = new long[BinCount];
@@ -142,6 +161,11 @@ namespace keycuts.Tests
             {
                 for (var offset = 0; offset < frame.Bgra.Length; offset += 4)
                 {
+                    if (IsTransparent(frame.Bgra, offset))
+                    {
+                        continue;
+                    }
+
                     var blue = frame.Bgra[offset];
                     var green = frame.Bgra[offset + 1];
                     var red = frame.Bgra[offset + 2];
@@ -165,7 +189,7 @@ namespace keycuts.Tests
 
             var boxes = new List<List<int>> { used };
 
-            while (boxes.Count < 256)
+            while (boxes.Count < colors)
             {
                 var pick = -1;
                 var pickAxis = 0;

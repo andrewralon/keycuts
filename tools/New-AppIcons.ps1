@@ -137,8 +137,12 @@ foreach ($name in $KeycapIcons) {
 
     $shot = Join-Path ([System.IO.Path]::GetTempPath()) "keycuts-icon-$name.png"
     Remove-Item -LiteralPath $shot -ErrorAction SilentlyContinue
-    & $browser --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --default-background-color=00000000 `
-        "--window-size=$Big,$($RowY + 256)" "--screenshot=$shot" "${page}?icon=$name" 2>&1 | Out-Null
+    # The browser logs to stderr; Windows PowerShell 5.1 would make that a terminating error under Stop
+    & {
+        $ErrorActionPreference = 'Continue'
+        & $browser --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --default-background-color=00000000 `
+            "--window-size=$Big,$($RowY + 256)" "--screenshot=$shot" "${page}?icon=$name" 2>&1 | Out-Null
+    }
     if (-not (Test-Path -LiteralPath $shot)) { throw "The browser wrote no image for $name." }
 
     $sheet = [System.Drawing.Bitmap]::new($shot)

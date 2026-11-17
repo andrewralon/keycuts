@@ -59,7 +59,7 @@ Kept as they are: `RadiusSm/Md/Lg/Xl` (5/8/12/16), `Space1`-`Space8` and `Inset1
 |---|---|---|
 | `Space1` / `Inset1` | 4 | Control to its helper or note; icon to 12px text; between a label and its own note |
 | `Space2` / `Inset2` | 8 | Label to its control; between buttons; icon to 13-14px text; section label to its first row |
-| `Space3` / `Inset3` | 12 | Between groups inside a panel; text column beside an icon tile; bottom of the Manager's table |
+| `Space3` / `Inset3` | 12 | Between groups inside a panel; text column beside an icon tile |
 | `Space4` / `Inset4` | 16 | Top padding of screens and dialogs; between fields and setting rows; heading to content; panel padding; text to the control at the end of its row |
 | `Space5` | 20 | (spare; prefer 16 or 24) |
 | `Space6` / `Inset6` | 24 | Outer padding at the sides and bottom of every screen and dialog; between sections |
@@ -100,13 +100,36 @@ Edit and Confirm end in the same footer, one shared style, `DialogFooter`: `Surf
 
 ### Window widths
 
-- **The Creator and Settings**: `MainWidth`, the width the whole tab bar needs plus about 60 of empty, draggable bar (#218; about 600, measured when it is built). It must also fit two icon cards side by side in Settings' picker, as 500 does today. Both are fixed-width and fit their content's height; Settings stays inside the work area and scrolls when the screen is short.
-- **The Manager**: resizable, and remembers its size.
+The main window has **two sizes** ([decision](#decisions), mockup [`window-sizes-v1`](mockups/window-sizes-v1.png)):
+
+- **Small, the Creator**: `MainWidth`, 600: what the whole tab bar needed plus about 60 of empty, draggable bar (#218), and about 110 since the tabs lost their icons. It must also fit two icon cards side by side in Settings' picker. Fixed-width, and it fits its content's height.
+- **Large, the Manager and Settings**: one size for both, resizable (960 × 544 at first, 720 × 480 at the least) and remembered while the app runs. Settings never grows the window to fit its content: it takes the size the Manager last had, lays itself out in two columns, and scrolls when the window is shorter than it. Switching between the Manager and Settings doesn't move or resize the window; resizing either resizes both.
+- The window keeps its top-left corner as it changes size, and stays inside the work area.
 - **Confirm**: 440 (`ConfirmWidth`); **Edit**: 480 (`EditWidth`). They keep their widths while the main window grows ([decision](#decisions)). Dialogs size to their content's height (`SizeToContent="Height"`) and can't be resized.
+
+### The Manager's create row
+
+The Manager starts with the Creator's fields in one row, so a keycut can be added without leaving the list. It is an [inset panel](#inset-panels) (16 below it, then the search box), with a label row, a control row and the Creator's helper line under them:
+
+- Left to right: **Target**, **Name**, **Description**, then the Create button. The fields share the row 2 : 1.25 : 1.25, 12 apart (`Space3`): a long target has the most room, and Name and Description are as wide as each other.
+- **Target** is the drop area squeezed to one line: a 36 high box (`RadiusSm`) with the Creator's dashed outline, fill and glow, the target's type icon (16) at its left and the text on one line, then the Browse square button 8 to its right. A drop on the row, a paste or Browse fills it.
+- **Name** is a plain text box with the Creator's "Saving…"/"Created" status at the right of its label. **Description** is always shown here; there is no "Add a description" link.
+- The Create button (`PrimarySquareButton`, the rocket) ends the row, 8 after the description.
+- Enter creates from the name or the description; in the target it resolves the target and then creates if the name is filled, or moves on to the name. After a create the new keycut appears in the table and the fields clear, ready for the next one, with the focus back in Target. The screen still opens with the focus in the search box.
+- Name warnings, name errors and target errors use the Creator's helper line, under the whole row. A name that needs confirming asks in the same Confirm dialog.
+
+### The Manager's table
+
+- **The count** is a pill (22 high, fully round, `Caption` SemiBold in `TextSecondaryBrush` on `SurfaceSubtleBrush`) 12 to the right of the search box: "355 keycuts", or "4 of 355 keycuts" while a search is typed ([decision](#decisions)).
+- **The Manager's message** (Deleted, Copied, Restored, errors) sits between the search box and the count, 12 from each, only while there is one, and takes no room otherwise. It is at most 300 wide and trims with an ellipsis (its tooltip is the whole text). `undo` comes after "Deleted …", against the count, so it is always in the same place ([decision](#decisions)).
+- Header and rows are 36 high (`ManagerTable`).
+- **Columns**, left to right: Name (1.2 shares, at least 120), Type (104), Description (1 share, at least 100), Target (3.4 shares, at least 160), then Runs (64), Last run (112) and Modified (112), the last column ([decision](#decisions)). They make way when the table is narrow, Modified first. The shared columns can be dragged. Target gets the most room, since targets are the longest values; the fixed ones fit their widest value (the Command badge, "20 minutes ago", the Runs header with its chevron) with the padding at both sides. Text cells have 12 at each side; a type badge, which has its own border, and a header, whose sort chevron may run into it, have 4 at the right ([decision](#decisions)).
+- **A column's label starts where its values do**, 12 in. The sort header's focus frame (1 border, 4 padding) would push the label 5 further; the header is pulled left by that much ([decision](#decisions)).
+- **Right-clicking a row** opens its actions menu at the pointer, as in Explorer, and selects the row. **There is no `...` column** ([decision](#decisions)): Shift+F10 and the Menu key open the selected row's menu under the row, its left edge where the name starts (while the search box is empty, as for Delete), and every item has its own key, shown beside it. A screen reader names the menu "Actions for <name>".
 
 ### The app footer
 
-All three screens end in `FooterView`. It is 48 high at least (`MinHeight`, today 46), with `Padding="24,0"` and a top border in `BorderBrush`, on `SurfaceSubtleBrush`. Left to right: the count pill, the screen's message (the Manager's undo and status line), and the update line, right-aligned. Gaps are 8 between controls and 12 before the message.
+All three screens end in `FooterView`, which is **there only while a newer version is out**: it shows on every screen until the notice is dismissed or the app is up to date, and takes no room otherwise ([decision](#decisions)). It is 48 high at least, with `Padding="24,0"` and a top border in `BorderBrush`, on `SurfaceSubtleBrush`, and holds the update line, right-aligned, with its dismiss button. The count and the Manager's messages are in the Manager's search row.
 
 ### Inset panels
 
@@ -129,13 +152,13 @@ A **card** in a sheet or panel: `SurfaceBrush`, 1px `BorderBrush`, `RadiusMd` co
 The main window has no Windows title bar. Its top row is the **tab bar** (#218 calls it the rail), and it does everything a title bar does. The values below are where #218 starts; if they need adjusting once drawn in real pixels, #218 records the final numbers here.
 
 - **Height**: `RailHeight` (48). The tabs stand on its bottom edge; there is no line between the bar and the page.
-- **Left to right**: the app icon in a recessed square (28, `RadiusMd`, the icon at 20) and the name `keycuts` (16, SemiBold, 8 from the icon), then 16 (`Space4`) to the first tab, so the name stands apart from the tabs ([decision](#decisions)); the tabs `creator` and `manager` (a 16 icon, 8, then the name at 13 SemiBold, lowercase); the settings tab, **the gear alone** (16, no text; [decision](#decisions)); the empty, draggable bar; minimize, maximize (always disabled) and close.
+- **Left to right**: the app icon, the keycap alone with no socket (36, 8 from the edge, so 6 above and below it; [decision](#decisions)), and the name `keycuts` (16, SemiBold, 8 from the icon), then 24 (`Space6`) to the first tab, so the name stands apart from the tabs ([decision](#decisions)); the tabs `creator` and `manager` (**text only**, the name at 16 SemiBold like `keycuts`, lowercase; [decision](#decisions)); the settings tab, **the gear alone** (20, the size of Browse and Create, no text; [decision](#decisions)). The icon and `keycuts` sit 2 lower than centered and the tab names 2 higher, so **every name in the bar is on one line**, 26 from the top; the empty, draggable bar; minimize, maximize (always disabled) and close.
 - **Tabs**: `TabHeight` (40), all the same height, 4 apart at the base. Folder shape: a square left side with an 8 cut corner and a slanted right side. Padding 12 at the left and the slant plus 8 at the right. The selected tab is filled with `SurfaceBrush`, runs into the page, and casts a soft shadow to its right only; its text is `TextBrush`. Inactive tabs are shaded and textured, and their text is `TabTextBrush`, which must meet 4.5:1 on the whole tab. The mockup's colors don't: light `#5d687b` is 3.48:1 at the tab's base and dark `#8d97a8` 4.43:1 at its top; `#465064` and `#9aa4b5` pass. No accent line on the selected tab.
 - **Bar**: brushed metal (a vertical gradient with fine horizontal lines) and a faint dot grid in the empty space that fades out at both ends. Every color comes from the `Rail*`, `Tab*` and `Socket*` palette keys. **High contrast drops the textures**: the bar is `Window`, the tabs are outlined in `WindowText`, and the selected tab is marked by its outline running into the page.
 - **Caption buttons**: `CaptionButtonWidth` (46) by `RailHeight`, with 10px glyphs: the Windows standard sizes, an exception to the grid and the icon sizes. Hover is a light wash (`CaptionHoverBrush`); close turns `#c42b1c` with a white glyph in both themes, as Windows does (`CaptionCloseBrush`, the one fixed color). **Maximize is disabled on every screen**, the resizable Manager included, and the window can't be maximized any other way either: not by double-clicking the bar, Win+Up, dragging to the top of the screen or the window menu ([decision](#decisions)). The Manager is still resized from its edges and snapped to the side of the screen.
-- **Accessibility**: the tabs are a tab list. Their names are `creator`, `manager` and `settings` (the gear tab's tooltip too), with their selected state; Tab and the arrow keys reach them. The caption buttons are named `Minimize`, `Maximize` and `Close`, with matching tooltips. Each screen's content is announced with its tab's name.
+- **Accessibility**: the tabs are a tab list. Their names are `creator`, `manager` and `settings`, with their selected state; Tab and the arrow keys reach them. **Ctrl+1, Ctrl+2 and Ctrl+3** pick them left to right from anywhere in the window (not while the icon picker has them off); each tab's tooltip is its name and key, "creator (Ctrl+1)", and the key is its `AcceleratorKey`. The caption buttons are named `Minimize`, `Maximize` and `Close`, with matching tooltips. Each screen's content is announced with its tab's name.
 - **No screen headings**: the selected tab names the screen, so `keycuts creator`, `keycuts manager` and the creator/manager buttons beside them go, and the Settings screen has no heading. Content starts `PagePadding` (16) below the bar.
-- **The Settings screen** follows the rest of this guide: `SectionLabel`s, setting rows 16 apart with no lines, 36 high buttons and text boxes, the output folder's two icon-only square buttons, the note "Changes are saved as you make them." as `Caption` text with a 12 check, and a last row with `show welcome` at the left and `restore defaults` at the right.
+- **The Settings screen** follows the rest of this guide: `SectionLabel`s, setting rows 16 apart with no lines, 36 high buttons and text boxes, the output folder's two icon-only square buttons, and a last row, 24 below the rest, with `show welcome` at the left and `restore defaults` at the right. No note says changes are saved: with no Save button, that goes without saying ([decision](#decisions)). At the large size it has **two columns** with a 1px `BorderBrush` rule between them, 24 (`Space6`) from each: Output and Behavior on the left; Appearance, Updates and the last row on the right. Each column starts with its section label at the top of the page. Below 840 wide (the window dragged narrow) the columns stack into one, in the same order.
 
 ### Empty, loading and error states
 
@@ -191,7 +214,7 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | Brush | Role |
 |---|---|
 | `TextBrush` | Headings, labels, body text, values the user typed |
-| `TextSecondaryBrush` | **All readable supporting text**: helper text, notes, captions, status lines, table cells, column headers, menu item second lines, intros, Settings' "Changes are saved as you make them." |
+| `TextSecondaryBrush` | **All readable supporting text**: helper text, notes, captions, status lines, table cells, column headers, menu item second lines, intros |
 | `TextTertiaryBrush` | **Only** placeholders, disabled text, and decorative glyphs (the search icon). It meets 4.5:1 like any text, but it is for hints, never for text someone needs to read |
 | `AccentBrush` | Fills (primary button, toggle on, selection bar, check badge), focus ring, accent borders, icons |
 | `AccentTextBrush` (new) | Accent-colored **text**: section labels, links (Download, Undo), the active sort header |
@@ -224,13 +247,13 @@ In `Controls.xaml`, used by every window. Window-local copies (`SectionLabel` in
 | Text box | 36 high | `AppTextBox`, `InputHeight` (views stop setting `Height="38"`) |
 | Text button (primary or secondary) | 36 high, `Padding="12,0"` | `BaseButton`, `ControlHeight` |
 | Icon-only button with a border or fill, beside a text box or in the drop area (Create, Browse, and Settings' choose a folder and open the output folder, which never show text; [decision](#decisions)) | 36 × 36 | `SquareButton` (new, based on `SecondaryButton`/`PrimaryButton`), `ControlHeight` |
-| Ghost icon button (no border: dismiss, sheet close, row menu) | 32 × 32 | `IconButton`, `IconButtonSize` |
+| Ghost icon button (no border: dismiss, sheet close) | 32 × 32 | `IconButton`, `IconButtonSize` |
 | Text box editing inside a Manager row (rename, description) | 30 high | The **only** 30; it has to fit a 36 row |
 | Manager table: header / row | 36 / 36 (40 if a name plus a 12px marker doesn't fit; #219 checks) | `ManagerTable` |
 | Menu item: one line / two lines (Browse menu) | 32 / 48 min | `AppMenuItem`, `BrowseMenuItem` |
 | Toggle switch | 36 × 20 drawn, **36 × 24 to click** | `ToggleSwitch` (its template adds a transparent hit area around the track) |
 | Check box and radio box | 18 drawn; the label is part of the click area | The implicit `CheckBox` and `RadioButton` styles |
-| Type badge, count pill | 22 high | `TypeBadge`, the footer pill |
+| Type badge, count pill | 22 high | `TypeBadge`, the Manager's count pill |
 | Icon tile | 40 × 40, `RadiusLg` | `IconTile` (new), `TileSize` |
 | App footer | 48 min | `FooterView` |
 | Tab bar, tab, caption button (#218) | 48 / 40 / 46 × 48 | `RailHeight`, `TabHeight`, `CaptionButtonWidth` |
@@ -239,7 +262,7 @@ The owner's decision says icon buttons are 32. This guide reads that as the ghos
 
 **Pointer targets are at least 24 × 24** (WCAG 2.5.8, Target Size (Minimum)). That is the area that takes the click, which isn't always the area that is drawn:
 
-- **By size**: text boxes, text and square buttons (36), ghost icon buttons (32, the row menu button up from 28), menu items, tabs and caption buttons. Check boxes and radio buttons pass with their label, which WPF makes part of the click area; one without a visible label needs a 24 hit area of its own.
+- **By size**: text boxes, text and square buttons (36), ghost icon buttons (32), menu items, tabs and caption buttons. Check boxes and radio buttons pass with their label, which WPF makes part of the click area; one without a visible label needs a 24 hit area of its own.
 - **The toggle** is drawn 20 high, so its template wraps the track in a transparent border 24 high. It then passes by size wherever it is placed, rather than depending on the space around it.
 - **Anything smaller than 24** passes only by WCAG's spacing exception, where a 24px circle centered on it overlaps no other target, or its inline exception for a link inside a sentence. Today that is the sort headers (inside a 36 header row, with the next header well clear), the status line's undo, and the footer's download link (inline in the update sentence). A new small target must show which exception it meets, or grow to 24.
 
@@ -261,10 +284,11 @@ Icons are the app's own `controls:Icon` glyphs (`Themes/Icons.xaml`), drawn in t
 |---|---|
 | 12 | Beside 12px text: row markers (Missing, Warning), helper-line status icons, the sort chevron, the check badge's tick |
 | 10 | Only the caption buttons' glyphs (Windows' size) |
-| 16 | **The default**: in buttons with text, ghost icon buttons (dismiss, close, the row menu), menu items, list warnings, the tabs (the gear included) |
-| 20 | Square buttons (Create's rocket, Browse, choose a folder, open the output folder), the app icon in the tab bar, the welcome bubbles' arrow and the welcome helper line |
+| 16 | **The default**: in buttons with text, ghost icon buttons (dismiss, close), menu items, list warnings |
+| 20 | Square buttons (Create's rocket, Browse, choose a folder, open the output folder), the settings tab's gear and the welcome helper line |
 | 24 | In a 40 icon tile |
 | 32 | In the 56 empty-state illustration |
+| 36 | The app icon in the tab bar (a picture, not a glyph: the keycap alone) |
 
 Today's 11, 14, 15, 17, 18 and 23 snap to these. Gap between an icon and its text: **8** beside 13-14px text, **4** beside 12px text.
 
@@ -319,7 +343,7 @@ Not elsewhere: the Creator's target placeholder "Drop or paste a file, folder, U
 ### Punctuation
 
 - **No period** on labels, buttons, menu items, tooltips that are fragments, column headers, headings and placeholders.
-- **Periods** on full sentences: notes, helper text, messages, errors. A setting's note is a sentence ("Once a day, ask GitHub whether a newer version is out.").
+- **Periods** on full sentences: notes, helper text, messages, errors. A setting's note is a sentence ("Add “keycut this!” to File Explorer menus.").
 - **Exclamation marks** only in the four places that have them ([decision](#decisions)): "Welcome to keycuts!", the Explorer verb "keycut this!", "Created. Now try it out!" and the Classic icon's description. Nowhere else.
 - **Apostrophes and quotes** in the GUI are typographic: `’` and `“ ”`. Today the GUI mixes them with `'` ("Can't load your keycuts", "Couldn't delete"). The CLI's console output stays plain ASCII, because the console's code page may not show them.
 - **Em dash** without spaces around it ("dashes, or dots—no \ / :"). Better still, rewrite the sentence without one.
@@ -327,7 +351,7 @@ Not elsewhere: the Creator's target placeholder "Drop or paste a file, folder, U
 
 ### Placeholders
 
-A placeholder is a hint inside an empty box, in `TextTertiaryBrush` (4.5:1, like all text). Anything people need goes in the label or helper text instead. The Name and Description fields use **examples, the same in both forms** ([decision](#decisions)): "e.g. art" and "e.g. Recent paintings". The Edit form changes from "What you type in Win+R" and "What is it for? Shown in the manager". "e.g." with no comma after it is allowed in placeholders only, where space is tight; elsewhere write "for example". A placeholder that isn't an example says what goes there ("Search names, types, descriptions, or targets", "A file, folder, or URL").
+A placeholder is a hint inside an empty box, in `TextTertiaryBrush` (4.5:1, like all text). Anything people need goes in the label or helper text instead. The Name and Description fields use **examples, the same in both forms** ([decision](#decisions)): "e.g. art" and "e.g. my paintings (optional)": the description's says it is optional, since its label doesn't. The Edit form changes from "What you type in Win+R" and "What is it for? Shown in the manager". "e.g." with no comma after it is allowed in placeholders only, where space is tight; elsewhere write "for example". A placeholder that isn't an example says what goes there ("Search names, types, descriptions, or targets", "A file, folder, or URL").
 
 ### Messages
 
@@ -370,6 +394,23 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-13 | Placeholder contrast (PR #220 review) | Light `TextTertiaryBrush` `#818b9d`, 3.44:1, allowed for placeholders | **4.5:1 for placeholders too**: light `TextTertiaryBrush` becomes `#646e80`; dark is unchanged |
 | 2026-11-14 | Gap between the name and the first tab (#218, mockup v7) | 4, from #218's item 6; v6 drew it and it looked cramped (v3 had asked for more room, v5 had about 18) | **16** (`Space4`). The tabs stay 4 apart. At `MainWidth` 600 the empty, draggable bar is still about 66 |
 | 2026-11-14 | Maximizing the main window (#218) | Maximize on the Manager only (button, double click on the bar, Win+Up, drag to the top, window menu), with Windows 11's snap layouts over the button; disabled on the Creator and Settings | **Off on every screen, every way**: the button is always disabled, and the window refuses the maximize command. The Manager keeps its resize edges and snapping to the sides. Snap layouts over the button go with it |
+| 2026-11-15 | Window sizes (mockup `window-sizes-v1`) | The Creator and Settings `MainWidth` wide and as tall as their content; the Manager resizable on its own | **Two sizes**: small for the Creator (unchanged), large for the Manager and Settings, which share it. Settings never grows the window: **two columns** (option C; one column that scrolls was option D), stacking into one when the window is narrow. The Manager gets the Creator's fields as one row on top (Target, Name, Description); a create there clears the fields for the next one, and Enter creates from any field |
+| 2026-11-16 | Large size at first | 960 × 700 | **960 × 540**: the owner's pick from the running app. Settings still fits in two columns without scrolling |
+| 2026-11-16 | Large size at first, again | 960 × 540 | **960 × 544**: 4 taller, so the Manager's table is the header and 7 whole rows (297) with 24 under it, and the torn corner bites into a full last row. The table is always a whole number of rows tall; at other heights the rest goes under it |
+| 2026-11-16 | Settings' "Changes are saved as you make them." | A `Caption` note with a check above the last row | **Gone**: with no Save button, saving as you go is what people expect |
+| 2026-11-16 | The Creator's description label | "Add a description (optional)" while the box is hidden, "Description (optional)" while it shows | **"Description (optional)" both ways**; it is still the button that shows and hides the box |
+| 2026-11-16 | Order in Settings' Appearance | Icon, then Theme | **Theme, then Icon** |
+| 2026-11-16 | Settings' version row | "Version 1.6.0" in SemiBold; "You're up to date (1.6.0)." | **"Version · 1.6.0"** like "Icon · Black & White" (the value in secondary text), and **"You're up to date."**: the version is on the line above |
+| 2026-11-16 | The Manager's column labels | 5 to the right of their values (the sort header's focus frame), most visible over Runs | **Lined up with the values**, 12 in |
+| 2026-11-16 | The Manager's row menu | A 44 wide column of `...` buttons | **No column**: right-click a row, or Shift+F10 and the Menu key for the selected one. The room goes to the other columns |
+| 2026-11-16 | The Manager's column widths | Name 1.7 shares (190 at least), Type 110, Description 1.5, Target 2.8 (120), Modified 110, Runs 72, Last run 110 | **Name 1.2 (120), Type 104, Description 1, Target 3.4 (160), Modified 112, Runs 64, Last run 112**, with 4 at the right of a badge and a header: names and descriptions are short, targets long |
+| 2026-11-16 | Tab icons | A 16 icon before `creator` and `manager` | **Text only**; the tabs are 24 narrower. The Creator stays 600 wide, so the empty bar grows to about 110 |
+| 2026-11-16 | The keycut count | A number in a pill at the left of every screen's footer; "4 of 355 shown" beside the search box while searching | **One pill, beside the Manager's search box**: "355 keycuts", or "4 of 355 keycuts" while searching. The other screens show no count |
+| 2026-11-16 | The bottom bar | On every screen: the count, the Manager's messages and undo, the update line | **Only while a newer version is out**, until dismissed or up to date. The Manager's messages move to its search row (chosen over a bar that comes and goes, and a toast over the table), with undo after the message |
+| 2026-11-16 | The window's shape | A rectangle | **A torn bottom-right corner** (`docs/mockups/torn-corner-v2`, B2: 108 along the bottom, 50 up the side, bowing in, with a weave band and loose threads in `ControlBorderBrush`), transparent behind. The page draws its own 1px `BorderStrongBrush` edge, since a transparent window gets none from Windows. The rip is the bottom-right resize handle at the large size. The bottom bar's right padding clears it (`FooterBarPadding`), so its links stay whole; **the pages keep no room for it**: with their usual 24 below, the rip cuts into the last element (the Manager's table, the Creator's description box), and clicks there go through to the desktop. High contrast keeps the plain rectangle |
+| 2026-11-16 | The app icon, bigger | The key about 82% of its tile; in the tab bar a 20 icon in a 28 socket | **The key fills its tile** (`docs/mockups/icon-size-v1`, B): 96% from 48 px up, its shadow running off the tile, and all of it below. **Transparent versions** (the keycap alone; Classic's monogram alone) ship with the app, and **Transparent icon background** in Settings shows them on the taskbar, Alt+Tab and the shortcuts. **The tab bar always shows the keycap alone, at 36, with no socket** (`docs/mockups/icon-size-v2`, R3) |
+| 2026-11-17 | The Creator's form and the tab bar | Labels above their boxes; "Description (optional)" a button that hid the box; tab names 13, 16 after `keycuts`, a 16 gear, the names 4 apart vertically | **Labels at the left of their boxes** in the Creator, the boxes starting at one edge 16 after "Description"; **Description always shown**, a plain label in every form, its placeholder "e.g. my paintings (optional)"; "Saving…" and "Created" under the name box. The welcome bubbles lose their "→ name" line. **Tab names 16**, **24 after `keycuts`**, **the gear 20**, and **all the bar's names on one line** (`docs/mockups/creator-polish-v1`) |
+| 2026-11-17 | The Modified column's place | Before Runs and Last run | **The last column**, at the far right while the table is wide enough to show it |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

@@ -358,11 +358,41 @@ namespace keycuts.Tests
         {
             public AppIconChoice Choice { get; private set; } = AppIconChoice.Classic;
 
+            public bool Transparent { get; set; }
+
             public string? Apply(AppIconChoice choice)
             {
                 Choice = choice;
                 return AppIconService.SaveFailedMessage;
             }
+
+            public string? ApplyTransparent(bool transparent)
+            {
+                Transparent = transparent;
+                return AppIconService.SaveFailedMessage;
+            }
+        }
+
+        // The same failure twice (the icon and its background) is said once
+        [Fact]
+        public void RestoreDefaults_SaysATransparentBackgroundThatCouldntBeSaved_Once()
+        {
+            var vm = new SettingsViewModel(new FakeStore(), appIcon: new FailingIconService { Transparent = true });
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.False(vm.TransparentIcon);
+            Assert.Equal(AppIconService.SaveFailedMessage, vm.SaveError);
+        }
+
+        [Fact]
+        public void TransparentIcon_ThatCouldntBeSaved_SaysSoOnThePage()
+        {
+            var vm = new SettingsViewModel(new FakeStore(), appIcon: new FailingIconService());
+
+            vm.TransparentIcon = true;
+
+            Assert.Equal(AppIconService.SaveFailedMessage, vm.SaveError);
         }
 
         // The picker, where an icon error shows, is closed during restore defaults, so the page says it (PR #225 review)
@@ -414,7 +444,7 @@ namespace keycuts.Tests
                     CheckForUpdates = false
                 }
             };
-            var icon = new InMemoryAppIconService(AppIconChoice.Classic);
+            var icon = new InMemoryAppIconService(AppIconChoice.Classic, transparent: true);
             var themes = new List<ThemePreference>();
             var vm = new SettingsViewModel(store, appIcon: icon, applyTheme: themes.Add);
             // An edit in the box that wasn't committed stays an edit
@@ -442,6 +472,8 @@ namespace keycuts.Tests
             Assert.Equal(new[] { ThemePreference.System }, themes);
             Assert.Equal(Settings.DefaultAppIcon, icon.Choice);
             Assert.Equal(Settings.DefaultAppIcon, vm.SelectedIcon.Choice);
+            Assert.False(icon.Transparent);
+            Assert.False(vm.TransparentIcon);
         }
 
         [Fact]
@@ -490,6 +522,7 @@ namespace keycuts.Tests
             Assert.Equal(ThemePreference.System, defaults.Theme);
             Assert.True(defaults.CheckForUpdates);
             Assert.Equal(AppIconChoice.BlackAndWhite, Settings.DefaultAppIcon);
+            Assert.False(Settings.DefaultAppIconTransparent);
             Assert.Equal(string.Empty, defaults.OutputFolder);
         }
 
@@ -1018,7 +1051,7 @@ namespace keycuts.Tests
         #region Screen (#218)
 
         [Fact]
-        public void Screen_HasNoHeadingNoSaveButton_AndSaysChangesAreSaved()
+        public void Screen_HasNoHeadingNoSaveButton_AndNoNoteAboutSaving()
         {
             RunSta(() =>
             {
@@ -1034,12 +1067,9 @@ namespace keycuts.Tests
                     Assert.Null(window.FindName("BtnSave"));
                     Assert.DoesNotContain(Descendants<Button>(window), b => b.IsDefault || b.IsCancel);
 
-                    var note = (FrameworkElement)window.FindName("SavedNote");
-                    Assert.True(note.IsVisible);
-                    Assert.Contains(SettingsViewModel.SavedAsYouGoNote, texts);
-                    Assert.Equal(12, Descendants<keycuts.GUI.Controls.Icon>(note).Single().Size);
-                    var noteText = Descendants<TextBlock>(note).Single();
-                    Assert.Same(Application.Current.FindResource("Caption"), noteText.Style);
+                    // Saving as you go goes without saying: no note about it
+                    Assert.Null(window.FindName("SavedNote"));
+                    Assert.DoesNotContain(texts, t => t.StartsWith("Changes are saved", StringComparison.Ordinal));
 
                     // The last row: show welcome at the left, restore defaults at the right, both lowercase
                     var welcome = (Button)window.FindName("BtnShowWelcome");
@@ -1081,8 +1111,9 @@ namespace keycuts.Tests
                         new[]
                         {
                             "Output folder", "Choose a folder", "Open the output folder", "Ask before replacing a keycut", "Right-click context menus",
-                            "Use environment variables in paths", "Icon: Black & White. Change", "System theme", "Light theme", "Dark theme",
-                            "Check for updates", "show the welcome panel", "restore defaults"
+                            "Use environment variables in paths", "System theme", "Light theme", "Dark theme", "Icon: Black & White. Change",
+                            "Transparent icon background",
+                            "Check for updates daily", "show the welcome panel", "restore defaults"
                         },
                         stops);
                 }
@@ -1345,13 +1376,23 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
                 try
                 {
-                    var body = (StackPanel)((ScrollViewer)window.FindName("BodyScroller")).Content;
-                    var labels = body.Children.OfType<keycuts.GUI.Controls.SectionLabel>().ToList();
+                    // The page is two columns; at MainWidth they are stacked, the right one 24 under the left, as between two sections
+                    var body = (Grid)((ScrollViewer)window.FindName("BodyScroller")).Content;
+                    var left = (StackPanel)window.FindName("LeftColumn");
+                    var right = (StackPanel)window.FindName("RightColumn");
+                    Assert.False(window.View.IsTwoColumn);
+                    Assert.Equal(new Thickness(0, 24, 0, 0), right.Margin);
 
-                    Assert.DoesNotContain(body.Children.Cast<UIElement>(), child => child is Border or Separator);
-                    Assert.Equal(new[] { "Output", "Behavior", "Appearance", "Updates" }, labels.Select(l => l.Text));
-                    Assert.Equal(0, labels[0].Margin.Top);
-                    Assert.All(labels.Skip(1), l => Assert.Equal(new Thickness(0, 24, 0, 8), l.Margin));
+                    foreach (var column in new[] { left, right })
+                    {
+                        var labels = column.Children.OfType<keycuts.GUI.Controls.SectionLabel>().ToList();
+                        Assert.DoesNotContain(column.Children.Cast<UIElement>(), child => child is Border or Separator);
+                        Assert.Equal(0, labels[0].Margin.Top);
+                        Assert.All(labels.Skip(1), l => Assert.Equal(new Thickness(0, 24, 0, 8), l.Margin));
+                    }
+
+                    var all = left.Children.OfType<keycuts.GUI.Controls.SectionLabel>().Concat(right.Children.OfType<keycuts.GUI.Controls.SectionLabel>());
+                    Assert.Equal(new[] { "Output", "Behavior", "Appearance", "Updates" }, all.Select(l => l.Text));
                     Assert.Equal((Thickness)Application.Current.FindResource("PagePadding"), body.Margin);
                 }
                 finally
@@ -1373,11 +1414,11 @@ namespace keycuts.Tests
                     var texts = Descendants<TextBlock>(window).Where(t => t.IsVisible).Select(t => t.Text).ToList();
 
                     Assert.DoesNotContain(texts, t => t.StartsWith("Confirm before a new keycut", StringComparison.Ordinal));
-                    Assert.Contains("Once a day, ask GitHub whether a newer version is out.", texts);
+                    Assert.Contains("Check for updates daily", texts);
+                    Assert.DoesNotContain(texts, t => t.StartsWith("Once a day", StringComparison.Ordinal));
                     Assert.Contains(@"Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.", texts);
 
-                    Assert.Equal("Once a day, ask GitHub whether a newer version is out.",
-                        AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleCheckForUpdates")));
+                    Assert.Equal("", AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleCheckForUpdates")));
                     Assert.Equal("Confirm before a new keycut replaces one with the same name.",
                         AutomationProperties.GetHelpText((DependencyObject)window.FindName("ToggleAskBeforeReplacing")));
 
@@ -1579,7 +1620,13 @@ namespace keycuts.Tests
                     var checkNow = (Button)window.FindName("BtnCheckNow");
                     Assert.True(checkNow.IsVisible);
                     Assert.Equal("check for updates now", AutomationProperties.GetName(checkNow));
-                    Assert.Equal("Version 1.1.1", ((TextBlock)window.FindName("CurrentVersionText")).Text);
+                    // "Version · 1.1.1", like the icon's row; a screen reader hears "Version 1.1.1"
+                    var version = (TextBlock)window.FindName("CurrentVersionText");
+                    Assert.Equal("Version · 1.1.1", version.Text);
+                    Assert.Equal("Version 1.1.1", AutomationProperties.GetName(version));
+                    var runs = version.Inlines.OfType<Run>().ToList();
+                    Assert.Equal(FontWeights.SemiBold, runs[0].FontWeight);
+                    Assert.Equal(FontWeights.Normal, runs[2].FontWeight);
                     Assert.False(((TextBlock)window.FindName("UpdateStatusMessage")).IsVisible);
                     Assert.False(((Hyperlink)window.FindName("SettingsDownloadLink")).IsEnabled);
                 }
@@ -1634,7 +1681,7 @@ namespace keycuts.Tests
                     var toggles = Descendants<ToggleButton>(window).Where(t => t is not RadioButton).ToList();
 
                     Assert.Equal(
-                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Check for updates" },
+                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Transparent icon background", "Check for updates daily" },
                         toggles.Select(AutomationProperties.GetName));
                     Assert.All(toggles, toggle => Assert.NotNull(UIElementAutomationPeer.CreatePeerForElement(toggle).GetPattern(PatternInterface.Toggle)));
                 }
@@ -1662,7 +1709,7 @@ namespace keycuts.Tests
                 {
                     var footer = (keycuts.GUI.Views.FooterView)window.FindName("Footer");
                     Assert.Same(footerSource, footer.DataContext);
-                    Assert.Equal("355", ((TextBlock)footer.FindName("CountText")).Text);
+                    Assert.Null(footer.FindName("CountText"));   // the count is the Manager's, beside its search box
                 }
                 finally
                 {

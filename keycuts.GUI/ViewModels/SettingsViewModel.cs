@@ -63,12 +63,10 @@ namespace keycuts.GUI.ViewModels
 
         public const string CheckingForUpdatesMessage = "Checking for updates\u2026";
 
-        public const string UpToDateFormat = "You\u2019re up to date ({0}).";
+        // No version in it: Settings shows the version on the line above
+        public const string UpToDateMessage = "You\u2019re up to date.";
 
         public const string UpdateCheckFailedMessage = "Couldn\u2019t check for updates.";
-
-        /// <summary>The note near the bottom of the screen, since there is no Save button.</summary>
-        public const string SavedAsYouGoNote = "Changes are saved as you make them.";
 
         private readonly ISettingsStore store;
 
@@ -121,6 +119,8 @@ namespace keycuts.GUI.ViewModels
 
         private string? iconError;
 
+        private bool transparentIcon;
+
         /// <param name="pickFolder">Shows a folder picker seeded with the given folder; null when cancelled.</param>
         /// <param name="openFolder">Opens the folder in Explorer.</param>
         /// <param name="checkFolder">Creates the folder if needed and proves it is writable; returns an error message or null. Tests use temp folders.</param>
@@ -144,6 +144,7 @@ namespace keycuts.GUI.ViewModels
         {
             this.appIcon = appIcon ?? new InMemoryAppIconService();
             selectedIcon = AppIcons.Get(this.appIcon.Choice);
+            transparentIcon = this.appIcon.Transparent;
             var view = new ListCollectionView(new List<AppIconOption>(AppIcons.Options));
             view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AppIconOption.Group)));
             IconOptionsView = view;
@@ -362,6 +363,22 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
+        /// <summary>
+        /// The icon without its background (the keycap alone) on the taskbar, Alt+Tab and the app's shortcuts. The tab bar shows it
+        /// that way either way. Applies and saves at once; a save that fails says so on the page.
+        /// </summary>
+        public bool TransparentIcon
+        {
+            get { return transparentIcon; }
+            set
+            {
+                if (SetProperty(ref transparentIcon, value))
+                {
+                    SaveError = appIcon.ApplyTransparent(value);
+                }
+            }
+        }
+
         /// <summary>The icon button's name for screen readers, which can't see the picture.</summary>
         public string IconButtonName
         {
@@ -423,10 +440,16 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>"Version 1.1.1": the running version in three parts.</summary>
+        /// <summary>"Version 1.1.1": the running version in three parts. Settings shows it as "Version · 1.1.1", and a screen reader reads this.</summary>
         public string CurrentVersionText
         {
-            get { return string.Format(VersionFormat, CurrentVersion.ToString(3)); }
+            get { return string.Format(VersionFormat, CurrentVersionNumber); }
+        }
+
+        /// <summary>"1.1.1": the running version in three parts, shown after "Version ·" as the icon's name follows "Icon ·".</summary>
+        public string CurrentVersionNumber
+        {
+            get { return CurrentVersion.ToString(3); }
         }
 
         /// <summary>
@@ -601,12 +624,39 @@ namespace keycuts.GUI.ViewModels
 
             var iconChanged = selectedIcon.Choice != Settings.DefaultAppIcon;
             SelectedIcon = AppIcons.Get(Settings.DefaultAppIcon);
+
+            string? transparentError = null;
+            if (transparentIcon != Settings.DefaultAppIconTransparent)
+            {
+                transparentIcon = Settings.DefaultAppIconTransparent;
+                transparentError = appIcon.ApplyTransparent(transparentIcon);
+                OnPropertyChanged(nameof(TransparentIcon));
+            }
+
             Store();
 
             // An icon that couldn't be saved says so in the picker, which is closed now: the page says it too, after any other problem
             if (iconChanged && HasIconError)
             {
-                SaveError = SaveError == null ? IconError : SaveError + Environment.NewLine + IconError;
+                AddSaveError(IconError!);
+            }
+
+            if (transparentError != null)
+            {
+                AddSaveError(transparentError);
+            }
+        }
+
+        /// <summary>Adds a problem under any other on the page, once.</summary>
+        private void AddSaveError(string message)
+        {
+            if (SaveError == null)
+            {
+                SaveError = message;
+            }
+            else if (!SaveError.Contains(message, StringComparison.Ordinal))
+            {
+                SaveError = SaveError + Environment.NewLine + message;
             }
         }
 
@@ -655,7 +705,7 @@ namespace keycuts.GUI.ViewModels
                     UpdateStatusText = UpdateNoticeViewModel.FormatAvailable(result.Latest);
                     break;
                 case UpdateStatus.UpToDate:
-                    UpdateStatusText = string.Format(UpToDateFormat, CurrentVersion.ToString(3));
+                    UpdateStatusText = UpToDateMessage;
                     break;
                 default:
                     UpdateStatusText = UpdateCheckFailedMessage;

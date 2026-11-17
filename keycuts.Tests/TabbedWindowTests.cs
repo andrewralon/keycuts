@@ -194,7 +194,10 @@ namespace keycuts.Tests
                     var peer = TabPeer(window, tabName);
                     Assert.Equal(AutomationControlType.TabItem, peer.GetAutomationControlType());
                     Assert.Equal(name, peer.GetName());
-                    Assert.Equal(name, tab.ToolTip);
+                    // The key that picks it, in the tooltip after the name and as the accelerator a screen reader reads
+                    var number = Array.IndexOf(new[] { "creator", "manager", "settings" }, name) + 1;
+                    Assert.Equal(name + " (Ctrl+" + number + ")", tab.ToolTip);
+                    Assert.Equal("Ctrl+" + number, AutomationProperties.GetAcceleratorKey(tab));
                 }
 
                 // The gear is the tab, with no text of its own
@@ -232,7 +235,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheSettingsTab_ShowsTheSettingsScreen_FixedSize_CappedToTheWorkArea()
+        public void TheSettingsTab_ShowsTheSettingsScreen_AtTheManagersSize()
         {
             WithWindow((window, shell) =>
             {
@@ -240,9 +243,13 @@ namespace keycuts.Tests
                 var settings = (TabItem)Named(window, "SettingsTab");
                 var maximize = (Button)Named(window, "BtnMaximize");
 
-                // From the Manager, so the window has a size of its own to give up
                 shell.ShowManager();
                 Settle(window);
+                window.Width = 1000;
+                window.Height = 640;
+                Settle(window);
+                var where = new Point(window.Left, window.Top);
+
                 rail.SelectedItem = settings;
                 Settle(window);
 
@@ -250,67 +257,207 @@ namespace keycuts.Tests
                 Assert.Same(settings, rail.SelectedItem);
                 Assert.Contains(Descendants<keycuts.GUI.Views.SettingsView>(window), v => ReferenceEquals(v.DataContext, shell.Settings));
 
-                // Like the Creator: MainWidth, its content's height, and no resizing; unlike it, never taller than the screen
+                // The large size the Manager left it at: nothing moves, nothing grows to fit Settings, and it is still resizable
+                Assert.Equal(1000, window.ActualWidth, 0.5);
+                Assert.Equal(640, window.ActualHeight, 0.5);
+                Assert.Equal(where, new Point(window.Left, window.Top));
+                Assert.Equal(SizeToContent.Manual, window.SizeToContent);
+                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+                Assert.False(maximize.IsEnabled);
+                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
+
+                // The Creator is small again
+                shell.ShowCreator();
+                Settle(window);
                 Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
                 Assert.Equal(SizeToContent.Height, window.SizeToContent);
                 Assert.Equal(ResizeMode.CanMinimize, window.ResizeMode);
-                Assert.False(maximize.IsEnabled);
-                Assert.Equal(WindowLayout.GetWorkAreaInDips(window).Height, window.MaxHeight);
-                Assert.True(window.ActualHeight <= window.MaxHeight);
-
-                // The Manager can be as tall as any screen it is moved to (PR #225 review), and so is the Creator
-                shell.ShowManager();
-                Settle(window);
-                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
-                shell.ShowSettings();
-                Settle(window);
-                shell.ShowCreator();
-                Settle(window);
-                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
-                Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
             }, withSettings: true);
         }
 
-        // Settings measures its cap once the window has moved back (another monitor can be shorter); a switch to the Creator
-        // before that runs must not leave the Creator capped (PR #225 review)
         [Fact]
-        public void AQuickSwitchFromSettingsToTheCreator_LeavesTheCreatorUncapped()
+        public void SettingsFromTheCreator_TakesTheLargeSize()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Settle(window);
+
+                Assert.Equal(WindowLayout.ManagerDefaultWidth, window.ActualWidth, 0.5);
+                Assert.Equal(WindowLayout.ManagerDefaultHeight, window.ActualHeight, 0.5);
+                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
+                Assert.Equal(WindowLayout.ManagerMinWidth, window.MinWidth);
+                Assert.Equal(WindowLayout.ManagerMinHeight, window.MinHeight);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void Settings_IsTwoColumns_AtTheLargeSize_AndFitsWithoutScrolling()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Settle(window);
+
+                var view = Descendants<keycuts.GUI.Views.SettingsView>(window).Single();
+                Assert.True(view.IsTwoColumn);
+
+                // Output on the left and Appearance on the right, their section labels level at the top of the page
+                var output = Descendants<SectionLabel>(view).Single(l => l.Text == "Output");
+                var appearance = Descendants<SectionLabel>(view).Single(l => l.Text == "Appearance");
+                var outputAt = output.TranslatePoint(new Point(0, 0), view);
+                var appearanceAt = appearance.TranslatePoint(new Point(0, 0), view);
+                Assert.Equal(outputAt.Y, appearanceAt.Y, 0.5);
+                Assert.True(appearanceAt.X > view.ActualWidth / 2);
+
+                // The left column's toggles end before the rule, and the right one's buttons end inside the page
+                var folder = (FrameworkElement)Named(window, "TextboxOutputFolder");
+                var rule = (FrameworkElement)Named(window, "ColumnRule");
+                Assert.Equal(Visibility.Visible, rule.Visibility);
+                var ruleX = rule.TranslatePoint(new Point(0, 0), view).X;
+                Assert.True(folder.TranslatePoint(new Point(folder.ActualWidth, 0), view).X <= ruleX - 24 + 0.5);
+                var restore = (FrameworkElement)Named(window, "BtnRestoreDefaults");
+                Assert.True(restore.TranslatePoint(new Point(restore.ActualWidth, 0), view).X <= view.ActualWidth - 24 + 0.5);
+
+                // All of it fits at the large size the window opens at
+                Assert.Equal(0, ((ScrollViewer)Named(window, "BodyScroller")).ScrollableHeight, 0.5);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void Settings_StacksItsColumns_WhenTheWindowIsNarrow()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Settle(window);
+                window.Width = WindowLayout.ManagerMinWidth;
+                Settle(window);
+
+                var view = Descendants<keycuts.GUI.Views.SettingsView>(window).Single();
+                Assert.False(view.IsTwoColumn);
+                Assert.Equal(Visibility.Collapsed, ((FrameworkElement)Named(window, "ColumnRule")).Visibility);
+
+                // Appearance comes after Behavior, 24 under its last row, and starts at the page's left like Output
+                var lastBehavior = (FrameworkElement)Named(window, "ToggleEnvironmentVariables");
+                var output = Descendants<SectionLabel>(view).Single(l => l.Text == "Output");
+                var appearance = Descendants<SectionLabel>(view).Single(l => l.Text == "Appearance");
+                Assert.True(appearance.TranslatePoint(new Point(0, 0), view).Y > lastBehavior.TranslatePoint(new Point(0, 0), view).Y);
+                Assert.Equal(output.TranslatePoint(new Point(0, 0), view).X, appearance.TranslatePoint(new Point(0, 0), view).X, 0.5);
+
+                // And wide again, two columns again
+                window.Width = WindowLayout.ManagerDefaultWidth;
+                Settle(window);
+                Assert.True(view.IsTwoColumn);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void TheManagerAndSettings_ShareOneSize_AcrossTheCreator()
         {
             WithWindow((window, shell) =>
             {
                 shell.ShowManager();
                 Settle(window);
-
-                shell.ShowSettings();
-                shell.ShowCreator();
-                Settle(window);
-
-                Assert.Equal(ShellMode.Creator, shell.Mode);
-                Assert.Equal(double.PositiveInfinity, window.MaxHeight);
-            }, withSettings: true);
-        }
-
-        [Fact]
-        public void TheManager_KeepsItsOwnSize_AcrossSettings()
-        {
-            WithWindow((window, shell) =>
-            {
-                shell.ShowManager();
-                Settle(window);
-                window.Width = 1000;
+                window.Width = 900;
                 window.Height = 640;
                 Settle(window);
 
-                // Settings from the Manager, then the Creator, then the Manager again: the Creator and Settings don't overwrite its size
+                // Resized in Settings, then the Creator, then the Manager again: the Manager comes back at Settings' size.
+                // Both sizes fit a 1024 × 768 screen (CI's), since a large size is clamped to the work area.
                 shell.ShowSettings();
+                Settle(window);
+                window.Width = 940;
+                window.Height = 600;
                 Settle(window);
                 shell.ShowCreator();
                 Settle(window);
+                Assert.Equal(WindowLayout.CreatorWidth, window.ActualWidth, 0.5);
                 shell.ShowManager();
                 Settle(window);
 
-                Assert.Equal(1000, window.ActualWidth, 0.5);
-                Assert.Equal(640, window.ActualHeight, 0.5);
+                Assert.Equal(940, window.ActualWidth, 0.5);
+                Assert.Equal(600, window.ActualHeight, 0.5);
+
+                // And Settings from the Creator comes back at it too
+                shell.ShowCreator();
+                Settle(window);
+                shell.ShowSettings();
+                Settle(window);
+                Assert.Equal(940, window.ActualWidth, 0.5);
+                Assert.Equal(600, window.ActualHeight, 0.5);
+            }, withSettings: true);
+        }
+
+        [Fact]
+        public void TheCreator_KeepsTheTopLeft_TheManagerWasMovedTo()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+
+                // Moved up and to the left, still on the screen: the Creator opens right there, not where it was before
+                var workArea = WindowLayout.GetWorkAreaInDips(window);
+                window.Left = workArea.Left + 8;
+                window.Top = workArea.Top + 4;
+                Settle(window);
+                shell.ShowCreator();
+                Settle(window);
+
+                Assert.Equal(workArea.Left + 8, window.Left, 0.5);
+                Assert.Equal(workArea.Top + 4, window.Top, 0.5);
+            });
+        }
+
+        /// <summary>A key that reaches the window, as one no control took bubbles up to it. True if the window took it.</summary>
+        static bool KeyDown(UIElement source, Key key, ModifierKeys modifiers)
+        {
+            var args = new KeyEventArgs(new FakeKeyboardDevice(modifiers), PresentationSource.FromVisual(source), 0, key)
+            {
+                RoutedEvent = Keyboard.KeyDownEvent
+            };
+            source.RaiseEvent(args);
+            return args.Handled;
+        }
+
+        [Fact]
+        public void CtrlOneTwoAndThree_PickTheTabs_LeftToRight()
+        {
+            WithWindow((window, shell) =>
+            {
+                var rail = (RailTabControl)Named(window, "TabStrip");
+
+                // From anywhere in the window, a text box included, and from the number pad too
+                foreach (var (key, mode, tab) in new[]
+                {
+                    (Key.D2, ShellMode.Manager, "ManagerTab"),
+                    (Key.D3, ShellMode.Settings, "SettingsTab"),
+                    (Key.D1, ShellMode.Creator, "CreatorTab"),
+                    (Key.NumPad2, ShellMode.Manager, "ManagerTab")
+                })
+                {
+                    var box = Descendants<TextBox>(window).First(t => t.IsVisible);
+                    Assert.True(KeyDown(box, key, ModifierKeys.Control), key + " is taken");
+                    Settle(window);
+                    Assert.Equal(mode, shell.Mode);
+                    Assert.Same(Named(window, tab), rail.SelectedItem);
+                }
+
+                // Not without Ctrl, nor with Ctrl+Shift
+                Assert.False(KeyDown(window, Key.D1, ModifierKeys.None));
+                Assert.False(KeyDown(window, Key.D1, ModifierKeys.Control | ModifierKeys.Shift));
+                Assert.Equal(ShellMode.Manager, shell.Mode);
+
+                // While the icon picker has the tabs off, the keys don't switch either
+                shell.ShowSettings();
+                Settle(window);
+                shell.Settings!.IsIconPickerOpen = true;
+                Settle(window);
+                Assert.True(KeyDown(window, Key.D1, ModifierKeys.Control));
+                Settle(window);
+                Assert.Equal(ShellMode.Settings, shell.Mode);
+                shell.Settings.IsIconPickerOpen = false;
             }, withSettings: true);
         }
 
@@ -514,7 +661,21 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheTabBar_FitsInTheCreator_WithAbout60OfEmptyBar()
+        public void TheCreatorAndManagerTabs_AreTextOnly()
+        {
+            WithWindow((window, shell) =>
+            {
+                foreach (var (tab, text) in new[] { ("CreatorTab", "creator"), ("ManagerTab", "manager") })
+                {
+                    var item = (TabItem)Named(window, tab);
+                    Assert.Equal(text, item.Header);
+                    Assert.Empty(Descendants<keycuts.GUI.Controls.Icon>(item));
+                }
+            });
+        }
+
+        [Fact]
+        public void TheTabBar_FitsInTheCreator_WithRoomToGrab()
         {
             WithWindow((window, shell) =>
             {
@@ -526,8 +687,9 @@ namespace keycuts.Tests
                 var captionsStart = captions.TranslatePoint(new Point(0, 0), bar).X;
                 var empty = captionsStart - tabsEnd;
 
-                // "About 60 beyond the icon and name" (#218): enough to grab, not so much that it looks lost
-                Assert.InRange(empty, 56, 80);
+                // #218 asked for about 60 beyond the tabs; the text-only tabs left about 110 at the same 600, and the names at 16 with
+                // 24 after keycuts (the owner, 2026-11-17) leave about 77
+                Assert.InRange(empty, 65, 90);
             });
         }
 
@@ -550,16 +712,18 @@ namespace keycuts.Tests
             });
         }
 
+        // The keycap alone at 36, in no socket (docs/mockups/icon-size-v2, R3), whether or not the other icons are transparent
         [Fact]
-        public void TheAppIcon_InTheBar_IsTheOneFromSettings_AtTwenty()
+        public void TheAppIcon_InTheBar_IsTheOneFromSettings_WithoutItsBackground_At36()
         {
             WithWindow((window, shell) =>
             {
                 var icon = Descendants<System.Windows.Controls.Image>(window).Single(i => i.Name == "AppIcon");
-                Assert.NotNull(icon.Source);
-                Assert.Equal(20, icon.Width);
-                Assert.Equal(20, icon.Height);
-                Assert.Equal(28, ((FrameworkElement)icon.Parent).Width);
+                Assert.Same(keycuts.GUI.Themes.AppIcons.GetPreview(keycuts.GUI.Themes.AppIcons.GetTransparent(keycuts.GUI.Themes.AppIconManager.Current)), icon.Source);
+                Assert.Equal(36, icon.Width);
+                Assert.Equal(36, icon.Height);
+                Assert.IsType<StackPanel>(icon.Parent);
+                Assert.Equal(8, ((FrameworkElement)icon.Parent).Margin.Left);
             });
         }
 

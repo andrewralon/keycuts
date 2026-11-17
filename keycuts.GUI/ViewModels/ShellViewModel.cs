@@ -52,8 +52,9 @@ namespace keycuts.GUI.ViewModels
             IKeycutActions? actions = null,
             WelcomeViewModel? welcome = null,
             UpdateNoticeViewModel? updateNotice = null,
-            IDescriptionVisibilityStore? descriptionStore = null,
-            Func<SettingsViewModel>? settingsFactory = null)
+            Func<SettingsViewModel>? settingsFactory = null,
+            Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
+            Func<string, NameCheck>? checkName = null)
         {
             this.countProvider = countProvider ?? throw new ArgumentNullException(nameof(countProvider));
             this.settingsFactory = settingsFactory;
@@ -62,19 +63,26 @@ namespace keycuts.GUI.ViewModels
             ShowCreatorCommand = new RelayCommand(ShowCreator);
             OpenSettingsCommand = new RelayCommand(ShowSettings, () => settingsFactory != null);
 
-            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, descriptionStore: descriptionStore)
+            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, createAsync, checkName)
             {
                 Welcome = welcome,
                 UpdateNotice = updateNotice
             };
-            // Both screens share the footer, so both show the same update line
+            // Both screens share the footer, so both show the same update line. The Manager's create row is a form of its own, so
+            // what is typed in one isn't in the other
             Manager = new ManagerViewModel(ShowCreatorCommand, OpenSettingsCommand, keycutLoader, targetChecker, actions)
             {
-                UpdateNotice = updateNotice
+                UpdateNotice = updateNotice,
+                CreateRow = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, createAsync, checkName)
+                {
+                    ClearsAfterCreate = true
+                }
             };
             currentView = Creator;
 
             Creator.KeycutCreated += (sender, e) => _ = ReloadAsync();
+            // The new keycut shows in the table at once
+            Manager.CreateRow.KeycutCreated += (sender, e) => _ = ReloadAsync();
             Manager.KeycutDeleted += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
             Manager.KeycutRestored += (sender, e) => Creator.KeycutCount = Manager.KeycutCount;
         }
@@ -82,6 +90,23 @@ namespace keycuts.GUI.ViewModels
         public CreatorViewModel Creator { get; }
 
         public ManagerViewModel Manager { get; }
+
+        /// <summary>
+        /// Both forms that create keycuts, the Creator and the Manager's create row: what the app reads once (the environment-variables
+        /// setting, the path variables) goes to each.
+        /// </summary>
+        public IEnumerable<CreatorViewModel> Forms
+        {
+            get
+            {
+                yield return Creator;
+
+                if (Manager.CreateRow != null)
+                {
+                    yield return Manager.CreateRow;
+                }
+            }
+        }
 
         public RelayCommand ShowManagerCommand { get; }
 
@@ -300,7 +325,10 @@ namespace keycuts.GUI.ViewModels
         {
             if (sender is SettingsViewModel stored)
             {
-                Creator.UseEnvironmentVariablesSetting = stored.UseEnvironmentVariables;
+                foreach (var form in Forms)
+                {
+                    form.UseEnvironmentVariablesSetting = stored.UseEnvironmentVariables;
+                }
             }
 
             Creator.UpdateNotice?.Refresh();

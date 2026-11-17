@@ -4,7 +4,7 @@
              xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
              xmlns:controls="clr-namespace:keycuts.GUI.Controls"
              IsTabStop="False" Focusable="False">
-  <!-- #218: the tab bar that replaces the title bar. Left to right: the app icon in a recessed square and the name (not a tab), the
+  <!-- #218: the tab bar that replaces the title bar. Left to right: the app icon (the keycap alone) and the name (not a tab), the
        tabs (creator, manager, and the settings gear), the empty bar, and the caption buttons. WindowChrome (MainWindow) makes the whole
        bar a caption, drag, double click, snap and the window menu included, except what is marked IsHitTestVisibleInChrome: the tabs
        and the caption buttons. The textures are palette brushes, so high contrast drops them. -->
@@ -31,12 +31,10 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
 
-      <!-- 12 from the edge, 16 to the first tab so the name stands apart from the tabs -->
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,16,0" VerticalAlignment="Center">
-        <Border Width="28" Height="28" CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource SocketBrush}"
-                BorderBrush="{DynamicResource SocketBorderBrush}" BorderThickness="1">
-          <Image x:Name="AppIcon" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
-        </Border>
+      <!-- The keycap alone at 36, 8 from the edge, 24 to the first tab so the name stands apart from the tabs. 4 at the top moves the
+           icon and the name down 2, onto the tab names' line (26 from the top; the tabs lift theirs 2) -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,4,24,0" VerticalAlignment="Center">
+        <Image x:Name="AppIcon" Width="36" Height="36" RenderOptions.BitmapScalingMode="HighQuality" />
         <TextBlock Text="keycuts" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
                    FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
       </StackPanel>
@@ -45,26 +43,16 @@
                                shell:WindowChrome.IsHitTestVisibleInChrome="True"
                                IsEnabled="{Binding AreTabsEnabled, FallbackValue=True}"
                                AutomationProperties.Name="Screens">
-        <TabItem x:Name="CreatorTab" AutomationProperties.Name="creator" ToolTip="creator">
-          <TabItem.Header>
-            <StackPanel Orientation="Horizontal">
-              <controls:Icon Kind="Spark" Size="16" />
-              <TextBlock Text="creator" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-          </TabItem.Header>
-        </TabItem>
-        <TabItem x:Name="ManagerTab" AutomationProperties.Name="manager" ToolTip="manager">
-          <TabItem.Header>
-            <StackPanel Orientation="Horizontal">
-              <controls:Icon Kind="Table" Size="16" />
-              <TextBlock Text="manager" Margin="8,0,0,0" VerticalAlignment="Center" />
-            </StackPanel>
-          </TabItem.Header>
-        </TabItem>
+        <!-- Text only: the tab is as wide as its name plus the padding and the slant. Ctrl+1, 2 and 3 pick the tabs (MainWindow). -->
+        <TabItem x:Name="CreatorTab" Header="creator" AutomationProperties.Name="creator" AutomationProperties.AcceleratorKey="Ctrl+1"
+                 ToolTip="creator (Ctrl+1)" />
+        <TabItem x:Name="ManagerTab" Header="manager" AutomationProperties.Name="manager" AutomationProperties.AcceleratorKey="Ctrl+2"
+                 ToolTip="manager (Ctrl+2)" />
         <!-- The gear alone: the tooltip and the automation name say what it is -->
-        <TabItem x:Name="SettingsTab" AutomationProperties.Name="settings" ToolTip="settings">
+        <TabItem x:Name="SettingsTab" AutomationProperties.Name="settings" AutomationProperties.AcceleratorKey="Ctrl+3"
+                 ToolTip="settings (Ctrl+3)">
           <TabItem.Header>
-            <controls:Icon Kind="Settings" Size="16" />
+            <controls:Icon Kind="Settings" Size="20" />
           </TabItem.Header>
         </TabItem>
       </controls:RailTabControl>

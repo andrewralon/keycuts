@@ -35,7 +35,7 @@ namespace keycuts.GUI
             // Before the first window, so a saved theme never flashes the wrong palette
             Themes.ThemeManager.Initialize(this, Common.RegistryStuff.GetThemePreference());
             // After the theme, which the icon options that follow it read
-            Themes.AppIconManager.Initialize(this, Common.RegistryStuff.GetAppIcon(), UpdateShortcutIcons);
+            Themes.AppIconManager.Initialize(this, Common.RegistryStuff.GetAppIcon(), Common.RegistryStuff.GetAppIconTransparent(), UpdateShortcutIcons);
 
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override
             // must never write PATH, so it skips the check (null means "on PATH").
@@ -84,7 +84,6 @@ namespace keycuts.GUI
                 new ViewModels.SystemKeycutActions(),
                 welcome,
                 updateNotice,
-                new ViewModels.RegistryDescriptionVisibilityStore(),
                 settingsFactory);
             // A rename to a name other commands use asks first (#153); a taken keycut name is refused by the rename itself
             // Through NameCheck.Run, like the Creator, so a conflict that is a keycut is described as one; askBeforeReplacing is
@@ -93,7 +92,11 @@ namespace keycuts.GUI
                 Common.NameConflictEnvironment.GetDefault());
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
-            shell.Creator.UseEnvironmentVariablesSetting = Common.RegistryStuff.GetUseEnvironmentVariables();
+            var useEnvironmentVariables = Common.RegistryStuff.GetUseEnvironmentVariables();
+            foreach (var form in shell.Forms)
+            {
+                form.UseEnvironmentVariablesSetting = useEnvironmentVariables;
+            }
 
             mainWindow = new MainWindow(shell);
 
@@ -107,7 +110,7 @@ namespace keycuts.GUI
             // Before Show, so the title bar and the taskbar never show the exe's own icon first
             Themes.AppIconManager.ApplyTo(mainWindow);
             mainWindow.Show();
-            _ = LoadPathVariablesAsync(shell.Creator);
+            _ = LoadPathVariablesAsync(shell);
             _ = ShowCommandNameNoticeAsync(mainWindow, moveAside);
             _ = CheckForUpdatesAsync(updateNotice);
         }
@@ -232,11 +235,15 @@ namespace keycuts.GUI
         /// Reads this machine's variables off the UI thread: a custom one is checked with <c>Directory.Exists</c>, which can
         /// take a long time for a network share that's offline. The target shows its %VAR% form once they arrive.
         /// </summary>
-        private static async Task LoadPathVariablesAsync(ViewModels.CreatorViewModel creator)
+        private static async Task LoadPathVariablesAsync(ViewModels.ShellViewModel shell)
         {
             try
             {
-                creator.PathVariables = await Task.Run(Common.PathVariables.GetDefault);
+                var variables = await Task.Run(Common.PathVariables.GetDefault);
+                foreach (var form in shell.Forms)
+                {
+                    form.PathVariables = variables;
+                }
             }
             catch (Exception ex)
             {

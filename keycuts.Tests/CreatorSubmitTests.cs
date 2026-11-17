@@ -34,9 +34,9 @@ namespace keycuts.Tests
             }
         }
 
-        static CreatorViewModel Create(FakeCreator fake, Func<string, NameCheck>? checkName = null, IDescriptionVisibilityStore? descriptionStore = null)
+        static CreatorViewModel Create(FakeCreator fake, Func<string, NameCheck>? checkName = null)
         {
-            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, checkName ?? TestNameChecks.NoWarnings, descriptionStore);
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, checkName ?? TestNameChecks.NoWarnings);
             // Longer than any test runs, so a test that asserts Success never races the reset to Empty (a slow CI runner
             // can pause a test past a short duration). The tests about the reset set their own.
             creator.SuccessDuration = TimeSpan.FromMinutes(1);
@@ -247,42 +247,9 @@ namespace keycuts.Tests
         #region Description (#162)
 
         [Fact]
-        public void Description_IsCollapsedByDefault()
+        public void Description_StartsEmpty()
         {
-            var creator = Ready(new FakeCreator());
-
-            Assert.False(creator.IsDescriptionVisible);
-            Assert.True(creator.ShowAddDescription);
-            Assert.Equal(string.Empty, creator.Description);
-        }
-
-        [Fact]
-        public void AddADescription_ShowsTheFieldAndFocusesIt()
-        {
-            var creator = Ready(new FakeCreator());
-            var focus = new List<CreatorFocusTarget>();
-            var changed = new List<string?>();
-            creator.FocusRequested += (sender, e) => focus.Add(e);
-            creator.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
-
-            creator.ToggleDescriptionCommand.Execute(null);
-
-            Assert.True(creator.IsDescriptionVisible);
-            Assert.False(creator.ShowAddDescription);
-            Assert.Equal(new[] { CreatorFocusTarget.Description }, focus);
-            Assert.Contains(nameof(CreatorViewModel.IsDescriptionVisible), changed);
-            Assert.Contains(nameof(CreatorViewModel.ShowAddDescription), changed);
-        }
-
-        [Fact]
-        public void ADescriptionWithText_IsNeverHidden()
-        {
-            var creator = Ready(new FakeCreator());
-
-            creator.Description = "Team wiki";
-
-            Assert.True(creator.IsDescriptionVisible);
-            Assert.False(creator.ShowAddDescription);
+            Assert.Equal(string.Empty, Ready(new FakeCreator()).Description);
         }
 
         [Fact]
@@ -318,11 +285,10 @@ namespace keycuts.Tests
             await creator.CreateCommand.ExecuteAsync();
 
             Assert.Equal("Team wiki", creator.Description);
-            Assert.True(creator.IsDescriptionVisible);
         }
 
         [Fact]
-        public async Task Description_StaysFilledInAfterACreate_AndSoDoesTheBox()
+        public async Task Description_StaysFilledInAfterACreate()
         {
             var creator = Ready(new FakeCreator());
             creator.SuccessDuration = TimeSpan.FromMilliseconds(500);
@@ -332,102 +298,6 @@ namespace keycuts.Tests
             await WaitFor(() => creator.State == CreatorState.TargetSelected);
 
             Assert.Equal("Team wiki", creator.Description);
-            Assert.True(creator.IsDescriptionVisible);   // shown or hidden is the user's choice, not something a create undoes
-            Assert.False(creator.ShowAddDescription);
-        }
-
-        [Fact]
-        public void TheDescriptionLabel_IsAButtonThatHidesTheBoxAgain()
-        {
-            var creator = Ready(new FakeCreator());
-            var focus = new List<CreatorFocusTarget>();
-            creator.FocusRequested += (sender, e) => focus.Add(e);
-
-            Assert.Equal("Add a description (optional)", creator.DescriptionToggleText);
-            Assert.Equal("Add a description (optional)", creator.DescriptionToggleName);
-
-            creator.ToggleDescriptionCommand.Execute(null);
-            Assert.Equal("Description (optional)", creator.DescriptionToggleText);
-            Assert.Equal("Hide description", creator.DescriptionToggleName);
-
-            creator.ToggleDescriptionCommand.Execute(null);
-            Assert.False(creator.IsDescriptionVisible);
-            Assert.True(creator.ShowAddDescription);
-            Assert.Equal("Add a description (optional)", creator.DescriptionToggleText);
-            Assert.Equal(new[] { CreatorFocusTarget.Description }, focus);   // only showing moves the focus into the box
-        }
-
-        [Fact]
-        public async Task AHiddenDescription_IsNotSaved_ButComesBackWhenShownAgain()
-        {
-            var fake = new FakeCreator();
-            var creator = Ready(fake);
-            creator.Description = "Team wiki";
-            creator.ToggleDescriptionCommand.Execute(null);   // hides it, text and all
-
-            await creator.CreateCommand.ExecuteAsync();
-
-            Assert.Equal(new[] { string.Empty }, fake.Descriptions);
-            Assert.Equal("Team wiki", creator.Description);
-        }
-
-        [Fact]
-        public void TheDescriptionBox_StartsWhereItWasLeft()
-        {
-            Assert.True(Create(new FakeCreator(), null, new FakeDescriptionStore(true)).IsDescriptionVisible);
-            Assert.False(Create(new FakeCreator(), null, new FakeDescriptionStore(false)).IsDescriptionVisible);
-        }
-
-        [Fact]
-        public void ShowingAndHidingTheDescription_IsSavedEachTime_AndOpeningItWritesNothing()
-        {
-            var store = new FakeDescriptionStore(false);
-            var creator = Create(new FakeCreator(), null, store);
-            Assert.Empty(store.Saved);   // reading the state on open doesn't write it
-
-            creator.ToggleDescriptionCommand.Execute(null);
-            creator.ToggleDescriptionCommand.Execute(null);
-            creator.ToggleDescriptionCommand.Execute(null);
-
-            Assert.Equal(new[] { true, false, true }, store.Saved);
-        }
-
-        [Fact]
-        public async Task TextShowingTheBox_IsNotTheUsersChoice_SoNothingIsSaved_EvenAfterACreate()
-        {
-            var store = new FakeDescriptionStore(false);
-            var creator = Create(new FakeCreator(), null, store);
-            creator.Target = "https://example.com";
-            creator.TargetKind = KeycutKind.Url;
-            creator.ShortcutName = "ex";
-
-            creator.Description = "Team wiki";   // shows the box, because text is never hidden
-            await creator.CreateCommand.ExecuteAsync();
-
-            Assert.True(creator.IsDescriptionVisible);
-            Assert.Empty(store.Saved);
-        }
-
-        sealed class FakeDescriptionStore : IDescriptionVisibilityStore
-        {
-            private readonly bool initial;
-
-            public readonly List<bool> Saved = new List<bool>();
-
-            public FakeDescriptionStore(bool initial)
-            {
-                this.initial = initial;
-            }
-
-            public bool Load()
-            {
-                return initial;
-            }
-
-            public void Save(bool shown)
-            {
-                Saved.Add(shown);
-            }
         }
 
         [Fact]
@@ -448,6 +318,92 @@ namespace keycuts.Tests
         }
 
         #endregion Description (#162)
+
+        #region The Manager's create row
+
+        // The form the Manager's create row uses: the fields cleared after a create
+        static CreatorViewModel RowReady(FakeCreator fake, Func<string, NameCheck>? checkName = null)
+        {
+            var creator = new CreatorViewModel(new RelayCommand(() => { }), new RelayCommand(() => { }), fake.Create, checkName ?? TestNameChecks.NoWarnings)
+            {
+                ClearsAfterCreate = true
+            };
+            creator.SuccessDuration = TimeSpan.FromMinutes(1);
+            creator.Target = "https://example.com";
+            creator.TargetKind = KeycutKind.Url;
+            creator.ShortcutName = "ex";
+            return creator;
+        }
+
+        [Fact]
+        public async Task TheRowsDescription_IsSaved_Trimmed()
+        {
+            var fake = new FakeCreator();
+            var creator = RowReady(fake);
+
+            creator.Description = "  Team wiki  ";
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new[] { "Team wiki" }, fake.Descriptions);
+        }
+
+        [Fact]
+        public async Task ClearsAfterCreate_EmptiesTheFields_KeepsCreated_AndFocusesTheTarget()
+        {
+            var fake = new FakeCreator();
+            var creator = RowReady(fake);
+            creator.Description = "Team wiki";
+            var focus = new List<CreatorFocusTarget>();
+            creator.FocusRequested += (sender, e) => focus.Add(e);
+            var created = 0;
+            creator.KeycutCreated += (sender, e) => created++;
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal(new[] { ("https://example.com", "ex") }, fake.Calls);
+            Assert.Equal(1, created);
+            Assert.Equal(string.Empty, creator.Target);
+            Assert.Equal(string.Empty, creator.ShortcutName);
+            Assert.Equal(string.Empty, creator.Description);
+            Assert.Null(creator.TargetKind);
+            // "Created" still shows by the Name label, for the keycut that was made
+            Assert.True(creator.IsSuccess);
+            Assert.Equal("ex", creator.SuccessName);
+            Assert.Equal(CreatorViewModel.CreatedText, creator.NameStatusText);
+            Assert.Equal(new[] { CreatorFocusTarget.Target }, focus);
+            Assert.False(creator.CreateCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public async Task ClearsAfterCreate_KeepsTheFields_WhenTheCreateFails()
+        {
+            var fake = new FakeCreator { Result = () => Task.FromResult(Failure(CreateOutcome.OutputFolderError)) };
+            var creator = RowReady(fake);
+            creator.Description = "Team wiki";
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Equal("https://example.com", creator.Target);
+            Assert.Equal("ex", creator.ShortcutName);
+            Assert.Equal("Team wiki", creator.Description);
+            Assert.Equal(CreatorViewModel.OutputFolderErrorMessage, creator.HelperText);
+        }
+
+        [Fact]
+        public async Task ClearsAfterCreate_KeepsTheFields_WhenAReplaceIsDeclined()
+        {
+            var fake = new FakeCreator();
+            var creator = RowReady(fake, name => TestNameChecks.Existing(name, "https://old.example.com"));
+            creator.ConfirmName = (check, target) => false;
+
+            await creator.CreateCommand.ExecuteAsync();
+
+            Assert.Empty(fake.Calls);
+            Assert.Equal("https://example.com", creator.Target);
+            Assert.Equal("ex", creator.ShortcutName);
+        }
+
+        #endregion The Manager's create row
 
         [Fact]
         public async Task Success_ShowsCreatedRaisesCreated_ThenLeavesTheFormFilledInAndReady()

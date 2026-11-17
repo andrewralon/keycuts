@@ -112,29 +112,34 @@ namespace keycuts.Tests
             creator.ShortcutName = "gmail";
             Render(HideCarets(HostWithTabs(new CreatorView(), creator, rail => rail.CreatorItem, null)), folder, "creator-" + suffix);
 
-            // The Manager's table keeps the height it had before the tab bar (#218): 560 under the bar
-            var manager = new ManagerViewModel(noop, noop);
+            // The Manager and Settings at the large size the window opens them at. The Manager's create row is empty, ready for a keycut.
+            var manager = new ManagerViewModel(noop, noop)
+            {
+                CreateRow = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { ClearsAfterCreate = true }
+            };
             manager.ShowKeycuts(SampleKeycuts());
-            Render(HideCarets(HostWithTabs(new ManagerView(), manager, rail => rail.ManagerItem, 960, 560 + RailHeight)), folder, "manager-" + suffix);
+            Render(HideCarets(HostWithTabs(new ManagerView(), manager, rail => rail.ManagerItem, WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)), folder, "manager-" + suffix);
 
             // Settings (#218, a screen of the main window), with the update row the real app has (#171) but without the version
             // row (the version and check now), so the screenshot doesn't go stale at every release. Its footer is the creator's.
             var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState());
             var settings = new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersionRow = false, Footer = creator };
-            Render(HideCarets(HostWithTabs(new SettingsView(), settings, rail => rail.SettingsItem, null)), folder, "settings-" + suffix);
+            Render(HideCarets(HostWithTabs(new SettingsView(), settings, rail => rail.SettingsItem, WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)), folder, "settings-" + suffix);
         }
-
-        private const double RailHeight = 48;
 
         /// <summary>
         /// A screen under the tab bar, as the main window shows it (#218), with its tab selected. Not the main window itself: that
-        /// would make the shell's own view models, and the creator's name check would read the real PATH. The fixed-size screens are
-        /// MainWidth wide. Maximize is off on every screen, as in the app.
+        /// would make the shell's own view models, and the creator's name check would read the real PATH. The Creator is MainWidth
+        /// wide, the others take the size they are given. Maximize is off on every screen, as in the app.
         /// </summary>
         private static Window HostWithTabs(FrameworkElement view, object viewModel, Func<RailView, TabItem> tab, double? width, double? height = null)
         {
             var rail = new RailView { DataContext = new { AreTabsEnabled = true } };
             rail.Tabs.SelectedItem = tab(rail);
+            // The default icon (Black & White) without its background, as the app shows it in this palette: the tests never start
+            // AppIconManager, which would otherwise read the real theme
+            rail.Loaded += (sender, e) => ((Image)rail.FindName("AppIcon")).Source = keycuts.GUI.Themes.AppIcons.GetPreview(
+                keycuts.GUI.Themes.AppIcons.GetTransparent(keycuts.GUI.Themes.AppIcons.Resolve(Settings.DefaultAppIcon, isLightPalette)));
             view.DataContext = viewModel;
 
             // The frame has the size, not the window: a test window keeps its Windows frame, which would take 16 of the width
@@ -150,9 +155,23 @@ namespace keycuts.Tests
                 frame.Height = height.Value;
             }
 
+            // As MainWindow draws it: the canvas under the screen, its 1px edge, and the torn bottom-right corner, transparent behind
+            // (the PNG keeps the alpha). The root has a background of its own, so Capture doesn't paint the surface under the tear.
+            frame.Background = (Brush)Application.Current.FindResource("CanvasBrush");
+            var edge = new Border { BorderThickness = new Thickness(1), IsHitTestVisible = false };
+            edge.SetResourceReference(Border.BorderBrushProperty, "BorderStrongBrush");
+            Grid.SetRowSpan(edge, 2);
+            frame.Children.Add(edge);
+            var tear = new keycuts.GUI.Controls.TornCorner();
+            tear.SetResourceReference(keycuts.GUI.Controls.TornCorner.StrokeProperty, "ControlBorderBrush");
+            var root = new Grid { Background = Brushes.Transparent };
+            root.Children.Add(frame);
+            root.Children.Add(tear);
+            frame.SizeChanged += (sender, e) => frame.Clip = keycuts.GUI.Controls.TornCornerShape.Default.GetWindowClip(e.NewSize);
+
             var window = new Window
             {
-                Content = frame,
+                Content = root,
                 SizeToContent = SizeToContent.WidthAndHeight,
                 ResizeMode = width.HasValue ? ResizeMode.CanResize : ResizeMode.CanMinimize
             };
@@ -173,14 +192,24 @@ namespace keycuts.Tests
         {
             var noop = new RelayCommand(() => { });
             var creator = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { KeycutCount = 7, SuccessDuration = TimeSpan.FromMinutes(1) };
-            var window = Host(new CreatorView(), creator, 440, null);
+            // The creator screenshot's own host (the tab bar, the edge, the torn corner, MainWidth), so the two match
+            var creatorView = new CreatorView();
+            var window = HostWithTabs(creatorView, creator, rail => rail.CreatorItem, null);
             var captionBar = NewCaptionBar(window);
             var frames = new List<GifFrame>();
 
             try
             {
                 var view = (FrameworkElement)window.Content;
-                var nameBox = (TextBox)view.FindName("TextboxShortcut");
+                var nameBox = (TextBox)creatorView.FindName("TextboxShortcut");
+
+                // "Saving…" and "Created" take a line under the name box. A GIF's frames share one size, so every frame keeps
+                // that room: measured here with the line showing
+                creator.IsSaving = true;
+                Pump();
+                window.UpdateLayout();
+                creatorView.MinHeight = creatorView.ActualHeight;
+                creator.IsSaving = false;
 
                 void Add(string caption, int delayCentiseconds)
                 {
@@ -261,8 +290,10 @@ namespace keycuts.Tests
             public static implicit operator byte[](PixelBuffer buffer) => buffer.Bgra;
         }
 
+        /// <summary>The pixels as straight-alpha BGRA (a capture is premultiplied), so a half-covered edge keeps its color.</summary>
         private static PixelBuffer Pixels(BitmapSource bitmap)
         {
+            bitmap = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
             var stride = bitmap.PixelWidth * 4;
             var pixels = new byte[stride * bitmap.PixelHeight];
             bitmap.CopyPixels(pixels, stride, 0);
@@ -516,8 +547,12 @@ namespace keycuts.Tests
             return bitmap;
         }
 
+        /// <summary>Whether the palette now set is the light one, for the icon the tab bar shows.</summary>
+        private static bool isLightPalette = true;
+
         private static void SetPalette(string name)
         {
+            isLightPalette = name == "Light";
             Application.Current.Resources.MergedDictionaries[0].Source =
                 new Uri("pack://application:,,,/keycuts.GUI;component/Themes/" + name + ".xaml");
         }

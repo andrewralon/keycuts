@@ -954,7 +954,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Deleted);
             Assert.Equal(new[] { "a", "c" }, manager.Rows.Select(r => r.Name));
             Assert.Equal(2, manager.KeycutCount);
-            Assert.Equal("2 keycuts", manager.CountDescription);
+            Assert.Equal("2 keycuts", manager.CountText);
             Assert.Equal("Deleted \u201Cb\u201D", manager.StatusMessage);
             Assert.False(manager.StatusIsError);
             Assert.Equal(1, deletedEvents);
@@ -1765,7 +1765,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { @"C:\fixture\b.bat" }, actions.Restored.Select(d => d.Keycut.FilePath));
             Assert.Equal(new[] { "a", "b", "c" }, manager.Rows.Select(r => r.Name));
             Assert.Equal(3, manager.KeycutCount);
-            Assert.Equal("3 keycuts", manager.CountDescription);
+            Assert.Equal("3 keycuts", manager.CountText);
             Assert.Equal("b", manager.SelectedRow!.Name);
             Assert.Equal("b", requests.Single()!.Name);
             Assert.Equal("Restored \u201Cb\u201D", manager.StatusMessage);
@@ -2145,8 +2145,7 @@ namespace keycuts.Tests
             await manager.DeleteKeycutAsync(manager.Rows[0]);
 
             Assert.Equal(new[] { "alpine" }, manager.Rows.Select(r => r.Name));
-            Assert.Equal("1 of 2 shown", manager.ShownText);
-            Assert.Equal("2 keycuts", manager.CountDescription);
+            Assert.Equal("1 of 2 keycuts", manager.CountText);   // both counts: what is shown, and the total after the delete
         }
 
         [Fact]

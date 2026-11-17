@@ -72,12 +72,14 @@ function renderKey(o) {
   const poly = P => P.map(p => p.map(v => v.toFixed(3)).join(',')).join(' ');
 
   const tight = o.tight;
-  const all = tight ? [...contact, ...top.map(proj)] : [...sh, ...contact, ...top.map(proj)];
-  const pad = tight ? 0.5 : 2.6;
+  // keyBounds: frame the key alone (its shadow still drawn, running past the box), so an icon can make the key bigger
+  const keyOnly = tight || o.keyBounds;
+  const all = keyOnly ? [...contact, ...top.map(proj)] : [...sh, ...contact, ...top.map(proj)];
+  const pad = o.pad ?? (keyOnly ? 0.5 : 2.6);
   let minX = Math.min(...all.map(p => p[0])) - pad, maxX = Math.max(...all.map(p => p[0])) + pad;
   let minY = Math.min(...all.map(p => p[1])) - pad, maxY = Math.max(...all.map(p => p[1])) + pad;
   // tight (no shadow) and square (with it) center the key in a square box, which an icon needs
-  if (tight || o.square) { const w = maxX - minX, h = maxY - minY, m = Math.max(w, h); minX -= (m - w) / 2; maxX = minX + m; minY -= (m - h) / 2; maxY = minY + m; }
+  if (keyOnly || o.square) { const w = maxX - minX, h = maxY - minY, m = Math.max(w, h); minX -= (m - w) / 2; maxX = minX + m; minY -= (m - h) / 2; maxY = minY + m; }
 
   const tw = topW, td = topD;
   const dishHi = rgb(mix(topC, [255,255,255], o.dishLight ?? 0.10)), dishLo = rgb(scale(topC, o.dishDark ?? 0.93));
@@ -98,7 +100,7 @@ function renderKey(o) {
      <polygon points="${poly(sh)}" fill="#0b1220" opacity="${o.shadowOpacity ?? 0.22}" filter="url(#${id}b1)"/>
      <polygon points="${poly(contact)}" fill="#0b1220" opacity="0.35" filter="url(#${id}b2)"/>`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}">
+  return `<svg xmlns="http://www.w3.org/2000/svg"${o.keyBounds ? ' overflow="visible"' : ''} viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}">
     <defs>${defs}</defs>${shadow}${quads}<g transform="${M}">${topFace}${o.legend(tw, td)}</g></svg>`;
 }
 

@@ -1,0 +1,273 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: two window sizes (v1)</title>
+<style>
+/* window-sizes v1: a small size (Creator) and a large size (Manager and Settings). The Manager gets the Creator's fields as one row on top.
+   Palettes and parts copied from torn-corner-v2 / window-tabs-v7. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172033}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:12px}
+.title{font-size:18px;font-weight:700;color:#172033;margin:0 0 4px}
+.lede{font-size:13px;color:#465064;margin:0 0 20px;max-width:1500px;line-height:1.5}
+.cap2{font-size:14px;font-weight:700;color:#172033;margin:0 0 2px}
+.sub{font-size:12.5px;color:#465064;margin:0;max-width:960px;line-height:1.45}
+.note{font-size:12.5px;color:#465064;line-height:1.5;width:600px}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:3px 0}
+.dim{display:inline-block;font-size:11px;font-weight:700;color:#2563eb;background:#eaf1ff;border:1px solid #c9dafc;border-radius:4px;padding:0 6px;margin-left:6px;vertical-align:1px}
+
+/* ---------- palette: Themes/Light.xaml ---------- */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--hover:#eef3fb;--glow:rgba(37,99,235,.22);--danger:#c42b1c;
+  --uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --socket1:#f9fafb;--socket2:#e2e7ee;--socketBorder:#bdc5d2;--capGlyph:#172033;--thumb:#9aa4b5}
+
+/* ---------- window ---------- */
+.win{background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+.w-small{width:600px;height:342px}   /* MainWidth x content height: today's Creator */
+.w-large{width:960px;height:700px}   /* ManagerDefaultWidth x ManagerDefaultHeight: today's Manager */
+
+/* ---------- tab bar: RailHeight 48 ---------- */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 12px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.socket{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--socket2),var(--socket1));border:1px solid var(--socketBorder);box-shadow:inset 0 1px 3px var(--tabShadow)}
+.socket img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 0 12px;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));z-index:0}
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.dis{color:var(--text3);opacity:.7}
+
+/* ---------- page: PagePadding 24,16,24,24 ---------- */
+.body{padding:16px 24px 24px;flex:1;display:flex;flex-direction:column;min-height:0}
+.flabel{font-size:13px;font-weight:600;margin-bottom:8px}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;gap:8px;font-size:14px;flex:1;min-width:0;background:var(--surface);white-space:nowrap;overflow:hidden}
+.field.focus{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.field.ph{color:var(--text3)}
+.field .txt{overflow:hidden;text-overflow:ellipsis}
+.btn{height:36px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;font-size:13px;font-weight:600;flex:none}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.sq.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.row{display:flex;gap:8px;align-items:center}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+a{color:var(--accentText);font-weight:600;text-decoration:none}
+
+/* creator */
+.drop{border:1.5px dashed var(--strong);border-radius:12px;background:var(--subtle);padding:16px;display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.tv{font-size:13px;color:var(--text2);word-break:break-all;margin-top:4px;line-height:1.35}
+.gap16{height:16px}
+
+/* manager: the Creator's fields as one row */
+.strip{border:1px solid var(--border);border-radius:12px;background:var(--subtle);padding:12px 16px 16px;display:flex;gap:12px;align-items:flex-end;flex:none}
+.strip .col{display:flex;flex-direction:column;min-width:0}
+.strip .c-target{flex:1.7}
+.strip .c-name{flex:.8}
+.strip .c-desc{flex:1.25}
+.strip .field{flex:none}
+.strip .opt{font-weight:400;color:var(--text2)}
+.dropfield{height:36px;border:1.5px dashed var(--strong);border-radius:5px;background:var(--surface);display:flex;align-items:center;gap:8px;padding:0 4px 0 8px;font-size:14px;min-width:0}
+.dropfield .ic{width:24px;height:24px;border-radius:6px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.dropfield .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:13px}
+.dropfield .mini{width:28px;height:28px;border:1px solid var(--ctl);border-radius:5px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--text)}
+
+/* footer */
+.foot{min-height:48px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;gap:12px;padding:0 24px;font-size:12px;color:var(--text2);flex:none}
+.pill{height:22px;border:1px solid var(--strong);border-radius:11px;background:var(--surface);padding:0 10px;display:flex;align-items:center;font-weight:600;font-size:12px;color:var(--text)}
+.ghost{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:5px}
+
+/* manager table */
+.srch{flex:1;height:36px;border:1px solid var(--ctl);border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+.tbl{margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:1;min-height:0}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{height:36px;text-align:left;color:var(--text2);padding:0 12px;background:var(--subtle);border-bottom:1px solid var(--border);font-size:12px;font-weight:600}
+td{height:37px;padding:0 12px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.n{font-weight:600;color:var(--text)}
+td.n .miss{display:block;font-weight:400;color:var(--danger);font-size:12px;line-height:1.1}
+tr.new td{background:var(--accentSoft)}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+
+/* settings */
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:24px 0 8px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:16px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.4}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.radio{display:flex;gap:16px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconcard{width:62px;height:62px;border:1px solid var(--ctl);border-radius:8px;position:relative;flex:none}
+.iconcard img{position:absolute;width:34px;height:34px}
+.iconcard img:first-child{left:5px;top:5px}
+.iconcard img:last-child{right:5px;bottom:5px}
+.saved{font-size:12px;color:var(--text2);margin-top:24px;display:flex;align-items:center;gap:4px}
+.endrow{display:flex;justify-content:space-between;margin-top:16px}
+.cols{display:flex;gap:40px;flex:1;min-height:0}
+.cols>div{flex:1;min-width:0}
+.vrule{flex:none !important;width:1px;background:var(--border)}
+.scroller{position:relative;flex:1;min-height:0;overflow:hidden}
+.scroller .content{max-width:600px;margin:0 auto}
+.scroller::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(180deg,transparent,var(--surface));pointer-events:none}
+.sbar{position:absolute;right:2px;top:0;bottom:0;width:6px}
+.sbar i{position:absolute;left:1px;top:4px;width:4px;height:84%;border-radius:2px;background:var(--thumb)}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-launch" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+ </defs>
+</svg>
+
+<p class="title">Two window sizes &mdash; v1</p>
+<p class="lede">The window has two sizes. <b>Small</b> is today&rsquo;s Creator: 600 wide, as tall as its content, fixed. <b>Large</b> is today&rsquo;s Manager: 960 &times; 700 by default, resizable down to 720 &times; 480, and still never maximized. The Creator uses small; the Manager and Settings share large. Settings never grows the window: it takes whatever size the Manager last had and fits its content into it, either in two columns (C) or one column that scrolls (D). The Manager keeps the Creator&rsquo;s fields as one row on top &mdash; Target, Name, Description, left to right &mdash; so you can add a keycut without leaving the list.</p>
+
+<div class="grid">
+ <div class="stack" id="a"></div>
+ <div class="stack" id="b"></div>
+</div>
+<div class="grid" style="margin-top:32px">
+ <div class="stack" id="c"></div>
+ <div class="stack" id="d"></div>
+</div>
+
+<script>
+const icon = s => `../../assets/icons/${s}/${s}-32.png`;
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+function rail(active) {
+  const tab = (key, inner) => `<div class="tw${active === key ? ' on' : ''}"><div class="tab">${inner}</div></div>`;
+  return `<div class="rail">
+   <div class="brand"><span class="socket"><img src="${icon('porcelain')}" alt=""></span>keycuts</div>
+   <div class="tabs">${tab('creator', `${use('i-spark', 16)}<span>creator</span>`)}${tab('manager', `${use('i-table', 16)}<span>manager</span>`)}${tab('settings', use('i-gear', 16))}</div>
+   <div class="drag"></div>
+   <div class="caps"><div class="cb">${use('i-min', 10)}</div><div class="cb dis">${use('i-max', 10)}</div><div class="cb">${use('i-close', 10)}</div></div></div>`;
+}
+const footer = (msg = '') => `<div class="foot"><span class="pill">8</span>${msg}</div>`;
+const win = (size, active, inner) => `<div class="win light ${size}">${rail(active)}${inner}</div>`;
+
+// ---- Creator, small: unchanged ----
+const creator = `<div class="body">
+  <div class="drop"><div class="tile">${use('i-link', 24)}</div>
+   <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Target</div><div class="tv">https://mail.google.com/mail/u/0/#inbox</div></div>
+   <div class="sq">${use('i-folder', 20)}</div></div>
+  <div class="flabel">Name</div>
+  <div class="row"><div class="field focus">gmail</div><div class="sq primary">${use('i-rocket', 20)}</div></div>
+  <div class="gap16"></div>
+  <div class="flabel" style="margin:0">Add a description (optional)</div>
+ </div>${footer()}`;
+
+// ---- Manager, large: the Creator's fields as one row, then search and the table ----
+const strip = `<div class="strip">
+  <div class="col c-target"><div class="flabel">Target</div>
+   <div class="dropfield"><span class="ic">${use('i-link', 16)}</span><span class="txt">https://github.com/notifications</span><span class="mini">${use('i-folder', 16)}</span></div></div>
+  <div class="col c-name"><div class="flabel">Name</div><div class="field focus">gh</div></div>
+  <div class="col c-desc"><div class="flabel">Description <span class="opt">(optional)</span></div><div class="field ph">e.g. GitHub inbox</div></div>
+  <div class="sq primary" title="Create">${use('i-rocket', 20)}</div>
+ </div>`;
+const B = { u: ['u', 'i-link', 'URL'], f: ['f', 'i-folder', 'Folder'], fi: ['fi', 'i-file', 'File'] };
+const rows = [
+  ['db', 'f', 'Dropbox folder', '%USERPROFILE%\\Dropbox', '9', '4 days ago'],
+  ['gmail', 'u', 'Work email', 'https://mail.google.com/mail/u/0/#inbox', '412', '20 minutes ago'],
+  ['npp', 'fi', 'Notepad++', 'C:\\Program Files\\Notepad++\\notepad++.exe', '86', '2 hours ago'],
+  ['old-report', 'fi', 'Quarterly report', 'D:\\Reports\\2019-q3.xlsx', '—', '—', true],
+  ['rb', 'f', 'Recycle Bin', '::{645FF040-5081-101B-9F08-00AA002F954E}', '3', '2 months ago'],
+  ['ss', 'f', 'Screenshots', '%USERPROFILE%\\Pictures\\Screenshots', '0', 'Never'],
+  ['timesheet', 'u', "This week's timesheet", 'https://timesheet.example.com/week', '31', 'yesterday']];
+const badge = k => `<span class="badge ${B[k][0]}">${use(B[k][1], 12)}${B[k][2]}</span>`;
+const manager = `<div class="body" style="padding-bottom:16px">
+  ${strip}
+  <div class="row" style="margin-top:16px"><div class="srch">${use('i-search', 16)} Search names, types, descriptions, or targets</div></div>
+  <div class="tbl"><table>
+   <colgroup><col style="width:130px"><col style="width:100px"><col style="width:150px"><col><col style="width:64px"><col style="width:124px"><col style="width:44px"></colgroup>
+   <tr><th>Name</th><th>Type</th><th>Description</th><th>Target</th><th>Runs</th><th>Last run</th><th></th></tr>
+   ${rows.map(r => `<tr><td class="n">${r[0]}${r[6] ? '<span class="miss">&times; Missing</span>' : ''}</td><td>${badge(r[1])}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td><span class="ghost">${use('i-dots', 16)}</span></td></tr>`).join('')}
+  </table></div></div>${footer()}`;
+
+// ---- Settings, large: the same sections, laid out two ways ----
+const output = `<div class="sec">Output</div>
+  <div class="flabel">Output folder</div>
+  <div class="row"><div class="field">C:\\Users\\sample\\Shortcuts</div><div class="sq">${use('i-folder', 20)}</div><div class="sq">${use('i-launch', 18)}</div></div>
+  <div class="help">New keycuts are saved here.</div>`;
+const behavior = `<div class="sec">Behavior</div>
+  <div class="set"><div><div class="t">Ask before replacing a keycut</div></div><span class="tog"></span></div>
+  <div class="set"><div><div class="t">Right-click context menus</div><div class="n">Add &ldquo;keycut this!&rdquo; to File Explorer menus.</div></div><span class="tog"></span></div>
+  <div class="set"><div><div class="t">Use environment variables in paths</div><div class="n">Save paths as %USERPROFILE%\\&hellip; or similar. Hold Shift to preview or create a keycut like this, even when disabled.</div></div><span class="tog"></span></div>`;
+const appearance = `<div class="sec">Appearance</div>
+  <div class="set"><div><div class="t">Icon <span class="v">&middot; Black &amp; White</span></div><div class="n">Porcelain in light mode, Onyx in dark mode.</div></div>
+   <div class="iconcard"><img src="${icon('onyx')}" alt=""><img src="${icon('porcelain')}" alt=""></div></div>
+  <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>`;
+const updates = `<div class="sec">Updates</div>
+  <div class="set"><div><div class="t">Check for updates</div><div class="n">Once a day, ask GitHub whether a newer version is out.</div></div><span class="tog"></span></div>`;
+const tail = `<div class="saved">${use('i-check', 14)} Changes are saved as you make them.</div>
+  <div class="endrow"><div class="btn">show welcome</div><div class="btn">restore defaults</div></div>`;
+
+const settingsTwo = `<div class="body"><div class="cols">
+  <div>${output}${behavior}</div>
+  <div class="vrule"></div>
+  <div>${appearance}${updates}${tail}</div>
+ </div></div>${footer()}`;
+const settingsOne = `<div class="body" style="padding-right:6px"><div class="scroller"><div class="content">
+  ${output}${behavior}${appearance}${updates}${tail}
+ </div><div class="sbar"><i></i></div></div></div>${footer()}`;
+
+const put = (id, cap, sub, html, extra = '') => document.getElementById(id).innerHTML =
+  `<div><div class="cap2">${cap}</div><div class="sub">${sub}</div></div>${html}${extra}`;
+
+put('a', 'A &middot; Creator, small <span class="dim">600 &times; fits content</span>', 'Unchanged from today.',
+  win('w-small', 'creator', creator),
+  `<div class="note" style="margin-top:12px"><b>Switching sizes</b><ul>
+   <li><b>creator</b> &rarr; small. The window shrinks back to 600 wide and fits its content.</li>
+   <li><b>manager</b> &rarr; large: 960 &times; 700 the first time, then whatever size you last dragged it to.</li>
+   <li><b>settings</b> &rarr; the same large size as the Manager. Coming from the Manager, nothing moves. Coming from the Creator, it grows to the Manager&rsquo;s last size, never taller to fit Settings.</li>
+   <li>The window stays anchored at its top-left corner and is kept inside the work area, as today.</li>
+   <li>Resizing in Settings resizes the Manager too: they are one size.</li></ul>
+   <div style="margin-top:10px"><b>Manager&rsquo;s top row</b><ul>
+   <li>Target is the drop area squeezed to one line: drop or paste a file, folder or URL, or browse. The type icon shows on the left once it&rsquo;s set.</li>
+   <li>Name, then Description (always shown here, no &ldquo;Add a description&rdquo; link), then Create at the end of the row. Enter in any field creates.</li>
+   <li>The new keycut appears in the table below; the fields clear for the next one.</li>
+   <li>Widths share the row about 2 : 1 : 1.5, so a long target has the most room.</li></ul></div></div>`);
+put('b', 'B &middot; Manager, large <span class="dim">960 &times; 700, resizable</span>', 'The Creator&rsquo;s fields across the top, then search and the table as today.',
+  win('w-large', 'manager', manager));
+put('c', 'C &middot; Settings, two columns <span class="dim">same size as the Manager</span>', 'Output and Behavior on the left, Appearance and Updates on the right, each column about 420 wide. Everything fits at 960 &times; 700 with no scrolling; below about 840 wide it would fall back to one column (D).',
+  win('w-large', 'settings', settingsTwo));
+put('d', 'D &middot; Settings, one column that scrolls <span class="dim">same size as the Manager</span>', 'Today&rsquo;s single column, kept at about 600 wide and centered so the toggles stay near their labels. The page scrolls when the window is shorter than Settings; at 960 &times; 700 that&rsquo;s the last few lines.',
+  win('w-large', 'settings', settingsOne));
+</script>
+</body></html>

@@ -24,11 +24,11 @@
   <Border Padding="{StaticResource PanelPadding}" CornerRadius="{StaticResource RadiusLg}" BorderThickness="1"
           Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}">
     <Grid>
-      <!-- The fields share the row about 2 : 1 : 1.5, 12 apart, so a long target has the most room -->
+      <!-- The fields share the row 2 : 1.25 : 1.25, 12 apart: a long target has the most room, and Name and Description are as wide as each other -->
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="2*" />
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="1.5*" />
+        <ColumnDefinition Width="1.25*" />
+        <ColumnDefinition Width="1.25*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <Grid.RowDefinitions>

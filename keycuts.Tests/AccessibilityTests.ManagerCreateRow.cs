@@ -158,6 +158,9 @@ namespace keycuts.Tests
                 Assert.Equal(At(parts.Name).Y, At(parts.Description).Y, 0.5);
                 Assert.Equal(At(parts.Name).Y, At(parts.Create).Y, 0.5);
 
+                // Name and Description are as wide as each other (the owner, 2026-11-17)
+                Assert.Equal(parts.Name.ActualWidth, parts.Description.ActualWidth, 0.5);
+
                 // The row sits above the search box, 16 apart, and the search box still has the focus when the Manager opens
                 var rowBottom = At(parts.Row).Y + parts.Row.ActualHeight;
                 Assert.Equal(rowBottom + 16, At(parts.Search).Y, 0.5);

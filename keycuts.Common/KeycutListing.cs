@@ -120,6 +120,60 @@ namespace keycuts.Common
             }).ToList();
         }
 
+        /// <summary>
+        /// <c>keycuts list --json</c> (#173): an array with one object per keycut, for scripts. Every field is always there: <c>runs</c>
+        /// and <c>lastRun</c> (ISO 8601 local time) are null without a record, <c>lastRun</c> too when it never ran. <c>target</c> is what the
+        /// file says; <c>file</c> is the .bat's path.
+        /// </summary>
+        public static string ToJson(IReadOnlyList<Keycut> keycuts)
+        {
+            using var stream = new System.IO.MemoryStream();
+            using (var json = new System.Text.Json.Utf8JsonWriter(stream, new System.Text.Json.JsonWriterOptions
+            {
+                Indented = true,
+                // Readable URLs (& and non-ASCII as themselves); this is a console's output, not HTML
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            }))
+            {
+                json.WriteStartArray();
+
+                foreach (var keycut in keycuts)
+                {
+                    json.WriteStartObject();
+                    json.WriteString("name", keycut.Name ?? "");
+                    json.WriteString("type", TypeText(keycut));
+                    json.WriteString("target", (keycut.Target ?? "").Trim());
+                    json.WriteString("description", keycut.Description ?? "");
+
+                    if (keycut.Runs == null)
+                    {
+                        json.WriteNull("runs");
+                    }
+                    else
+                    {
+                        json.WriteNumber("runs", keycut.Runs.Value);
+                    }
+
+                    var lastRun = LastRunText(keycut);
+                    if (lastRun == NoRecord)
+                    {
+                        json.WriteNull("lastRun");
+                    }
+                    else
+                    {
+                        json.WriteString("lastRun", lastRun);
+                    }
+
+                    json.WriteString("file", keycut.FilePath ?? "");
+                    json.WriteEndObject();
+                }
+
+                json.WriteEndArray();
+            }
+
+            return Encoding.UTF8.GetString(stream.ToArray());
+        }
+
         /// <summary>The type as the Manager's badge names it, in lower case: url, file, folder, command.</summary>
         public static string TypeText(Keycut keycut)
         {

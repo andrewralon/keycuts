@@ -15,5 +15,8 @@ namespace keycuts.CLI
 
         [Option("sort", MetaValue = "name|runs|last-run", HelpText = "The order: name (the default), runs (most first) or last-run (latest first).")]
         public string Sort { get; set; }
+
+        [Option("json", HelpText = "JSON for scripts: name, type, target, description, runs, lastRun and file, always.")]
+        public bool Json { get; set; }
     }
 }

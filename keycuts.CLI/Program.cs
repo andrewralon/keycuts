@@ -41,12 +41,59 @@ namespace keycuts.CLI
             // "create" is the default verb, so the original "keycuts -t … -s …" still works
             // -h is the usual short form of --help; the parser only knows the long one
             args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
-            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions>(args);
+            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions, RemoveOptions, RenameOptions, OpenOptions>(args);
             return result.MapResult(
                 (Options parsed) => RunCreate(parsed),
                 (PasteOptions parsed) => RunPaste(parsed),
                 (ListOptions parsed) => RunList(parsed),
+                (RemoveOptions parsed) => RunManage(context => KeycutCommands.Remove(context, parsed.Name)),
+                (RenameOptions parsed) => RunManage(context => KeycutCommands.Rename(context, parsed.OldName, parsed.NewName, parsed.Force)),
+                (OpenOptions parsed) => RunManage(context => KeycutCommands.Open(context, parsed.Name, JoinArguments(parsed.Arguments))),
                 errors => Usage.Show(result, errors, Console.Out, Console.Error));
+        }
+
+        /// <summary>
+        /// <c>rm</c>, <c>rename</c> and <c>open</c> (#173), through <see cref="KeycutCommands"/> on the keycuts folder, as the Manager
+        /// works on it: deletes go to the Recycle Bin, a rename checks the new name like the Manager's does, and a keycut opens
+        /// through the shell, as from Win+R. The library's parser logging goes to stderr, so stdout is only the verb's own lines.
+        /// </summary>
+        private static ExitCode RunManage(Func<KeycutCommandContext, ExitCode> verb)
+        {
+            var output = Console.Out;
+            Console.SetOut(Console.Error);
+
+            try
+            {
+                var repository = KeycutRepository.CreateDefault();
+                var context = new KeycutCommandContext(repository, output, Console.Error)
+                {
+                    IsInputRedirected = Console.IsInputRedirected,
+                    ReadKey = () => Console.ReadKey().KeyChar,
+                    CheckName = name => NameCheck.Run(name, repository.OutputFolder, false, NameConflictEnvironment.GetDefault()),
+                    Launch = (path, arguments) => System.Diagnostics.Process.Start(
+                        new System.Diagnostics.ProcessStartInfo(path, arguments) { UseShellExecute = true })?.Dispose()
+                };
+
+                var result = verb(context);
+                if (result != ExitCode.Success)
+                {
+                    // The verb said what went wrong
+                    Usage.MarkErrorWritten();
+                }
+
+                return result;
+            }
+            finally
+            {
+                Console.SetOut(output);
+            }
+        }
+
+        /// <summary>The arguments after a keycut's name, joined for the .bat, each quoted when it holds a space.</summary>
+        private static string JoinArguments(IEnumerable<string> arguments)
+        {
+            return string.Join(" ", (arguments ?? Enumerable.Empty<string>())
+                .Select(argument => argument.IndexOfAny(new[] { ' ', '\t' }) >= 0 && !argument.StartsWith("\"") ? "\"" + argument + "\"" : argument));
         }
 
         /// <summary>
@@ -70,8 +117,7 @@ namespace keycuts.CLI
 
             try
             {
-                var repository = new KeycutRepository(new Runner().GetOutputFolder(), new RecycleBinRecycler(), null, UsageLog.CreateDefault());
-                keycuts = repository.LoadAllAsync().GetAwaiter().GetResult();
+                keycuts = KeycutRepository.CreateDefault().LoadAllAsync().GetAwaiter().GetResult();
             }
             catch (KeycutRepositoryException ex)
             {
@@ -86,6 +132,12 @@ namespace keycuts.CLI
             }
 
             var listed = KeycutListing.Sort(KeycutListing.Filter(keycuts, parsed.Search), sort);
+
+            if (parsed.Json)
+            {
+                output.WriteLine(KeycutListing.ToJson(listed));
+                return ExitCode.Success;
+            }
 
             foreach (var line in KeycutListing.Format(listed, parsed.Usage))
             {

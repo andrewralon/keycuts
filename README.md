@@ -47,7 +47,10 @@ The app checks GitHub for updates at most once a day. No telemetry: run counts a
 ```
 keycuts -t <target> -s <name> [--description "text"] [-f]
 keypaste <name>      # copy a keycut's target to the clipboard
-keycuts list [<search>] [--usage] [--sort name|runs|last-run]   # list keycuts, with run counts
+keycuts list [<search>] [--usage] [--sort name|runs|last-run] [--json]   # list keycuts, with run counts
+keycuts rename <old> <new> [-f]   # rename a keycut, as the manager does
+keycuts rm <name>                 # delete a keycut, to the Recycle Bin
+keycuts open <name>               # open a keycut, as Win+R does
 keycuts              # open the app
 ```
 

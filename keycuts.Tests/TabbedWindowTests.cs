@@ -711,16 +711,18 @@ namespace keycuts.Tests
             });
         }
 
+        // The keycap alone at 36, in no socket (docs/mockups/icon-size-v2, R3), whether or not the other icons are transparent
         [Fact]
-        public void TheAppIcon_InTheBar_IsTheOneFromSettings_AtTwenty()
+        public void TheAppIcon_InTheBar_IsTheOneFromSettings_WithoutItsBackground_At36()
         {
             WithWindow((window, shell) =>
             {
                 var icon = Descendants<System.Windows.Controls.Image>(window).Single(i => i.Name == "AppIcon");
-                Assert.NotNull(icon.Source);
-                Assert.Equal(20, icon.Width);
-                Assert.Equal(20, icon.Height);
-                Assert.Equal(28, ((FrameworkElement)icon.Parent).Width);
+                Assert.Same(keycuts.GUI.Themes.AppIcons.GetPreview(keycuts.GUI.Themes.AppIcons.GetTransparent(keycuts.GUI.Themes.AppIconManager.Current)), icon.Source);
+                Assert.Equal(36, icon.Width);
+                Assert.Equal(36, icon.Height);
+                Assert.IsType<StackPanel>(icon.Parent);
+                Assert.Equal(8, ((FrameworkElement)icon.Parent).Margin.Left);
             });
         }
 

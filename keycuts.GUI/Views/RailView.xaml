@@ -4,7 +4,7 @@
              xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
              xmlns:controls="clr-namespace:keycuts.GUI.Controls"
              IsTabStop="False" Focusable="False">
-  <!-- #218: the tab bar that replaces the title bar. Left to right: the app icon in a recessed square and the name (not a tab), the
+  <!-- #218: the tab bar that replaces the title bar. Left to right: the app icon (the keycap alone) and the name (not a tab), the
        tabs (creator, manager, and the settings gear), the empty bar, and the caption buttons. WindowChrome (MainWindow) makes the whole
        bar a caption, drag, double click, snap and the window menu included, except what is marked IsHitTestVisibleInChrome: the tabs
        and the caption buttons. The textures are palette brushes, so high contrast drops them. -->
@@ -31,12 +31,10 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
 
-      <!-- 12 from the edge, 16 to the first tab so the name stands apart from the tabs -->
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,16,0" VerticalAlignment="Center">
-        <Border Width="28" Height="28" CornerRadius="{StaticResource RadiusMd}" Background="{DynamicResource SocketBrush}"
-                BorderBrush="{DynamicResource SocketBorderBrush}" BorderThickness="1">
-          <Image x:Name="AppIcon" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
-        </Border>
+      <!-- The keycap alone at 36, 8 from the edge (6 above and below in the bar), 16 to the first tab so the name stands apart
+           from the tabs -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,0,16,0" VerticalAlignment="Center">
+        <Image x:Name="AppIcon" Width="36" Height="36" RenderOptions.BitmapScalingMode="HighQuality" />
         <TextBlock Text="keycuts" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
                    FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
       </StackPanel>

@@ -2,6 +2,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 
 namespace keycuts.Common
 {
@@ -53,10 +54,16 @@ namespace keycuts.Common
         public static readonly string DismissedReleaseKeyName = "DismissedRelease";
 
         /// <summary>
-        /// The keycuts folder whose keycuts were last given the lines that count runs (#187, <c>KeycutRepository.AddRunCounting</c>).
-        /// That happens once per folder, so lines someone took out of a keycut by hand stay out.
+        /// Before #238: the one keycuts folder whose keycuts were last given the lines that count runs (#187,
+        /// <c>KeycutRepository.AddRunCounting</c>). Still read, as done; never written again.
         /// </summary>
         public static readonly string RunCountingFolderKeyName = "RunCountingFolder";
+
+        /// <summary>
+        /// Every keycuts folder whose keycuts were given the lines that count runs (#238), one per line (<c>REG_MULTI_SZ</c>). That
+        /// happens once per folder, so lines someone took out of a keycut by hand stay out, even after switching away and back.
+        /// </summary>
+        public static readonly string RunCountingFoldersKeyName = "RunCountingFolders";
 
         /// <summary>
         /// The update cache's names before #191. They are never read: the first write of a new value deletes them, and the cost of
@@ -259,15 +266,56 @@ namespace keycuts.Common
             SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
         }
 
-        /// <summary>See <see cref="RunCountingFolderKeyName"/>; null if never set.</summary>
-        public static string GetRunCountingFolder()
+        /// <summary>Whether <paramref name="folder"/> was given the run-counting lines: see <see cref="RunCountingFoldersKeyName"/>.</summary>
+        public static bool IsRunCountingDone(string folder)
         {
-            return ReadValue(RunCountingFolderKeyName) as string;
+            return IsRunCountingDone(ReadValue(RunCountingFolderKeyName) as string, ReadValue(RunCountingFoldersKeyName) as string[], folder);
         }
 
-        public static void SetRunCountingFolder(string folder)
+        /// <summary>The check behind <see cref="IsRunCountingDone(string)"/>, on the stored values: the folder from before #238, then the list.</summary>
+        public static bool IsRunCountingDone(string oldFolder, string[] folders, string folder)
         {
-            SetRegistryValue(RunCountingFolderKeyName, folder ?? "", RegistryValueKind.String);
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                return false;
+            }
+
+            return SameFolder(oldFolder, folder) || (folders ?? Array.Empty<string>()).Any(done => SameFolder(done, folder));
+        }
+
+        /// <summary>Adds <paramref name="folder"/> to <see cref="RunCountingFoldersKeyName"/>, unless it is there already.</summary>
+        public static void MarkRunCountingDone(string folder)
+        {
+            var folders = AddRunCountingFolder(ReadValue(RunCountingFoldersKeyName) as string[], folder);
+
+            if (folders != null)
+            {
+                SetRegistryValue(RunCountingFoldersKeyName, folders, RegistryValueKind.MultiString);
+            }
+        }
+
+        /// <summary>The list with <paramref name="folder"/> added, or null when there is nothing to store (it is there, or blank).</summary>
+        public static string[] AddRunCountingFolder(string[] folders, string folder)
+        {
+            var current = folders ?? Array.Empty<string>();
+
+            if (string.IsNullOrWhiteSpace(folder) || current.Any(done => SameFolder(done, folder)))
+            {
+                return null;
+            }
+
+            return current.Append(folder).ToArray();
+        }
+
+        // A trailing backslash or a change of case is the same folder
+        private static bool SameFolder(string a, string b)
+        {
+            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
+            {
+                return false;
+            }
+
+            return string.Equals(a.Trim().TrimEnd('\\', '/'), b.Trim().TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
         }
 
         public static void SetCheckForUpdates(bool checkForUpdates)

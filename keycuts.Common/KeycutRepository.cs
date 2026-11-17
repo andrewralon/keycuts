@@ -503,6 +503,32 @@ namespace keycuts.Common
             return added;
         }
 
+        /// <summary>
+        /// <see cref="AddRunCounting"/> once per folder (#187, #238), so lines taken out by hand stay out: at startup, and when
+        /// Settings changes the folder. Makes the usage folder too, so counting starts now. <paramref name="isDone"/> says whether
+        /// a folder already had its turn and <paramref name="markDone"/> records one that did (only if it exists, so a folder made
+        /// later still gets its turn); without them (the Debug folder override, which never writes the registry) it runs every
+        /// time, which changes nothing in a file that already counts. Returns false if the folder was already done.
+        /// </summary>
+        public bool AddRunCountingOnce(Func<string, bool> isDone, Action<string> markDone)
+        {
+            _usage?.EnsureFolder();
+
+            if (isDone != null && isDone(_outputFolder))
+            {
+                return false;
+            }
+
+            AddRunCounting();
+
+            if (markDone != null && !string.IsNullOrWhiteSpace(_outputFolder) && Directory.Exists(_outputFolder))
+            {
+                markDone(_outputFolder);
+            }
+
+            return true;
+        }
+
         private static bool TryAddRunCounting(string file)
         {
             var bytes = File.ReadAllBytes(file);

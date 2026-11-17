@@ -90,6 +90,8 @@ namespace keycuts.GUI
             // off because the rename refuses a taken keycut name itself
             shell.Manager.CheckRename = name => Common.NameCheck.Run(name, new Common.Runner().GetOutputFolder(), false,
                 Common.NameConflictEnvironment.GetDefault());
+            // #238: a folder chosen in Settings counts its keycuts' runs at once, not from the next start
+            shell.PrepareOutputFolder = () => Task.Run(AddRunCounting);
 
             // Environment variables in paths (#31): the setting now, and this machine's variables once the window is up
             var useEnvironmentVariables = Common.RegistryStuff.GetUseEnvironmentVariables();
@@ -200,30 +202,18 @@ namespace keycuts.GUI
 
         /// <summary>
         /// Gives the keycuts in the folder the lines that count their runs (#187), once per folder (so lines taken out by hand
-        /// stay out), and makes the usage folder so counting starts now. Runs on a worker thread. Never fails. The Debug folder
-        /// override never writes the registry, so its folder gets the lines on every start (they're only added once to a file).
+        /// stay out), and makes the usage folder so counting starts now: at startup, and when Settings changes the folder (#238).
+        /// Runs on a worker thread. Never fails. The Debug folder override never writes the registry, so its folder gets the
+        /// lines on every start (they're only added once to a file).
         /// </summary>
         private static void AddRunCounting()
         {
             try
             {
-                var repository = Common.KeycutRepository.CreateDefault();
-                repository.Usage?.EnsureFolder();
-
                 var usesDebugFolder = Common.DebugOverrides.GetOutputFolder() != null;
-                var folder = repository.OutputFolder;
-
-                if (!usesDebugFolder && string.Equals(Common.RegistryStuff.GetRunCountingFolder(), folder, StringComparison.OrdinalIgnoreCase))
-                {
-                    return;
-                }
-
-                repository.AddRunCounting();
-
-                if (!usesDebugFolder && System.IO.Directory.Exists(folder))
-                {
-                    Common.RegistryStuff.SetRunCountingFolder(folder);
-                }
+                Common.KeycutRepository.CreateDefault().AddRunCountingOnce(
+                    usesDebugFolder ? null : Common.RegistryStuff.IsRunCountingDone,
+                    usesDebugFolder ? null : Common.RegistryStuff.MarkRunCountingDone);
             }
             catch (Exception ex)
             {

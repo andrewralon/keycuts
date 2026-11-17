@@ -496,6 +496,68 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void AddRunCountingOnce_AddsTheLines_AndRecordsTheFolder_ThenLeavesItAlone()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            File.WriteAllLines(path, OldLines(path));
+            var done = new List<string>();
+
+            Assert.True(Repo().AddRunCountingOnce(done.Contains, done.Add));
+            Assert.True(UsageLog.IsCounted(File.ReadAllLines(path)));
+            Assert.Equal(new[] { _folder }, done);
+            Assert.True(Directory.Exists(_usageFolder));
+
+            // Lines taken out by hand stay out: the folder had its turn (#238)
+            File.WriteAllLines(path, OldLines(path));
+            Assert.False(Repo().AddRunCountingOnce(done.Contains, done.Add));
+            Assert.False(UsageLog.IsCounted(File.ReadAllLines(path)));
+            Assert.Single(done);
+        }
+
+        [Fact]
+        public void AddRunCountingOnce_DoesntRecordAFolderThatIsntThere_SoItGetsItsTurnLater()
+        {
+            Directory.Delete(_folder);
+            var done = new List<string>();
+
+            Repo().AddRunCountingOnce(done.Contains, done.Add);
+
+            Assert.Empty(done);
+        }
+
+        [Fact]
+        public void AddRunCountingOnce_WithoutARecord_RunsEveryTime()
+        {
+            var path = Path.Combine(_folder, "old.bat");
+            File.WriteAllLines(path, OldLines(path));
+            Assert.True(Repo().AddRunCountingOnce(null, null));
+
+            File.WriteAllLines(path, OldLines(path));
+            Assert.True(Repo().AddRunCountingOnce(null, null));
+            Assert.True(UsageLog.IsCounted(File.ReadAllLines(path)));
+        }
+
+        [Theory]
+        [InlineData(null, new string[0], @"C:\Shortcuts", false)]
+        [InlineData(@"C:\Shortcuts", new string[0], @"c:\shortcuts\", true)]   // the value from before #238 still counts
+        [InlineData(null, new[] { @"D:\Other", @"C:\Shortcuts\" }, @"C:\SHORTCUTS", true)]
+        [InlineData(@"C:\Shortcuts", new[] { @"D:\Other" }, @"E:\New", false)]
+        [InlineData(@"C:\Shortcuts", new[] { @"D:\Other" }, "", false)]
+        public void IsRunCountingDone_ReadsTheOldValueAndTheList(string oldFolder, string[] folders, string folder, bool expected)
+        {
+            Assert.Equal(expected, RegistryStuff.IsRunCountingDone(oldFolder, folders, folder));
+        }
+
+        [Fact]
+        public void AddRunCountingFolder_AppendsANewFolderOnly()
+        {
+            Assert.Equal(new[] { @"C:\Shortcuts" }, RegistryStuff.AddRunCountingFolder(null, @"C:\Shortcuts"));
+            Assert.Equal(new[] { @"C:\Shortcuts", @"D:\Other" }, RegistryStuff.AddRunCountingFolder(new[] { @"C:\Shortcuts" }, @"D:\Other"));
+            Assert.Null(RegistryStuff.AddRunCountingFolder(new[] { @"C:\Shortcuts" }, @"c:\shortcuts\"));
+            Assert.Null(RegistryStuff.AddRunCountingFolder(new[] { @"C:\Shortcuts" }, " "));
+        }
+
+        [Fact]
         public void TheCorpus_ParsesTheSame_WithTheLinesAdded()
         {
             var corpus = Path.Combine(FindRepoRoot(), "tests", "corpus");

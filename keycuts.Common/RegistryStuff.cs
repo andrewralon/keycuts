@@ -71,6 +71,9 @@ namespace keycuts.Common
         /// </summary>
         public static readonly string MigratedFoldersKeyName = "MigratedFolders";
 
+        /// <summary>The folder keycuts.cmd and keypaste.cmd were last put in (<c>CommandShims.Keep</c>, #248), so they can be taken out of it.</summary>
+        public static readonly string CommandShimFolderKeyName = "CommandShimFolder";
+
         /// <summary>
         /// The update cache's names before #191. They are never read: the first write of a new value deletes them, and the cost of
         /// not migrating is one more daily check (or Check now) and, at worst, a dismissed notice showing once more.
@@ -304,6 +307,17 @@ namespace keycuts.Common
         public static string GetInstallFolder()
         {
             return ReadValue("InstallFolder") as string;
+        }
+
+        /// <summary>The folder the app last put keycuts.cmd and keypaste.cmd in (#248); null if it never has.</summary>
+        public static string GetCommandShimFolder()
+        {
+            return ReadValue(CommandShimFolderKeyName) as string;
+        }
+
+        public static void SetCommandShimFolder(string folder)
+        {
+            SetRegistryValue(CommandShimFolderKeyName, folder ?? "", RegistryValueKind.String);
         }
 
         /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>

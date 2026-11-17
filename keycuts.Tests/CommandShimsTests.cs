@@ -90,6 +90,46 @@ namespace keycuts.Tests
             Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
         }
 
+        // A folder changed while the app was closed (the CLI's -o): the next start finds the old one in the record and cleans it
+        [Fact]
+        public void Keep_CleansTheRecordedFolder_AndRecordsTheNewOne()
+        {
+            CommandShims.Ensure(_other);
+            var recorded = new System.Collections.Generic.List<string>();
+
+            CommandShims.Keep(_other, _folder, recorded.Add);
+
+            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
+            Assert.Empty(Directory.GetFiles(_other, "*.cmd"));
+            Assert.Equal(new[] { _folder }, recorded);
+
+            CommandShims.Keep(_folder, _folder, recorded.Add);   // nothing new to record
+            Assert.Single(recorded);
+        }
+
+        [Fact]
+        public void Keep_WithNoRecord_JustWritesTheShims()
+        {
+            var recorded = new System.Collections.Generic.List<string>();
+
+            CommandShims.Keep(null, _folder, recorded.Add);
+
+            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
+            Assert.Equal(new[] { _folder }, recorded);
+        }
+
+        [Fact]
+        public void Keep_ForAMissingFolder_TouchesNothing_AndRecordsNothing()
+        {
+            CommandShims.Ensure(_other);
+            var recorded = new System.Collections.Generic.List<string>();
+
+            CommandShims.Keep(_other, Path.Combine(_root, "missing"), recorded.Add);
+
+            Assert.Equal(2, Directory.GetFiles(_other, "*.cmd").Length);
+            Assert.Empty(recorded);
+        }
+
         [Theory]
         [InlineData(@"C:\Users\me\AppData\Local\Programs\keycuts\", @"C:\Users\me\AppData\Local\Programs\keycuts\", false, true)]
         [InlineData(@"C:\Users\me\AppData\Local\Programs\keycuts\", @"c:\users\me\appdata\local\programs\keycuts", false, true)]

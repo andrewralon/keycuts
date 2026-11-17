@@ -129,6 +129,26 @@ namespace keycuts.Common
         }
 
         /// <summary>
+        /// The app's step at startup and on a folder change: the shims into <paramref name="folder"/>, out of the folder they were
+        /// last put in (<paramref name="recordedFolder"/>, kept in HKCU, so a folder changed while the app was closed, by the CLI's
+        /// <c>-o</c> say, is cleaned up at the next start), then <paramref name="record"/> the new one when it changed.
+        /// </summary>
+        public static void Keep(string recordedFolder, string folder, Action<string> record)
+        {
+            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+            {
+                return;
+            }
+
+            Move(recordedFolder, folder);
+
+            if (record != null && !NameConflicts.IsSameFolder(recordedFolder, folder))
+            {
+                record(folder);
+            }
+        }
+
+        /// <summary>
         /// Deletes the shims from a folder keycuts no longer uses, but only files that are exactly the shims: a <c>keycuts.cmd</c> of
         /// the user's own stays. Never throws; returns the files deleted.
         /// </summary>

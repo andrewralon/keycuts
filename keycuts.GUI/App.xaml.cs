@@ -216,12 +216,10 @@ namespace keycuts.GUI
             }
         }
 
-        /// <summary>The folder the shims were last put in this session, so a folder change takes them out of it.</summary>
-        private static string? commandShimFolder;
-
         /// <summary>
         /// Puts keycuts.cmd and keypaste.cmd in the keycuts folder (#248), rewriting them if they've changed, and takes them out of
-        /// the folder used before (only files that are exactly the shims). Only the installed copy does it, never under the Debug
+        /// the folder they were last put in (recorded in HKCU, so a change made while the app was closed is caught; only files that
+        /// are exactly the shims). Only the installed copy does it, never under the Debug
         /// folder override (<see cref="Common.CommandShims.ShouldKeep"/>). Runs on a worker thread. Never fails.
         /// </summary>
         private static void KeepCommandShims()
@@ -233,9 +231,8 @@ namespace keycuts.GUI
                     return;
                 }
 
-                var folder = new Common.Runner().GetOutputFolder();
-                Common.CommandShims.Move(commandShimFolder, folder);
-                commandShimFolder = folder;
+                Common.CommandShims.Keep(Common.RegistryStuff.GetCommandShimFolder(), new Common.Runner().GetOutputFolder(),
+                    Common.RegistryStuff.SetCommandShimFolder);
             }
             catch (Exception ex)
             {

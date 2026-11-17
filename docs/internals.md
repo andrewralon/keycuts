@@ -9,7 +9,7 @@ Behavior that spans several files. Read the section before changing that area. P
 - Never maximized: `NoMaximizeHook` strips `WS_MAXIMIZEBOX`, refuses `SC_MAXIMIZE` and undoes `WindowState.Maximized`. The Manager and Settings keep resize edges and side snapping. Resize border is 0 on the Creator and `WindowLayout.GetFrameThickness` on the Manager and Settings.
 - A selected tab's shadow is its own shape (`Shadow` in `RailTabItem`). A shared effect set from a trigger can't be frozen and fails across test threads.
 - Two sizes (`MainWindow.ApplyMode`). Small, the Creator: MainWidth, `SizeToContent.Height`, no resize border. Large, the Manager and Settings: one shared, resizable size (`largeSize`, 960 × 540 until the window first leaves it), clamped to the work area. Switching between the two large screens touches nothing, so resizing either resizes both; Settings never grows the window and scrolls instead. The window keeps its top-left corner both ways: a Manager moved elsewhere leaves the Creator there too.
-- Settings is two columns (`SettingsView.UseTwoColumns`) at `TwoColumnMinWidth` (840) and up; narrower, the right column moves under the left one.
+- Settings is always two columns, down to the window's minimum 720 × 470, where it still fits without scrolling (the owner's pick, 2026-11-17).
 - The shell numbers its reloads; only the latest may set the count or reach the welcome panel. A count-only reload cancels a running Manager load (`ManagerViewModel.CancelLoad`).
 - Tests: tab bar names are in `RailView`'s name scope (not `Window.FindName`); a `TabItem`'s automation peer comes from the tab list's peer.
 

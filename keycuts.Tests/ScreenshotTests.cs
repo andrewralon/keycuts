@@ -136,6 +136,10 @@ namespace keycuts.Tests
         {
             var rail = new RailView { DataContext = new { AreTabsEnabled = true } };
             rail.Tabs.SelectedItem = tab(rail);
+            // The default icon (Black & White) without its background, as the app shows it in this palette: the tests never start
+            // AppIconManager, which would otherwise read the real theme
+            rail.Loaded += (sender, e) => ((Image)rail.FindName("AppIcon")).Source = keycuts.GUI.Themes.AppIcons.GetPreview(
+                keycuts.GUI.Themes.AppIcons.GetTransparent(keycuts.GUI.Themes.AppIcons.Resolve(Settings.DefaultAppIcon, isLightPalette)));
             view.DataContext = viewModel;
 
             // The frame has the size, not the window: a test window keeps its Windows frame, which would take 16 of the width
@@ -151,9 +155,23 @@ namespace keycuts.Tests
                 frame.Height = height.Value;
             }
 
+            // As MainWindow draws it: the canvas under the screen, its 1px edge, and the torn bottom-right corner, transparent behind
+            // (the PNG keeps the alpha). The root has a background of its own, so Capture doesn't paint the surface under the tear.
+            frame.Background = (Brush)Application.Current.FindResource("CanvasBrush");
+            var edge = new Border { BorderThickness = new Thickness(1), IsHitTestVisible = false };
+            edge.SetResourceReference(Border.BorderBrushProperty, "BorderStrongBrush");
+            Grid.SetRowSpan(edge, 2);
+            frame.Children.Add(edge);
+            var tear = new keycuts.GUI.Controls.TornCorner();
+            tear.SetResourceReference(keycuts.GUI.Controls.TornCorner.StrokeProperty, "ControlBorderBrush");
+            var root = new Grid { Background = Brushes.Transparent };
+            root.Children.Add(frame);
+            root.Children.Add(tear);
+            frame.SizeChanged += (sender, e) => frame.Clip = keycuts.GUI.Controls.TornCornerShape.Default.GetWindowClip(e.NewSize);
+
             var window = new Window
             {
-                Content = frame,
+                Content = root,
                 SizeToContent = SizeToContent.WidthAndHeight,
                 ResizeMode = width.HasValue ? ResizeMode.CanResize : ResizeMode.CanMinimize
             };
@@ -182,6 +200,14 @@ namespace keycuts.Tests
             {
                 var view = (FrameworkElement)window.Content;
                 var nameBox = (TextBox)view.FindName("TextboxShortcut");
+
+                // "Saving…" and "Created" take a line under the name box. A GIF's frames share one size, so every frame keeps
+                // that room: measured here with the line showing
+                creator.IsSaving = true;
+                Pump();
+                window.UpdateLayout();
+                view.MinHeight = view.ActualHeight;
+                creator.IsSaving = false;
 
                 void Add(string caption, int delayCentiseconds)
                 {
@@ -517,8 +543,12 @@ namespace keycuts.Tests
             return bitmap;
         }
 
+        /// <summary>Whether the palette now set is the light one, for the icon the tab bar shows.</summary>
+        private static bool isLightPalette = true;
+
         private static void SetPalette(string name)
         {
+            isLightPalette = name == "Light";
             Application.Current.Resources.MergedDictionaries[0].Source =
                 new Uri("pack://application:,,,/keycuts.GUI;component/Themes/" + name + ".xaml");
         }

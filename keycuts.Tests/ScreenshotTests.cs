@@ -192,21 +192,23 @@ namespace keycuts.Tests
         {
             var noop = new RelayCommand(() => { });
             var creator = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { KeycutCount = 7, SuccessDuration = TimeSpan.FromMinutes(1) };
-            var window = Host(new CreatorView(), creator, 440, null);
+            // The creator screenshot's own host (the tab bar, the edge, the torn corner, MainWidth), so the two match
+            var creatorView = new CreatorView();
+            var window = HostWithTabs(creatorView, creator, rail => rail.CreatorItem, null);
             var captionBar = NewCaptionBar(window);
             var frames = new List<GifFrame>();
 
             try
             {
                 var view = (FrameworkElement)window.Content;
-                var nameBox = (TextBox)view.FindName("TextboxShortcut");
+                var nameBox = (TextBox)creatorView.FindName("TextboxShortcut");
 
                 // "Saving…" and "Created" take a line under the name box. A GIF's frames share one size, so every frame keeps
                 // that room: measured here with the line showing
                 creator.IsSaving = true;
                 Pump();
                 window.UpdateLayout();
-                view.MinHeight = view.ActualHeight;
+                creatorView.MinHeight = creatorView.ActualHeight;
                 creator.IsSaving = false;
 
                 void Add(string caption, int delayCentiseconds)
@@ -288,8 +290,10 @@ namespace keycuts.Tests
             public static implicit operator byte[](PixelBuffer buffer) => buffer.Bgra;
         }
 
+        /// <summary>The pixels as straight-alpha BGRA (a capture is premultiplied), so a half-covered edge keeps its color.</summary>
         private static PixelBuffer Pixels(BitmapSource bitmap)
         {
+            bitmap = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
             var stride = bitmap.PixelWidth * 4;
             var pixels = new byte[stride * bitmap.PixelHeight];
             bitmap.CopyPixels(pixels, stride, 0);

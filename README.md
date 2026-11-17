@@ -4,7 +4,7 @@ Open any file, folder or URL by typing a nickname in Win+R.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/walkthrough-dark.gif">
-  <img src="docs/images/walkthrough-light.gif" alt="Creating a keycut: a Gmail link is the target, the name gmail is typed, Enter creates it. Then Win+R, gmail, Enter opens it." width="424">
+  <img src="docs/images/walkthrough-light.gif" alt="Creating a keycut: a Gmail link is the target, the name gmail is typed, Enter creates it. Then Win+R, gmail, Enter opens it." width="580">
 </picture>
 
 Each keycut is a small `.bat` file in a folder on your `PATH`: `npp` opens Notepad++, `gmail` opens your email, `db` opens Dropbox.

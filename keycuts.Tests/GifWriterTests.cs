@@ -120,6 +120,26 @@ namespace keycuts.Tests
             Assert.Equal(bgra, decoded.Single());
         }
 
+        // The walkthrough's torn corner: a pixel less than half opaque is GIF's one transparent color; the rest keep their colors
+        [Fact]
+        public void APixelLessThanHalfOpaque_IsTransparent_AndTheOthersKeepTheirColors()
+        {
+            var bgra = new byte[]
+            {
+                0x10, 0x20, 0x30, 255,   0x40, 0x50, 0x60, 255,
+                0x70, 0x80, 0x90, 200,   0x00, 0x00, 0x00, 0,
+                0x11, 0x22, 0x33, 100,   0x40, 0x50, 0x60, 255
+            };
+
+            var decoded = Decode(GifWriter.Write(new[] { new GifFrame(2, 3, bgra, 10) })).Single();
+
+            Assert.Equal(new byte[] { 0x10, 0x20, 0x30, 255 }, decoded.Take(4));
+            Assert.Equal(new byte[] { 0x70, 0x80, 0x90, 255 }, decoded.Skip(8).Take(4));
+            Assert.Equal(0, decoded[15]);
+            Assert.Equal(0, decoded[19]);
+            Assert.Equal(255, decoded[23]);
+        }
+
         [Fact]
         public void MoreThan256Colors_ArePutInAPaletteOf256_AndStayClose()
         {

@@ -15,6 +15,10 @@
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
+    <!-- The Manager, for the column headers: a column that starts hidden builds its header off the visual tree, where a
+         RelativeSource binding fails for good (BindingProxy) -->
+    <controls:BindingProxy x:Key="ManagerProxy" Data="{Binding}" />
+
     <!-- Single-line table text: trims with an ellipsis and shows the full value in a tooltip. -->
     <Style x:Key="CellText" TargetType="TextBlock">
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -121,9 +125,9 @@
       <!-- Pulled left by the frame's 1 border and 4 padding, so the label starts where its column's values do (12 in) -->
       <Setter Property="Margin" Value="-5,0,0,0" />
       <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-      <Setter Property="ActiveColumn" Value="{Binding DataContext.SortColumn, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-      <Setter Property="IsDescending" Value="{Binding DataContext.SortDescending, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-      <Setter Property="Command" Value="{Binding DataContext.SortCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+      <Setter Property="ActiveColumn" Value="{Binding Data.SortColumn, Source={StaticResource ManagerProxy}}" />
+      <Setter Property="IsDescending" Value="{Binding Data.SortDescending, Source={StaticResource ManagerProxy}}" />
+      <Setter Property="Command" Value="{Binding Data.SortCommand, Source={StaticResource ManagerProxy}}" />
       <Setter Property="CommandParameter" Value="{Binding Column, RelativeSource={RelativeSource Self}}" />
       <Setter Property="Template">
         <Setter.Value>

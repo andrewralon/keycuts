@@ -1097,6 +1097,42 @@ namespace keycuts.Tests
             throw new InvalidOperationException("No " + typeof(T).Name + " above " + start);
         }
 
+        // Runs, Last run and Modified start hidden in a narrow table. Their headers were built off the visual tree then, and the
+        // style's RelativeSource bindings never recovered once the columns showed: no sort state, and a click that did nothing.
+        [Fact]
+        public void Manager_AHeaderWhoseColumnStartedHidden_FollowsTheSortOnceItShows()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    Assert.DoesNotContain(Descendants<SortHeaderButton>(window), h => h.Column == SortColumn.Runs && h.IsVisible);
+
+                    window.Width = 1100;
+                    Pump();
+                    window.UpdateLayout();
+                    var runs = Descendants<SortHeaderButton>(window).Single(h => h.Column == SortColumn.Runs);
+
+                    // As a click or a screen reader does: through the button, so its Command binding is what runs
+                    var invoke = (System.Windows.Automation.Provider.IInvokeProvider)new System.Windows.Automation.Peers.ButtonAutomationPeer(runs)
+                        .GetPattern(System.Windows.Automation.Peers.PatternInterface.Invoke);
+                    invoke.Invoke();
+                    Pump();
+
+                    Assert.Equal(SortColumn.Runs, manager.SortColumn);
+                    Assert.Equal(SortHeaderState.Descending, runs.State);
+                    Assert.Equal("Sorted descending", AutomationProperties.GetHelpText(runs));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
         [Fact]
         public void Manager_EnterOnAButtonStaysWithTheButton()
         {

@@ -55,6 +55,7 @@ Behavior that spans several files. Read the section before changing that area. P
   3. Fixed columns need `MinWidth` = `Width`, or the grid squeezes them to 20 and never restores them.
   4. After Modified hides or returns, `RefillStarColumns` restores star widths.
   5. Double-click on a divider would auto-size to content; the `ColumnGripper` style swallows `PreviewMouseDoubleClick`.
+  6. A column that starts hidden builds its header off the visual tree, and a `RelativeSource FindAncestor` binding there fails for good. Header bindings to the Manager go through `ManagerProxy` (a `BindingProxy` in the view's resources).
   Widths aren't remembered; if they ever are, store star proportions.
 - Status messages last 3 s (`StatusMessageDuration`), errors 6 s.
 

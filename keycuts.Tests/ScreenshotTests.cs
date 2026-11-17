@@ -115,7 +115,7 @@ namespace keycuts.Tests
             // The Manager and Settings at the large size the window opens them at. The Manager's create row is empty, ready for a keycut.
             var manager = new ManagerViewModel(noop, noop)
             {
-                CreateRow = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { DescriptionAlwaysShown = true, ClearsAfterCreate = true }
+                CreateRow = new CreatorViewModel(noop, noop, checkName: TestNameChecks.NoWarnings) { ClearsAfterCreate = true }
             };
             manager.ShowKeycuts(SampleKeycuts());
             Render(HideCarets(HostWithTabs(new ManagerView(), manager, rail => rail.ManagerItem, WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)), folder, "manager-" + suffix);

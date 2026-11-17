@@ -168,7 +168,6 @@ namespace keycuts.Tests
 
                 // The description is always there, with no link to show it
                 Assert.Equal(Visibility.Visible, parts.Description.Visibility);
-                Assert.True(parts.Form.IsDescriptionVisible);
             });
         }
 
@@ -277,7 +276,6 @@ namespace keycuts.Tests
                 Assert.NotSame(parts.Shell.Creator, parts.Form);
                 Assert.Equal(new[] { parts.Shell.Creator, parts.Form }, parts.Shell.Forms);
                 Assert.False(parts.Shell.Creator.ClearsAfterCreate);
-                Assert.False(parts.Shell.Creator.DescriptionAlwaysShown);
             });
         }
 

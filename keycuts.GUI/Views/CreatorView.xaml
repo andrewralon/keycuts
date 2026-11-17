@@ -19,37 +19,6 @@
 
       <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-      <!-- A field label that is also a button (#205): "Description (optional)" shows or hides its box. It looks
-           like the "Name" label, and turns to the accent on hover so it reads as clickable. -->
-      <Style x:Key="FieldLabelButton" TargetType="Button">
-        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
-        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource AppFocusVisual}" />
-        <Setter Property="Template">
-          <Setter.Value>
-            <ControlTemplate TargetType="Button">
-              <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                <ContentPresenter RecognizesAccessKey="False" />
-              </Border>
-            </ControlTemplate>
-          </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-          <Trigger Property="IsMouseOver" Value="True">
-            <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
-          </Trigger>
-          <Trigger Property="IsEnabled" Value="False">
-            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
-            <Setter Property="Cursor" Value="Arrow" />
-          </Trigger>
-        </Style.Triggers>
-      </Style>
-
       <!-- The welcome panel's line under the bubbles (#213): the same size and color as the intro above it, which reads better than the
            small tertiary helper text on the blue panel in the dark theme. Only a PATH problem changes it, to the error color. -->
       <Style x:Key="WelcomeHelperText" TargetType="TextBlock">
@@ -102,7 +71,7 @@
           <TextBlock TextWrapping="Wrap" Margin="0,4,0,12" Foreground="{DynamicResource TextSecondaryBrush}"
                      Text="keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it." />
           <TextBlock Text="Start by creating one of these keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
-          <!-- Three bubbles in a row: type badge, what it opens, an arrow to its name. Each fills the fields below. -->
+          <!-- Three bubbles in a row: type badge and what it opens (the name shows in the field once picked). Each fills the fields below. -->
           <ItemsControl x:Name="WelcomeExamples" ItemsSource="{Binding Examples}" Margin="-4,8,-4,0" IsTabStop="False">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -119,11 +88,6 @@
                     <controls:TypeBadge Kind="{Binding Kind}" HorizontalAlignment="Center" />
                     <TextBlock Text="{Binding Label}" Margin="0,8,0,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextBrush}" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
-                      <controls:Icon Kind="Arrow" Size="20" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
-                      <TextBlock Text="{Binding Name}" Margin="8,0,0,0" FontWeight="SemiBold" FontSize="{StaticResource FontSizeInput}"
-                                 VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
-                    </StackPanel>
                   </StackPanel>
                 </RadioButton>
               </DataTemplate>
@@ -220,21 +184,20 @@
         </Grid>
       </Grid>
 
-      <!-- Name form -->
-      <StackPanel Grid.Row="2" Margin="0,16,0,0">
-        <!-- The label, and at its right what is happening to the keycut: "Saving…", then "Created name" (#205). They sit on this
-             row, not under the field, so the window keeps its height while a keycut is made. -->
-        <Grid Margin="0,0,0,8">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-          <TextBlock Text="Name" Style="{StaticResource FieldLabel}" Margin="0" />
-          <controls:HelperText x:Name="NameStatusTextBlock" Grid.Column="1" Style="{StaticResource NameStatus}"
-                               Text="{Binding NameStatusText}"
-                               Visibility="{Binding HasNameStatus, Converter={StaticResource BoolToVisibility}}" />
-        </Grid>
-        <Grid>
+      <!-- Name form (docs/mockups/creator-polish-v1): each label at the left of its box, the boxes starting at one edge 16 after
+           the widest label, 16 between the rows -->
+      <Grid Grid.Row="2" Margin="0,16,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Name" Style="{StaticResource FieldLabel}" Margin="0" VerticalAlignment="Center" />
+        <Grid Grid.Row="0" Grid.Column="1" Margin="16,0,0,0">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
@@ -287,28 +250,28 @@
             </Grid>
           </Button>
         </Grid>
-        <!-- Name warnings and errors; takes no room (#205) while there is nothing to say. Saving and Created are above, by the label. -->
-        <controls:HelperText x:Name="HelperTextBlock" Style="{StaticResource NameHelper}" Text="{Binding HelperText}"
-                             Visibility="{Binding ShowHelperLine, Converter={StaticResource BoolToVisibility}}" />
+        <!-- Under the name box and Create: "Saving…", then "Created name" (#205), or a warning or an error. Takes no room while
+             there is nothing to say. -->
+        <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
+          <controls:HelperText x:Name="NameStatusTextBlock" Style="{StaticResource NameStatus}" Margin="0,4,0,0"
+                               HorizontalAlignment="Left" Text="{Binding NameStatusText}"
+                               Visibility="{Binding HasNameStatus, Converter={StaticResource BoolToVisibility}}" />
+          <controls:HelperText x:Name="HelperTextBlock" Style="{StaticResource NameHelper}" Text="{Binding HelperText}"
+                               Visibility="{Binding ShowHelperLine, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
 
-        <!-- #162, #205: the description is optional. Its label, "Description (optional)", is a button that shows the box and
-             hides it, the choice being remembered between launches. Styled like the "Name" label,
-             with the same 16 above it as between Target and Name. -->
-        <Button x:Name="BtnToggleDescription" Style="{StaticResource FieldLabelButton}" HorizontalAlignment="Left"
-                Margin="0,16,0,0" Command="{Binding ToggleDescriptionCommand}"
-                Content="{Binding DescriptionToggleText}" AutomationProperties.Name="{Binding DescriptionToggleName}"
-                IsEnabled="{Binding IsInputEnabled}" />
-        <TextBox x:Name="TextboxDescription" Margin="0,8,0,0"
+        <!-- #162: the description, always shown (the owner, 2026-11-17); the placeholder says it is optional -->
+        <TextBlock Grid.Row="2" Text="Description" Style="{StaticResource FieldLabel}" Margin="0,16,0,0" VerticalAlignment="Center" />
+        <TextBox x:Name="TextboxDescription" Grid.Row="2" Grid.Column="1" Margin="16,16,0,0"
                  Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                 themes:TextBoxChrome.Placeholder="e.g. Recent paintings"
-                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description"
-                 Visibility="{Binding IsDescriptionVisible, Converter={StaticResource BoolToVisibility}}">
+                 themes:TextBoxChrome.Placeholder="e.g. my paintings (optional)"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description">
           <TextBox.InputBindings>
             <KeyBinding Key="Return" Command="{Binding CreateCommand}" />
             <KeyBinding Key="Return" Modifiers="Shift" Command="{Binding CreateCommand}" />
           </TextBox.InputBindings>
         </TextBox>
-      </StackPanel>
+      </Grid>
     </Grid>
 
     <!-- #205: the bar the screens share, there only while a newer version is out -->

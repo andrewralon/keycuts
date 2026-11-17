@@ -195,9 +195,9 @@ namespace keycuts.Tests
             });
         }
 
-        // Saving and Created are on the Name label's row, not under the field, so the window keeps its height (#205)
+        // Saving and Created (#205) show under the name box, where warnings go, and are announced
         [Fact]
-        public void Creator_SavingAndCreated_ShowByTheNameLabel_AndAreAnnounced()
+        public void Creator_SavingAndCreated_ShowUnderTheNameBox_AndAreAnnounced()
         {
             RunSta(() =>
             {
@@ -213,8 +213,7 @@ namespace keycuts.Tests
                     var view = (FrameworkElement)window.Content;
                     var status = (HelperText)view.FindName("NameStatusTextBlock");
                     var helper = (HelperText)view.FindName("HelperTextBlock");
-                    var nameLabel = Descendants<TextBlock>(window).Single(t => t.Text == "Name");
-                    var heightBefore = view.ActualHeight;
+                    var name = Descendants<TextBox>(window).Single(t => AutomationProperties.GetName(t) == "keycut name");
                     Assert.False(status.IsVisible);
 
                     creator.IsSaving = true;
@@ -224,12 +223,9 @@ namespace keycuts.Tests
                     Assert.False(helper.IsVisible);
                     Assert.Same(status, announced.Last());
 
-                    // At the right of the label, on its row, at the page's 24 padding
-                    Assert.True(LeftIn(status, view) > RightIn(nameLabel, view));
-                    Assert.InRange(RightIn(status, view), view.ActualWidth - 25, view.ActualWidth - 23);
-                    Assert.InRange(status.TranslatePoint(new Point(0, status.ActualHeight / 2), view).Y,
-                        nameLabel.TranslatePoint(new Point(0, 0), view).Y,
-                        nameLabel.TranslatePoint(new Point(0, nameLabel.ActualHeight), view).Y);
+                    // Under the name box, from its left edge (the owner, 2026-11-17: the label is at the box's left now)
+                    Assert.Equal(LeftIn(name, view), LeftIn(status, view), 1);
+                    Assert.Equal(name.TranslatePoint(new Point(0, name.ActualHeight), view).Y + 4, status.TranslatePoint(new Point(0, 0), view).Y, 1);
 
                     // A very long name changes nothing: the message is just "Created", and the name is in the box
                     creator.IsSaving = false;
@@ -240,8 +236,7 @@ namespace keycuts.Tests
                     Assert.Equal(CreatorViewModel.CreatedText, status.Text);
                     Assert.Equal(HelperTextState.Success, status.State);
                     Assert.False(helper.IsVisible);
-                    Assert.Equal(heightBefore, view.ActualHeight, 0.5);   // the window did not grow
-                    Assert.True(LeftIn(status, view) > RightIn(nameLabel, view), "Created runs over the Name label");
+                    Assert.Equal(LeftIn(name, view), LeftIn(status, view), 1);
                     Assert.True(RightIn(status, view) <= view.ActualWidth, "Created runs off the right edge");
                 }
                 finally

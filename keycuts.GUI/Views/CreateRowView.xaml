@@ -123,10 +123,10 @@
       </TextBox>
 
       <!-- Description: always shown here, so there is no Add a description link -->
-      <TextBlock Grid.Row="0" Grid.Column="2" Margin="12,0,0,8" Text="Description (optional)" Style="{StaticResource FieldLabel}" />
+      <TextBlock Grid.Row="0" Grid.Column="2" Margin="12,0,0,8" Text="Description" Style="{StaticResource FieldLabel}" />
       <TextBox x:Name="TextboxDescription" Grid.Row="1" Grid.Column="2" Margin="12,0,0,0"
                Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-               themes:TextBoxChrome.Placeholder="e.g. Recent paintings"
+               themes:TextBoxChrome.Placeholder="e.g. my paintings (optional)"
                IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description">
         <TextBox.InputBindings>
           <KeyBinding Key="Return" Command="{Binding CreateCommand}" />

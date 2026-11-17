@@ -36,12 +36,6 @@ namespace keycuts.Common
         /// <summary>Set once the first-run welcome panel was dismissed or used, so it never shows again.</summary>
         public static readonly string WelcomeDismissedKeyName = "WelcomeDismissed";
 
-        /// <summary>
-        /// Whether the Creator shows its description box (#205): written when the user shows or hides it, read when the Creator
-        /// opens. Hidden unless set to 1.
-        /// </summary>
-        public static readonly string ShowDescriptionKeyName = "ShowDescription";
-
         /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
         public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
 
@@ -160,11 +154,6 @@ namespace keycuts.Common
             return ReadValue(WelcomeDismissedKeyName) is int raw && raw != 0;
         }
 
-        public static bool GetShowDescription()
-        {
-            return ReadValue(ShowDescriptionKeyName) is int raw && raw != 0;
-        }
-
         public static bool GetCheckForUpdates()
         {
             return !(ReadValue(CheckForUpdatesKeyName) is int raw) || raw != 0;
@@ -279,11 +268,6 @@ namespace keycuts.Common
         public static void SetRunCountingFolder(string folder)
         {
             SetRegistryValue(RunCountingFolderKeyName, folder ?? "", RegistryValueKind.String);
-        }
-
-        public static void SetShowDescription(bool showDescription)
-        {
-            SetRegistryValue(ShowDescriptionKeyName, showDescription ? 1 : 0, RegistryValueKind.DWord);
         }
 
         public static void SetCheckForUpdates(bool checkForUpdates)

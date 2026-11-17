@@ -12,7 +12,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Test: `dotnet test keycuts.sln` (xUnit, `keycuts.Tests`); one test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep `--severity error`)
 - Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z] [-Runtime win-x64|win-arm64]` → `artifacts/installer/<runtime>/`. `installer/` is not in the sln. Don't install a local MSI over a same-version release (different bundled runtime breaks the install; uninstall first or `msiexec /fa`).
-- Screenshots: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed.
+- Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
 - macOS/Linux: build/format with `-p:EnableWindowsTargeting=true`; tests only run on Windows (CI).
@@ -32,7 +32,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 ## Versioning and releases
 
-`<Version>` in `Directory.Build.props` is the only version (three parts). Pushing to `main` runs `release.yml`, which publishes `v<Version>` if the tag doesn't exist. To release: bump the version on `develop`, **regenerate screenshots** and commit visible changes, merge `develop` into `main`. Never tag by hand.
+`<Version>` in `Directory.Build.props` is the only version (three parts). Pushing to `main` runs `release.yml`, which publishes `v<Version>` if the tag doesn't exist. To release: bump the version on `develop`, **regenerate the screenshots and GIFs** and commit visible changes, merge `develop` into `main`. Never tag by hand.
 
 ## Architecture
 

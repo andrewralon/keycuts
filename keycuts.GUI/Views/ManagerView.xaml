@@ -528,19 +528,6 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <!-- #167: hidden while the table is too narrow for it (TableHost_SizeChanged), so the other columns keep their room -->
-            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="112" MinWidth="112" CanUserResize="False"
-                                    HeaderStyle="{StaticResource ManagerHeaderFixed}">
-              <DataGridTemplateColumn.Header>
-                <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
-              </DataGridTemplateColumn.Header>
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate>
-                  <!-- The text is how long ago; the tooltip is the exact date and time -->
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding ModifiedText}" ToolTip="{Binding ModifiedTooltip}" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
             <!-- #187: how often each keycut runs and when it last did, for cleaning up. They make way only after Modified does
                  (TableHost_SizeChanged). A dash is no record, which isn't the same as 0. -->
             <DataGridTemplateColumn x:Name="RunsColumn" Width="64" MinWidth="64" CanUserResize="False"
@@ -562,6 +549,20 @@
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
                   <TextBlock Style="{StaticResource CellText}" Text="{Binding LastRunText}" ToolTip="{Binding RunsTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- #167: the last column (the owner, 2026-11-17), hidden while the table is too narrow for it (TableHost_SizeChanged), so
+                 the other columns keep their room -->
+            <DataGridTemplateColumn x:Name="ModifiedColumn" Width="112" MinWidth="112" CanUserResize="False"
+                                    HeaderStyle="{StaticResource ManagerHeaderFixed}">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Modified" Content="Modified" Style="{StaticResource SortHeaderButtonStyle}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate>
+                  <!-- The text is how long ago; the tooltip is the exact date and time -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding ModifiedText}" ToolTip="{Binding ModifiedTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>

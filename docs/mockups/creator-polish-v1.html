@@ -1,0 +1,244 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Creator polish v1</title>
+<style>
+/* v7: v6 with 16 between the name and the first tab (the guide said 4). v6: v5 drawn to docs/styleguide.md (#211, PR #220), the guide's DIPs at 1:1. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172033}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#465064;margin-top:12px}
+.cap:first-child{margin-top:0}
+.note{font-size:12.5px;color:#465064;line-height:1.5}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:2px 0}
+
+/* ---------- palettes: Themes/Light.xaml and Dark.xaml after #219, plus the proposed tab bar keys (#218) ---------- */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--hover:#eef3fb;--glow:rgba(37,99,235,.22);
+  --uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --socket1:#f9fafb;--socket2:#e2e7ee;--socketBorder:#bdc5d2;--capGlyph:#172033;--capHover:rgba(23,32,51,.08);--hcLine:transparent}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentText:#6a9eff;--accentSoft:#182a4d;--onAccent:#06090f;--hover:#2c3441;--glow:rgba(79,140,255,.3);
+  --uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a;
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --socket1:#14171d;--socket2:#20242c;--socketBorder:#363d48;--capGlyph:#f3f5f8;--capHover:rgba(255,255,255,.08);--hcLine:transparent}
+/* high contrast (Night sky): Window black, WindowText white, no textures */
+.hc{--surface:#000;--subtle:#000;--border:#fff;--strong:#fff;--text:#fff;--text2:#fff;--text3:#a0a0a0;
+  --rail1:#000;--rail2:#000;--railTex:transparent;--grip:transparent;
+  --tab1:#000;--tab2:#000;--tabTex:transparent;--tabBorder:#fff;--tabBorderOn:#fff;--tabText:#fff;--tabShadow:transparent;
+  --socket1:#000;--socket2:#000;--socketBorder:#fff;--capGlyph:#fff;--capHover:transparent;--hcLine:#fff}
+
+/* ---------- window ---------- */
+.win{background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+.w-main{width:600px}             /* MainWidth: what the tab bar needs plus about 60 of empty bar */
+.w-wide{width:840px;height:470px}
+
+/* ---------- tab bar: RailHeight 48 ---------- */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.rail::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--hcLine);z-index:4}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 12px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.socket{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--socket2),var(--socket1));border:1px solid var(--socketBorder);box-shadow:inset 0 1px 3px var(--tabShadow)}
+.socket img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+
+/* folder tab: TabHeight 40, 8 cut corner, 16 slant, padding 12 left and slant + 8 right, 4 apart */
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 0 12px;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));z-index:0}
+.hc .tw:not(.on) .tab::after{display:none}
+/* high contrast: the line under the bar sits behind the tabs; inactive tabs close their own outline at the base,
+   and the selected tab leaves it open, so its outline runs into the page */
+.hc .rail::after{z-index:0}
+.hc .tw:not(.on) .tab::before{inset:1px}
+.hc .tw.on{filter:none;clip-path:none}
+.hc .tw.on .tab{clip-path:polygon(0 calc(100% + 3px),0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% calc(100% + 3px))}
+.hc .tw.on .tab::after{left:1px;right:1px;height:6px;bottom:-3px}  /* covers the bar's line at the zoomed close-up's fractional pixels */
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+/* caption buttons: CaptionButtonWidth 46 x RailHeight, 10px glyphs */
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.dis{color:var(--text3);opacity:.7}
+.cb.hot{background:var(--capHover)}
+.cb.close-hot{background:#c42b1c;color:#fff}
+
+/* ---------- page: PagePadding 24,16,24,24 ---------- */
+.body{padding:16px 24px 24px;flex:1;display:flex;flex-direction:column}
+.flabel{font-size:13px;font-weight:600;margin-bottom:8px}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface)}
+.field.focus{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.field.ph{color:var(--text3)}
+.btn{height:36px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;font-size:13px;font-weight:600;flex:none}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.sq.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.row{display:flex;gap:8px;align-items:center}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+a{color:var(--accentText);font-weight:600;text-decoration:none}
+
+/* creator */
+.drop{border:1.5px dashed var(--strong);border-radius:12px;background:var(--subtle);padding:16px;display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.tv{font-size:13px;color:var(--text2);word-break:break-all;margin-top:4px;line-height:1.35}
+.gap16{height:16px}
+
+/* footer: 48 min, padding 24,0 */
+.foot{min-height:48px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;color:var(--text2);flex:none}
+.pill{height:22px;border:1px solid var(--strong);border-radius:11px;background:var(--surface);padding:0 10px;display:flex;align-items:center;font-weight:600;font-size:12px;color:var(--text)}
+.upd{display:flex;align-items:center;gap:8px}
+.ghost{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:5px}
+
+/* manager */
+.srch{flex:1;height:36px;border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+.tbl{margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{height:36px;text-align:left;color:var(--text2);padding:0 12px;background:var(--subtle);border-bottom:1px solid var(--border);font-size:12px;font-weight:600}
+td{height:36px;padding:0 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+td.n{font-weight:600;color:var(--text)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+
+/* settings */
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:24px 0 8px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:16px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:4px}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.radio{display:flex;gap:16px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconbtn img{width:20px;height:20px}
+.saved{font-size:12px;color:var(--text2);margin-top:24px;display:flex;align-items:center;gap:4px}
+.endrow{display:flex;justify-content:space-between;margin-top:16px}
+
+/* close-up annotation */
+.anno .brand,.anno .drag{outline:1.5px dashed #2563eb;outline-offset:-1.5px;background-color:rgba(37,99,235,.14)}
+.anno .drag{-webkit-mask-image:none}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:rgba(37,99,235,.3);outline:1px dashed #2563eb}
+.keys{border-collapse:collapse;font-size:12px;width:100%;margin-top:4px}
+.keys th,.keys td{height:auto;padding:4px 8px;border-bottom:1px solid #cfd5df;text-align:left;color:#172033;background:none;font-size:12px}
+.keys th{color:#465064}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.25);vertical-align:-2px;margin-right:6px}
+code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px}
+/* ---------- creator polish v1 ---------- */
+.lede{font-size:13px;color:#465064;margin:0 0 18px;max-width:1500px;line-height:1.5}
+.title{font-size:16px;font-weight:700;color:#172033;margin:0 0 4px}
+.sect{font-size:15px;font-weight:700;color:#172033;margin:28px 0 10px}
+.brand img{display:block}
+.tab svg{flex:none}
+/* proposed tab bar: 24 after the name, tab text 16, both text lines on y = 26 */
+.p .brand{padding:4px 24px 0 8px}
+.p .tab{font-size:16px;padding:0 calc(var(--slant) + 8px) 4px 12px}
+.n .brand{padding:0 16px 0 8px}
+/* welcome */
+.wel{background:var(--accentSoft);border-radius:12px;padding:16px;margin-bottom:16px}
+.wel h4{margin:0;font-size:16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.wel p{margin:4px 0 12px;font-size:13px;color:var(--text2);line-height:1.4}
+.wel .st{font-size:13px;font-weight:600}
+.bubs{display:flex;gap:8px;margin-top:8px}
+.bub{flex:1;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:12px 8px;display:flex;flex-direction:column;align-items:center;font-size:13px}
+.bub.on{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.bub .lb{margin-top:8px}
+.bub .to{margin-top:4px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.bub .to svg{color:var(--accent)}
+.sbtn{height:32px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);display:flex;align-items:center;font-size:13px;font-weight:600}
+/* the form, side by side: labels in an Auto column, 16 to the boxes, 16 between the rows */
+.form{display:grid;grid-template-columns:auto 1fr;column-gap:16px;row-gap:16px;align-items:center}
+.form .flabel{margin:0}
+.toggle-lbl{font-size:13px;font-weight:600}
+.guide{position:absolute;left:0;right:0;height:0;border-top:1px dashed #e0245e;z-index:20}
+.zoom{width:600px;height:150px;overflow:hidden;border:1px solid #bdc5d2;border-radius:8px;position:relative}
+.zoom .win{transform:scale(3);transform-origin:0 0;width:600px}
+.zoom .win{border:none;box-shadow:none;border-radius:0;overflow:visible}
+.pair{display:flex;gap:28px;align-items:flex-start}
+.pair>div{display:flex;flex-direction:column;gap:8px}
+.cap2{font-size:13px;color:#172033}.cap2 span{color:#465064}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></g></symbol>
+ </defs>
+</svg>
+
+<p class="title">Creator and tab bar polish &mdash; v1</p>
+<p class="lede"><b>Tab bar:</b> 24 between <i>keycuts</i> and the first tab (was 16); the tab names at 16 SemiBold, the size of <i>keycuts</i> (was 13), so the tabs grow wider, not taller; the gear at 20, the size of Browse and Create (it was 16); and every name in the bar on one line, 26 from the top: <i>keycuts</i> moves down 2 and the tab names up 2 (they were 4 apart: 24 and 28). <b>Creator:</b> the labels at the left of their boxes, the boxes starting at one edge, 16 after the widest label and 16 between the rows; <i>Description</i> is a plain label and its box always shows; the placeholder is <i>e.g. my paintings (optional)</i>. <b>Welcome:</b> the bubbles lose their &ldquo;&rarr; name&rdquo; line. The Manager&rsquo;s create row and the edit window get the same label and placeholder, in their current layout.</p>
+
+<div class="pair">
+ <div><div class="cap2"><b>Now</b> <span>&middot; light, the welcome showing</span></div><div id="nowL"></div></div>
+ <div><div class="cap2"><b>Proposed</b> <span>&middot; light</span></div><div id="newL"></div></div>
+ <div><div class="cap2"><b>Proposed</b> <span>&middot; dark, after the welcome</span></div><div id="newD"></div></div>
+</div>
+
+<div class="sect">The tab bar at 3&times; (the dashed lines are the middle of each name)</div>
+<div class="pair">
+ <div><div class="cap2"><b>Now</b> <span>&middot; keycuts on 24, the tabs on 28</span></div><div class="zoom" id="zNow"></div></div>
+ <div><div class="cap2"><b>Proposed</b> <span>&middot; all on 26</span></div><div class="zoom" id="zNew"></div></div>
+</div>
+
+<script>
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+const key = t => `../../assets/icons/${t === 'light' ? 'key-charcoal/key-charcoal' : 'key-white/key-white'}-256.png`;
+function rail(theme, p) {
+  const tab = (on, inner) => `<div class="tw${on ? ' on' : ''}"><div class="tab">${inner}</div></div>`;
+  return `<div class="rail ${p ? 'p' : 'n'}">
+   <div class="brand"><img src="${key(theme)}" width="36" height="36" alt="">keycuts</div>
+   <div class="tabs">${tab(true, '<span>creator</span>')}${tab(false, '<span>manager</span>')}${tab(false, use('i-gear', p ? 20 : 16))}</div>
+   <div class="drag"></div>
+   <div class="caps"><div class="cb">${use('i-min', 10)}</div><div class="cb dis">${use('i-max', 10)}</div><div class="cb">${use('i-close', 10)}</div></div></div>`;
+}
+const welcome = p => `<div class="wel"><h4>Welcome to keycuts!<span class="sbtn">got it</span></h4>
+  <p>keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it.</p>
+  <div class="st">Start by creating one of these keycuts</div>
+  <div class="bubs">${[['URL', 'u', 'Google', 'g'], ['Folder', 'f', 'Downloads', 'dl'], ['File', 'fi', 'keycuts', 'kc']].map((b, i) =>
+    `<div class="bub${i === 0 ? ' on' : ''}"><span class="badge ${b[1]}">${b[0]}</span><div class="lb">${b[2]}</div>${p ? '' : `<div class="to">${use('i-arrow', 20)}${b[3]}</div>`}</div>`).join('')}</div></div>`;
+const drop = (t, v) => `<div class="drop"><div class="tile">${use('i-link', 24)}</div>
+   <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">Target</div><div class="tv">${v}</div></div>
+   <div class="sq" title="Browse">${use('i-folder', 20)}</div></div>`;
+const rocket = `<div class="sq primary">${use('i-rocket', 20)}</div>`;
+const formNow = name => `<div class="flabel">Name</div>
+  <div class="row"><div class="field focus">${name}</div>${rocket}</div>
+  <div style="height:16px"></div><div class="flabel">Description (optional)</div>
+  <div class="field ph" style="flex:none">e.g. Recent paintings</div>`;
+const formNew = name => `<div class="form">
+  <div class="flabel">Name</div><div class="row"><div class="field focus">${name}</div>${rocket}</div>
+  <div class="flabel">Description</div><div class="field ph">e.g. my paintings (optional)</div></div>`;
+const win = (theme, p, body) => `<div class="win w-main ${theme}">${rail(theme, p)}<div class="body">${body}</div></div>`;
+document.getElementById('nowL').innerHTML = win('light', false, welcome(false) + drop('light', 'https://www.google.com') + formNow('g'));
+document.getElementById('newL').innerHTML = win('light', true, welcome(true) + drop('light', 'https://www.google.com') + formNew('g'));
+document.getElementById('newD').innerHTML = win('dark', true, drop('dark', '%USERPROFILE%\\Documents\\Projects\\2026\\Gallery Submissions\\spring-collection-final-v3.xlsx') + formNew('art'));
+const guide = y => `<div class="guide" style="top:${y * 3}px"></div>`;
+document.getElementById('zNow').innerHTML = `<div class="win light">${rail('light', false)}</div>${guide(24)}${guide(28)}`;
+document.getElementById('zNew').innerHTML = `<div class="win light">${rail('light', true)}</div>${guide(26)}`;
+</script>
+</body></html>

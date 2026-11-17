@@ -52,7 +52,6 @@ namespace keycuts.GUI.ViewModels
             IKeycutActions? actions = null,
             WelcomeViewModel? welcome = null,
             UpdateNoticeViewModel? updateNotice = null,
-            IDescriptionVisibilityStore? descriptionStore = null,
             Func<SettingsViewModel>? settingsFactory = null,
             Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
             Func<string, NameCheck>? checkName = null)
@@ -64,7 +63,7 @@ namespace keycuts.GUI.ViewModels
             ShowCreatorCommand = new RelayCommand(ShowCreator);
             OpenSettingsCommand = new RelayCommand(ShowSettings, () => settingsFactory != null);
 
-            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, createAsync, checkName, descriptionStore)
+            Creator = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, createAsync, checkName)
             {
                 Welcome = welcome,
                 UpdateNotice = updateNotice
@@ -76,7 +75,6 @@ namespace keycuts.GUI.ViewModels
                 UpdateNotice = updateNotice,
                 CreateRow = new CreatorViewModel(ShowManagerCommand, OpenSettingsCommand, createAsync, checkName)
                 {
-                    DescriptionAlwaysShown = true,
                     ClearsAfterCreate = true
                 }
             };

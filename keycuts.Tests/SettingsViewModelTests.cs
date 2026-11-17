@@ -358,11 +358,41 @@ namespace keycuts.Tests
         {
             public AppIconChoice Choice { get; private set; } = AppIconChoice.Classic;
 
+            public bool Transparent { get; set; }
+
             public string? Apply(AppIconChoice choice)
             {
                 Choice = choice;
                 return AppIconService.SaveFailedMessage;
             }
+
+            public string? ApplyTransparent(bool transparent)
+            {
+                Transparent = transparent;
+                return AppIconService.SaveFailedMessage;
+            }
+        }
+
+        // The same failure twice (the icon and its background) is said once
+        [Fact]
+        public void RestoreDefaults_SaysATransparentBackgroundThatCouldntBeSaved_Once()
+        {
+            var vm = new SettingsViewModel(new FakeStore(), appIcon: new FailingIconService { Transparent = true });
+
+            vm.RestoreDefaultsCommand.Execute(null);
+
+            Assert.False(vm.TransparentIcon);
+            Assert.Equal(AppIconService.SaveFailedMessage, vm.SaveError);
+        }
+
+        [Fact]
+        public void TransparentIcon_ThatCouldntBeSaved_SaysSoOnThePage()
+        {
+            var vm = new SettingsViewModel(new FakeStore(), appIcon: new FailingIconService());
+
+            vm.TransparentIcon = true;
+
+            Assert.Equal(AppIconService.SaveFailedMessage, vm.SaveError);
         }
 
         // The picker, where an icon error shows, is closed during restore defaults, so the page says it (PR #225 review)
@@ -414,7 +444,7 @@ namespace keycuts.Tests
                     CheckForUpdates = false
                 }
             };
-            var icon = new InMemoryAppIconService(AppIconChoice.Classic);
+            var icon = new InMemoryAppIconService(AppIconChoice.Classic, transparent: true);
             var themes = new List<ThemePreference>();
             var vm = new SettingsViewModel(store, appIcon: icon, applyTheme: themes.Add);
             // An edit in the box that wasn't committed stays an edit
@@ -442,6 +472,8 @@ namespace keycuts.Tests
             Assert.Equal(new[] { ThemePreference.System }, themes);
             Assert.Equal(Settings.DefaultAppIcon, icon.Choice);
             Assert.Equal(Settings.DefaultAppIcon, vm.SelectedIcon.Choice);
+            Assert.False(icon.Transparent);
+            Assert.False(vm.TransparentIcon);
         }
 
         [Fact]
@@ -490,6 +522,7 @@ namespace keycuts.Tests
             Assert.Equal(ThemePreference.System, defaults.Theme);
             Assert.True(defaults.CheckForUpdates);
             Assert.Equal(AppIconChoice.BlackAndWhite, Settings.DefaultAppIcon);
+            Assert.False(Settings.DefaultAppIconTransparent);
             Assert.Equal(string.Empty, defaults.OutputFolder);
         }
 
@@ -1079,6 +1112,7 @@ namespace keycuts.Tests
                         {
                             "Output folder", "Choose a folder", "Open the output folder", "Ask before replacing a keycut", "Right-click context menus",
                             "Use environment variables in paths", "System theme", "Light theme", "Dark theme", "Icon: Black & White. Change",
+                            "Transparent icon background",
                             "Check for updates daily", "show the welcome panel", "restore defaults"
                         },
                         stops);
@@ -1647,7 +1681,7 @@ namespace keycuts.Tests
                     var toggles = Descendants<ToggleButton>(window).Where(t => t is not RadioButton).ToList();
 
                     Assert.Equal(
-                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Check for updates daily" },
+                        new[] { "Ask before replacing a keycut", "Right-click context menus", "Use environment variables in paths", "Transparent icon background", "Check for updates daily" },
                         toggles.Select(AutomationProperties.GetName));
                     Assert.All(toggles, toggle => Assert.NotNull(UIElementAutomationPeer.CreatePeerForElement(toggle).GetPattern(PatternInterface.Toggle)));
                 }

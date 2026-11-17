@@ -9,10 +9,10 @@ The app icon is a single keycap with a K, lying on the table. `tools/New-AppIcon
 | `cobalt` | Blue keycap on a light background | Cobalt; Accent in light mode |
 | `twilight` | Blue keycap on a dark background | Twilight; Accent in dark mode |
 | `classic` | The original Team Ralon monogram on a white square (`source.ico` is keycuts' old icon) | Classic |
-| `key-white`, `key-charcoal`, `key-blue` | The keycaps alone on a transparent background | not offered |
-| `classic-transparent` | The monogram alone on a transparent background | not offered |
+| `key-white`, `key-charcoal`, `key-blue` | The keycaps alone on a transparent background | Onyx's, Porcelain's, and Cobalt's and Twilight's, with **Transparent icon background** on; the tab bar always |
+| `classic-transparent` | The monogram alone on a transparent background | Classic's, the same way |
 
-Each folder has a `.ico` with 16, 20, 24, 32, 40, 48, 64, 96 and 256 px, a PNG of each of those sizes, and (for the keycaps) a 1024 px PNG for anything bigger. Microsoft asks for at least 16, 24, 32, 48 and 256; the others are what the title bar, the taskbar and Explorer ask for at 125, 150 and 200 percent scaling, so Windows only ever scales down from a near size. At 24 px and below the key is drawn flat with a heavier K, since the shaded one turns to mush. The monogram's largest original is 256 px, so it has no 1024 px version.
+Each folder has a `.ico` with 16, 20, 24, 32, 40, 48, 64, 96 and 256 px, a PNG of each of those sizes, and (for the keycaps) a 1024 px PNG for anything bigger. Microsoft asks for at least 16, 24, 32, 48 and 256; the others are what the title bar, the taskbar and Explorer ask for at 125, 150 and 200 percent scaling, so Windows only ever scales down from a near size. On a tile the key is as big as it can be: 96% of the tile from 48 px up, where its shadow runs off the tile's edge (clipped to the rounded corners), and the whole tile below. At 24 px and below the key is drawn flat with a heavier K, since the shaded one turns to mush. The monogram's largest original is 256 px, so it has no 1024 px version.
 
 ## Regenerating
 

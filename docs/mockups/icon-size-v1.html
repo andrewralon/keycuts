@@ -1,0 +1,273 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: a bigger app icon (v1)</title>
+<style>
+/* icon-size v1: the icon art with a bigger key (A, B) and bigger in the tab bar (R1-R3). Palettes and tab bar copied from window-tabs-v7. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:#172033}
+.grid{display:flex;gap:32px;align-items:flex-start}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#465064;margin-top:12px}
+.cap:first-child{margin-top:0}
+.note{font-size:12.5px;color:#465064;line-height:1.5}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:2px 0}
+
+/* ---------- palettes: Themes/Light.xaml and Dark.xaml after #219, plus the proposed tab bar keys (#218) ---------- */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--hover:#eef3fb;--glow:rgba(37,99,235,.22);
+  --uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --socket1:#f9fafb;--socket2:#e2e7ee;--socketBorder:#bdc5d2;--capGlyph:#172033;--capHover:rgba(23,32,51,.08);--hcLine:transparent}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentText:#6a9eff;--accentSoft:#182a4d;--onAccent:#06090f;--hover:#2c3441;--glow:rgba(79,140,255,.3);
+  --uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a;
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --socket1:#14171d;--socket2:#20242c;--socketBorder:#363d48;--capGlyph:#f3f5f8;--capHover:rgba(255,255,255,.08);--hcLine:transparent}
+/* high contrast (Night sky): Window black, WindowText white, no textures */
+.hc{--surface:#000;--subtle:#000;--border:#fff;--strong:#fff;--text:#fff;--text2:#fff;--text3:#a0a0a0;
+  --rail1:#000;--rail2:#000;--railTex:transparent;--grip:transparent;
+  --tab1:#000;--tab2:#000;--tabTex:transparent;--tabBorder:#fff;--tabBorderOn:#fff;--tabText:#fff;--tabShadow:transparent;
+  --socket1:#000;--socket2:#000;--socketBorder:#fff;--capGlyph:#fff;--capHover:transparent;--hcLine:#fff}
+
+/* ---------- window ---------- */
+.win{background:var(--surface);color:var(--text);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--strong)}
+.w-main{width:600px}             /* MainWidth: what the tab bar needs plus about 60 of empty bar */
+.w-wide{width:840px;height:470px}
+
+/* ---------- tab bar: RailHeight 48 ---------- */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.rail::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--hcLine);z-index:4}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px 0 12px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.socket{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,var(--socket2),var(--socket1));border:1px solid var(--socketBorder);box-shadow:inset 0 1px 3px var(--tabShadow)}
+.socket img{width:20px;height:20px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+
+/* folder tab: TabHeight 40, 8 cut corner, 16 slant, padding 12 left and slant + 8 right, 4 apart */
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 0 12px;display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw:not(.on) .tab::after{content:"";position:absolute;left:12px;right:calc(var(--slant) + 6px);bottom:0;height:5px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08));z-index:0}
+.hc .tw:not(.on) .tab::after{display:none}
+/* high contrast: the line under the bar sits behind the tabs; inactive tabs close their own outline at the base,
+   and the selected tab leaves it open, so its outline runs into the page */
+.hc .rail::after{z-index:0}
+.hc .tw:not(.on) .tab::before{inset:1px}
+.hc .tw.on{filter:none;clip-path:none}
+.hc .tw.on .tab{clip-path:polygon(0 calc(100% + 3px),0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% calc(100% + 3px))}
+.hc .tw.on .tab::after{left:1px;right:1px;height:6px;bottom:-3px}  /* covers the bar's line at the zoomed close-up's fractional pixels */
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+/* caption buttons: CaptionButtonWidth 46 x RailHeight, 10px glyphs */
+.caps{display:flex;align-self:stretch;color:var(--capGlyph)}
+.cb{width:46px;height:48px;display:flex;align-items:center;justify-content:center}
+.cb.dis{color:var(--text3);opacity:.7}
+.cb.hot{background:var(--capHover)}
+.cb.close-hot{background:#c42b1c;color:#fff}
+
+/* ---------- page: PagePadding 24,16,24,24 ---------- */
+.body{padding:16px 24px 24px;flex:1;display:flex;flex-direction:column}
+.flabel{font-size:13px;font-weight:600;margin-bottom:8px}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface)}
+.field.focus{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow)}
+.field.ph{color:var(--text3)}
+.btn{height:36px;padding:0 12px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;font-size:13px;font-weight:600;flex:none}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.sq.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.row{display:flex;gap:8px;align-items:center}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+a{color:var(--accentText);font-weight:600;text-decoration:none}
+
+/* creator */
+.drop{border:1.5px dashed var(--strong);border-radius:12px;background:var(--subtle);padding:16px;display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.tv{font-size:13px;color:var(--text2);word-break:break-all;margin-top:4px;line-height:1.35}
+.gap16{height:16px}
+
+/* footer: 48 min, padding 24,0 */
+.foot{min-height:48px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:12px;color:var(--text2);flex:none}
+.pill{height:22px;border:1px solid var(--strong);border-radius:11px;background:var(--surface);padding:0 10px;display:flex;align-items:center;font-weight:600;font-size:12px;color:var(--text)}
+.upd{display:flex;align-items:center;gap:8px}
+.ghost{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text2);border-radius:5px}
+
+/* manager */
+.srch{flex:1;height:36px;border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+.tbl{margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{height:36px;text-align:left;color:var(--text2);padding:0 12px;background:var(--subtle);border-bottom:1px solid var(--border);font-size:12px;font-weight:600}
+td{height:36px;padding:0 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+td.n{font-weight:600;color:var(--text)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+
+/* settings */
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:24px 0 8px}
+.sec:first-child{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:16px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:4px}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.radio{display:flex;gap:16px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconbtn img{width:20px;height:20px}
+.saved{font-size:12px;color:var(--text2);margin-top:24px;display:flex;align-items:center;gap:4px}
+.endrow{display:flex;justify-content:space-between;margin-top:16px}
+
+/* close-up annotation */
+.anno .brand,.anno .drag{outline:1.5px dashed #2563eb;outline-offset:-1.5px;background-color:rgba(37,99,235,.14)}
+.anno .drag{-webkit-mask-image:none}
+.k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:rgba(37,99,235,.3);outline:1px dashed #2563eb}
+.keys{border-collapse:collapse;font-size:12px;width:100%;margin-top:4px}
+.keys th,.keys td{height:auto;padding:4px 8px;border-bottom:1px solid #cfd5df;text-align:left;color:#172033;background:none;font-size:12px}
+.keys th{color:#465064}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.25);vertical-align:-2px;margin-right:6px}
+code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px}
+/* ---------- icon size v1 ---------- */
+body{background:#e3e7ee}
+.title{font-size:16px;font-weight:700;color:#172033;margin:0 0 4px}
+.lede{font-size:13px;color:#465064;margin:0 0 18px;max-width:1500px;line-height:1.5}
+.sect{font-size:15px;font-weight:700;color:#172033;margin:26px 0 10px}
+.var{display:grid;grid-template-columns:200px auto;gap:18px;align-items:center;margin-bottom:14px}
+.var .lbl b{display:block;font-size:14px;color:#172033}
+.var .lbl span{font-size:12.5px;color:#465064;line-height:1.4}
+.icons{display:flex;gap:18px;align-items:center}
+.strip{display:flex;align-items:end;gap:10px;padding:10px 12px;border-radius:8px}
+.strip.l{background:#f3f3f3}.strip.d{background:#202020}
+.rails{display:grid;grid-template-columns:repeat(2,auto);gap:16px 28px;justify-content:start}
+.railbox{width:430px;border:1px solid var(--strong);border-radius:8px;overflow:hidden;background:var(--surface)}
+.railbox .rail{width:430px}
+.zoom{width:430px;height:150px;overflow:hidden;border:1px solid var(--strong);border-radius:8px;background:var(--surface)}
+.zoom .rail{transform:scale(3);transform-origin:0 0;width:144px}
+.brand .bare{display:block}
+.tab{padding:0 calc(var(--slant) + 8px) 0 12px}
+.rcap{font-size:13px;color:#172033;margin:4px 0 6px}
+.rcap b{font-weight:700}
+.rcap span{color:#465064}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 10v10"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-min" viewBox="0 0 10 10"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-max" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-launch" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+ </defs>
+</svg>
+<p class="title">The app icon, bigger &mdash; v1</p>
+<p class="lede"><b>1 &middot; The icon art.</b> Today the key takes about 82% of the tile, less where it has a shadow (48 px and up), because the box leaves room for the shadow. A and B frame the key alone and let its shadow run off the tile's edge (clipped to the tile), so the key itself grows. <b>3 &middot; The tab bar.</b> Today a 20 px icon sits in a 28 px socket, a square inside a square. All of these are drawn as vectors here; the app uses the icon's PNG frames.</p>
+
+<div class="sect">1 &middot; The icon art</div>
+<div id="art"></div>
+
+<div class="sect">3 &middot; The icon in the tab bar (with art A)</div>
+<div class="rails" id="rails"></div>
+
+<script src="../../tools/icons/keycap.js"></script>
+<script>
+const VIEW = { azimuth: 26, elevation: 48 };
+const KEYS = {
+  white:    { side: '#dfe3ea', top: '#fbfcfd', dishShade: 0.05, legendColor: '#2563eb' },
+  charcoal: { side: '#2a2f38', top: '#353b46', ambient: 0.75, diffuse: 0.55, dishLight: 0.08, rim: 0.05, dishShade: 0.05, legendColor: '#4f8cff' },
+  blue:     { side: '#1f56d0', top: '#2f6df0', ambient: 0.7, diffuse: 0.42, rim: 0.3, dishLight: 0.12, legendColor: '#ffffff' },
+};
+const DARK_TILE = '#20242c', LIGHT_TILE = '#e8ecf2';
+const ICONS = {
+  porcelain: { key: 'charcoal', tile: LIGHT_TILE, shadow: 0.22 },
+  onyx:      { key: 'white', tile: DARK_TILE, shadow: 0.5 },
+  cobalt:    { key: 'blue', tile: LIGHT_TILE, shadow: 0.22 },
+  twilight:  { key: 'blue', tile: DARK_TILE, shadow: 0.5 },
+};
+// v: the key's share of the tile at 48 px and up (big), 32-40 (mid) and 24 and below (small); null is today's tools/icons/app-icon.html
+const VARIANTS = {
+  now: null,
+  A: { big: 0.86, mid: 0.94, small: 0.98 },
+  B: { big: 0.96, mid: 1.0, small: 1.0 },
+};
+let clipId = 0;
+function draw(name, px, v) {
+  const icon = ICONS[name], key = KEYS[icon.key];
+  const small = px <= 24;
+  const withShadow = px >= 48;
+  const svg = renderKey({
+    ...key, ...VIEW,
+    flat: small,
+    tight: !withShadow,
+    square: withShadow && !v,
+    keyBounds: withShadow && !!v,
+    shadowOpacity: icon.shadow,
+    legend: K(key.legendColor, small ? 9.8 : 8.4, small ? 700 : 600),
+  });
+  const share = v ? (withShadow ? v.big : small ? v.small : v.mid) : (withShadow ? 0.94 : small ? 0.9 : 0.82);
+  const k = 100 * share, o = (100 - k) / 2, id = 'tc' + (clipId++);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 100 100">
+    <defs><clipPath id="${id}"><rect width="100" height="100" rx="20"/></clipPath></defs>
+    <rect width="100" height="100" rx="20" fill="${icon.tile}"/>
+    <g clip-path="url(#${id})">${svg.replace('<svg ', `<svg x="${o}" y="${o}" width="${k}" height="${k}" `)}</g></svg>`;
+}
+
+const SIZES = [96, 64, 48, 40, 32, 24, 20, 16];
+const label = { now: ['Now', 'tools/icons today: the key about 82% of the tile, less with a shadow.'],
+  A: ['A &middot; Bigger', 'The key alone takes 86% of the tile at 48 px and up (its shadow clipped to the tile), 94% at 32&ndash;40, 98% at 24 and below.'],
+  B: ['B &middot; Biggest', '96%, then the full tile: the key nearly touches the edges, and most of the shadow is cut off.'] };
+document.getElementById('art').innerHTML = Object.keys(VARIANTS).map(n => `<div class="var">
+  <div class="lbl"><b>${label[n][0]}</b><span>${label[n][1]}</span></div>
+  <div class="icons">${Object.keys(ICONS).map(i => draw(i, 128, VARIANTS[n])).join('')}
+   <div class="strip l">${SIZES.map(s => draw('porcelain', s, VARIANTS[n])).join('')}</div>
+   <div class="strip d">${SIZES.map(s => draw('onyx', s, VARIANTS[n])).join('')}</div></div></div>`).join('');
+
+// ---- tab bar ----
+const use = (id, s) => `<svg width="${s}" height="${s}"><use href="#${id}"/></svg>`;
+function brand(theme, b) {
+  const name = theme === 'light' ? 'porcelain' : 'onyx';
+  const art = b.art === 'now' ? null : VARIANTS[b.art];
+  const icon = draw(name, b.icon, art).replace('<svg ', '<svg class="bare" ');
+  const inner = b.socket ? `<span class="socket" style="width:${b.socket}px;height:${b.socket}px">${icon}</span>` : icon;
+  return `<div class="brand" style="padding:0 16px 0 ${b.left}px">${inner}keycuts</div>`;
+}
+function rail(theme, b) {
+  const tab = (label, on) => `<div class="tw${on ? ' on' : ''}"><div class="tab"><span>${label}</span></div></div>`;
+  return `<div class="rail">${brand(theme, b)}<div class="tabs">${tab('creator', true)}${tab('manager')}${tab('', false).replace('<span></span>', use('i-gear', 16))}</div><div class="drag"></div></div>`;
+}
+const BRANDS = [
+  { key: 'now', cap: '<b>Now</b> <span>&middot; a 20 icon in a 28 socket, today&rsquo;s art</span>', art: 'now', socket: 28, icon: 20, left: 12 },
+  { key: 'R1', cap: '<b>R1</b> <span>&middot; the same 28 socket, a 24 icon inside (2 around it)</span>', art: 'A', socket: 28, icon: 24, left: 12 },
+  { key: 'R2', cap: '<b>R2</b> <span>&middot; no socket: the icon&rsquo;s own tile, 32</span>', art: 'A', icon: 32, left: 10 },
+  { key: 'R3', cap: '<b>R3</b> <span>&middot; no socket, 36 (6 above and below in the 48 bar)</span>', art: 'A', icon: 36, left: 8 },
+];
+document.getElementById('rails').innerHTML = BRANDS.map(b => ['dark', 'light'].map(t => `<div>
+  <div class="rcap">${b.cap} &middot; ${t}</div>
+  <div class="railbox ${t}">${rail(t, b)}</div>
+  <div class="zoom ${t}" style="margin-top:6px">${rail(t, b)}</div></div>`).join('')).join('');
+</script>
+</body></html>

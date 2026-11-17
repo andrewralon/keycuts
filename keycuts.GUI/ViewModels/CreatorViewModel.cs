@@ -171,10 +171,6 @@ namespace keycuts.GUI.ViewModels
 
         private string description = string.Empty;
 
-        private bool isDescriptionVisible;
-
-        private readonly IDescriptionVisibilityStore? descriptionStore;
-
         private int keycutCount;
 
         private KeycutKind? targetKind;
@@ -222,23 +218,17 @@ namespace keycuts.GUI.ViewModels
         /// existing one); defaults to <see cref="KeycutCreator"/>. Replace is true only after the user confirmed it. Tests pass a fake.</param>
         /// <param name="checkName">What a name runs into (#153), checked while typing and before each create; defaults to
         /// <see cref="NameCheck.Run"/> on this machine. Tests pass a fake.</param>
-        /// <param name="descriptionStore">Remembers whether the description box is shown (#205): read once here, written each
-        /// time the user shows or hides it. Without one (tests, design data) the box starts hidden and nothing is remembered.</param>
         public CreatorViewModel(
             ICommand showManagerCommand,
             ICommand openSettingsCommand,
             Func<string, string, string, bool, bool, CancellationToken, Task<CreateResult>>? createAsync = null,
-            Func<string, NameCheck>? checkName = null,
-            IDescriptionVisibilityStore? descriptionStore = null)
+            Func<string, NameCheck>? checkName = null)
         {
             ShowManagerCommand = showManagerCommand;
             OpenSettingsCommand = openSettingsCommand;
             this.createAsync = createAsync ?? DefaultCreateAsync;
             this.checkName = checkName ?? DefaultCheckName;
-            this.descriptionStore = descriptionStore;
-            isDescriptionVisible = descriptionStore?.Load() ?? false;
             CreateCommand = new AsyncRelayCommand(CreateAsync, () => CanCreate);
-            ToggleDescriptionCommand = new RelayCommand(ToggleDescription, () => IsInputEnabled);
             BrowseFileCommand = new RelayCommand(() => BrowseFileRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
             BrowseFolderCommand = new RelayCommand(() => BrowseFolderRequested?.Invoke(this, EventArgs.Empty), () => IsInputEnabled);
         }
@@ -265,12 +255,6 @@ namespace keycuts.GUI.ViewModels
         public TimeSpan SuccessDuration { get; set; } = TimeSpan.FromSeconds(3);
 
         public AsyncRelayCommand CreateCommand { get; }
-
-        /// <summary>
-        /// The description label, "Description (optional)" either way: it shows the field and moves the focus into it, or hides it
-        /// again. Either way the choice is remembered.
-        /// </summary>
-        public ICommand ToggleDescriptionCommand { get; }
 
         public ICommand BrowseFileCommand { get; }
 
@@ -502,7 +486,7 @@ namespace keycuts.GUI.ViewModels
         }
 
         /// <summary>
-        /// The optional note stored in the keycut (#162). Text is never hidden: setting one shows the field. Changing it
+        /// The optional note stored in the keycut (#162), its box always shown (the owner, 2026-11-17). Changing it
         /// clears the success message and any submit error, as typing in the other fields does.
         /// </summary>
         public string Description
@@ -514,90 +498,16 @@ namespace keycuts.GUI.ViewModels
                 {
                     successName = null;
                     submitError = null;
-
-                    if (description.Length > 0 && !isDescriptionVisible)
-                    {
-                        // Text is never hidden. Not remembered: only the user's own show and hide is
-                        isDescriptionVisible = true;
-                        RaiseDescriptionVisibilityChanged();
-                    }
-
                     RaiseStateChanged();
                 }
             }
         }
 
         /// <summary>
-        /// The description field is shown: the last choice (remembered between launches), or while it holds text.
-        /// Hidden by default. A hidden description is not saved, whatever the field still holds.
-        /// </summary>
-        public bool IsDescriptionVisible
-        {
-            get { return isDescriptionVisible || DescriptionAlwaysShown; }
-        }
-
-        /// <summary>
-        /// The form always shows its description box, with no way to hide it (the Manager's create row): what it holds is
-        /// always saved. The Creator's box can be hidden instead (<see cref="IsDescriptionVisible"/>).
-        /// </summary>
-        public bool DescriptionAlwaysShown { get; init; }
-
-        /// <summary>
         /// A create empties the fields for the next keycut and puts the focus back in the target (the Manager's create row, where the
         /// new keycut shows in the table below). The Creator keeps them instead (#205).
         /// </summary>
         public bool ClearsAfterCreate { get; init; }
-
-        /// <summary>The field is hidden, and pressing the label shows it.</summary>
-        public bool ShowAddDescription
-        {
-            get { return !isDescriptionVisible; }
-        }
-
-        /// <summary>The label above the description field, which is also the button that shows or hides it. The same both ways.</summary>
-        public string DescriptionToggleText
-        {
-            get { return DescriptionLabel; }
-        }
-
-        /// <summary>What a screen reader calls the label button: the label, or what pressing it does while the field is shown.</summary>
-        public string DescriptionToggleName
-        {
-            get { return isDescriptionVisible ? "Hide description" : DescriptionLabel; }
-        }
-
-        private const string DescriptionLabel = "Description (optional)";
-
-        private void ToggleDescription()
-        {
-            SetDescriptionVisible(!isDescriptionVisible);
-
-            if (isDescriptionVisible)
-            {
-                FocusRequested?.Invoke(this, CreatorFocusTarget.Description);
-            }
-        }
-
-        // The user's choice: remembered, unlike the field showing itself because it holds text
-        private void SetDescriptionVisible(bool visible)
-        {
-            if (isDescriptionVisible == visible)
-            {
-                return;
-            }
-
-            isDescriptionVisible = visible;
-            RaiseDescriptionVisibilityChanged();
-            descriptionStore?.Save(visible);
-        }
-
-        private void RaiseDescriptionVisibilityChanged()
-        {
-            OnPropertyChanged(nameof(IsDescriptionVisible));
-            OnPropertyChanged(nameof(ShowAddDescription));
-            OnPropertyChanged(nameof(DescriptionToggleText));
-            OnPropertyChanged(nameof(DescriptionToggleName));
-        }
 
         public int KeycutCount
         {
@@ -984,8 +894,8 @@ namespace keycuts.GUI.ViewModels
             // What the confirmation compares and shows, as the inline warning does: the resolved target (a typed .lnk or .url
             // resolves to its destination); the create itself still gets what was typed and resolves it again
             var confirmTarget = EffectiveTarget;
-            // A hidden box is out of sight, so what it still holds isn't saved
-            var trimmedDescription = IsDescriptionVisible ? description.Trim() : string.Empty;
+
+            var trimmedDescription = description.Trim();
 
             // Read Shift now: holding it while pressing Enter or clicking Create flips the setting for this keycut
             var useEnvironmentVariables = UseEnvironmentVariables;

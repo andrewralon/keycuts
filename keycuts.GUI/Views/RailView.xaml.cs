@@ -71,10 +71,13 @@ namespace keycuts.GUI.Views
             UpdateAppIcon();
         }
 
-        /// <summary>The icon picked in Settings, at the window's icon: the 256 px frame drawn at 20, so it is sharp at any DPI.</summary>
+        /// <summary>
+        /// The icon picked in Settings, always without its background (the bar is its background): the 256 px frame drawn at 36,
+        /// so it is sharp at any DPI.
+        /// </summary>
         private void UpdateAppIcon()
         {
-            AppIcon.Source = AppIcons.GetPreview(AppIconManager.Current);
+            AppIcon.Source = AppIcons.GetPreview(AppIconManager.TabBar);
         }
 
         private void Minimize_Click(object sender, RoutedEventArgs e)

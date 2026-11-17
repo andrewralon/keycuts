@@ -49,10 +49,10 @@
                 <TextBlock x:Name="NameErrorText" Text="{Binding NameError}" Style="{StaticResource ErrorText}"
                            Visibility="{Binding HasNameError, Converter={StaticResource BoolToVisibility}}" />
 
-                <TextBlock Text="Description (optional)" Style="{StaticResource FieldLabel}" Margin="0,16,0,8" />
+                <TextBlock Text="Description" Style="{StaticResource FieldLabel}" Margin="0,16,0,8" />
                 <TextBox x:Name="TextboxDescription" Style="{StaticResource AppTextBox}"
                          Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                         themes:TextBoxChrome.Placeholder="e.g. Recent paintings"
+                         themes:TextBoxChrome.Placeholder="e.g. my paintings (optional)"
                          IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
 
                 <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Style="{StaticResource ErrorText}"

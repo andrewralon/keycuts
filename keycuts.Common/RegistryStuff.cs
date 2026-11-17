@@ -27,17 +27,14 @@ namespace keycuts.Common
         /// <summary>The app icon picked in Settings, by its <see cref="AppIconChoice"/> name. Written as soon as one is picked.</summary>
         public static readonly string AppIconKeyName = "AppIcon";
 
+        /// <summary>Show the app icon without its background (the keycap alone) on the windows and the shortcuts. Off unless set to 1.</summary>
+        public static readonly string AppIconTransparentKeyName = "AppIconTransparent";
+
         /// <summary>Save new file and folder keycuts with environment variables (#31). Off unless set.</summary>
         public static readonly string UseEnvironmentVariablesKeyName = "UseEnvironmentVariables";
 
         /// <summary>Set once the first-run welcome panel was dismissed or used, so it never shows again.</summary>
         public static readonly string WelcomeDismissedKeyName = "WelcomeDismissed";
-
-        /// <summary>
-        /// Whether the Creator shows its description box (#205): written when the user shows or hides it, read when the Creator
-        /// opens. Hidden unless set to 1.
-        /// </summary>
-        public static readonly string ShowDescriptionKeyName = "ShowDescription";
 
         /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
         public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
@@ -147,14 +144,14 @@ namespace keycuts.Common
             return AppIconChoices.Parse(ReadValue(AppIconKeyName) as string);
         }
 
+        public static bool GetAppIconTransparent()
+        {
+            return ReadValue(AppIconTransparentKeyName) is int raw && raw != 0;
+        }
+
         public static bool GetWelcomeDismissed()
         {
             return ReadValue(WelcomeDismissedKeyName) is int raw && raw != 0;
-        }
-
-        public static bool GetShowDescription()
-        {
-            return ReadValue(ShowDescriptionKeyName) is int raw && raw != 0;
         }
 
         public static bool GetCheckForUpdates()
@@ -252,6 +249,11 @@ namespace keycuts.Common
             SetRegistryValue(AppIconKeyName, choice.ToString(), RegistryValueKind.String);
         }
 
+        public static void SetAppIconTransparent(bool transparent)
+        {
+            SetRegistryValue(AppIconTransparentKeyName, transparent ? 1 : 0, RegistryValueKind.DWord);
+        }
+
         public static void SetWelcomeDismissed()
         {
             SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
@@ -266,11 +268,6 @@ namespace keycuts.Common
         public static void SetRunCountingFolder(string folder)
         {
             SetRegistryValue(RunCountingFolderKeyName, folder ?? "", RegistryValueKind.String);
-        }
-
-        public static void SetShowDescription(bool showDescription)
-        {
-            SetRegistryValue(ShowDescriptionKeyName, showDescription ? 1 : 0, RegistryValueKind.DWord);
         }
 
         public static void SetCheckForUpdates(bool checkForUpdates)

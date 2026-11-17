@@ -687,8 +687,9 @@ namespace keycuts.Tests
                 var captionsStart = captions.TranslatePoint(new Point(0, 0), bar).X;
                 var empty = captionsStart - tabsEnd;
 
-                // #218 asked for about 60 beyond the tabs; the text-only tabs leave about 110 at the same 600, which the owner kept
-                Assert.InRange(empty, 100, 125);
+                // #218 asked for about 60 beyond the tabs; the text-only tabs left about 110 at the same 600, and the names at 16 with
+                // 24 after keycuts (the owner, 2026-11-17) leave about 77
+                Assert.InRange(empty, 65, 90);
             });
         }
 
@@ -711,16 +712,18 @@ namespace keycuts.Tests
             });
         }
 
+        // The keycap alone at 36, in no socket (docs/mockups/icon-size-v2, R3), whether or not the other icons are transparent
         [Fact]
-        public void TheAppIcon_InTheBar_IsTheOneFromSettings_AtTwenty()
+        public void TheAppIcon_InTheBar_IsTheOneFromSettings_WithoutItsBackground_At36()
         {
             WithWindow((window, shell) =>
             {
                 var icon = Descendants<System.Windows.Controls.Image>(window).Single(i => i.Name == "AppIcon");
-                Assert.NotNull(icon.Source);
-                Assert.Equal(20, icon.Width);
-                Assert.Equal(20, icon.Height);
-                Assert.Equal(28, ((FrameworkElement)icon.Parent).Width);
+                Assert.Same(keycuts.GUI.Themes.AppIcons.GetPreview(keycuts.GUI.Themes.AppIcons.GetTransparent(keycuts.GUI.Themes.AppIconManager.Current)), icon.Source);
+                Assert.Equal(36, icon.Width);
+                Assert.Equal(36, icon.Height);
+                Assert.IsType<StackPanel>(icon.Parent);
+                Assert.Equal(8, ((FrameworkElement)icon.Parent).Margin.Left);
             });
         }
 

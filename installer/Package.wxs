@@ -25,6 +25,10 @@
     </Property>
     <!-- Windows Installer has no standard directory for the profile itself. Must match Runner.DefaultOutputFolder; a test compares the two. -->
     <SetProperty Id="OUTPUTFOLDER" Value="[%USERPROFILE]\Shortcuts" After="AppSearch" Sequence="both" Condition="NOT OUTPUTFOLDER" />
+    <!-- #248: the folder the app last put the shims in (a folder changed in Settings or by the CLI's -o), so uninstall removes them there too -->
+    <Property Id="SHIMFOLDER">
+      <RegistrySearch Id="ExistingShimFolder" Root="HKCU" Key="Software\TeamRalon\keycuts" Name="CommandShimFolder" Type="raw" />
+    </Property>
     <Property Id="CONTEXTMENUCHOICE">
       <RegistrySearch Id="ExistingContextMenuChoice" Root="HKCU" Key="Software\TeamRalon\keycuts" Name="RightClickContextMenu" Type="raw" />
     </Property>
@@ -57,6 +61,9 @@
         <RegistryValue Root="HKCU" Key="Software\TeamRalon\keycuts" Name="CommandShimsInstalled" Type="integer" Value="1" KeyPath="yes" />
         <File Id="KeycutsCmd" Source="$(PublishDir)\shims\keycuts.cmd" KeyPath="no" />
         <File Id="KeypasteCmd" Source="$(PublishDir)\shims\keypaste.cmd" KeyPath="no" />
+        <!-- The app's copies in the folder it last put them in; nothing when SHIMFOLDER isn't set -->
+        <RemoveFile Id="RemoveMovedKeycutsCmd" Property="SHIMFOLDER" Name="keycuts.cmd" On="uninstall" />
+        <RemoveFile Id="RemoveMovedKeypasteCmd" Property="SHIMFOLDER" Name="keypaste.cmd" On="uninstall" />
       </Component>
     </ComponentGroup>
 

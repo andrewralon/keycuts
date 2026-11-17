@@ -111,6 +111,12 @@ namespace keycuts.Common
                     }
                     else
                     {
+                        // -o moved the folder, and PATH with it: the keycuts and keypaste commands follow (#248)
+                        if (_fixedOutputFolder == null && !NameConflicts.IsSameFolder(currentOutputFolder, outputFolder))
+                        {
+                            KeepCommandShims(outputFolder);
+                        }
+
                         var createShortcutResult = CreateShortcutFile(shortcut, force, description);
 
                         result = createShortcutResult ?
@@ -230,14 +236,45 @@ namespace keycuts.Common
             }
         }
 
-        /// <summary>Saves the folder and moves the PATH entry with it, so Win+R keeps finding keycuts. False if PATH couldn't be updated.</summary>
+        /// <summary>
+        /// Saves the folder and moves the PATH entry with it, so Win+R keeps finding keycuts, and the keycuts and keypaste commands
+        /// with them (#248). False if PATH couldn't be updated.
+        /// </summary>
         public bool ChangeOutputFolder(string outputFolder)
         {
             var currentOutputFolder = GetOutputFolder();
 
             SetOutputFolder(outputFolder, currentOutputFolder);
 
-            return _pathUpdater.AddToOrReplace(currentOutputFolder, outputFolder);
+            var pathUpdated = _pathUpdater.AddToOrReplace(currentOutputFolder, outputFolder);
+
+            if (_fixedOutputFolder == null && !NameConflicts.IsSameFolder(currentOutputFolder, outputFolder))
+            {
+                KeepCommandShims(outputFolder);
+            }
+
+            return pathUpdated;
+        }
+
+        /// <summary>
+        /// keycuts.cmd and keypaste.cmd into <paramref name="folder"/>, out of the folder they were last put in (#248, recorded in HKCU).
+        /// Only for the installed copy, whose keycuts.exe they run, and never under the Debug folder override
+        /// (<see cref="CommandShims.ShouldKeep"/>). Wherever the folder changes, the GUI's Settings or the CLI's <c>-o</c>, and at the
+        /// GUI's start. Never throws.
+        /// </summary>
+        public void KeepCommandShims(string folder)
+        {
+            try
+            {
+                if (CommandShims.ShouldKeep(RegistryStuff.GetInstallFolder(), AppContext.BaseDirectory, DebugOverrides.GetOutputFolder() != null))
+                {
+                    CommandShims.Keep(RegistryStuff.GetCommandShimFolder(), folder, RegistryStuff.SetCommandShimFolder);
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is System.Security.SecurityException)
+            {
+                System.Diagnostics.Debug.WriteLine($"keycuts: couldn't put the keycuts commands in \"{folder}\": {ex.Message}");
+            }
         }
 
         /// <summary>Adds or removes the Explorer verbs if they differ from what's asked for. False on failure.</summary>

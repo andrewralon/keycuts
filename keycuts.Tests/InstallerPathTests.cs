@@ -54,6 +54,21 @@ namespace keycuts.Tests
             Assert.Contains(@"""HKCU\Software\TeamRalon\keycuts"" /v InstallFolder", CommandShims.Content("keycuts"));
         }
 
+        // Review of #253: shims the app moved to another folder would outlive the uninstall
+        [Fact]
+        public void Uninstall_removes_the_shims_from_the_folder_the_app_last_put_them_in()
+        {
+            var wxs = Wxs();
+
+            var search = wxs.Descendants().Single(e => e.Name.LocalName == "RegistrySearch" && (string)e.Attribute("Id") == "ExistingShimFolder");
+            Assert.Equal(RegistryStuff.CommandShimFolderKeyName, (string)search.Attribute("Name"));
+            Assert.Equal("SHIMFOLDER", (string)search.Parent.Attribute("Id"));
+
+            var removed = wxs.Descendants().Where(e => e.Name.LocalName == "RemoveFile" && (string)e.Attribute("Property") == "SHIMFOLDER").ToList();
+            Assert.Equal(CommandShims.FileNames.OrderBy(n => n), removed.Select(e => (string)e.Attribute("Name")).OrderBy(n => n));
+            Assert.All(removed, e => Assert.Equal("uninstall", (string)e.Attribute("On")));
+        }
+
         [Fact]
         public void The_project_publishes_the_shims_into_a_shims_folder()
         {

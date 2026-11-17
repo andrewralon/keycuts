@@ -226,13 +226,8 @@ namespace keycuts.GUI
         {
             try
             {
-                if (!Common.CommandShims.ShouldKeep(Common.RegistryStuff.GetInstallFolder(), AppContext.BaseDirectory, Common.DebugOverrides.GetOutputFolder() != null))
-                {
-                    return;
-                }
-
-                Common.CommandShims.Keep(Common.RegistryStuff.GetCommandShimFolder(), new Common.Runner().GetOutputFolder(),
-                    Common.RegistryStuff.SetCommandShimFolder);
+                var runner = new Common.Runner();
+                runner.KeepCommandShims(runner.GetOutputFolder());
             }
             catch (Exception ex)
             {

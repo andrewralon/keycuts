@@ -289,7 +289,7 @@ namespace keycuts.Common
                 return false;
             }
 
-            return SameFolder(oldFolder, folder) || (folders ?? Array.Empty<string>()).Any(done => SameFolder(done, folder));
+            return NameConflicts.IsSameFolder(oldFolder, folder) || ContainsFolder(folders, folder);
         }
 
         /// <summary>Adds <paramref name="folder"/> to <see cref="RunCountingFoldersKeyName"/>, unless it is there already.</summary>
@@ -315,15 +315,17 @@ namespace keycuts.Common
             return ReadValue(CommandShimFolderKeyName) as string;
         }
 
+        /// <summary>Stored with a trailing backslash: the MSI reads it as a folder property to remove the shims on uninstall.</summary>
         public static void SetCommandShimFolder(string folder)
         {
-            SetRegistryValue(CommandShimFolderKeyName, folder ?? "", RegistryValueKind.String);
+            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + "\\";
+            SetRegistryValue(CommandShimFolderKeyName, value, RegistryValueKind.String);
         }
 
         /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>
         public static bool IsMigrationDone(string folder)
         {
-            return IsRunCountingDone(null, ReadValue(MigratedFoldersKeyName) as string[], folder);
+            return ContainsFolder(ReadValue(MigratedFoldersKeyName) as string[], folder);
         }
 
         /// <summary>Adds <paramref name="folder"/> to <see cref="MigratedFoldersKeyName"/>, unless it is there already.</summary>
@@ -342,7 +344,7 @@ namespace keycuts.Common
         {
             var current = folders ?? Array.Empty<string>();
 
-            if (string.IsNullOrWhiteSpace(folder) || current.Any(done => SameFolder(done, folder)))
+            if (string.IsNullOrWhiteSpace(folder) || ContainsFolder(current, folder))
             {
                 return null;
             }
@@ -350,15 +352,10 @@ namespace keycuts.Common
             return current.Append(folder).ToArray();
         }
 
-        // A trailing backslash or a change of case is the same folder
-        private static bool SameFolder(string a, string b)
+        /// <summary>Whether a stored list of folders has <paramref name="folder"/>, as <see cref="NameConflicts.IsSameFolder"/> compares them.</summary>
+        public static bool ContainsFolder(string[] folders, string folder)
         {
-            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
-            {
-                return false;
-            }
-
-            return string.Equals(a.Trim().TrimEnd('\\', '/'), b.Trim().TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+            return (folders ?? Array.Empty<string>()).Any(done => NameConflicts.IsSameFolder(done, folder));
         }
 
         public static void SetCheckForUpdates(bool checkForUpdates)

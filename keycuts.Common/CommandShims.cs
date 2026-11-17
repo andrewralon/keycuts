@@ -43,6 +43,8 @@ namespace keycuts.Common
                     : "@REM keycuts on PATH: keycuts keeps this file in the keycuts folder, which is on PATH (#248).",
                 "@REM It runs keycuts.exe from the install folder the installer recorded. Changes to this file are replaced.",
                 "@SETLOCAL",
+                // A KEYCUTS_DIR the caller has set must not stand in for a missing InstallFolder
+                "@SET \"KEYCUTS_DIR=\"",
                 "@FOR /F \"skip=2 tokens=2,*\" %%A IN ('REG QUERY \"HKCU\\Software\\TeamRalon\\keycuts\" /v InstallFolder 2^>NUL') DO @SET \"KEYCUTS_DIR=%%B\"",
                 "@IF NOT DEFINED KEYCUTS_DIR (ECHO keycuts isn't installed: install it again, or run keycuts.exe from its folder. 1>&2& EXIT /B 2)",
                 paste ? "@\"%KEYCUTS_DIR%\\keycuts.exe\" paste %*" : "@\"%KEYCUTS_DIR%\\keycuts.exe\" %*"
@@ -109,12 +111,7 @@ namespace keycuts.Common
         /// </summary>
         public static bool ShouldKeep(string installFolder, string runningFolder, bool usesDebugFolder)
         {
-            if (usesDebugFolder || string.IsNullOrWhiteSpace(installFolder) || string.IsNullOrWhiteSpace(runningFolder))
-            {
-                return false;
-            }
-
-            return string.Equals(installFolder.Trim().TrimEnd('\\', '/'), runningFolder.Trim().TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+            return !usesDebugFolder && NameConflicts.IsSameFolder(installFolder, runningFolder);
         }
 
         /// <summary>The shims into <paramref name="newFolder"/>, and out of <paramref name="oldFolder"/> when that is another folder.</summary>

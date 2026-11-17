@@ -163,6 +163,13 @@ namespace keycuts.Common
                         continue;
                     }
 
+                    // Skipped before the backup, so a file that stays read-only doesn't get a new backup folder on every start
+                    if ((File.GetAttributes(file) & FileAttributes.ReadOnly) != 0)
+                    {
+                        result.Skipped.Add(Path.GetFileName(file));
+                        continue;
+                    }
+
                     plans.Add(plan);
                 }
                 catch (Exception ex) when (IsFileError(ex))

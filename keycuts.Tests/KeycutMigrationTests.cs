@@ -253,6 +253,23 @@ namespace keycuts.Tests
             Assert.Equal(new[] { _folder }, done);
         }
 
+        // Review of #253: the backup was made before the read-only file was skipped, so every start added a backup folder
+        [Fact]
+        public void AFileThatStaysReadOnly_GetsNoBackup_StartAfterStart()
+        {
+            var locked = Write("a.bat", OldFolderKeycut(Path.Combine(_folder, "a.bat")));
+            File.SetAttributes(locked, FileAttributes.ReadOnly);
+
+            for (var start = 0; start < 3; start++)
+            {
+                var result = KeycutMigration.Run(_folder, Now.AddDays(start));
+                Assert.Equal(new[] { "a.bat" }, result.Skipped);
+                Assert.Null(result.BackupFolder);
+            }
+
+            Assert.False(Directory.Exists(Path.Combine(_folder, KeycutMigration.BackupFolderName)));
+        }
+
         [Fact]
         public void AFolderAlreadyDone_IsntRead()
         {

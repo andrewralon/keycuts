@@ -296,6 +296,32 @@ namespace keycuts.Tests
             }, withKeycuts: true);
         }
 
+        // As the window widens the fixed columns come back one at a time: Runs, then Last run, then Modified
+        [Theory]
+        [InlineData(720, "")]
+        [InlineData(767, "")]
+        [InlineData(768, "Runs")]
+        [InlineData(827, "Runs")]
+        [InlineData(828, "Runs Last run")]
+        [InlineData(1087, "Runs Last run")]
+        [InlineData(1088, "Runs Last run Modified")]
+        public void Manager_ShowsItsFixedColumns_OneAtATime(double width, string expected)
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+                window.Width = width;
+                Settle(window);
+
+                var table = (DataGrid)Named(window, "Table");
+                var shown = new[] { 4, 5, 6 }
+                    .Where(i => table.Columns[i].Visibility == Visibility.Visible)
+                    .Select(i => ((ContentControl)table.Columns[i].Header).Content);
+                Assert.Equal(expected, string.Join(" ", shown));
+            }, withKeycuts: true);
+        }
+
         [Fact]
         public void SettingsFromTheCreator_TakesTheLargeSize()
         {

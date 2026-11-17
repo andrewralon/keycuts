@@ -533,7 +533,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <!-- #187: how often each keycut runs and when it last did, for cleaning up. They make way only after Modified does
+            <!-- #187: how often each keycut runs and when it last did, for cleaning up. Last run makes way after Modified, and Runs last
                  (TableHost_SizeChanged). A dash is no record, which isn't the same as 0. Their headers say when counting started (#235),
                  so a low count reads as new rather than unused. -->
             <DataGridTemplateColumn x:Name="RunsColumn" Width="64" MinWidth="64" CanUserResize="False"

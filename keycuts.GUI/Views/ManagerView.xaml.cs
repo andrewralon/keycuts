@@ -50,11 +50,18 @@ namespace keycuts.GUI.Views
         /// </summary>
         internal const double ModifiedColumnMinTableWidth = 1040;
 
-        /// <summary>The table width below which Runs and Last run are hidden too (#187), after Modified.</summary>
-        internal const double UsageColumnsMinTableWidth = 780;
+        /// <summary>The table width below which Last run is hidden too (#187), after Modified.</summary>
+        internal const double LastRunColumnMinTableWidth = 780;
+
+        /// <summary>
+        /// The table width below which Runs is hidden, last. One column at a time: as the window widens Runs, the count a cleanup
+        /// sorts by, shows first (window 768), then Last run (828), then Modified (1088). The table is the window less 48.
+        /// </summary>
+        internal const double RunsColumnMinTableWidth = 720;
 
         // Round the table's corners so the pinned header doesn't poke out of the border, and drop the fixed columns when the
-        // window is narrow, Modified first (at its minimum width the other columns' minimum widths already fill the table).
+        // window is narrow, one at a time: Modified first, then Last run, then Runs (at its minimum width the other columns'
+        // minimum widths already fill the table).
         private void TableHost_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var radius = TableHost.CornerRadius.TopLeft;
@@ -62,8 +69,8 @@ namespace keycuts.GUI.Views
 
             var width = TableHost.ActualWidth;
             var changed = SetVisible(ModifiedColumn, width >= ModifiedColumnMinTableWidth);
-            changed |= SetVisible(RunsColumn, width >= UsageColumnsMinTableWidth);
-            changed |= SetVisible(LastRunColumn, width >= UsageColumnsMinTableWidth);
+            changed |= SetVisible(LastRunColumn, width >= LastRunColumnMinTableWidth);
+            changed |= SetVisible(RunsColumn, width >= RunsColumnMinTableWidth);
 
             if (changed)
             {

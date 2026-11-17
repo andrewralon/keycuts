@@ -219,6 +219,51 @@ namespace keycuts.Tests
             Assert.Equal("https://a.com/old", resolved.Text);
         }
 
+        // Review of #253: an IF's block on its own line isn't evaluated, so what it sets is unknown, not the value from before
+        [Fact]
+        public void AOneLineBlock_MakesWhatItSetsUnknown()
+        {
+            Assert.Null(Resolve("%A%", "SET A=old", "IF \"%~1\"==\"\" (SET A=https://x.com) ELSE (SET A=%~1)", "START \"\" %A%"));
+        }
+
+        [Theory]
+        [InlineData("IF \"%~1\"==\"\" GOTO :EOF")]
+        [InlineData("IF \"%~1\"==\"\" EXIT /B")]
+        [InlineData("IF EXIST C:\\flag GOTO done")]
+        public void AnIfThatMayJumpAway_BeforeTheLaunchLine_StopsEvaluation(string line)
+        {
+            Assert.Null(Resolve("%U%", "SET U=https://a.com", line, "START \"\" %U%"));
+        }
+
+        [Fact]
+        public void AnIfThatJumpsOnlyWithAnArgument_DoesntStop()
+        {
+            Assert.Equal("https://a.com", Resolve("%U%", "SET U=https://a.com", "IF NOT \"%~1\"==\"\" GOTO search", "START \"\" %U%").Text);
+        }
+
+        [Fact]
+        public void ANestedBlock_SeesTheValuesFromBeforeTheOutermostBlock()
+        {
+            var resolved = Resolve("%B%",
+                "SET A=old",
+                "IF \"%~1\"==\"\" (",
+                "  SET A=new",
+                "  IF \"%~2\"==\"\" (",
+                "    SET B=https://a.com/%A%",
+                "  )",
+                ")",
+                "START \"\" %B%");
+
+            Assert.Equal("https://a.com/old", resolved.Text);
+        }
+
+        [Fact]
+        public void AQuotedTargetOnTheLaunchLine_KeepsItsCarets()
+        {
+            Assert.Equal("https://h/?q=a^b", Resolve("%U%", "SET \"U=https://h/?q=a^b\"", "START \"\" \"%U%\"").Text);
+            Assert.Equal("https://h/?q=ab", Resolve("%U%", "SET \"U=https://h/?q=a^b\"", "START \"\" %U%").Text);
+        }
+
         [Fact]
         public void ASetInAnUndecidedBlock_IsUnknown()
         {

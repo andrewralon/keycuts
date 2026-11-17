@@ -41,7 +41,9 @@ namespace keycuts.Common
         private static readonly Regex NoArgumentIf = new Regex(
             @"^IF\s+(?<not>NOT\s+)?(?:""%~?(?:\d|\*)""\s*==\s*""""|""""\s*==\s*""%~?(?:\d|\*)"")\s*(?<rest>.*)$", RegexOptions.IgnoreCase);
 
-        private static readonly Regex StopsEvaluation = new Regex(@"^(?::|GOTO\b|CALL\b|FOR\b|ENDLOCAL\b)", RegexOptions.IgnoreCase);
+        private static readonly Regex StopsEvaluation = new Regex(@"^(?::|GOTO\b|CALL\b|FOR\b|ENDLOCAL\b|EXIT\b)", RegexOptions.IgnoreCase);
+
+        private static readonly Regex JumpsAway = new Regex(@"\b(?:GOTO|CALL|EXIT)\b", RegexOptions.IgnoreCase);
 
         private static readonly Regex VariableReference = new Regex(@"%(?<name>[A-Za-z_][^%:\s]*)%");
 
@@ -91,7 +93,7 @@ namespace keycuts.Common
             }
 
             var state = new State { Environment = environment ?? (_ => null) };
-            Run(lines, 0, launch, true, false, state, out _);
+            Run(lines, 0, launch, true, false, null, state, out _);
 
             // Only a target that names a variable set before the launch line is the script's to fill in
             var named = VariableReference.Matches(written).Select(m => m.Groups["name"].Value).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -101,7 +103,12 @@ namespace keycuts.Common
                 return null;
             }
 
-            var text = Unescape(Expand(written, state.Variables, state)).Trim();
+            // cmd expands %…% in the launch line, then reads its carets: outside quotes ^& is &, inside them a caret stays
+            var launchLine = lines[launch];
+            var at = launchLine.IndexOf(written, StringComparison.Ordinal);
+            var quoted = at > 0 && launchLine[at - 1] == '"';
+            var expanded = Expand(written, state.Variables, state);
+            var text = (quoted ? expanded : Unescape(expanded)).Trim();
             if (string.Equals(text, written, StringComparison.Ordinal))
             {
                 return null;
@@ -114,11 +121,16 @@ namespace keycuts.Common
             return new ResolvedTarget(text, used, state.UsedNoArguments);
         }
 
-        /// <summary>Runs lines [start, end). <paramref name="active"/>: true runs them, false skips them, null means maybe.</summary>
-        private static void Run(IReadOnlyList<string> lines, int start, int end, bool? active, bool inBlock, State state, out int next)
+        /// <summary>
+        /// Runs lines [start, end). <paramref name="active"/>: true runs them, false skips them, null means maybe.
+        /// <paramref name="outerSnapshot"/> is the enclosing block's, for a block inside a block.
+        /// </summary>
+        private static void Run(IReadOnlyList<string> lines, int start, int end, bool? active, bool inBlock, Dictionary<string, Value> outerSnapshot,
+            State state, out int next)
         {
-            // cmd expands %…% in a whole block before running it, so a block sees the values from before it
-            var snapshot = Copy(state.Variables);
+            // cmd expands %…% in a whole block, the blocks inside it included, before running it: a block sees the values from
+            // before the outermost block it is in
+            var snapshot = inBlock ? outerSnapshot ?? Copy(state.Variables) : null;
             var expandFrom = inBlock ? snapshot : state.Variables;
             var i = start;
 
@@ -161,7 +173,7 @@ namespace keycuts.Common
 
                 if (line.StartsWith("IF", StringComparison.OrdinalIgnoreCase) && line.Length > 2 && char.IsWhiteSpace(line[2]))
                 {
-                    i = If(lines, line, i, end, active, state, expandFrom);
+                    i = If(lines, line, i, end, active, state, expandFrom, snapshot);
                     continue;
                 }
 
@@ -172,7 +184,8 @@ namespace keycuts.Common
         }
 
         /// <summary>An IF line, and its block when it opens one. Returns the index after everything it covered.</summary>
-        private static int If(IReadOnlyList<string> lines, string line, int i, int end, bool? active, State state, Dictionary<string, Value> expandFrom)
+        private static int If(IReadOnlyList<string> lines, string line, int i, int end, bool? active, State state, Dictionary<string, Value> expandFrom,
+            Dictionary<string, Value> blockSnapshot)
         {
             bool? taken;
             string rest;
@@ -198,7 +211,7 @@ namespace keycuts.Common
 
             if (rest == "(")
             {
-                Run(lines, i, end, thenActive, true, state, out var close);
+                Run(lines, i, end, thenActive, true, blockSnapshot, state, out var close);
                 if (close >= end)
                 {
                     return end;
@@ -209,21 +222,38 @@ namespace keycuts.Common
                 var after = close + 1;
                 if (Regex.IsMatch(closing, @"^\)\s*ELSE\s*\($", RegexOptions.IgnoreCase))
                 {
-                    Run(lines, after, end, elseActive, true, state, out var closeElse);
+                    Run(lines, after, end, elseActive, true, blockSnapshot, state, out var closeElse);
                     return Math.Min(end, closeElse + 1);
                 }
 
                 return after;
             }
 
-            if (rest.Length > 0)
+            if (rest.StartsWith("(", StringComparison.Ordinal) || taken == null)
             {
-                if (taken == null)
+                // A block on the IF's own line, "(SET A=1) ELSE (SET A=2)", isn't evaluated, and neither is the command of a condition we
+                // don't decide: what either might set is unknown, and a GOTO or CALL might leave before the launch line
+                if (active != false)
                 {
-                    // A one-line IF with a condition we don't decide: the SET in it makes its variable unknown
                     foreach (Match set in AnySet.Matches(rest))
                     {
-                        Unknown(state, set.Groups["name"].Value, thenActive);
+                        Unknown(state, set.Groups["name"].Value, null);
+                    }
+
+                    if (JumpsAway.IsMatch(rest))
+                    {
+                        Stop(state);
+                    }
+                }
+            }
+            else if (rest.Length > 0)
+            {
+                if (StopsEvaluation.IsMatch(rest))
+                {
+                    // IF "%~1"=="" GOTO :EOF: taken, the launch line never runs with no arguments
+                    if (thenActive == true)
+                    {
+                        Stop(state);
                     }
                 }
                 else

@@ -279,6 +279,54 @@ namespace keycuts.Tests
             });
         }
 
+        // #252: Shift showed a long path in its shorter %VAR% form, and the boxes moved a pixel. A Grid takes a cell's desired
+        // width as a minimum for a star column, and a box whose text runs past its end asks for its whole share, which layout
+        // rounding can round up past a fractional share. Only the ratio may decide the widths, at any window width.
+        [Fact]
+        public void ManagerCreateRow_TheFieldsKeepTheirWidths_WhenTheirTextRunsPastTheEnd()
+        {
+            WithCreateRow((parts, actions, creates, loads) =>
+            {
+                parts.Window.UseLayoutRounding = true;
+                var longText = @"C:\" + new string('a', 200);
+                string Widths()
+                {
+                    Pump();
+                    parts.Window.UpdateLayout();
+                    return $"{parts.Target.ActualWidth}/{parts.Name.ActualWidth}/{parts.Description.ActualWidth}";
+                }
+
+                var moved = new List<string>();
+                for (var width = 900; width < 1000; width++)
+                {
+                    parts.Window.Width = width;
+                    parts.Form.Target = @"C:\a";
+                    parts.Form.ShortcutName = string.Empty;
+                    parts.Form.Description = string.Empty;
+                    var fitting = Widths();
+
+                    parts.Form.Target = longText;
+                    var longTarget = Widths();
+                    parts.Form.Target = @"C:\a";
+                    parts.Form.ShortcutName = new string('n', 100);
+                    var longName = Widths();
+                    parts.Form.ShortcutName = string.Empty;
+                    parts.Form.Description = new string('d', 200);
+                    var longDescription = Widths();
+
+                    foreach (var (what, widths) in new[] { ("target", longTarget), ("name", longName), ("description", longDescription) })
+                    {
+                        if (widths != fitting)
+                        {
+                            moved.Add($"{width}: a long {what} gave {widths}, not {fitting}");
+                        }
+                    }
+                }
+
+                Assert.True(moved.Count == 0, string.Join("\n", moved));
+            });
+        }
+
         [Fact]
         public void AManagerWithoutACreateRow_BuildsNone()
         {

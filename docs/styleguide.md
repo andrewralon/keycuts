@@ -111,7 +111,7 @@ The main window has **two sizes** ([decision](#decisions), mockup [`window-sizes
 
 The Manager starts with the Creator's fields in one row, so a keycut can be added without leaving the list. It is an [inset panel](#inset-panels) (16 below it, then the search box), with a label row, a control row and the Creator's helper line under them:
 
-- Left to right: **Target**, **Name**, **Description**, then the Create button. The fields share the row 2 : 1.25 : 1.25, 12 apart (`Space3`): a long target has the most room, and Name and Description are as wide as each other.
+- Left to right: **Target**, **Name**, **Description**, then the Create button. The fields share the row 2 : 1.25 : 1.25, 12 apart (`Space3`): a long target has the most room, and Name and Description are as wide as each other. Only the ratio sets the widths: each field sits in a `StarCell`, so text that runs past a box's end never moves the boxes (#252).
 - **Target** is the drop area squeezed to one line: a 36 high box (`RadiusSm`) with the Creator's dashed outline, fill and glow, the target's type icon (16) at its left and the text on one line, then the Browse square button 8 to its right. A drop on the row, a paste or Browse fills it.
 - **Name** is a plain text box with the Creator's "Saving…"/"Created" status at the right of its label. **Description** is always shown here; there is no "Add a description" link.
 - The Create button (`PrimarySquareButton`, the rocket) ends the row, 8 after the description.

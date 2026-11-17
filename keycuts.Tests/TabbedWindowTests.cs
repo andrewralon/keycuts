@@ -687,8 +687,9 @@ namespace keycuts.Tests
                 var captionsStart = captions.TranslatePoint(new Point(0, 0), bar).X;
                 var empty = captionsStart - tabsEnd;
 
-                // #218 asked for about 60 beyond the tabs; the text-only tabs leave about 110 at the same 600, which the owner kept
-                Assert.InRange(empty, 100, 125);
+                // #218 asked for about 60 beyond the tabs; the text-only tabs left about 110 at the same 600, and the names at 16 with
+                // 24 after keycuts (the owner, 2026-11-17) leave about 77
+                Assert.InRange(empty, 65, 90);
             });
         }
 

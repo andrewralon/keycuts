@@ -41,6 +41,7 @@ namespace keycuts.Tests
         {
             // The app's name in the tab bar is drawn at the level 2 size, but it names the app, not a section of the screen
             new("Views/RailView.xaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
+            new("Themes/Controls.xaml", "Style", "FontSize", "{StaticResource FontSizeSubheading}", "the tab names, the size of keycuts beside them, not headings"),
 
             // An icon preview that follows the theme sets the dark-mode drawing over the light one in a 1 ring of what it sits on
             new("Views/SettingsView.xaml", "Border", "Padding", "1", "the ring around the dark-mode drawing in an icon preview"),

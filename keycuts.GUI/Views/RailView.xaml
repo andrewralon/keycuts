@@ -31,9 +31,9 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
 
-      <!-- The keycap alone at 36, 8 from the edge (6 above and below in the bar), 16 to the first tab so the name stands apart
-           from the tabs -->
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,0,16,0" VerticalAlignment="Center">
+      <!-- The keycap alone at 36, 8 from the edge, 24 to the first tab so the name stands apart from the tabs. 4 at the top moves the
+           icon and the name down 2, onto the tab names' line (26 from the top; the tabs lift theirs 2) -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,4,24,0" VerticalAlignment="Center">
         <Image x:Name="AppIcon" Width="36" Height="36" RenderOptions.BitmapScalingMode="HighQuality" />
         <TextBlock Text="keycuts" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
                    FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
@@ -52,7 +52,7 @@
         <TabItem x:Name="SettingsTab" AutomationProperties.Name="settings" AutomationProperties.AcceleratorKey="Ctrl+3"
                  ToolTip="settings (Ctrl+3)">
           <TabItem.Header>
-            <controls:Icon Kind="Settings" Size="16" />
+            <controls:Icon Kind="Settings" Size="20" />
           </TabItem.Header>
         </TabItem>
       </controls:RailTabControl>

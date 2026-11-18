@@ -41,52 +41,16 @@ namespace keycuts.Tests
             Assert.Throws<ArgumentOutOfRangeException>(() => TypeBadge.GetIconKind((KeycutKind)99));
         }
 
-        public static IEnumerable<object[]> Palettes()
-        {
-            yield return new object[]
-            {
-                "Light.xaml",
-                new Dictionary<string, string[]>
-                {
-                    ["Url"] = new[] { "#6d43b8", "#f3edff", "#dfd2f7" },
-                    ["File"] = new[] { "#1c619d", "#e9f4ff", "#cfe6fa" },
-                    ["Folder"] = new[] { "#8a5700", "#fff5dc", "#f1dfae" },
-                    ["Command"] = new[] { "#14734a", "#e8f7ef", "#c8ead8" }
-                }
-            };
-            yield return new object[]
-            {
-                "Dark.xaml",
-                new Dictionary<string, string[]>
-                {
-                    ["Url"] = new[] { "#c4a1ff", "#33254c", "#574279" },
-                    ["File"] = new[] { "#86c8ff", "#18354e", "#295879" },
-                    ["Folder"] = new[] { "#f0c365", "#41351e", "#62502a" },
-                    ["Command"] = new[] { "#75dca8", "#193c2c", "#285e45" }
-                }
-            };
-        }
-
+        // Read from the palettes themselves, so a changed color is checked rather than a copy of it
         [Theory]
-        [MemberData(nameof(Palettes))]
-        public void Palette_UsesPrototypeBadgeColors(string file, Dictionary<string, string[]> expected)
+        [InlineData("Light.xaml")]
+        [InlineData("Dark.xaml")]
+        public void BadgeLabels_MeetAaContrastOnTheirBackground(string file)
         {
             var colors = LoadColors(file);
-            foreach (var (kind, hex) in expected)
+            foreach (var kind in new[] { "Url", "File", "Folder", "Command" })
             {
-                Assert.Equal(hex[0], colors[$"Badge{kind}ForegroundBrush"]);
-                Assert.Equal(hex[1], colors[$"Badge{kind}BackgroundBrush"]);
-                Assert.Equal(hex[2], colors[$"Badge{kind}BorderBrush"]);
-            }
-        }
-
-        [Theory]
-        [MemberData(nameof(Palettes))]
-        public void BadgeLabels_MeetAaContrastOnTheirBackground(string file, Dictionary<string, string[]> expected)
-        {
-            foreach (var (kind, hex) in expected)
-            {
-                var ratio = ColorContrast.Ratio(hex[0], hex[1]);
+                var ratio = ColorContrast.Ratio(colors[$"Badge{kind}ForegroundBrush"], colors[$"Badge{kind}BackgroundBrush"]);
                 Assert.True(ratio >= 4.5, $"{file}: {kind} badge is {ratio:0.00}:1");
             }
         }

@@ -275,24 +275,24 @@ namespace keycuts.Tests
             }, withSettings: true);
         }
 
-        // The table is whole rows, and what is left goes under it. At the smallest height that is the same space as at the
-        // default size, with no part row's worth added to it.
-        [Fact]
-        public void Manager_AtItsMinimumHeight_HasTheDefaultSpaceUnderItsLastRow()
+        // The table is whole rows, and what is left goes under it: 24 at the size the window opens at (its smallest), with no part
+        // row's worth added, and the same 24 a whole number of rows taller (the old default, 544)
+        [Theory]
+        [InlineData(WindowLayout.ManagerMinHeight)]
+        [InlineData(544)]
+        public void Manager_Has24UnderItsLastRow(double height)
         {
             WithWindow((window, shell) =>
             {
                 shell.ShowManager();
                 Settle(window);
-                var host = (FrameworkElement)Named(window, "TableHost");
-                double Under() => window.ActualHeight - host.TranslatePoint(new Point(0, host.ActualHeight), window).Y;
-                var atDefault = Under();
-
-                window.Height = WindowLayout.ManagerMinHeight;
+                Assert.Equal(WindowLayout.ManagerMinHeight, window.ActualHeight, 0.5);
+                window.Height = height;
                 Settle(window);
 
-                Assert.Equal(WindowLayout.ManagerMinHeight, window.ActualHeight, 0.5);
-                Assert.True(Math.Abs(atDefault - Under()) < 0.5, $"under the table: {atDefault} at the default size, {Under()} at the minimum");
+                var host = (FrameworkElement)Named(window, "TableHost");
+                var under = window.ActualHeight - host.TranslatePoint(new Point(0, host.ActualHeight), window).Y;
+                Assert.Equal(24, under, 0.5);
             }, withKeycuts: true);
         }
 
@@ -340,7 +340,7 @@ namespace keycuts.Tests
 
         // Two columns at every size the window takes, the smallest included (the owner's pick, 2026-11-17: no stacking)
         [Theory]
-        [InlineData(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)]
+        [InlineData(960, 544)]
         [InlineData(WindowLayout.ManagerMinWidth, WindowLayout.ManagerMinHeight)]
         public void Settings_IsTwoColumns_AndFitsWithoutScrolling(double width, double height)
         {

@@ -608,8 +608,8 @@ namespace keycuts.Tests
         {
             // What the tab bar needed plus about 60 of empty bar (#218), about 110 with text-only tabs; TabbedWindowTests checks it against MainWidth in Tokens.xaml
             Assert.Equal(600, WindowLayout.CreatorWidth);
-            Assert.Equal(960, WindowLayout.ManagerDefaultWidth);
-            Assert.Equal(544, WindowLayout.ManagerDefaultHeight);
+            Assert.Equal(720, WindowLayout.ManagerDefaultWidth);
+            Assert.Equal(470, WindowLayout.ManagerDefaultHeight);
             Assert.Equal(720, WindowLayout.ManagerMinWidth);
             Assert.Equal(470, WindowLayout.ManagerMinHeight);
         }

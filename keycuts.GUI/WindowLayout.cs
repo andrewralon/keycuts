@@ -14,14 +14,18 @@ namespace keycuts.GUI
         /// <summary>The Creator's width, and Settings' once it is a screen: what the tab bar needs plus about 60 of empty bar. A test keeps it equal to <c>MainWidth</c> in Tokens.xaml.</summary>
         public const double CreatorWidth = 600;
 
-        public const double ManagerDefaultWidth = 960;
+        /// <summary>The Manager and Settings open at their smallest size (the owner's pick, 2026-11-17; it was 960 × 544).</summary>
+        public const double ManagerDefaultWidth = ManagerMinWidth;
 
-        /// <summary>544, not 540: the Manager's table area is then a whole number of rows (the header and 7 rows, 297) with 24 under it, so the torn corner bites into a full last row.</summary>
-        public const double ManagerDefaultHeight = 544;
+        /// <summary>The smallest height, as <see cref="ManagerDefaultWidth"/> is the smallest width.</summary>
+        public const double ManagerDefaultHeight = ManagerMinHeight;
 
         public const double ManagerMinWidth = 720;
 
-        /// <summary>470, not 480: the header and 5 rows with the same 24 under them as at the default height (480 left 34, a part row's worth more).</summary>
+        /// <summary>
+        /// 470, not 480: the Manager's table is the header and 5 whole rows with 24 under them, so the torn corner bites into a full
+        /// last row (480 left 34, a part row's worth more). The table is always whole rows; at other heights the rest goes under it.
+        /// </summary>
         public const double ManagerMinHeight = 470;
 
         /// <summary>

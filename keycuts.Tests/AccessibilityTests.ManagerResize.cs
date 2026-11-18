@@ -485,19 +485,6 @@ namespace keycuts.Tests
             });
         }
 
-        // The window opens at its smallest (2026-11-17), too narrow for the fixed columns: widening brings Runs first (#187)
-        [Fact]
-        public void Manager_AtTheDefaultWidth_ShowsNoneOfTheFixedColumns()
-        {
-            WithWideManager(GUI.WindowLayout.ManagerDefaultWidth, (window, manager, table) =>
-            {
-                Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(Visibility.Collapsed, table.Columns[RunsColumn].Visibility);
-                Assert.Equal(Visibility.Collapsed, table.Columns[LastRunColumn].Visibility);
-                AssertFillsTheTable(table);
-            });
-        }
-
         #endregion The window changing size
     }
 }

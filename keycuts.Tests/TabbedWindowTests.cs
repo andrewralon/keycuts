@@ -296,6 +296,24 @@ namespace keycuts.Tests
             }, withKeycuts: true);
         }
 
+        // #187: the window opens just wide enough for Runs, the count a cleanup sorts by, and no other fixed column
+        [Fact]
+        public void Manager_OpensWideEnoughForRuns_AndNoOtherFixedColumn()
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+
+                Assert.Equal(768, window.ActualWidth, 0.5);
+                var table = (DataGrid)Named(window, "Table");
+                var shown = new[] { 4, 5, 6 }
+                    .Where(i => table.Columns[i].Visibility == Visibility.Visible)
+                    .Select(i => ((ContentControl)table.Columns[i].Header).Content);
+                Assert.Equal(new object[] { "Runs" }, shown);
+            }, withKeycuts: true);
+        }
+
         // As the window widens the fixed columns come back one at a time: Runs, then Last run, then Modified
         [Theory]
         [InlineData(720, "")]
@@ -341,6 +359,7 @@ namespace keycuts.Tests
         // Two columns at every size the window takes, the smallest included (the owner's pick, 2026-11-17: no stacking)
         [Theory]
         [InlineData(960, 544)]
+        [InlineData(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)]
         [InlineData(WindowLayout.ManagerMinWidth, WindowLayout.ManagerMinHeight)]
         public void Settings_IsTwoColumns_AndFitsWithoutScrolling(double width, double height)
         {

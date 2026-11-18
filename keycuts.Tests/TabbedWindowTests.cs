@@ -273,15 +273,14 @@ namespace keycuts.Tests
         }
 
         // As the window widens the fixed columns come back one at a time: Runs, then Last run, then Modified. It opens just wide
-        // enough for Runs (#187), the count a cleanup sorts by.
+        // enough for Runs (#187), the count a cleanup sorts by. Modified (1088) is past CI's 1024 screen, which caps a real
+        // window; Manager_ModifiedReturnsAtTheRightWidth_AfterAnyDrag checks it on a view sized directly.
         [Theory]
         [InlineData(720, "")]
         [InlineData(767, "")]
         [InlineData(WindowLayout.ManagerDefaultWidth, "Runs")]
         [InlineData(827, "Runs")]
         [InlineData(828, "Runs Last run")]
-        [InlineData(1087, "Runs Last run")]
-        [InlineData(1088, "Runs Last run Modified")]
         public void Manager_ShowsItsFixedColumns_OneAtATime(double width, string expected)
         {
             WithWindow((window, shell) =>

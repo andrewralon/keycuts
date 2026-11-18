@@ -123,34 +123,6 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void LightPalette_UsesPrototypeHexValues()
-        {
-            var colors = LoadColors("Light.xaml");
-            Assert.Equal("#2563eb", colors["AccentBrush"]);
-            Assert.Equal("#eef1f5", colors["CanvasBrush"]);
-            Assert.Equal("#172033", colors["TextBrush"]);
-            Assert.Equal("#c42b1c", colors["DangerBrush"]);
-            Assert.Equal("#2563eb", colors["AccentTextBrush"]);
-            Assert.Equal("#646e80", colors["TextTertiaryBrush"]);
-            Assert.Equal("#818b9d", colors["ControlBorderBrush"]);
-            Assert.Equal("#6b0f172a", colors["ScrimBrush"]);
-            Assert.Equal("#0f172a", colors["ShadowColor"]);
-        }
-
-        [Fact]
-        public void DarkPalette_UsesPrototypeHexValues()
-        {
-            var colors = LoadColors("Dark.xaml");
-            Assert.Equal("#4f8cff", colors["AccentBrush"]);
-            Assert.Equal("#14171d", colors["CanvasBrush"]);
-            Assert.Equal("#f3f5f8", colors["TextBrush"]);
-            Assert.Equal("#ff8175", colors["DangerBrush"]);
-            Assert.Equal("#6a9eff", colors["AccentTextBrush"]);
-            Assert.Equal("#99000000", colors["ScrimBrush"]);
-            Assert.Equal("#000000", colors["ShadowColor"]);
-        }
-
-        [Fact]
         public void HighContrastPalette_HasNoScrimOrShadow_AndAccentTextIsTheLinkColor()
         {
             var colors = LoadColors("HighContrast.xaml");

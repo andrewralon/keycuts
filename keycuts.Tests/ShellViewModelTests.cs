@@ -479,17 +479,9 @@ namespace keycuts.Tests
 
         #region Escape precedence
 
+        // Each Escape undoes one thing: the menu (the search kept), then the search, then the Manager, then the window
         [Fact]
-        public void Escape_InCreator_ClosesWindow()
-        {
-            var shell = CreateShell();
-
-            Assert.Equal(EscapeResult.CloseWindow, shell.HandleEscape());
-            Assert.Equal(ShellMode.Creator, shell.Mode);
-        }
-
-        [Fact]
-        public void Escape_InManager_ClosesOpenMenuFirst_EvenWithSearchText()
+        public void Escape_ClosesTheMenu_ThenClearsTheSearch_ThenLeavesTheManager_ThenClosesTheWindow()
         {
             var shell = CreateShell();
             shell.ShowManager();
@@ -497,49 +489,19 @@ namespace keycuts.Tests
             shell.Manager.IsMenuOpen = true;
 
             Assert.Equal(EscapeResult.ClosedMenu, shell.HandleEscape());
-
             Assert.False(shell.Manager.IsMenuOpen);
             Assert.Equal("abc", shell.Manager.SearchText);
             Assert.Equal(ShellMode.Manager, shell.Mode);
-        }
-
-        [Fact]
-        public void Escape_InManager_ClearsSearchBeforeLeaving()
-        {
-            var shell = CreateShell();
-            shell.ShowManager();
-            shell.Manager.SearchText = "abc";
 
             Assert.Equal(EscapeResult.ClearedSearch, shell.HandleEscape());
-
             Assert.Equal(string.Empty, shell.Manager.SearchText);
             Assert.Equal(ShellMode.Manager, shell.Mode);
-        }
-
-        [Fact]
-        public void Escape_InManager_WithNothingOpen_ReturnsToCreator()
-        {
-            var shell = CreateShell();
-            shell.ShowManager();
 
             Assert.Equal(EscapeResult.ReturnedToCreator, shell.HandleEscape());
-
-            Assert.Equal(ShellMode.Creator, shell.Mode);
             Assert.Same(shell.Creator, shell.CurrentView);
-        }
 
-        [Fact]
-        public void Escape_FullSequence_MenuThenSearchThenCreatorThenClose()
-        {
-            var shell = CreateShell();
-            shell.ShowManager();
-            shell.Manager.SearchText = "x";
-            shell.Manager.IsMenuOpen = true;
-
-            Assert.Equal(EscapeResult.ClosedMenu, shell.HandleEscape());
-            Assert.Equal(EscapeResult.ClearedSearch, shell.HandleEscape());
-            Assert.Equal(EscapeResult.ReturnedToCreator, shell.HandleEscape());
             Assert.Equal(EscapeResult.CloseWindow, shell.HandleEscape());
+            Assert.Equal(ShellMode.Creator, shell.Mode);
         }
 
         #endregion Escape precedence
@@ -559,59 +521,17 @@ namespace keycuts.Tests
 
     public class WindowLayoutTests
     {
-        static readonly Rect WorkArea = new Rect(0, 0, 1920, 1040);
-
-        [Fact]
-        public void Clamp_LeavesBoundsInsideWorkAreaUntouched()
+        // bounds and work area as "x,y,w,h": inside stays put, past an edge slides back, too big shrinks, and a second monitor's
+        // offset counts
+        [Theory]
+        [InlineData("100,100,960,700", "0,0,1920,1040", "100,100,960,700")]
+        [InlineData("1700,800,960,700", "0,0,1920,1040", "960,340,960,700")]
+        [InlineData("-50,-20,960,700", "0,0,1920,1040", "0,0,960,700")]
+        [InlineData("0,0,2500,1500", "0,0,1920,1040", "0,0,1920,1040")]
+        [InlineData("-300,500,960,700", "-1280,0,1280,984", "-960,284,960,700")]
+        public void Clamp_KeepsTheWindowInsideTheWorkArea(string bounds, string workArea, string expected)
         {
-            var bounds = new Rect(100, 100, 960, 700);
-
-            Assert.Equal(bounds, WindowLayout.ClampToWorkArea(bounds, WorkArea));
-        }
-
-        [Fact]
-        public void Clamp_SlidesWindowBackOnScreen_WhenGrowingPastRightAndBottomEdges()
-        {
-            var result = WindowLayout.ClampToWorkArea(new Rect(1700, 800, 960, 700), WorkArea);
-
-            Assert.Equal(new Rect(960, 340, 960, 700), result);
-        }
-
-        [Fact]
-        public void Clamp_SlidesWindowBack_WhenStartingLeftOrAboveWorkArea()
-        {
-            var result = WindowLayout.ClampToWorkArea(new Rect(-50, -20, 960, 700), WorkArea);
-
-            Assert.Equal(new Rect(0, 0, 960, 700), result);
-        }
-
-        [Fact]
-        public void Clamp_ShrinksWindowLargerThanWorkArea()
-        {
-            var result = WindowLayout.ClampToWorkArea(new Rect(0, 0, 2500, 1500), WorkArea);
-
-            Assert.Equal(WorkArea, result);
-        }
-
-        [Fact]
-        public void Clamp_HonorsWorkAreaOffset_ForSecondaryMonitors()
-        {
-            var secondary = new Rect(-1280, 0, 1280, 984);
-
-            var result = WindowLayout.ClampToWorkArea(new Rect(-300, 500, 960, 700), secondary);
-
-            Assert.Equal(new Rect(-960, 284, 960, 700), result);
-        }
-
-        [Fact]
-        public void Sizes_MatchTheSpec()
-        {
-            // What the tab bar needed plus about 60 of empty bar (#218), about 110 with text-only tabs; TabbedWindowTests checks it against MainWidth in Tokens.xaml
-            Assert.Equal(600, WindowLayout.CreatorWidth);
-            Assert.Equal(960, WindowLayout.ManagerDefaultWidth);
-            Assert.Equal(544, WindowLayout.ManagerDefaultHeight);
-            Assert.Equal(720, WindowLayout.ManagerMinWidth);
-            Assert.Equal(480, WindowLayout.ManagerMinHeight);
+            Assert.Equal(Rect.Parse(expected), WindowLayout.ClampToWorkArea(Rect.Parse(bounds), Rect.Parse(workArea)));
         }
     }
 

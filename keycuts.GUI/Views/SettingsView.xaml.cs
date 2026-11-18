@@ -29,39 +29,6 @@ namespace keycuts.GUI.Views
             DataContextChanged += SettingsView_DataContextChanged;
         }
 
-        /// <summary>
-        /// The page width below which the two columns stack into one (docs/styleguide.md): the window dragged narrower than the
-        /// large size's 960, where each column would be too narrow for a setting's note beside its toggle.
-        /// </summary>
-        public const double TwoColumnMinWidth = 840;
-
-        /// <summary>The page shows Output and Behavior beside Appearance and Updates, rather than above them.</summary>
-        public bool IsTwoColumn
-        {
-            get { return Grid.GetColumn(RightColumn) == 2; }
-        }
-
-        private void BodyScroller_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            UseTwoColumns(BodyScroller.ActualWidth >= TwoColumnMinWidth);
-        }
-
-        // Stacked, the right column goes under the left one, 24 below it as between any two sections, and both take the full width
-        private void UseTwoColumns(bool twoColumns)
-        {
-            if (twoColumns == IsTwoColumn)
-            {
-                return;
-            }
-
-            var span = twoColumns ? 1 : 3;
-            Grid.SetColumnSpan(LeftColumn, span);
-            Grid.SetRow(RightColumn, twoColumns ? 0 : 1);
-            Grid.SetColumn(RightColumn, twoColumns ? 2 : 0);
-            Grid.SetColumnSpan(RightColumn, span);
-            RightColumn.Margin = twoColumns ? new Thickness(0) : new Thickness(0, (double)FindResource("Space6"), 0, 0);
-            ColumnRule.Visibility = twoColumns ? Visibility.Visible : Visibility.Collapsed;
-        }
 
         /// <summary>The folder picker behind the choose-a-folder button, seeded with the folder in the box. Null when cancelled.</summary>
         public static string? PickFolder(Window? owner, string current)

@@ -843,7 +843,7 @@ namespace keycuts.Tests
             }
         }
 
-        /// <summary>The Settings screen in a window of its own, MainWidth wide and as tall as its content, as the main window shows it.</summary>
+        /// <summary>The Settings screen in a window of its own, at the narrowest the main window shows it (the large size's minimum width), as tall as its content.</summary>
         private sealed class SettingsHost : Window
         {
             public SettingsHost(SettingsViewModel viewModel)
@@ -851,7 +851,7 @@ namespace keycuts.Tests
                 ViewModel = viewModel;
                 View = new keycuts.GUI.Views.SettingsView { DataContext = viewModel };
                 Content = View;
-                Width = WindowLayout.CreatorWidth;
+                Width = WindowLayout.ManagerMinWidth;
                 SizeToContent = SizeToContent.Height;
             }
 
@@ -1078,7 +1078,8 @@ namespace keycuts.Tests
                     Assert.Equal("restore defaults", restore.Content);
                     var root = (FrameworkElement)window.Content;
                     Assert.True(BoundsIn(welcome, root).Right < BoundsIn(restore, root).Left);
-                    Assert.Equal(BoundsIn((FrameworkElement)window.FindName("BtnLaunch"), root).Right, BoundsIn(restore, root).Right, 1);
+                    // Restore defaults ends at its column's edge, with the toggles above it
+                    Assert.Equal(BoundsIn((FrameworkElement)window.FindName("ToggleCheckForUpdates"), root).Right, BoundsIn(restore, root).Right, 1);
                     Assert.Equal(Math.Round(BoundsIn(welcome, root).Top), Math.Round(BoundsIn(restore, root).Top));
                     Assert.Equal("check now", ((Button)window.FindName("BtnCheckNow")).Content);
                 }
@@ -1352,7 +1353,8 @@ namespace keycuts.Tests
                     var label = BoundsIn(Descendants<TextBlock>(window).Single(t => t.Text == "Theme"), root);
                     var choices = (StackPanel)window.FindName("ThemeChoices");
                     var bounds = BoundsIn(choices, root);
-                    var toggle = BoundsIn((ToggleButton)window.FindName("ToggleAskBeforeReplacing"), root);
+                    // The toggle in the same column as the theme choices
+                    var toggle = BoundsIn((ToggleButton)window.FindName("ToggleTransparentIcon"), root);
 
                     Assert.Equal(new[] { ThemePreference.System, ThemePreference.Light, ThemePreference.Dark },
                         choices.Children.OfType<RadioButton>().Select(r => (ThemePreference)r.Tag));
@@ -1376,12 +1378,13 @@ namespace keycuts.Tests
                 var window = ShowOffscreen(NewViewModel(Path.GetTempPath()));
                 try
                 {
-                    // The page is two columns; at MainWidth they are stacked, the right one 24 under the left, as between two sections
+                    // The page is two columns at every width, each starting with its section label at the top
                     var body = (Grid)((ScrollViewer)window.FindName("BodyScroller")).Content;
                     var left = (StackPanel)window.FindName("LeftColumn");
                     var right = (StackPanel)window.FindName("RightColumn");
-                    Assert.False(window.View.IsTwoColumn);
-                    Assert.Equal(new Thickness(0, 24, 0, 0), right.Margin);
+                    Assert.Equal(0, Grid.GetColumn(left));
+                    Assert.Equal(2, Grid.GetColumn(right));
+                    Assert.Equal(new Thickness(0), right.Margin);
 
                     foreach (var column in new[] { left, right })
                     {

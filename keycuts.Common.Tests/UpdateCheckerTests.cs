@@ -111,7 +111,7 @@ namespace keycuts.Tests
 
         public static TheoryData<object?> UnreadableLatestReleaseSeen => new TheoryData<object?>
         {
-            null,
+            (object?)null,
             // Another kind of value, such as one typed into regedit as REG_SZ
             "1.2.0",
             "1.2.0\n" + SeenUrl,

@@ -9,7 +9,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 .NET SDK 10, Windows only. `global.json` pins the 10.0.4xx band (`latestPatch`). Run from the repo root:
 
 - Build: `dotnet build keycuts.sln`
-- Test: `dotnet test keycuts.sln` (xUnit, `keycuts.Tests`); one test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
+- Test: `dotnet test keycuts.sln` (xUnit v3 on VSTest, `keycuts.Common.Tests` and `keycuts.Tests`); one test: `dotnet test keycuts.Common.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep `--severity error`)
 - Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z] [-Runtime win-x64|win-arm64]` → `artifacts/installer/<runtime>/`. `installer/` is not in the sln. Don't install a local MSI over a release whose bundled .NET runtime is newer than your SDK's: the upgrade won't downgrade the runtime's files but the old product's removal deletes them, so `keycuts.exe` can't start (`hostpolicy.dll` missing). Uninstall first or `msiexec /fa`, or publish with the release's runtime (`KnownFrameworkReference` `LatestRuntimeFrameworkVersion`) to test a real upgrade.
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
@@ -24,6 +24,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Package versions only in `Directory.Packages.props` (CPM). No lockfiles.
 - **Tests never touch the real output folder, registry, PATH, network or Recycle Bin.** Use explicit `OutputFolder` and `Overwrite` (null reads HKCU), a fake `IPathUpdater`, fake `NameConflictEnvironment`/`checkName`, fake `IClassesStore`, `ISettingsStore`, `FakeReleaseSource`/`FakeUpdateState`. Never `KeycutRepository.CreateDefault()` (recycles, can hang on a shell dialog) or `UpdateChecker.CreateDefault()`. `PathVariables` has an injectable overload.
 - WPF-hosting test classes go in `[Collection(WpfCollection.Name)]`.
+- Tests that only hold on one OS use `[WindowsFact]`/`[WindowsTheory]`/`[MacFact]`/`[MacTheory]` (`keycuts.Common.Tests/PlatformFacts.cs`); they're skipped elsewhere.
 - Key tests use `AccessibilityTests.Press` / `FakeKeyboardDevice`; handlers read `e.KeyboardDevice.Modifiers`, never static `Keyboard.*` (flaky if a real key is held). `CreatorView` still reads static state.
 - Fakes of `IKeycutActions` (`FakeActions`, `RecordingActions`) must implement every member.
 - **Line endings:** `* text=auto`; mixed CRLF/LF is normal, don't convert. Byte-sensitive: `*.cmd` shims (CRLF) and `tests/corpus/**/*.bat`. Never rewrite those through anything that normalizes newlines.
@@ -39,7 +40,8 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - `keycuts.Common`: domain logic, no UI, no logging (`Runner`'s "Shortcut created" line excepted). `.lnk` via late-bound `WScript.Shell` COM.
 - `keycuts.GUI`: WPF, one window, three screens (Creator, Manager, Settings) switched by `ShellViewModel`. No Windows title bar: `Views/RailView` is a folder-tab bar with own caption buttons under `WindowChrome`. **The window is never maximized** (owner's decision; `NoMaximizeHook`). `NoSystemCaptionHook` stops Windows painting classic caption buttons over the bar. Side effects go through `IKeycutActions`. Settings save immediately (no Save button); the folder only on commit.
 - `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected), `paste <name>`, `list [<search>] [--usage] [--sort] [--json]` (`Common.KeycutListing`), and `rm`, `rename`, `open` (`Common.KeycutCommands`, through `KeycutRepository` like the Manager). Bare `keycuts` launches the GUI. PATH gets only the output folder; the `keycuts.cmd`/`keypaste.cmd` shims live there (`Common.CommandShims`, #248) and find `keycuts.exe` through HKCU `InstallFolder`.
-- `keycuts.Tests`: references Common and GUI.
+- `keycuts.Common.Tests`: references Common only, no GUI types (it follows Common to `net10.0`). Namespace `keycuts.Tests`. Shares `RepoFiles`, `TestNameChecks` and `UpdateFakes` with `keycuts.Tests` as linked files.
+- `keycuts.Tests`: references Common and GUI; the tests that need WPF.
 
 **UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it, with deliberate exceptions listed in its `Exceptions`.
 
@@ -65,7 +67,7 @@ All creates end in `Runner.Run` → `CreateShortcutFile` (GUI goes through `Keyc
 
 ## Sequencing rule
 
-**Never move two variables in one commit.** Behavior (bugs included) is pinned by `keycuts.Tests/Characterization/` snapshots. A mismatch writes `.received.txt`; if intended, copy it over `.verified.txt` in the same commit.
+**Never move two variables in one commit.** Behavior (bugs included) is pinned by `keycuts.Common.Tests/Characterization/` snapshots. A mismatch writes `.received.txt`; if intended, copy it over `.verified.txt` in the same commit.
 
 ## Conventions
 

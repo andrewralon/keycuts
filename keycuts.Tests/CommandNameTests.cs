@@ -56,7 +56,7 @@ namespace keycuts.Tests
         public void The_command_names_are_the_shims_on_PATH()
         {
             var shims = new[] { "keycuts.cmd", "keypaste.cmd" }
-                .Select(shim => ContextMenuRegistrarTests.FindRepoFile(Path.Combine("keycuts.CLI", "shims", shim)))
+                .Select(shim => RepoFiles.Find(Path.Combine("keycuts.CLI", "shims", shim)))
                 .Select(Path.GetFileNameWithoutExtension);
 
             Assert.Equal(shims.OrderBy(name => name), CommandNames.All.OrderBy(name => name));

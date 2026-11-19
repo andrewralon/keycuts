@@ -81,7 +81,7 @@ jobs:
           name: test-results
           path: |
             artifacts/test-results/
-            keycuts.Tests/Characterization/Snapshots/*.received.txt
+            keycuts.Common.Tests/Characterization/Snapshots/*.received.txt
           if-no-files-found: ignore
           retention-days: 14
 
@@ -90,7 +90,7 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.test-results.outputs.artifact-url }}
         run: |
-          $received = @(Get-ChildItem keycuts.Tests/Characterization/Snapshots -Filter *.received.txt -ErrorAction SilentlyContinue)
+          $received = @(Get-ChildItem keycuts.Common.Tests/Characterization/Snapshots -Filter *.received.txt -ErrorAction SilentlyContinue)
           if (-not $received) { exit 0 }
           $lines = @(
             '## Snapshot changes'

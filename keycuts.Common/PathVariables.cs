@@ -195,6 +195,11 @@ namespace keycuts.Common
         {
             var names = new List<string>();
 
+            if (!OperatingSystem.IsWindows())
+            {
+                return names;
+            }
+
             foreach (var (root, subKey) in new[] { (Registry.CurrentUser, "Environment"), (Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\Session Manager\Environment") })
             {
                 try

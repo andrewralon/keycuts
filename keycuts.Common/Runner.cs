@@ -25,7 +25,7 @@ namespace keycuts.Common
         /// <summary>The program a Folder or CLSID keycut's launch line starts. Keycuts written before #160 call it directly, without START.</summary>
         internal const string ExplorerProgram = "%SystemRoot%\\explorer.exe";
 
-        private readonly IPathUpdater _pathUpdater = new UserPathUpdater();
+        private readonly IPathUpdater _pathUpdater = OperatingSystem.IsWindows() ? new UserPathUpdater() : new NoOpPathUpdater();
 
         private readonly string _fixedOutputFolder;
 
@@ -56,7 +56,7 @@ namespace keycuts.Common
             _fixedOutputFolder = fixedOutputFolder;
             _pathUpdater = DebugOverrides.IsOverride(fixedOutputFolder)
                 ? new NoOpPathUpdater()
-                : pathUpdater ?? new UserPathUpdater();
+                : pathUpdater ?? (OperatingSystem.IsWindows() ? new UserPathUpdater() : new NoOpPathUpdater());
         }
 
         public ExitCode Run(KeycutArgs args)

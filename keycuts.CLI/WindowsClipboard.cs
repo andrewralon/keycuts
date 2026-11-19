@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 
 namespace keycuts.CLI
@@ -9,6 +10,7 @@ namespace keycuts.CLI
     /// Puts text on the Windows clipboard through the Win32 API (#97), so the CLI needs no WinForms or WPF. The text
     /// stays on the clipboard after the process exits.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     internal static class WindowsClipboard
     {
         private const uint CF_UNICODETEXT = 13;

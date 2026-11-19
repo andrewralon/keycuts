@@ -155,6 +155,11 @@ namespace keycuts.CLI
             var output = Console.Out;
             Console.SetOut(Console.Error);
 
+            // macOS gets its own clipboard in Phase 4
+            Action<string> setClipboard = OperatingSystem.IsWindows()
+                ? WindowsClipboard.SetText
+                : _ => throw new PlatformNotSupportedException("The clipboard isn't supported on this platform yet.");
+
             try
             {
                 return KeycutPaste.Run(
@@ -164,7 +169,7 @@ namespace keycuts.CLI
                     System.IO.File.ReadAllLines,
                     System.IO.File.ReadAllText,
                     Environment.ExpandEnvironmentVariables,
-                    WindowsClipboard.SetText,
+                    setClipboard,
                     output,
                     Console.Error);
             }

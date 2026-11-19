@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Runtime.Versioning;
 
 namespace keycuts.Common
 {
@@ -23,7 +24,44 @@ namespace keycuts.Common
         void DeleteValues(IEnumerable<string> names);
     }
 
+    /// <summary>
+    /// The backend until macOS gets its own (Phase 4.2): nothing is stored, so every setting reads as its default, and a write
+    /// throws rather than pretend to save.
+    /// </summary>
+    public class UnavailableSettingsBackend : ISettingsBackend
+    {
+        public object Read(string name)
+        {
+            return null;
+        }
+
+        public void WriteString(string name, string value)
+        {
+            throw NotStored();
+        }
+
+        public void WriteDword(string name, int value)
+        {
+            throw NotStored();
+        }
+
+        public void WriteMultiString(string name, string[] value)
+        {
+            throw NotStored();
+        }
+
+        public void DeleteValues(IEnumerable<string> names)
+        {
+        }
+
+        private static PlatformNotSupportedException NotStored()
+        {
+            return new PlatformNotSupportedException("Settings can't be saved on this platform yet.");
+        }
+    }
+
     /// <summary>The settings key, <c>HKCU\Software\TeamRalon\keycuts</c>. The installer writes and reads some of its values too.</summary>
+    [SupportedOSPlatform("windows")]
     public class RegistrySettingsBackend : ISettingsBackend
     {
         private static readonly RegistryKey CurrentUserContext = Registry.CurrentUser;

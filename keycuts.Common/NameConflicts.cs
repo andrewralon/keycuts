@@ -143,6 +143,11 @@ namespace keycuts.Common
 
         private static string ReadUserVariable(string name)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return null;
+            }
+
             try
             {
                 using var key = Registry.CurrentUser.OpenSubKey(EnvironmentKey);
@@ -169,6 +174,11 @@ namespace keycuts.Common
 
         private static string FindRegisteredAppPath(string fileName)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return null;
+            }
+
             foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
             {
                 try

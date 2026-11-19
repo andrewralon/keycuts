@@ -19,7 +19,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 ## Gotchas
 
-- **0 warnings.** A new project with its own `AssemblyInfo.cs` needs `SupportedOSPlatform("windows")` or CA1416 returns. Count with `--no-incremental`.
+- **0 warnings.** A new project with its own `AssemblyInfo.cs` needs `SupportedOSPlatform("windows")` or CA1416 returns, except the `net10.0` ones (Common, CLI, `keycuts.Common.Tests`): there, mark each Windows-only type or member `[SupportedOSPlatform("windows")]` and guard its callers with `OperatingSystem.IsWindows()`. Count with `--no-incremental`.
 - Build fails with MSB3021/MSB3027 if `keycuts.GUI.exe` is running: kill it (approved). Close any instance you launch.
 - Package versions only in `Directory.Packages.props` (CPM). No lockfiles.
 - **Tests never touch the real output folder, registry, PATH, network or Recycle Bin.** Use explicit `OutputFolder` and `Overwrite` (null reads HKCU), a fake `IPathUpdater`, fake `NameConflictEnvironment`/`checkName`, fake `IClassesStore`, `ISettingsStore`, `FakeReleaseSource`/`FakeUpdateState`. Never `KeycutRepository.CreateDefault()` (recycles, can hang on a shell dialog) or `UpdateChecker.CreateDefault()`. `PathVariables` has an injectable overload.

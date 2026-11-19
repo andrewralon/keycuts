@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace keycuts.Common
 {
@@ -54,6 +55,7 @@ namespace keycuts.Common
     /// Updates the current user's PATH, which needs no elevation. Never throws; failures return false.
     /// Goes through the registry because Environment.SetEnvironmentVariable would expand %VARS% and rewrite the value as REG_SZ.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public class UserPathUpdater : IPathUpdater
     {
         private const string EnvironmentKey = "Environment";

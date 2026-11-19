@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.Versioning;
 using keycuts.Common;
 using Microsoft.Win32;
 using Xunit;
@@ -33,6 +34,8 @@ namespace keycuts.Tests
     }
 
 #if DEBUG
+    // Checks the registry is left alone
+    [SupportedOSPlatform("windows")]
     [Collection("OutputFolderOverride")]
     public class OutputFolderOverrideTests : IDisposable
     {
@@ -61,14 +64,14 @@ namespace keycuts.Tests
             return Registry.GetValue(@"HKEY_CURRENT_USER\Software\TeamRalon\keycuts", "OutputFolder", null);
         }
 
-        [Fact]
+        [WindowsFact]
         public void Runner_and_repository_use_the_override()
         {
             Assert.Equal(_root, new Runner().GetOutputFolder());
             Assert.Equal(_root, KeycutRepository.CreateDefault().OutputFolder);
         }
 
-        [Fact]
+        [WindowsFact]
         public void Without_the_variable_the_override_is_inactive()
         {
             Environment.SetEnvironmentVariable(DebugOverrides.OutputFolderVariable, null);
@@ -76,7 +79,7 @@ namespace keycuts.Tests
             Assert.Null(DebugOverrides.GetOutputFolder());
         }
 
-        [Fact]
+        [WindowsFact]
         public void SetOutputFolder_does_not_write_the_registry()
         {
             var before = ReadRegistryOutputFolder();
@@ -87,7 +90,7 @@ namespace keycuts.Tests
             Assert.Equal(before, ReadRegistryOutputFolder());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Run_creates_the_keycut_in_the_override_folder_without_touching_registry_or_path()
         {
             var registryBefore = ReadRegistryOutputFolder();

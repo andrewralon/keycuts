@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using keycuts.Common;
@@ -489,7 +490,8 @@ namespace keycuts.Tests
             Assert.False(File.Exists(path));
         }
 
-        [Fact]
+        [WindowsFact]
+        [SupportedOSPlatform("windows")]
         public void TheRecycleBin_IsOnlyUsedOnALocalDrive()
         {
             // A UNC path is never a drive with a bin, and this one needs no network to know it

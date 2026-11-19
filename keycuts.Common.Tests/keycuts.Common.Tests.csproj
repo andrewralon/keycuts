@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- Common's tests without the GUI, so they can follow Common to net10.0 and run on macOS (docs/macos-port.md,
          Phase 2). The namespace stays keycuts.Tests, so test names and filters didn't change in the split. -->
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>keycuts.Tests</RootNamespace>
     <AssemblyName>keycuts.Common.Tests</AssemblyName>
     <IsPackable>false</IsPackable>

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using keycuts.Common;
@@ -82,7 +83,8 @@ namespace keycuts.Tests
             Assert.Equal("https://example.org/", r.Target);
         }
 
-        [Fact]
+        [WindowsFact]
+        [SupportedOSPlatform("windows")]
         public void LnkFile_ResolvesTarget()
         {
             var shellType = Type.GetTypeFromProgID("WScript.Shell");

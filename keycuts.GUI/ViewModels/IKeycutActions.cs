@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,7 +68,7 @@ namespace keycuts.GUI.ViewModels
 
         public void Launch(string path)
         {
-            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            Desktops.Current.RunKeycut(path);
         }
 
         public void Edit(string path)
@@ -79,7 +78,7 @@ namespace keycuts.GUI.ViewModels
                 throw new System.IO.FileNotFoundException("The keycut file no longer exists.", path);
             }
 
-            Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = true });
+            Desktops.Current.EditFile(path);
         }
 
         public void OpenFileLocation(string path)
@@ -89,8 +88,7 @@ namespace keycuts.GUI.ViewModels
                 throw new System.IO.FileNotFoundException("The keycut file no longer exists.", path);
             }
 
-            // /select, opens the containing folder with the file highlighted
-            Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true });
+            Desktops.Current.RevealFile(path);
         }
 
         public void CopyText(string text)

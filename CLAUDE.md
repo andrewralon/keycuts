@@ -73,4 +73,4 @@ All creates end in `Runner.Run` → `CreateShortcutFile` (GUI goes through `Keyc
 
 ## Docs
 
-`README.md` (user-facing), `docs/internals.md` (subsystem behavior), `docs/styleguide.md`, `docs/mockups/` (approved sketches), `docs/ux-review.md`, `docs/tickets/`, `docs/design-reference/` (visual spec only; never add React/WebView), `gameplan.md` (roadmap; `src/Keycuts.Core` layout is future work).
+`README.md` (user-facing), `docs/internals.md` (subsystem behavior), `docs/styleguide.md`, `docs/mockups/` (approved sketches), `docs/ux-review.md`, `docs/tickets/`, `docs/design-reference/` (visual spec only; never add React/WebView), `gameplan.md` (roadmap), `docs/macos-port.md` (the macOS and Avalonia plan; keeps today's project names, no `src/` restructure).

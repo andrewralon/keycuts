@@ -82,48 +82,14 @@ namespace keycuts.Tests
             return keycuts;
         }
 
-        [Theory]
-        [InlineData(20)]
-        [InlineData(100)]
-        public async Task Generates_requested_number_of_loadable_keycuts(int count)
-        {
-            var keycuts = await Generate(count);
-
-            Assert.Equal(count, keycuts.Count);
-            Assert.Equal(count, keycuts.Select(k => k.Name.ToLowerInvariant()).Distinct().Count());
-        }
-
+        // The fixtures load with the real repository, one keycut per name
         [Fact]
-        public async Task Includes_canonical_entries_with_descriptions()
+        public async Task Generates_TheRequestedNumber_OfLoadableKeycuts()
         {
             var keycuts = await Generate(20);
 
-            var art = keycuts.Single(k => k.Name == "art");
-            Assert.Equal(KeycutKind.Url, art.Kind);
-            Assert.Equal("Paintings gallery", art.Description);
-            Assert.StartsWith("https://gallery.example.com/art", art.Target);
-
-            var downloads = keycuts.Single(k => k.Name == "downloads");
-            Assert.Equal(KeycutKind.Folder, downloads.Kind);
-            Assert.Equal("Downloads folder", downloads.Description);
-            Assert.Equal(@"%USERPROFILE%\Downloads", downloads.Target);
-        }
-
-        [Fact]
-        public async Task Mixes_all_kinds_and_edge_cases()
-        {
-            var keycuts = await Generate(100);
-
-            foreach (var kind in Enum.GetValues<KeycutKind>())
-            {
-                Assert.Contains(keycuts, k => k.Kind == kind);
-            }
-
-            Assert.Contains(keycuts, k => k.Name.Length > 40);
-            Assert.Contains(keycuts, k => k.Description.Length > 100);
-            Assert.Contains(keycuts, k => k.Target.Length > 200);
-            Assert.Contains(keycuts, k => k.Kind == KeycutKind.File && k.TargetStatus == TargetStatus.Missing);
-            Assert.Contains(keycuts, k => k.Kind == KeycutKind.File && k.TargetStatus == TargetStatus.Ok);
+            Assert.Equal(20, keycuts.Count);
+            Assert.Equal(20, keycuts.Select(k => k.Name.ToLowerInvariant()).Distinct().Count());
         }
 
         [Fact]

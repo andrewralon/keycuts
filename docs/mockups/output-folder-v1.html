@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Output folder: User / System</title>
+<!-- A sketch of the Output folder scope toggle and the sync flow (Light palette). Not a screenshot of the app. -->
+<style>
+  :root { --accent:#2563eb; --accent-soft:#eaf1ff; --canvas:#eef1f5; --surface:#fff; --subtle:#f6f8fb; --text:#172033;
+          --text2:#5d687b; --text3:#818b9d; --border:#d9dee8; --border-strong:#bdc5d2; --control:#818b9d;
+          --ok:#15803d; --ok-soft:#e8f6ee; --warn:#b45309; --warn-soft:#fff4e0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #c9ced8; font-family: "Segoe UI", sans-serif; color: var(--text); }
+  .board { display: grid; grid-template-columns: repeat(auto-fit, 484px); gap: 20px 28px; padding: 24px; justify-content: safe center; align-items: start; }
+  .cap { font-size: 13px; font-weight: 700; color: #2b3446; margin: 0 2px 8px; }
+  .cap span { font-weight: 400; color: #4a5568; }
+  .win { position: relative; width: 484px; background: var(--surface); border-radius: 8px; overflow: hidden;
+         box-shadow: 0 10px 34px rgba(15,23,42,.28), 0 0 0 1px rgba(15,23,42,.10); }
+  .content { padding: 22px 24px 8px; }
+  h1 { margin: 0 0 18px; font-size: 26px; font-weight: 600; }
+  .section { margin-bottom: 22px; }
+  .slabel { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; color: var(--accent); margin-bottom: 10px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
+  .row:last-child { margin-bottom: 0; }
+  .label { font-size: 14px; font-weight: 600; }
+  .note { font-size: 12.5px; color: var(--text2); margin-top: 2px; line-height: 1.35; }
+  .toggle { width: 40px; height: 20px; border-radius: 10px; background: var(--accent); position: relative; flex: none; }
+  .toggle::after { content: ""; position: absolute; right: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+  .btn2 { height: 32px; padding: 0 14px; border: 1px solid var(--control); border-radius: 5px; background: var(--surface);
+          font: 600 13.5px "Segoe UI"; color: var(--text); display: inline-flex; align-items: center; gap: 6px; flex: none; }
+  .btn1 { height: 32px; padding: 0 16px; border-radius: 5px; background: var(--accent); color: #fff; font: 600 13.5px "Segoe UI";
+          display: inline-flex; align-items: center; gap: 7px; border: 0; flex: none; }
+  .btnlink { font: 600 13px "Segoe UI"; color: var(--accent); }
+  .footer { border-top: 1px solid var(--border); background: var(--subtle); padding: 14px 24px; display: flex; justify-content: space-between; }
+
+  /* The two scopes: radio cards, each with its own path. Both always show, so neither path is ever lost. */
+  .scope { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px 12px; margin-bottom: 8px; background: var(--surface); }
+  .scope.on { border: 2px solid var(--accent); padding: 9px 11px 11px; background: var(--accent-soft); }
+  .scope .head { display: flex; align-items: center; gap: 9px; }
+  .dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--control); flex: none; background: var(--surface); }
+  .scope.on .dot { border: 5px solid var(--accent); }
+  .scope .name { font-size: 14px; font-weight: 600; }
+  .scope .sub { font-size: 12.5px; color: var(--text2); }
+  .spacer { flex: 1; }
+  .tag { font-size: 11px; font-weight: 700; letter-spacing: .03em; padding: 2px 8px; border-radius: 10px; background: #e6e9ef; color: var(--text2); }
+  .tag.accent { background: var(--accent); color: #fff; }
+  .tag.custom { background: #fff; border: 1px solid var(--border-strong); color: var(--text2); }
+  .field { display: flex; gap: 8px; margin-top: 8px; }
+  .input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--control); border-radius: 5px; padding: 0 10px; font-size: 13.5px;
+           display: flex; align-items: center; background: var(--surface); white-space: nowrap; overflow: hidden; }
+  .sq { width: 36px; height: 32px; border: 1px solid var(--control); border-radius: 5px; background: var(--surface);
+        display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--text); flex: none; }
+  .sq.off { opacity: .4; }
+  .pending { margin-top: 10px; border: 1px solid #f0cf9a; background: var(--warn-soft); border-radius: 8px; padding: 10px 12px; }
+  .pending .t { font-size: 13px; font-weight: 600; color: #7a3d06; }
+  .pending .n { font-size: 12.5px; color: #7a3d06; margin-top: 2px; line-height: 1.35; }
+  .pending .b { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+  .lastsync { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 9px 12px; border: 1px solid var(--border);
+              border-radius: 8px; background: var(--subtle); font-size: 12.5px; color: var(--text2); }
+  .lastsync b { color: var(--text); font-weight: 600; }
+
+  /* Dialogs: an overlay over the Settings window, like the icon picker */
+  .scrim { position: absolute; inset: 0; background: rgba(15,23,42,.42); }
+  .dlg { position: absolute; left: 18px; right: 18px; top: 120px; background: var(--surface); border-radius: 10px;
+         box-shadow: 0 16px 40px rgba(15,23,42,.35); padding: 18px 20px 16px; }
+  .dlg h2 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+  .dlg p { margin: 0 0 10px; font-size: 13px; color: var(--text2); line-height: 1.45; }
+  .dlg .btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .ft { border: 1px solid var(--border); border-radius: 8px; background: var(--subtle); padding: 8px 12px; margin: 10px 0; font-size: 13px; }
+  .ft .r { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
+  .ft .k { width: 38px; color: var(--text3); font-weight: 700; font-size: 11.5px; letter-spacing: .05em; flex: none; }
+  .ft .v b { font-weight: 600; }
+  .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12.5px; }
+  .stats { display: flex; gap: 8px; margin: 10px 0; }
+  .stat { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+  .stat .n { font-size: 22px; font-weight: 600; line-height: 1.1; }
+  .stat .l { font-size: 12px; color: var(--text2); }
+  .stat.warn { background: var(--warn-soft); border-color: #f0cf9a; }
+  .stat.warn .n { color: var(--warn); }
+  .stat.ok .n { color: var(--ok); }
+  .list { border: 1px solid var(--border); border-radius: 8px; margin: 8px 0 10px; overflow: hidden; }
+  .list .li { display: flex; justify-content: space-between; padding: 6px 12px; font-size: 13px; border-top: 1px solid var(--border); }
+  .list .li:first-child { border-top: 0; }
+  .list .li span:last-child { color: var(--text2); font-size: 12.5px; }
+  .info { display: flex; gap: 10px; border: 1px solid #b9cdf7; background: var(--accent-soft); border-radius: 8px; padding: 9px 12px; margin: 10px 0 0;
+          font-size: 12.5px; color: #1e3a8a; line-height: 1.4; }
+  .info i { font-style: normal; font-weight: 700; flex: none; }
+  .okcheck { width: 26px; height: 26px; border-radius: 50%; background: var(--ok); color: #fff; display: inline-flex; align-items: center;
+             justify-content: center; font-size: 15px; margin-right: 10px; vertical-align: 2px; }
+  .crumbs { margin-top: 10px; border: 1px dashed var(--border-strong); border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+  .crumbs b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="board" id="board"></div>
+<script>
+const rest = `
+    <div class="section">
+      <div class="slabel">BEHAVIOR</div>
+      <div class="row"><div class="label">Ask before replacing a keycut</div><div class="toggle"></div></div>
+      <div class="row"><div><div class="label">Right-click context menus</div><div class="note">Add \u201ckeycut this!\u201d to File Explorer menus.</div></div><div class="toggle"></div></div>
+    </div>
+    <div class="section">
+      <div class="slabel">UPDATES</div>
+      <div class="row"><div><div class="label">Check for updates</div><div class="note">Once a day, ask GitHub whether a newer version is out.</div></div><div class="toggle"></div></div>
+    </div>`;
+
+const USER = 'C:\\Users\\sample\\Shortcuts', SYS = 'D:\\Tools\\Shortcuts';
+
+// s: which card is selected; inUse: which one is saved/active; pending: show the unsaved-change box; last: show last-sync line
+function settings({ selected, inUse, pending = false, last = false }) {
+  const card = (key, name, sub, path, custom) => {
+    const on = selected === key;
+    const tag = inUse === key ? '<span class="tag accent">IN USE</span>' : (on ? '<span class="tag accent">SELECTED</span>' : '');
+    return `<div class="scope${on ? ' on' : ''}">
+      <div class="head"><i class="dot"></i><div><span class="name">${name}</span> <span class="sub">\u00b7 ${sub}</span></div>
+        <div class="spacer"></div>${custom ? '<span class="tag custom">CUSTOM</span>' : '<span class="tag custom">DEFAULT</span>'}${tag}</div>
+      <div class="field"><div class="input">${path}</div><div class="sq" title="Browse">\u2026</div><div class="sq${custom ? '' : ' off'}" title="Reset to default">\u21ba</div></div>
+    </div>`;
+  };
+  return `<div class="content">
+    <h1>Settings</h1>
+    <div class="section">
+      <div class="slabel">OUTPUT</div>
+      <div style="margin-bottom:10px"><div class="label">Output folder</div><div class="note">New keycuts are saved here. User and System each remember their own folder.</div></div>
+      ${card('user', 'User', 'just you', USER, false)}
+      ${card('system', 'System', 'everyone on this PC', SYS, true)}
+      ${pending ? `<div class="pending"><div class="t">Unsaved change: User \u2192 System</div>
+        <div class="n">Your keycuts will need to be copied to the new folder. Nothing happens until you apply.</div>
+        <div class="b"><div class="btn2">Revert</div><div class="btn1">Apply\u2026</div></div></div>` : ''}
+      ${last ? `<div class="lastsync"><div style="flex:1"><b>Last sync</b> \u00b7 Nov 17 \u00b7 40 copied, 2 backed up</div>
+        <span class="btnlink">Undo</span><span class="btnlink">Open backups</span></div>` : ''}
+    </div>${rest}
+  </div>
+  <div class="footer"><div class="btn2">Show welcome</div></div>`;
+}
+
+const frame = (cap, sub, inner, dialog = '') =>
+  `<div><div class="cap">${cap} <span>\u2014 ${sub}</span></div><div class="win">${inner}${dialog ? '<div class="scrim"></div>' + dialog : ''}</div></div>`;
+
+const confirm = `<div class="dlg">
+  <h2>Change the output folder?</h2>
+  <div class="ft">
+    <div class="r"><span class="k">FROM</span><span class="v"><b>User</b> \u00b7 <span class="mono">${USER}</span></span></div>
+    <div class="r"><span class="k">TO</span><span class="v"><b>System</b> \u00b7 <span class="mono">${SYS}</span></span></div>
+  </div>
+  <p>Your keycuts are <span class="mono">.bat</span> files in the output folder. If the folder changes, your existing keycuts must be <b>synced (copied)</b> to the new folder, or Win+R won\u2019t find them.</p>
+  <p style="margin:0">Nothing is deleted from the old folder, and each side keeps its own path, so you can switch back any time.</p>
+  <div class="btns"><div class="btn2">Cancel</div><div class="btn2">Save without syncing</div><div class="btn1">Save and sync\u2026</div></div>
+</div>`;
+
+const preview = `<div class="dlg" style="top:100px">
+  <h2>Sync keycuts to the new folder</h2>
+  <p style="margin-bottom:4px">Here\u2019s what will happen. Nothing has been changed yet.</p>
+  <div class="stats">
+    <div class="stat ok"><div class="n">38</div><div class="l">new, copied</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">identical, skipped</div></div>
+    <div class="stat warn"><div class="n">2</div><div class="l">conflicts</div></div>
+  </div>
+  <div class="list">
+    <div class="li"><span class="mono">gmail.bat</span><span>differs \u00b7 old one backed up first</span></div>
+    <div class="li"><span class="mono">npp.bat</span><span>differs \u00b7 old one backed up first</span></div>
+  </div>
+  <div class="info"><i>i</i><div>Conflicts are saved to <span class="mono">${SYS}\\.backups\\2026-11-17_v1.2.3\\</span> before being replaced. The old folder isn\u2019t touched.</div></div>
+  <div class="btns"><div class="btn2">Cancel</div><div class="btn1">Sync 40 keycuts</div></div>
+</div>`;
+
+const done = `<div class="dlg" style="top:100px">
+  <h2><span class="okcheck">\u2713</span>Synced 40 keycuts</h2>
+  <div class="stats">
+    <div class="stat ok"><div class="n">38</div><div class="l">added</div></div>
+    <div class="stat warn"><div class="n">2</div><div class="l">replaced, backed up</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">failed</div></div>
+  </div>
+  <div class="crumbs"><b>To undo:</b> use <b>Undo last sync</b> in Settings, or open the backup folder and follow <span class="mono">README.txt</span>. A <span class="mono">sync-manifest.json</span> there lists every file and what happened to it.</div>
+  <div class="btns"><div class="btn2">Open backup folder</div><div class="btn1">Done</div></div>
+</div>`;
+
+document.getElementById('board').innerHTML = [
+  frame('1. Pick a side', 'User is in use; System has a custom path it remembers', settings({ selected: 'system', inUse: 'user', pending: true })),
+  frame('2. Confirm', 'popup before anything is saved', settings({ selected: 'system', inUse: 'user', pending: true }), confirm),
+  frame('3. Preview the sync', 'counts first, no changes yet', settings({ selected: 'system', inUse: 'user', pending: true }), preview),
+  frame('4. Result', 'what happened, and how to reverse it', settings({ selected: 'system', inUse: 'system' }), done),
+  frame('5. Afterwards', 'the last sync stays one click from undo', settings({ selected: 'system', inUse: 'system', last: true })),
+].join('');
+</script>
+</body>
+</html>

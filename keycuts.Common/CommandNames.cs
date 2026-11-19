@@ -5,7 +5,7 @@ using System.Linq;
 namespace keycuts.Common
 {
     /// <summary>
-    /// The names of the commands keycuts puts on PATH, the shims in the install folder's bin (keycuts.cmd, keypaste.cmd).
+    /// The names of the commands keycuts puts on PATH, the shims in the keycuts folder (keycuts.cmd, keypaste.cmd, <see cref="CommandShims"/>).
     /// A keycut with one of these names clashes with the command: Windows takes whichever comes first on PATH, so one of
     /// the two stops working from Win+R and terminals. New keycuts can't take them (<see cref="KeycutCreator.IsValidName"/>),
     /// and the app renames an existing one at startup (<see cref="KeycutRepository.MoveAsideCommandNames"/>).

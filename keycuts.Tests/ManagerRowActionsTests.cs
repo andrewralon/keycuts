@@ -2006,22 +2006,6 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public async Task Delete_AFailureOrAnAlreadyGoneFile_OffersNoUndo()
-        {
-            var actions = new FakeActions { DeleteError = new KeycutRepositoryException(KeycutRepositoryError.NotFound, "gone") };
-            var manager = await LoadedAsync(actions, "a", "b");
-
-            await manager.DeleteKeycutAsync(manager.Rows[0]);
-
-            Assert.False(manager.CanUndoDelete);
-
-            actions.DeleteError = new KeycutRepositoryException(KeycutRepositoryError.InUse, "in use");
-            await manager.DeleteKeycutAsync(manager.Rows[0]);
-
-            Assert.False(manager.CanUndoDelete);
-        }
-
-        [Fact]
         public async Task Undo_AReloadThatFindsTheFileBeforeTheRestoreFinishes_DoesNotMakeASecondRow()
         {
             var gate = new TaskCompletionSource<bool>();
@@ -2166,6 +2150,7 @@ namespace keycuts.Tests
             Assert.True(manager.StatusIsError);
             Assert.Contains("File is in use.", manager.StatusMessage);
             Assert.Equal(0, requests);
+            Assert.False(manager.CanUndoDelete);
         }
 
         [Fact]
@@ -2182,6 +2167,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "b" }, manager.Rows.Select(r => r.Name));
             Assert.True(manager.StatusIsError);
             Assert.Contains("already deleted", manager.StatusMessage);
+            Assert.False(manager.CanUndoDelete);
         }
 
         [Fact]

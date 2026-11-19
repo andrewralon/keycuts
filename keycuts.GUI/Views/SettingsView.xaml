@@ -129,21 +129,17 @@
 
     <!-- The page scrolls when the window is shorter than it; the footer stays. Off while the icon picker is open. -->
     <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False" IsEnabled="{Binding IsBodyEnabled}"
-                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" SizeChanged="BodyScroller_SizeChanged">
-      <!-- Two columns at the large size (docs/styleguide.md, Tabbed window): Output and Behavior on the left, the rest on the right,
-           with a rule 24 from each. A narrow window stacks them, in the same order (SettingsView.xaml.cs, UseTwoColumns). -->
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <!-- Two columns at every width (docs/styleguide.md, Tabbed window): Output and Behavior on the left, the rest on the right,
+           with a rule 24 from each. They fit side by side down to the window's minimum width, without scrolling. -->
       <Grid x:Name="Columns" Margin="{StaticResource PagePadding}">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
 
-        <StackPanel x:Name="LeftColumn" Grid.Row="0" Grid.Column="0">
+        <StackPanel x:Name="LeftColumn" Grid.Column="0">
 
           <!-- Output -->
           <controls:SectionLabel Text="Output" />
@@ -225,10 +221,10 @@
           </Grid>
         </StackPanel>
 
-        <Border x:Name="ColumnRule" Grid.Row="0" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
+        <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
 
         <!-- Its first section label starts at the top of the page beside the left column's; stacked, 24 under the left column -->
-        <StackPanel x:Name="RightColumn" Grid.Row="0" Grid.Column="2">
+        <StackPanel x:Name="RightColumn" Grid.Column="2">
           <!-- Appearance. The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
           <controls:SectionLabel Text="Appearance" />
           <Grid>

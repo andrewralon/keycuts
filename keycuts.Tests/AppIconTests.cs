@@ -694,14 +694,14 @@ namespace keycuts.Tests
             });
         }
 
-        /// <summary>The Settings screen (#218) in a window of its own, MainWidth wide; its names are in the view's name scope.</summary>
+        /// <summary>The Settings screen (#218) in a window of its own, the large size's minimum width; its names are in the view's name scope.</summary>
         private sealed class SettingsHost : Window
         {
             public SettingsHost(SettingsViewModel viewModel)
             {
                 View = new keycuts.GUI.Views.SettingsView { DataContext = viewModel };
                 Content = View;
-                Width = WindowLayout.CreatorWidth;
+                Width = WindowLayout.ManagerMinWidth;
                 SizeToContent = SizeToContent.Height;
             }
 

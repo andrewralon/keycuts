@@ -15,6 +15,10 @@
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
+    <!-- The Manager, for the column headers: a column that starts hidden builds its header off the visual tree, where a
+         RelativeSource binding fails for good (BindingProxy) -->
+    <controls:BindingProxy x:Key="ManagerProxy" Data="{Binding}" />
+
     <!-- Single-line table text: trims with an ellipsis and shows the full value in a tooltip. -->
     <Style x:Key="CellText" TargetType="TextBlock">
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -121,9 +125,9 @@
       <!-- Pulled left by the frame's 1 border and 4 padding, so the label starts where its column's values do (12 in) -->
       <Setter Property="Margin" Value="-5,0,0,0" />
       <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-      <Setter Property="ActiveColumn" Value="{Binding DataContext.SortColumn, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-      <Setter Property="IsDescending" Value="{Binding DataContext.SortDescending, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-      <Setter Property="Command" Value="{Binding DataContext.SortCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+      <Setter Property="ActiveColumn" Value="{Binding Data.SortColumn, Source={StaticResource ManagerProxy}}" />
+      <Setter Property="IsDescending" Value="{Binding Data.SortDescending, Source={StaticResource ManagerProxy}}" />
+      <Setter Property="Command" Value="{Binding Data.SortCommand, Source={StaticResource ManagerProxy}}" />
       <Setter Property="CommandParameter" Value="{Binding Column, RelativeSource={RelativeSource Self}}" />
       <Setter Property="Template">
         <Setter.Value>
@@ -523,17 +527,20 @@
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <!-- The cell shows the program; the tooltip adds its arguments (#203) -->
-                  <TextBlock Style="{StaticResource CellText}" Text="{Binding Target}" ToolTip="{Binding TargetTooltip}" />
+                  <!-- The cell shows the program; the tooltip adds its arguments (#203). A script's SET variables are filled in,
+                       and the tooltip lists them (#212). -->
+                  <TextBlock Style="{StaticResource CellText}" Text="{Binding DisplayTarget}" ToolTip="{Binding TargetTooltip}" />
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <!-- #187: how often each keycut runs and when it last did, for cleaning up. They make way only after Modified does
-                 (TableHost_SizeChanged). A dash is no record, which isn't the same as 0. -->
+            <!-- #187: how often each keycut runs and when it last did, for cleaning up. Last run makes way after Modified, and Runs last
+                 (TableHost_SizeChanged). A dash is no record, which isn't the same as 0. Their headers say when counting started (#235),
+                 so a low count reads as new rather than unused. -->
             <DataGridTemplateColumn x:Name="RunsColumn" Width="64" MinWidth="64" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
-                <controls:SortHeaderButton Column="Runs" Content="Runs" Style="{StaticResource SortHeaderButtonStyle}" />
+                <controls:SortHeaderButton Column="Runs" Content="Runs" Note="{Binding Data.CountingSinceText, Source={StaticResource ManagerProxy}}"
+                                           Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -544,7 +551,8 @@
             <DataGridTemplateColumn x:Name="LastRunColumn" Width="112" MinWidth="112" CanUserResize="False"
                                     HeaderStyle="{StaticResource ManagerHeaderFixed}">
               <DataGridTemplateColumn.Header>
-                <controls:SortHeaderButton Column="LastRun" Content="Last run" Style="{StaticResource SortHeaderButtonStyle}" />
+                <controls:SortHeaderButton Column="LastRun" Content="Last run" Note="{Binding Data.CountingSinceText, Source={StaticResource ManagerProxy}}"
+                                           Style="{StaticResource SortHeaderButtonStyle}" />
               </DataGridTemplateColumn.Header>
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>

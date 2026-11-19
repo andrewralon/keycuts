@@ -62,54 +62,36 @@ namespace keycuts.Tests
             });
         }
 
-        [Fact]
-        public void TheMaximizeButton_IsNeverTheMaximizeButtonToWindows()
-        {
-            WithWindow((window, shell) =>
-            {
-                // Windows 11 would open its snap layouts over a point that answers HTMAXBUTTON, and a click there would maximize
-                foreach (var show in new Action[] { shell.ShowCreator, shell.ShowManager, shell.ShowSettings })
-                {
-                    show();
-                    Settle(window);
-                    Assert.NotEqual(HtMaxButton, HitTest(window, "BtnMaximize", 23, 24));
-                }
-            }, withSettings: true);
-        }
-
-        [Fact]
-        public void ResizeEdges_ExistOnTheManagerOnly()
-        {
-            WithWindow((window, shell) =>
-            {
-                // The Creator is ResizeMode.CanMinimize: WindowChrome would still answer a resize edge (cursor and all) at its border
-                Assert.Equal(HtClient, HitTest(window, "Frame", 1, 200));
-
-                shell.ShowManager();
-                Settle(window);
-                Assert.Equal(HtLeft, HitTest(window, "Frame", 1, 200));
-
-                shell.ShowCreator();
-                Settle(window);
-                Assert.Equal(HtClient, HitTest(window, "Frame", 1, 200));
-            });
-        }
-
         #endregion Hit testing
 
         #region Never maximized
 
         [Fact]
-        public void TheWindow_IsNeverMaximized_OnAnyScreen()
+        public void TheWindow_IsNeverMaximized_OnAnyScreen_AndOnlyTheLargeScreensResize()
         {
             WithWindow((window, shell) =>
             {
                 var hwnd = new WindowInteropHelper(window).Handle;
+                var maximize = (Button)Named(window, "BtnMaximize");
                 foreach (var show in new Action[] { shell.ShowCreator, shell.ShowManager, shell.ShowSettings, shell.ShowManager, shell.ShowCreator })
                 {
                     show();
                     Settle(window);
                     var screen = shell.Mode.ToString();
+
+                    // The button is off, to screen readers too, and Windows 11 must not see it as HTMAXBUTTON: it would open its
+                    // snap layouts over it, and a click there would maximize. Minimize and close still work.
+                    Assert.False(maximize.IsEnabled, screen);
+                    Assert.False(UIElementAutomationPeer.CreatePeerForElement(maximize).IsEnabled(), screen);
+                    Assert.NotEqual(HtMaxButton, HitTest(window, "BtnMaximize", 23, 24));
+                    Assert.True(((Button)Named(window, "BtnMinimize")).IsEnabled, screen);
+                    Assert.True(((Button)Named(window, "BtnClose")).IsEnabled, screen);
+
+                    // Resize edges on the large screens only. The Creator is ResizeMode.CanMinimize, but WindowChrome would still
+                    // answer a resize edge (cursor and all) at its border.
+                    var large = shell.Mode != ShellMode.Creator;
+                    Assert.Equal(large ? ResizeMode.CanResize : ResizeMode.CanMinimize, window.ResizeMode);
+                    Assert.Equal(large ? HtLeft : HtClient, HitTest(window, "Frame", 1, 200));
 
                     // No maximize box, though the Manager is resizable: Windows offers no maximize (double click, Win+Up, a drag to the top, the window menu)
                     Assert.True((GetWindowLong(hwnd, GwlStyle) & NoMaximizeHook.WsMaximizeBox) == 0, screen);
@@ -127,12 +109,6 @@ namespace keycuts.Tests
                     Settle(window);
                     Assert.Equal(WindowState.Normal, window.WindowState);
                 }
-
-                // The Manager is still resizable, from its edges
-                shell.ShowManager();
-                Settle(window);
-                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
-                Assert.Equal(HtLeft, HitTest(window, "Frame", 1, 200));
             }, withSettings: true);
         }
 
@@ -275,6 +251,53 @@ namespace keycuts.Tests
             }, withSettings: true);
         }
 
+        // The table is whole rows, and what is left goes under it: 24 at the size the window opens at (its smallest), with no part
+        // row's worth added, and the same 24 a whole number of rows taller (the old default, 544)
+        [Theory]
+        [InlineData(WindowLayout.ManagerMinHeight)]
+        [InlineData(544)]
+        public void Manager_Has24UnderItsLastRow(double height)
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+                Assert.Equal(WindowLayout.ManagerMinHeight, window.ActualHeight, 0.5);
+                window.Height = height;
+                Settle(window);
+
+                var host = (FrameworkElement)Named(window, "TableHost");
+                var under = window.ActualHeight - host.TranslatePoint(new Point(0, host.ActualHeight), window).Y;
+                Assert.Equal(24, under, 0.5);
+            }, withKeycuts: true);
+        }
+
+        // As the window widens the fixed columns come back one at a time: Runs, then Last run, then Modified. It opens just wide
+        // enough for Runs (#187), the count a cleanup sorts by. Modified (1088) is past CI's 1024 screen, which caps a real
+        // window; Manager_ModifiedReturnsAtTheRightWidth_AfterAnyDrag checks it on a view sized directly.
+        [Theory]
+        [InlineData(720, "")]
+        [InlineData(767, "")]
+        [InlineData(WindowLayout.ManagerDefaultWidth, "Runs")]
+        [InlineData(827, "Runs")]
+        [InlineData(828, "Runs Last run")]
+        public void Manager_ShowsItsFixedColumns_OneAtATime(double width, string expected)
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowManager();
+                Settle(window);
+                window.Width = width;
+                Settle(window);
+
+                var table = (DataGrid)Named(window, "Table");
+                var shown = new[] { 4, 5, 6 }
+                    .Where(i => table.Columns[i].Visibility == Visibility.Visible)
+                    .Select(i => ((ContentControl)table.Columns[i].Header).Content);
+                Assert.Equal(expected, string.Join(" ", shown));
+            }, withKeycuts: true);
+        }
+
         [Fact]
         public void SettingsFromTheCreator_TakesTheLargeSize()
         {
@@ -291,16 +314,22 @@ namespace keycuts.Tests
             }, withSettings: true);
         }
 
-        [Fact]
-        public void Settings_IsTwoColumns_AtTheLargeSize_AndFitsWithoutScrolling()
+        // Two columns at every size the window takes, the smallest included (the owner's pick, 2026-11-17: no stacking)
+        [Theory]
+        [InlineData(960, 544)]
+        [InlineData(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)]
+        [InlineData(WindowLayout.ManagerMinWidth, WindowLayout.ManagerMinHeight)]
+        public void Settings_IsTwoColumns_AndFitsWithoutScrolling(double width, double height)
         {
             WithWindow((window, shell) =>
             {
                 shell.ShowSettings();
                 Settle(window);
+                window.Width = width;
+                window.Height = height;
+                Settle(window);
 
                 var view = Descendants<keycuts.GUI.Views.SettingsView>(window).Single();
-                Assert.True(view.IsTwoColumn);
 
                 // Output on the left and Appearance on the right, their section labels level at the top of the page
                 var output = Descendants<SectionLabel>(view).Single(l => l.Text == "Output");
@@ -319,36 +348,8 @@ namespace keycuts.Tests
                 var restore = (FrameworkElement)Named(window, "BtnRestoreDefaults");
                 Assert.True(restore.TranslatePoint(new Point(restore.ActualWidth, 0), view).X <= view.ActualWidth - 24 + 0.5);
 
-                // All of it fits at the large size the window opens at
+                // All of it fits, without scrolling
                 Assert.Equal(0, ((ScrollViewer)Named(window, "BodyScroller")).ScrollableHeight, 0.5);
-            }, withSettings: true);
-        }
-
-        [Fact]
-        public void Settings_StacksItsColumns_WhenTheWindowIsNarrow()
-        {
-            WithWindow((window, shell) =>
-            {
-                shell.ShowSettings();
-                Settle(window);
-                window.Width = WindowLayout.ManagerMinWidth;
-                Settle(window);
-
-                var view = Descendants<keycuts.GUI.Views.SettingsView>(window).Single();
-                Assert.False(view.IsTwoColumn);
-                Assert.Equal(Visibility.Collapsed, ((FrameworkElement)Named(window, "ColumnRule")).Visibility);
-
-                // Appearance comes after Behavior, 24 under its last row, and starts at the page's left like Output
-                var lastBehavior = (FrameworkElement)Named(window, "ToggleEnvironmentVariables");
-                var output = Descendants<SectionLabel>(view).Single(l => l.Text == "Output");
-                var appearance = Descendants<SectionLabel>(view).Single(l => l.Text == "Appearance");
-                Assert.True(appearance.TranslatePoint(new Point(0, 0), view).Y > lastBehavior.TranslatePoint(new Point(0, 0), view).Y);
-                Assert.Equal(output.TranslatePoint(new Point(0, 0), view).X, appearance.TranslatePoint(new Point(0, 0), view).X, 0.5);
-
-                // And wide again, two columns again
-                window.Width = WindowLayout.ManagerDefaultWidth;
-                Settle(window);
-                Assert.True(view.IsTwoColumn);
             }, withSettings: true);
         }
 
@@ -593,34 +594,6 @@ namespace keycuts.Tests
                     Assert.Equal(48, button.Height);
                 }
             });
-        }
-
-        [Fact]
-        public void Maximize_IsDisabledOnEveryScreen_TheResizableManagerToo()
-        {
-            WithWindow((window, shell) =>
-            {
-                var button = (Button)Named(window, "BtnMaximize");
-                Assert.False(button.IsEnabled);
-
-                shell.ShowManager();
-                Settle(window);
-                Assert.Equal(ResizeMode.CanResize, window.ResizeMode);
-                Assert.False(button.IsEnabled);
-                Assert.False(UIElementAutomationPeer.CreatePeerForElement(button).IsEnabled());
-
-                shell.ShowSettings();
-                Settle(window);
-                Assert.False(button.IsEnabled);
-
-                shell.ShowCreator();
-                Settle(window);
-                Assert.False(button.IsEnabled);
-
-                // Minimize and close still work
-                Assert.True(((Button)Named(window, "BtnMinimize")).IsEnabled);
-                Assert.True(((Button)Named(window, "BtnClose")).IsEnabled);
-            }, withSettings: true);
         }
 
         #endregion The caption buttons

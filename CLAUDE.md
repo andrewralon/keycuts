@@ -11,7 +11,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Build: `dotnet build keycuts.sln`
 - Test: `dotnet test keycuts.sln` (xUnit, `keycuts.Tests`); one test: `dotnet test keycuts.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep `--severity error`)
-- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z] [-Runtime win-x64|win-arm64]` → `artifacts/installer/<runtime>/`. `installer/` is not in the sln. Don't install a local MSI over a same-version release (different bundled runtime breaks the install; uninstall first or `msiexec /fa`).
+- Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z] [-Runtime win-x64|win-arm64]` → `artifacts/installer/<runtime>/`. `installer/` is not in the sln. Don't install a local MSI over a release whose bundled .NET runtime is newer than your SDK's: the upgrade won't downgrade the runtime's files but the old product's removal deletes them, so `keycuts.exe` can't start (`hostpolicy.dll` missing). Uninstall first or `msiexec /fa`, or publish with the release's runtime (`KnownFrameworkReference` `LatestRuntimeFrameworkVersion`) to test a real upgrade.
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
@@ -38,7 +38,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 - `keycuts.Common`: domain logic, no UI, no logging (`Runner`'s "Shortcut created" line excepted). `.lnk` via late-bound `WScript.Shell` COM.
 - `keycuts.GUI`: WPF, one window, three screens (Creator, Manager, Settings) switched by `ShellViewModel`. No Windows title bar: `Views/RailView` is a folder-tab bar with own caption buttons under `WindowChrome`. **The window is never maximized** (owner's decision; `NoMaximizeHook`). `NoSystemCaptionHook` stops Windows painting classic caption buttons over the bar. Side effects go through `IKeycutActions`. Settings save immediately (no Save button); the folder only on commit.
-- `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected) and `paste <name>`. Bare `keycuts` launches the GUI. PATH gets only the install's `bin\` with `keycuts.cmd`/`keypaste.cmd` shims.
+- `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected), `paste <name>`, `list [<search>] [--usage] [--sort] [--json]` (`Common.KeycutListing`), and `rm`, `rename`, `open` (`Common.KeycutCommands`, through `KeycutRepository` like the Manager). Bare `keycuts` launches the GUI. PATH gets only the output folder; the `keycuts.cmd`/`keypaste.cmd` shims live there (`Common.CommandShims`, #248) and find `keycuts.exe` through HKCU `InstallFolder`.
 - `keycuts.Tests`: references Common and GUI.
 
 **UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it, with deliberate exceptions listed in its `Exceptions`.

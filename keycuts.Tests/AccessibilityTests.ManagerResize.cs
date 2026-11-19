@@ -471,30 +471,17 @@ namespace keycuts.Tests
                 // Either side of each threshold, whatever the drag did before
                 DragGripper(window, table, NameColumn, right: true, change: 5000);
 
-                foreach (var width in new[] { 800.0, 840.0, 846.0, 848.0, 860.0, 900.0, 846.0, 840.0, 1100.0, 1106.0, 1108.0, 1120.0, 1106.0 })
+                foreach (var width in new[] { 760.0, 780.0, 786.0, 788.0, 800.0, 786.0, 780.0, 840.0, 846.0, 848.0, 860.0, 900.0, 846.0, 840.0, 1100.0, 1106.0, 1108.0, 1120.0, 1106.0 })
                 {
                     Resize(window, width);
                     Settle(window);
 
-                    // ManagerView.ModifiedColumnMinTableWidth and UsageColumnsMinTableWidth
+                    // ManagerView.ModifiedColumnMinTableWidth, LastRunColumnMinTableWidth and RunsColumnMinTableWidth
                     Assert.Equal(host.ActualWidth < 1040 ? Visibility.Collapsed : Visibility.Visible, table.Columns[ModifiedColumn].Visibility);
-                    Assert.Equal(host.ActualWidth < 780 ? Visibility.Collapsed : Visibility.Visible, table.Columns[RunsColumn].Visibility);
+                    Assert.Equal(host.ActualWidth < 720 ? Visibility.Collapsed : Visibility.Visible, table.Columns[RunsColumn].Visibility);
                     Assert.Equal(host.ActualWidth < 780 ? Visibility.Collapsed : Visibility.Visible, table.Columns[LastRunColumn].Visibility);
                     AssertFillsTheTable(table);
                 }
-            });
-        }
-
-        // #187: Runs and Last run are what a cleanup needs, so Modified makes way first; the window's default size shows them
-        [Fact]
-        public void Manager_AtTheDefaultWidth_ShowsRunsAndLastRun_ButNotModified()
-        {
-            WithWideManager(GUI.WindowLayout.ManagerDefaultWidth, (window, manager, table) =>
-            {
-                Assert.Equal(Visibility.Collapsed, table.Columns[ModifiedColumn].Visibility);
-                Assert.Equal(Visibility.Visible, table.Columns[RunsColumn].Visibility);
-                Assert.Equal(Visibility.Visible, table.Columns[LastRunColumn].Visibility);
-                AssertFillsTheTable(table);
             });
         }
 

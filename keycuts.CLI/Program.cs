@@ -38,17 +38,116 @@ namespace keycuts.CLI
 
         public static ExitCode Run(string[] args)
         {
+            // Before the -h rewrite and the parser: what follows an open's name is the keycut's, dashes and all
+            if (KeycutCommands.TryReadOpen(args, out var openName, out var openArguments))
+            {
+                return RunManage(context => KeycutCommands.Open(context, openName, openArguments));
+            }
+
             // "create" is the default verb, so the original "keycuts -t … -s …" still works
             // -h is the usual short form of --help; the parser only knows the long one
             args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
-            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions>(args);
+            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions, RemoveOptions, RenameOptions, OpenOptions>(args);
             return result.MapResult(
                 (Options parsed) => RunCreate(parsed),
                 (PasteOptions parsed) => RunPaste(parsed),
+                (ListOptions parsed) => RunList(parsed),
+                (RemoveOptions parsed) => RunManage(context => KeycutCommands.Remove(context, parsed.Name)),
+                (RenameOptions parsed) => RunManage(context => KeycutCommands.Rename(context, parsed.OldName, parsed.NewName, parsed.Force)),
+                (OpenOptions parsed) => RunManage(context => KeycutCommands.Open(context, parsed.Name, KeycutCommands.JoinArguments((parsed.Arguments ?? Enumerable.Empty<string>()).ToArray(), 0))),
                 errors => Usage.Show(result, errors, Console.Out, Console.Error));
         }
 
-        /// <summary><c>keycuts paste &lt;name&gt;</c>, which the bin\keypaste.cmd shim also runs (#97).</summary>
+        /// <summary>
+        /// <c>rm</c>, <c>rename</c> and <c>open</c> (#173), through <see cref="KeycutCommands"/> on the keycuts folder, as the Manager
+        /// works on it: deletes go to the Recycle Bin, a rename checks the new name like the Manager's does, and a keycut opens
+        /// through the shell, as from Win+R. The library's parser logging goes to stderr, so stdout is only the verb's own lines.
+        /// </summary>
+        private static ExitCode RunManage(Func<KeycutCommandContext, ExitCode> verb)
+        {
+            var output = Console.Out;
+            Console.SetOut(Console.Error);
+
+            try
+            {
+                var repository = KeycutRepository.CreateDefault();
+                var context = new KeycutCommandContext(repository, output, Console.Error)
+                {
+                    IsInputRedirected = Console.IsInputRedirected,
+                    ReadKey = () => Console.ReadKey().KeyChar,
+                    CheckName = name => NameCheck.Run(name, repository.OutputFolder, false, NameConflictEnvironment.GetDefault()),
+                    Launch = (path, arguments) => System.Diagnostics.Process.Start(
+                        new System.Diagnostics.ProcessStartInfo(path, arguments) { UseShellExecute = true })?.Dispose()
+                };
+
+                var result = verb(context);
+                if (result != ExitCode.Success)
+                {
+                    // The verb said what went wrong
+                    Usage.MarkErrorWritten();
+                }
+
+                return result;
+            }
+            finally
+            {
+                Console.SetOut(output);
+            }
+        }
+
+
+        /// <summary>
+        /// <c>keycuts list</c> (#173, #237): the keycuts folder's keycuts, read like the Manager reads them, with this user's run
+        /// counts. A missing folder lists nothing.
+        /// </summary>
+        private static ExitCode RunList(ListOptions parsed)
+        {
+            if (!KeycutListing.TryParseSort(parsed.Sort, out var sort))
+            {
+                Console.Error.WriteLine($"keycuts: --sort must be one of {string.Join(", ", KeycutListing.SortNames)}.");
+                Console.Error.WriteLine("Run 'keycuts list --help' for usage.");
+                Usage.MarkErrorWritten();
+                return ExitCode.BadArguments;
+            }
+
+            // The parser logs while it reads a keycut; keep stdout to the listing, for a script that reads it
+            var output = Console.Out;
+            Console.SetOut(Console.Error);
+            IReadOnlyList<Keycut> keycuts;
+
+            try
+            {
+                keycuts = KeycutRepository.CreateDefault().LoadAllAsync().GetAwaiter().GetResult();
+            }
+            catch (KeycutRepositoryException ex)
+            {
+                // An invalid or unreadable folder: say which, on stderr
+                Console.Error.WriteLine($"keycuts: {ex.Message}");
+                Usage.MarkErrorWritten();
+                return ExitCode.CannotFindPath;
+            }
+            finally
+            {
+                Console.SetOut(output);
+            }
+
+            var listed = KeycutListing.Sort(KeycutListing.Filter(keycuts, parsed.Search), sort);
+
+            if (parsed.Json)
+            {
+                output.WriteLine(KeycutListing.ToJson(listed));
+                return ExitCode.Success;
+            }
+
+            foreach (var line in KeycutListing.Format(listed, parsed.Usage))
+            {
+                output.WriteLine(line);
+            }
+
+            return ExitCode.Success;
+        }
+
+        /// <summary><c>keycuts paste &lt;name&gt;</c>, which the keypaste.cmd shim also runs (#97).</summary>
         private static ExitCode RunPaste(PasteOptions parsed)
         {
             // The library logs with Console.WriteLine (the parser does while reading a keycut). Send that to stderr, so

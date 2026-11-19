@@ -37,6 +37,25 @@ namespace keycuts.CLI
         /// <summary>Set once a usage error has been explained on stderr, so <see cref="Program.Main"/> doesn't add a second line.</summary>
         public static bool WroteError { get; private set; }
 
+        /// <summary>For a verb that explained its own error on stderr.</summary>
+        public static void MarkErrorWritten()
+        {
+            WroteError = true;
+        }
+
+        /// <summary>The verb a parse was for, as typed: help and errors name it.</summary>
+        private static string VerbName(ParserResult<object> result)
+        {
+            var type = result.TypeInfo.Current;
+
+            return type == typeof(PasteOptions) ? "paste"
+                : type == typeof(ListOptions) ? "list"
+                : type == typeof(RemoveOptions) ? "rm"
+                : type == typeof(RenameOptions) ? "rename"
+                : type == typeof(OpenOptions) ? "open"
+                : "create";
+        }
+
         /// <summary>Prints help or version to <paramref name="output"/>, or the reasons a parse failed to <paramref name="error"/>.</summary>
         public static ExitCode Show(ParserResult<object> result, IEnumerable<Error> errors, TextWriter output, TextWriter error)
         {
@@ -52,7 +71,7 @@ namespace keycuts.CLI
             {
                 // "keycuts --help" asks for the verb list; "keycuts paste --help" for one verb's options
                 var topLevel = list.OfType<HelpVerbRequestedError>().Any(e => e.Type == null);
-                var verb = result.TypeInfo.Current == typeof(PasteOptions) ? "paste" : "create";
+                var verb = VerbName(result);
 
                 var text = HelpText.AutoBuild(
                     result,
@@ -72,14 +91,31 @@ namespace keycuts.CLI
             }
 
             // Short on purpose: what was wrong, then where to look. The full option list is one --help away.
-            var reasons = result.TypeInfo.Current == typeof(PasteOptions) && list.OfType<MissingRequiredOptionError>().Any()
-                ? "paste needs a keycut or text file name, for example: keycuts paste db"
-                : HelpText.RenderParsingErrorsText(
-                    result, SentenceBuilder.Create().FormatError, SentenceBuilder.Create().FormatMutuallyExclusiveSetErrors, 0).Trim();
+            var missing = list.OfType<MissingRequiredOptionError>().Any() ? MissingValueMessage(VerbName(result)) : null;
+            var reasons = missing ?? HelpText.RenderParsingErrorsText(
+                result, SentenceBuilder.Create().FormatError, SentenceBuilder.Create().FormatMutuallyExclusiveSetErrors, 0).Trim();
             error.WriteLine($"keycuts: {reasons}");
             error.WriteLine("Run 'keycuts --help' for usage.");
             WroteError = true;
             return ExitCode.BadArguments;
+        }
+
+        /// <summary>What a verb needs, with an example, for when its name (or names) were left out; null for a verb with no such line.</summary>
+        public static string MissingValueMessage(string verb)
+        {
+            switch (verb)
+            {
+                case "paste":
+                    return "paste needs a keycut or text file name, for example: keycuts paste db";
+                case "rm":
+                    return "rm needs the name of the keycut to delete, for example: keycuts rm gmail";
+                case "rename":
+                    return "rename needs the keycut's name and its new one, for example: keycuts rename gmail mail";
+                case "open":
+                    return "open needs the name of the keycut to open, for example: keycuts open gmail";
+                default:
+                    return null;
+            }
         }
 
         /// <summary>One line of heading, and a usage line for the command shown; the top level adds the usage block.</summary>
@@ -99,6 +135,10 @@ namespace keycuts.CLI
                     "  keycuts [create] -t <path> -s <name> [options]  Create a keycut",
                     "  keycuts paste <name>                            Copy target to clipboard",
                     "    keypaste <name>                                 ",
+                    "  keycuts list [<search>] [--usage] [--json]      List the keycuts",
+                    "  keycuts rm <name>                               Delete a keycut",
+                    "  keycuts rename <old> <new> [-f]                 Rename a keycut",
+                    "  keycuts open <name> [arguments]                 Open a keycut",
                     "  keycuts <command> --help                        Help for that command",
                     "  keycuts --help                                  Open this help message",
                     "",
@@ -109,7 +149,12 @@ namespace keycuts.CLI
             {
                 help.AddPreOptionsLines(new[]
                 {
-                    verb == "paste" ? "Usage: keycuts paste <name>" : "Usage: keycuts [create] -t <path> -s <name> [options]",
+                    verb == "paste" ? "Usage: keycuts paste <name>"
+                        : verb == "list" ? "Usage: keycuts list [<search>] [--usage] [--sort name|runs|last-run] [--json]"
+                        : verb == "rm" ? "Usage: keycuts rm <name>"
+                        : verb == "rename" ? "Usage: keycuts rename <old> <new> [-f]"
+                        : verb == "open" ? "Usage: keycuts open <name> [arguments]"
+                        : "Usage: keycuts [create] -t <path> -s <name> [options]",
                     "",
                     "Options:"
                 });
@@ -125,6 +170,8 @@ namespace keycuts.CLI
             "  keycuts -t C:\\Users\\MyUser\\Desktop -s desktop" + Environment.NewLine +
             "  keycuts -t https://mail.google.com -s gmail --description \"Work email\"" + Environment.NewLine +
             "  keycuts paste gmail" + Environment.NewLine +
+            "  keycuts list --usage --sort runs" + Environment.NewLine +
+            "  keycuts rename gmail mail" + Environment.NewLine +
             "  keypaste gmail";
 
         /// <summary>The error shown when create is missing what it needs.</summary>

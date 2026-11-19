@@ -1097,6 +1097,92 @@ namespace keycuts.Tests
             throw new InvalidOperationException("No " + typeof(T).Name + " above " + start);
         }
 
+        // Runs, Last run and Modified start hidden in a narrow table. Their headers were built off the visual tree then, and the
+        // style's RelativeSource bindings never recovered once the columns showed: no sort state, and a click that did nothing.
+        [Fact]
+        public void Manager_AHeaderWhoseColumnStartedHidden_FollowsTheSortOnceItShows()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha", "bravo");
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    Assert.DoesNotContain(Descendants<SortHeaderButton>(window), h => h.Column == SortColumn.Runs && h.IsVisible);
+
+                    window.Width = 1100;
+                    Pump();
+                    window.UpdateLayout();
+                    var runs = Descendants<SortHeaderButton>(window).Single(h => h.Column == SortColumn.Runs);
+
+                    // As a click or a screen reader does: through the button, so its Command binding is what runs
+                    var invoke = (System.Windows.Automation.Provider.IInvokeProvider)new System.Windows.Automation.Peers.ButtonAutomationPeer(runs)
+                        .GetPattern(System.Windows.Automation.Peers.PatternInterface.Invoke);
+                    invoke.Invoke();
+                    Pump();
+
+                    Assert.Equal(SortColumn.Runs, manager.SortColumn);
+                    Assert.Equal(SortHeaderState.Descending, runs.State);
+                    Assert.Equal("Sorted descending", AutomationProperties.GetHelpText(runs));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        // #235: the Runs and Last run headers say when counting started, in their tooltip and to screen readers, after the sort state
+        [Fact]
+        public void Manager_RunsAndLastRunHeaders_SayWhenCountingStarted()
+        {
+            RunSta(() =>
+            {
+                EnsureApplication();
+                var manager = LoadedManager(new RecordingActions(), "alpha");
+                manager.CountingSince = () => new DateTime(2026, 11, 15);
+                manager.LoadAsync().GetAwaiter().GetResult();
+                var window = Host(new ManagerView(), manager);
+                try
+                {
+                    // Wide enough that Runs and Last run aren't making way
+                    window.Width = 1100;
+                    Pump();
+                    window.UpdateLayout();
+                    var headers = Descendants<SortHeaderButton>(window).ToDictionary(h => h.Column);
+                    var note = manager.CountingSinceText;
+                    Assert.StartsWith("Counting since", note);
+
+                    foreach (var column in new[] { SortColumn.Runs, SortColumn.LastRun })
+                    {
+                        Assert.Equal(note, headers[column].ToolTip);
+                        Assert.Equal(note, AutomationProperties.GetHelpText(headers[column]));
+                    }
+
+                    Assert.Null(headers[SortColumn.Target].ToolTip);
+
+                    manager.SortCommand.Execute(SortColumn.Runs);
+                    Pump();
+                    Assert.Equal("Sorted descending. " + note, AutomationProperties.GetHelpText(headers[SortColumn.Runs]));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Theory]
+        [InlineData(SortHeaderState.None, "", "")]
+        [InlineData(SortHeaderState.Ascending, "", "Sorted ascending")]
+        [InlineData(SortHeaderState.None, "Counting since Nov 15, 2026", "Counting since Nov 15, 2026")]
+        [InlineData(SortHeaderState.Descending, "Counting since Nov 15, 2026", "Sorted descending. Counting since Nov 15, 2026")]
+        public void SortHeaderHelpText_IsTheSortStateThenTheNote(SortHeaderState state, string note, string expected)
+        {
+            Assert.Equal(expected, SortHeaderButton.GetHelpText(state, note));
+        }
+
         [Fact]
         public void Manager_EnterOnAButtonStaysWithTheButton()
         {

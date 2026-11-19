@@ -2,6 +2,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 
 namespace keycuts.Common
 {
@@ -53,10 +54,25 @@ namespace keycuts.Common
         public static readonly string DismissedReleaseKeyName = "DismissedRelease";
 
         /// <summary>
-        /// The keycuts folder whose keycuts were last given the lines that count runs (#187, <c>KeycutRepository.AddRunCounting</c>).
-        /// That happens once per folder, so lines someone took out of a keycut by hand stay out.
+        /// Before #238: the one keycuts folder whose keycuts were last given the lines that count runs (#187,
+        /// <c>KeycutRepository.AddRunCounting</c>). Still read, as done; never written again.
         /// </summary>
         public static readonly string RunCountingFolderKeyName = "RunCountingFolder";
+
+        /// <summary>
+        /// Every keycuts folder whose keycuts were given the lines that count runs (#238), one per line (<c>REG_MULTI_SZ</c>). That
+        /// happens once per folder, so lines someone took out of a keycut by hand stay out, even after switching away and back.
+        /// </summary>
+        public static readonly string RunCountingFoldersKeyName = "RunCountingFolders";
+
+        /// <summary>
+        /// Every keycuts folder brought to the current format (<c>KeycutMigration</c>, #196, #207), one per line (<c>REG_MULTI_SZ</c>).
+        /// Added only once nothing was left for a later start to do, so a locked file is tried again next time.
+        /// </summary>
+        public static readonly string MigratedFoldersKeyName = "MigratedFolders";
+
+        /// <summary>The folder keycuts.cmd and keypaste.cmd were last put in (<c>CommandShims.Keep</c>, #248), so they can be taken out of it.</summary>
+        public static readonly string CommandShimFolderKeyName = "CommandShimFolder";
 
         /// <summary>
         /// The update cache's names before #191. They are never read: the first write of a new value deletes them, and the cost of
@@ -259,15 +275,87 @@ namespace keycuts.Common
             SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
         }
 
-        /// <summary>See <see cref="RunCountingFolderKeyName"/>; null if never set.</summary>
-        public static string GetRunCountingFolder()
+        /// <summary>Whether <paramref name="folder"/> was given the run-counting lines: see <see cref="RunCountingFoldersKeyName"/>.</summary>
+        public static bool IsRunCountingDone(string folder)
         {
-            return ReadValue(RunCountingFolderKeyName) as string;
+            return IsRunCountingDone(ReadValue(RunCountingFolderKeyName) as string, ReadValue(RunCountingFoldersKeyName) as string[], folder);
         }
 
-        public static void SetRunCountingFolder(string folder)
+        /// <summary>The check behind <see cref="IsRunCountingDone(string)"/>, on the stored values: the folder from before #238, then the list.</summary>
+        public static bool IsRunCountingDone(string oldFolder, string[] folders, string folder)
         {
-            SetRegistryValue(RunCountingFolderKeyName, folder ?? "", RegistryValueKind.String);
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                return false;
+            }
+
+            return NameConflicts.IsSameFolder(oldFolder, folder) || ContainsFolder(folders, folder);
+        }
+
+        /// <summary>Adds <paramref name="folder"/> to <see cref="RunCountingFoldersKeyName"/>, unless it is there already.</summary>
+        public static void MarkRunCountingDone(string folder)
+        {
+            var folders = AddFolder(ReadValue(RunCountingFoldersKeyName) as string[], folder);
+
+            if (folders != null)
+            {
+                SetRegistryValue(RunCountingFoldersKeyName, folders, RegistryValueKind.MultiString);
+            }
+        }
+
+        /// <summary>Where the MSI installed keycuts (<c>InstallFolder</c>, with a trailing backslash); null for a copy that wasn't installed.</summary>
+        public static string GetInstallFolder()
+        {
+            return ReadValue("InstallFolder") as string;
+        }
+
+        /// <summary>The folder the app last put keycuts.cmd and keypaste.cmd in (#248); null if it never has.</summary>
+        public static string GetCommandShimFolder()
+        {
+            return ReadValue(CommandShimFolderKeyName) as string;
+        }
+
+        /// <summary>Stored with a trailing backslash: the MSI reads it as a folder property to remove the shims on uninstall.</summary>
+        public static void SetCommandShimFolder(string folder)
+        {
+            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + "\\";
+            SetRegistryValue(CommandShimFolderKeyName, value, RegistryValueKind.String);
+        }
+
+        /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>
+        public static bool IsMigrationDone(string folder)
+        {
+            return ContainsFolder(ReadValue(MigratedFoldersKeyName) as string[], folder);
+        }
+
+        /// <summary>Adds <paramref name="folder"/> to <see cref="MigratedFoldersKeyName"/>, unless it is there already.</summary>
+        public static void MarkMigrationDone(string folder)
+        {
+            var folders = AddFolder(ReadValue(MigratedFoldersKeyName) as string[], folder);
+
+            if (folders != null)
+            {
+                SetRegistryValue(MigratedFoldersKeyName, folders, RegistryValueKind.MultiString);
+            }
+        }
+
+        /// <summary>The list with <paramref name="folder"/> added, or null when there is nothing to store (it is there, or blank).</summary>
+        public static string[] AddFolder(string[] folders, string folder)
+        {
+            var current = folders ?? Array.Empty<string>();
+
+            if (string.IsNullOrWhiteSpace(folder) || ContainsFolder(current, folder))
+            {
+                return null;
+            }
+
+            return current.Append(folder).ToArray();
+        }
+
+        /// <summary>Whether a stored list of folders has <paramref name="folder"/>, as <see cref="NameConflicts.IsSameFolder"/> compares them.</summary>
+        public static bool ContainsFolder(string[] folders, string folder)
+        {
+            return (folders ?? Array.Empty<string>()).Any(done => NameConflicts.IsSameFolder(done, folder));
         }
 
         public static void SetCheckForUpdates(bool checkForUpdates)

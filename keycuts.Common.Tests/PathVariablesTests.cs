@@ -17,7 +17,7 @@ namespace keycuts.Tests
             new PathVariable("ProgramFiles(x86)", @"C:\Program Files (x86)"),
         };
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Users\me\Desktop\notes.txt", @"%USERPROFILE%\Desktop\notes.txt")]
         [InlineData(@"C:\Users\me\AppData\Local\Programs\app.exe", @"%LOCALAPPDATA%\Programs\app.exe")]   // longest wins
         [InlineData(@"c:\users\ME\Desktop", @"%USERPROFILE%\Desktop")]                                     // any case
@@ -40,7 +40,7 @@ namespace keycuts.Tests
             Assert.Equal(path, PathVariables.Substitute(path, Vars));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Substitute_ATieGoesToTheEarlierVariable()
         {
             var tied = new[] { new PathVariable("OneDrive", @"C:\Users\me\OneDrive"), new PathVariable("OneDriveConsumer", @"C:\Users\me\OneDrive") };
@@ -48,7 +48,7 @@ namespace keycuts.Tests
             Assert.Equal(@"%OneDrive%\doc.txt", PathVariables.Substitute(@"C:\Users\me\OneDrive\doc.txt", tied));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("1DATA")]      // %1 is the first argument
         [InlineData("*DATA")]      // %* is all the arguments
         [InlineData("~DATA")]      // %~ is an argument modifier
@@ -77,7 +77,7 @@ namespace keycuts.Tests
             Assert.Equal(expected, PathVariables.AppliesTo(type));
         }
 
-        [Fact]
+        [WindowsFact]
         public void GetDefault_KnownThenExistingCustomFolders_WithoutTempDriveRootsOrDuplicates()
         {
             var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -110,7 +110,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { @"\\server\share\Archive", @"C:\Users\me\Dropbox", @"C:\Gone" }, asked.ToArray());
         }
 
-        [Fact]
+        [WindowsFact]
         public void GetDefault_AShareRootCanBeAVariable_ButADriveRootCant()
         {
             var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

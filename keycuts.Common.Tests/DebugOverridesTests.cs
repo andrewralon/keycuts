@@ -26,7 +26,7 @@ namespace keycuts.Tests
             Assert.Null(DebugOverrides.ParseOutputFolder(value));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Trims_whitespace_and_quotes()
         {
             Assert.Equal(@"C:\temp\fixtures", DebugOverrides.ParseOutputFolder("  \"C:\\temp\\fixtures\"  "));

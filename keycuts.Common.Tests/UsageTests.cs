@@ -91,7 +91,7 @@ namespace keycuts.Tests
             Assert.Equal("EXIT", lines[^1]);
         }
 
-        [Fact]
+        [WindowsFact]
         public void TheBatFolder_IsTheFolderTheAppReads()
         {
             Assert.Equal(Environment.ExpandEnvironmentVariables(UsageLog.BatFolder), UsageLog.DefaultFolder, ignoreCase: true);
@@ -103,7 +103,7 @@ namespace keycuts.Tests
             Assert.All(UsageLog.BatLines, line => Assert.False(ShortcutFile.IsLaunchLine(line)));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("https://mail.google.com/mail/u/0/#inbox", ShortcutType.Url)]
         [InlineData(@"C:\Windows", ShortcutType.Folder)]
         [InlineData(@"C:\Windows\notepad.exe", ShortcutType.File)]
@@ -142,7 +142,7 @@ namespace keycuts.Tests
 
         // The lines are pure cmd, so they're run for real: by the full path, as Win+R and Explorer start a keycut, and by a
         // name typed in another case, as a terminal does. LOCALAPPDATA points at the test's folder.
-        [Theory]
+        [WindowsTheory]
         [InlineData("gmail")]
         [InlineData("a&b (x)%y")]
         [InlineData("my.app")]
@@ -161,7 +161,7 @@ namespace keycuts.Tests
             Assert.True(DateTime.Now - record.LastRun < TimeSpan.FromMinutes(1));
         }
 
-        [Fact]
+        [WindowsFact]
         public void RunningAKeycutByName_InAnotherCase_CountsUnderItsOwnName()
         {
             var path = Path.Combine(_folder, "gm.bat");
@@ -173,7 +173,7 @@ namespace keycuts.Tests
             Assert.Equal(1, new UsageLog(_usageFolder).Read("gm").Runs);
         }
 
-        [Fact]
+        [WindowsFact]
         public void AUsageFileThatCantBeWritten_StillLaunches_AndSaysNothing()
         {
             var path = Path.Combine(_folder, "blocked.bat");
@@ -192,7 +192,7 @@ namespace keycuts.Tests
 
         // The exit code is the launch's, as before counting: on the first run (the folder is made), on later runs, and when
         // the folder can't be made
-        [Theory]
+        [WindowsTheory]
         [InlineData("fresh")]
         [InlineData("again")]
         [InlineData("unwritable")]
@@ -474,7 +474,7 @@ namespace keycuts.Tests
             Assert.Equal(before[1], File.ReadAllBytes(notAKeycut));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AddRunCounting_SkipsAReadOnlyFile_AndCarriesOn()
         {
             var locked = Path.Combine(_folder, "a.bat");
@@ -537,7 +537,7 @@ namespace keycuts.Tests
             Assert.True(UsageLog.IsCounted(File.ReadAllLines(path)));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(null, new string[0], @"C:\Shortcuts", false)]
         [InlineData(@"C:\Shortcuts", new string[0], @"c:\shortcuts\", true)]   // the value from before #238 still counts
         [InlineData(null, new[] { @"D:\Other", @"C:\Shortcuts\" }, @"C:\SHORTCUTS", true)]
@@ -548,7 +548,7 @@ namespace keycuts.Tests
             Assert.Equal(expected, RegistryStuff.IsRunCountingDone(oldFolder, folders, folder));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AddFolder_AppendsANewFolderOnly()
         {
             Assert.Equal(new[] { @"C:\Shortcuts" }, RegistryStuff.AddFolder(null, @"C:\Shortcuts"));

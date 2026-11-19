@@ -83,7 +83,7 @@ namespace keycuts.Tests
         }
 
         // The fixtures load with the real repository, one keycut per name
-        [Fact]
+        [WindowsFact]
         public async Task Generates_TheRequestedNumber_OfLoadableKeycuts()
         {
             var keycuts = await Generate(20);
@@ -92,7 +92,7 @@ namespace keycuts.Tests
             Assert.Equal(20, keycuts.Select(k => k.Name.ToLowerInvariant()).Distinct().Count());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Refuses_the_real_output_folder()
         {
             var result = RunScript("-Folder C:\\Shortcuts -Count 5 -AllowNonTemp");
@@ -101,7 +101,7 @@ namespace keycuts.Tests
             Assert.Contains("Refusing", result.Output);
         }
 
-        [Fact]
+        [WindowsFact]
         public void Refuses_a_folder_outside_temp_without_the_switch()
         {
             var outside = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "keycuts-sample-" + Guid.NewGuid().ToString("N"));
@@ -112,7 +112,7 @@ namespace keycuts.Tests
             Assert.False(Directory.Exists(outside));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Refuses_a_folder_with_foreign_bat_files()
         {
             var folder = Path.Combine(_root, "foreign");
@@ -126,7 +126,7 @@ namespace keycuts.Tests
             Assert.Equal("@ECHO OFF", File.ReadAllText(existing));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Regenerating_replaces_only_a_previous_sample_set()
         {
             await Generate(20);

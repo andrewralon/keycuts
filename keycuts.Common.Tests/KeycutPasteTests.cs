@@ -53,7 +53,7 @@ namespace keycuts.Tests
             return string.Join("\r\n", lines);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(ShortcutType.Folder, @"%USERPROFILE%\Desktop", @"C:\Users\me\Desktop")]
         [InlineData(ShortcutType.File, @"%userprofile%\notes.txt", @"C:\Users\me\notes.txt")]
         [InlineData(ShortcutType.Folder, @"D:\Data", @"D:\Data")]                                   // no variables: unchanged
@@ -68,7 +68,7 @@ namespace keycuts.Tests
             Assert.Equal(expected + Environment.NewLine, fake.Output.ToString());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Run_ATextFile_IsCopiedAsWritten_WithoutExpandingVariables()
         {
             var fake = new FakeFiles();
@@ -91,7 +91,7 @@ namespace keycuts.Tests
             Assert.Equal(1, asked);
         }
 
-        [Fact]
+        [WindowsFact]
         public void Candidates_TryEachFolderInOrder_TheNameThenTxtThenBat()
         {
             Assert.Equal(new[]
@@ -102,7 +102,7 @@ namespace keycuts.Tests
             }, KeycutPaste.Candidates("db", Folders).ToArray());
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("notes.txt")]
         [InlineData("db.BAT")]
         public void Candidates_ANameWithTxtOrBat_IsntGivenAnotherExtension(string name)
@@ -110,20 +110,20 @@ namespace keycuts.Tests
             Assert.Equal(new[] { @"C:\work\" + name, @"C:\Shortcuts\" + name }, KeycutPaste.Candidates(name, Folders.Take(2)).ToArray());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Candidates_ADottedKeycutName_StillTriesBat()
         {
             // keypaste.exe skipped .txt and .bat for any name with a dot, so a keycut named "my.site" was never found
             Assert.Contains(@"C:\Shortcuts\my.site.bat", KeycutPaste.Candidates("my.site", Folders));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Candidates_AFullPath_IsTriedOnce()
         {
             Assert.Equal(new[] { @"D:\notes\todo.txt" }, KeycutPaste.Candidates(@"D:\notes\todo.txt", Folders).ToArray());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Run_AKeycut_CopiesItsTarget_AndPrintsIt()
         {
             var fake = new FakeFiles();
@@ -135,7 +135,7 @@ namespace keycuts.Tests
             Assert.Empty(fake.Error.ToString());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Run_ATextFile_CopiesItsContents_AndTheWorkingFolderWins()
         {
             var fake = new FakeFiles();
@@ -157,7 +157,7 @@ namespace keycuts.Tests
             Assert.Contains(@"C:\Shortcuts", fake.Error.ToString());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Run_ABatThatIsntAKeycut_CopiesNothing()
         {
             var fake = new FakeFiles();
@@ -168,7 +168,7 @@ namespace keycuts.Tests
             Assert.Contains("isn't a keycut", fake.Error.ToString());
         }
 
-        [Fact]
+        [WindowsFact]
         public void Run_AClipboardFailure_IsReported()
         {
             var fake = new FakeFiles { ClipboardError = new System.ComponentModel.Win32Exception(5, "Access is denied.") };

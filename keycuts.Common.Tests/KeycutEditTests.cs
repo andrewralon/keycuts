@@ -404,7 +404,7 @@ namespace keycuts.Tests
             Assert.Contains($"START \"\" /B \"%SystemRoot%\\explorer.exe\" \"{folderTarget}\"", lines);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANewTarget_CanBeSavedWithEnvironmentVariables_LikeANewKeycut()
         {
             Emit("site", ShortcutType.Url, "https://example.com");
@@ -422,7 +422,7 @@ namespace keycuts.Tests
             Assert.Contains(@"START """" /B ""%KC_EDIT_TEST%\notes.txt""", File.ReadAllLines(saved.FilePath));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANewTargetWithVariablesTypedIn_Resolves_AndIsWrittenAsTheRealPathWhenTheSettingIsOff()
         {
             Emit("site", ShortcutType.Url, "https://example.com");
@@ -488,7 +488,7 @@ namespace keycuts.Tests
             Assert.Contains($"REM <shortcut>{Path.Combine(_folder, "docs.bat")}</shortcut>", File.ReadAllLines(saved.FilePath));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("")]
         [InlineData("   ")]
         [InlineData("a/b")]
@@ -593,7 +593,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "again2.bat" }, Everything());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFailedWrite_LeavesTheKeycutAsItWasAndNoTempFile()
         {
             var path = Emit("locked", ShortcutType.Url, "https://example.com");
@@ -609,7 +609,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "locked.bat" }, Everything());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANewNameForAFileThatCantBeRenamed_LeavesTheOldKeycutAndNoCopy()
         {
             var old = Emit("old", ShortcutType.Url, "https://example.com");
@@ -629,7 +629,7 @@ namespace keycuts.Tests
             Assert.Equal(bytes, File.ReadAllBytes(old));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ARenameWhoseContentCantBeWritten_PutsTheNameBack()
         {
             // A read-only file can be moved but not replaced: the rename happens first, so the failure has to undo it
@@ -646,7 +646,7 @@ namespace keycuts.Tests
             Assert.Equal(bytes, File.ReadAllBytes(old));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AnEdit_KeepsTheFilesAlternateStreams_WithOrWithoutARename()
         {
             // The "downloaded from the internet" mark: a copy and a delete would have lost it

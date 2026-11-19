@@ -546,7 +546,7 @@ namespace keycuts.Tests
                 File.ReadAllText(newPath));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_KeepsTheDownloadedFromTheInternetMark()
         {
             // A Zone.Identifier stream makes Windows warn before running a downloaded .bat; rewriting must not drop it
@@ -730,7 +730,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Unknown, byName["cmd"].TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task CheckTargets_ExpandsEnvironmentVariables()
         {
             var k = new Keycut

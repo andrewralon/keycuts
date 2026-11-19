@@ -207,7 +207,7 @@ namespace keycuts.Tests
         }
 
         // A program that says where it is isn't put in the start-in folder
-        [Theory]
+        [WindowsTheory]
         [InlineData("START \"\" /D \"C:\\Work\" D:\\Apps\\tool.exe --flag", @"D:\Apps\tool.exe")]
         [InlineData("START \"\" /D \"C:\\Work\" \"D:\\Apps\\tool.exe\" --flag", @"D:\Apps\tool.exe")]
         [InlineData("START \"\" /D \"C:\\Work\" \"D:\\Apps\\tool.exe\"", @"D:\Apps\tool.exe")]

@@ -70,7 +70,7 @@ namespace keycuts.Tests
             Assert.False(overwrite);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Shortcuts\tool.exe", "tool.exe")]
         [InlineData(@"C:\Shortcuts\tool", "tool")]
         [InlineData("tool.exe", "tool.exe")]
@@ -81,7 +81,7 @@ namespace keycuts.Tests
             Assert.Equal(name, Shortcut.GetName(shortcut));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("gmail", @"C:\Keys\gmail.bat")]
         [InlineData(@"nested\tool.exe", @"C:\Keys\nested\tool.exe.bat")]
         [InlineData(@"C:\Other\.\tool.exe", @"C:\Other\.\tool.exe.bat")]
@@ -213,7 +213,7 @@ namespace keycuts.Tests
             Assert.False(doesNotAsk.HasWarnings);
         }
 
-        [Fact]
+        [WindowsFact]
         public void NameCheck_AlwaysReportsConflicts()
         {
             var env = new NameConflictEnvironment { SystemFolder = @"C:\Windows\System32", FileExists = path => path == @"C:\Windows\System32\notepad.exe" };

@@ -104,7 +104,7 @@ namespace keycuts.Tests
             Assert.False(saved.CanEditInForm);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("Opens %~dp0 and %~f1")]
         [InlineData("100% done")]
         [InlineData("%1 %* %PATH:~0,3%")]
@@ -228,7 +228,7 @@ namespace keycuts.Tests
         }
 
         // The "downloaded from the internet" mark and the file's permissions come with File.Replace
-        [Fact]
+        [WindowsFact]
         public async Task TheDownloadedMark_Survives()
         {
             var path = Emit("marked", ShortcutType.Url, "https://example.com");
@@ -365,7 +365,7 @@ namespace keycuts.Tests
             Assert.Empty(Everything());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AReadOnlyFile_IsRefusedWithAccessDenied_AndKeepsItsContent()
         {
             var path = Emit("locked", ShortcutType.Url, "https://example.com", "kept");

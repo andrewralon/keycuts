@@ -26,7 +26,7 @@ namespace keycuts.Tests
         [Fact]
         public void Installer_defaults_to_the_same_folder_as_the_app()
         {
-            var wxs = XDocument.Load(RepoFiles.Find(@"installer\Package.wxs"));
+            var wxs = XDocument.Load(RepoFiles.Find(Path.Combine("installer", "Package.wxs")));
             var installerDefault = (string)FindById(wxs, "SetProperty", "OUTPUTFOLDER").Attribute("Value");
             var profile = Environment.GetEnvironmentVariable("USERPROFILE");
 
@@ -36,7 +36,7 @@ namespace keycuts.Tests
         [Fact]
         public void Installer_saves_the_folder_where_the_app_reads_it()
         {
-            var wxs = XDocument.Load(RepoFiles.Find(@"installer\Package.wxs"));
+            var wxs = XDocument.Load(RepoFiles.Find(Path.Combine("installer", "Package.wxs")));
 
             var saved = wxs.Descendants().Single(element =>
                 element.Name.LocalName == "RegistryValue" && (string)element.Attribute("Name") == RegistryStuff.OutputFolderKeyName);
@@ -45,7 +45,7 @@ namespace keycuts.Tests
             Assert.Equal("[OUTPUTFOLDER]", (string)saved.Attribute("Value"));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Users\me\Shortcuts\", @"C:\Users\me\Shortcuts")]
         [InlineData(@"C:\Users\me\Shortcuts", @"C:\Users\me\Shortcuts")]
         [InlineData(@"C:\", @"C:\")]

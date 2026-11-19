@@ -120,7 +120,7 @@ namespace keycuts.Tests
         [Fact]
         public void Installer_writes_the_same_verbs_as_the_app()
         {
-            var wxs = XDocument.Load(RepoFiles.Find(@"installer\Package.wxs"));
+            var wxs = XDocument.Load(RepoFiles.Find(Path.Combine("installer", "Package.wxs")));
             var installerKeys = wxs.Descendants()
                 .Where(element => element.Name.LocalName == "RegistryKey")
                 .Select(element => (string)element.Attribute("Key"))

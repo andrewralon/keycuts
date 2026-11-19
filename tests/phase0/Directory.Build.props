@@ -1,7 +1,0 @@
-<Project>
-  <!-- Phase 0.6 of docs/macos-port.md: a throwaway probe, outside keycuts.sln. This file and Directory.Packages.props
-       stop the repo's own props (central package versions) from reaching it. Delete tests/phase0 once Phase 2.1 lands. -->
-  <PropertyGroup>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-</Project>

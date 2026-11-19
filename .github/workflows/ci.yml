@@ -156,6 +156,44 @@ jobs:
           if ($rows.Count -gt 100) { $lines += '', "_$($rows.Count - 100) more not shown._" }
           $lines | Add-Content $env:GITHUB_STEP_SUMMARY
 
+  # The macOS port (docs/macos-port.md, Phase 2.3): Common and the CLI build for net10.0 on a Mac, and the tests that
+  # don't need the GUI pass there. Windows-only tests show as skipped ([WindowsFact]). The WPF projects stay on Windows.
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: |
+          dotnet build keycuts.CLI -c Release
+          dotnet build keycuts.Common.Tests -c Release
+
+      - name: Test
+        run: >-
+          dotnet test keycuts.Common.Tests -c Release --no-build
+          --results-directory artifacts/test-results
+          --logger trx
+          --logger "GitHubActions;summary-include-passed=false"
+          -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-macos
+          path: |
+            artifacts/test-results/
+            keycuts.Common.Tests/Characterization/Snapshots/*.received.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
   # A PR into main is a release candidate: prove the MSI builds (WiX's ICE validation included) and say whether merging
   # will release. The script publishes everything itself, so this doesn't wait for the build job; it runs beside it.
   # The job id is a required status check on main.

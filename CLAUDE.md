@@ -24,6 +24,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Package versions only in `Directory.Packages.props` (CPM). No lockfiles.
 - **Tests never touch the real output folder, registry, PATH, network or Recycle Bin.** Use explicit `OutputFolder` and `Overwrite` (null reads HKCU), a fake `IPathUpdater`, fake `NameConflictEnvironment`/`checkName`, fake `IClassesStore`, `ISettingsStore`, `FakeReleaseSource`/`FakeUpdateState`. Never `KeycutRepository.CreateDefault()` (recycles, can hang on a shell dialog) or `UpdateChecker.CreateDefault()`. `PathVariables` has an injectable overload.
 - WPF-hosting test classes go in `[Collection(WpfCollection.Name)]`.
+- Tests that only hold on one OS use `[WindowsFact]`/`[WindowsTheory]`/`[MacFact]`/`[MacTheory]` (`keycuts.Common.Tests/PlatformFacts.cs`); they're skipped elsewhere.
 - Key tests use `AccessibilityTests.Press` / `FakeKeyboardDevice`; handlers read `e.KeyboardDevice.Modifiers`, never static `Keyboard.*` (flaky if a real key is held). `CreatorView` still reads static state.
 - Fakes of `IKeycutActions` (`FakeActions`, `RecordingActions`) must implement every member.
 - **Line endings:** `* text=auto`; mixed CRLF/LF is normal, don't convert. Byte-sensitive: `*.cmd` shims (CRLF) and `tests/corpus/**/*.bat`. Never rewrite those through anything that normalizes newlines.

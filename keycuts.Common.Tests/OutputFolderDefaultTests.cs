@@ -23,7 +23,7 @@ namespace keycuts.Tests
             Assert.Equal(Path.Combine(profile, "Shortcuts"), Runner.DefaultOutputFolder);
         }
 
-        [Fact]
+        [WindowsFact]
         public void Installer_defaults_to_the_same_folder_as_the_app()
         {
             var wxs = XDocument.Load(RepoFiles.Find(Path.Combine("installer", "Package.wxs")));

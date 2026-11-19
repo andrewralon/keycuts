@@ -48,7 +48,7 @@ namespace keycuts.Tests.Characterization
 
         private static string RepoRoot => repoRoot.Value;
 
-        private static string SnapshotFolder => Path.Combine(RepoRoot, "keycuts.Tests", "Characterization", "Snapshots");
+        private static string SnapshotFolder => Path.Combine(RepoRoot, "keycuts.Common.Tests", "Characterization", "Snapshots");
 
         private static string FindRepoRoot()
         {

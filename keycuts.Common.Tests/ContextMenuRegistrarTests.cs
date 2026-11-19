@@ -120,7 +120,7 @@ namespace keycuts.Tests
         [Fact]
         public void Installer_writes_the_same_verbs_as_the_app()
         {
-            var wxs = XDocument.Load(FindRepoFile(@"installer\Package.wxs"));
+            var wxs = XDocument.Load(RepoFiles.Find(@"installer\Package.wxs"));
             var installerKeys = wxs.Descendants()
                 .Where(element => element.Name.LocalName == "RegistryKey")
                 .Select(element => (string)element.Attribute("Key"))
@@ -129,21 +129,6 @@ namespace keycuts.Tests
                 .OrderBy(key => key);
 
             Assert.Equal(ContextMenuRegistrar.VerbKeys.OrderBy(key => key), installerKeys);
-        }
-
-        internal static string FindRepoFile(string relativePath)
-        {
-            for (var folder = new DirectoryInfo(AppContext.BaseDirectory); folder != null; folder = folder.Parent)
-            {
-                var candidate = Path.Combine(folder.FullName, relativePath);
-
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-
-            throw new FileNotFoundException(relativePath);
         }
     }
 }

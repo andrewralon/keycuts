@@ -15,7 +15,7 @@ namespace keycuts.Tests
     {
         private static XDocument Wxs()
         {
-            return XDocument.Load(ContextMenuRegistrarTests.FindRepoFile(@"installer\Package.wxs"));
+            return XDocument.Load(RepoFiles.Find(@"installer\Package.wxs"));
         }
 
         [Fact]
@@ -72,7 +72,7 @@ namespace keycuts.Tests
         [Fact]
         public void The_project_publishes_the_shims_into_a_shims_folder()
         {
-            var project = File.ReadAllText(ContextMenuRegistrarTests.FindRepoFile(Path.Combine("keycuts.CLI", "keycuts.CLI.csproj")));
+            var project = File.ReadAllText(RepoFiles.Find(Path.Combine("keycuts.CLI", "keycuts.CLI.csproj")));
 
             Assert.Contains(@"Link=""shims\%(Filename)%(Extension)""", project);
         }
@@ -83,7 +83,7 @@ namespace keycuts.Tests
         [InlineData("keypaste")]
         public void The_shim_files_are_exactly_what_the_app_writes_with_crlf_and_no_bom(string command)
         {
-            var bytes = File.ReadAllBytes(ContextMenuRegistrarTests.FindRepoFile(Path.Combine("keycuts.CLI", "shims", command + ".cmd")));
+            var bytes = File.ReadAllBytes(RepoFiles.Find(Path.Combine("keycuts.CLI", "shims", command + ".cmd")));
 
             Assert.Equal(CommandShims.Bytes(command), bytes);
             var text = Encoding.ASCII.GetString(bytes);

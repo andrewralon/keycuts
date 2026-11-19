@@ -8,8 +8,10 @@ namespace keycuts.Common
     /// <summary>The typed settings: value names, defaults and stored forms. Where they're stored is <see cref="Backend"/>'s business.</summary>
     public class RegistryStuff
     {
-        /// <summary>Every read and write goes through it.</summary>
-        public static readonly ISettingsBackend Backend = new RegistrySettingsBackend();
+        /// <summary>Every read and write goes through it. Only Windows has one so far; elsewhere every setting reads as its default.</summary>
+        public static readonly ISettingsBackend Backend = OperatingSystem.IsWindows()
+            ? new RegistrySettingsBackend()
+            : new UnavailableSettingsBackend();
 
         public static readonly string StartPath = $@"Software\TeamRalon\{Runner.AppName}";
 
@@ -129,7 +131,8 @@ namespace keycuts.Common
         /// <summary>Whether the verbs are really there, which is what the Settings checkbox should show.</summary>
         public static bool GetRightClickContextMenu()
         {
-            return new ContextMenuRegistrar().IsRegistered();
+            // Explorer verbs exist only on Windows
+            return OperatingSystem.IsWindows() && new ContextMenuRegistrar().IsRegistered();
         }
 
         public static bool GetUseEnvironmentVariables()
@@ -374,6 +377,11 @@ namespace keycuts.Common
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>
         public static bool SetRightClickContextMenu(bool rightClickContextMenu)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return false;
+            }
+
             var registrar = new ContextMenuRegistrar();
             var changed = rightClickContextMenu ? registrar.Register() : registrar.Unregister();
 

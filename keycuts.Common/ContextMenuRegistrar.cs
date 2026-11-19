@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 
 namespace keycuts.Common
 {
@@ -19,6 +20,7 @@ namespace keycuts.Common
     /// <summary>
     /// HKCU\Software\Classes: Explorer merges it over HKLM, and unlike HKCR it is writable without elevation.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public class CurrentUserClassesStore : IClassesStore
     {
         private const string ClassesPath = @"Software\Classes";
@@ -66,6 +68,7 @@ namespace keycuts.Common
 
         private readonly string _handlerPath;
 
+        [SupportedOSPlatform("windows")]
         public ContextMenuRegistrar()
             : this(new CurrentUserClassesStore(), Path.Combine(AppContext.BaseDirectory, GuiExeName))
         {

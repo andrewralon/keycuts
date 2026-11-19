@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.Versioning;
 using Microsoft.VisualBasic.FileIO;
 
 namespace keycuts.Common
@@ -22,6 +23,7 @@ namespace keycuts.Common
     /// package and no WinForms. The shell shows its own error dialog if it can't (a file that's open elsewhere), and a
     /// drive without a Recycle Bin (a network drive, a USB stick) deletes for good: see <see cref="HasRecycleBin"/>.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public sealed class RecycleBinRecycler : IFileRecycler
     {
         public void Remove(string path)

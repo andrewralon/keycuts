@@ -296,6 +296,12 @@ namespace keycuts.Common
                     return false;
                 }
 
+                // .lnk files and WScript.Shell exist only on Windows
+                if (!OperatingSystem.IsWindows())
+                {
+                    return false;
+                }
+
                 // Late-bound WScript.Shell avoids a COM interop reference
                 var shellType = System.Type.GetTypeFromProgID("WScript.Shell");
                 if (shellType == null)

@@ -20,5 +20,3 @@ using System.Runtime.InteropServices;
 [assembly: Guid("d8f05096-f7dd-4926-b936-9b6eab12bc02")]
 
 // The version, company, product and copyright come from Directory.Build.props at the repo root.
-
-[assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")]

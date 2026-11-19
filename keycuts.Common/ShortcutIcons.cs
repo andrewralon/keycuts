@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 
 namespace keycuts.Common
 {
@@ -11,6 +12,7 @@ namespace keycuts.Common
     /// icon picked in Settings. Only shortcuts whose target is the given exe are changed, so a Debug build never touches the
     /// installed app's shortcuts. The installer is per-user, so these are the user's own files and need no elevation.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public static class ShortcutIcons
     {
         const int ShcneUpdateItem = 0x00002000;

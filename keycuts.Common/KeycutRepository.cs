@@ -98,7 +98,7 @@ namespace keycuts.Common
         /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179).</summary>
         public static KeycutRepository CreateDefault()
         {
-            return new KeycutRepository(new Runner().GetOutputFolder(), new RecycleBinRecycler(), null, UsageLog.CreateDefault());
+            return new KeycutRepository(new Runner().GetOutputFolder(), OperatingSystem.IsWindows() ? new RecycleBinRecycler() : throw new PlatformNotSupportedException("No Recycle Bin on this platform yet."), null, UsageLog.CreateDefault());
         }
 
         /// <summary>

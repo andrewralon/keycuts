@@ -104,7 +104,7 @@ namespace keycuts.Common
         {
             if (string.Equals(Path.GetExtension(path), ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase))
             {
-                var file = new ShortcutFile(path, readLines(path));
+                var file = ScriptFormats.Current.Parse(path, readLines(path));
                 var target = file.Target;
 
                 if (string.IsNullOrEmpty(target))

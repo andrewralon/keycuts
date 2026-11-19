@@ -284,7 +284,7 @@ namespace keycuts.Common
 
         private static bool TryReadEditable(string path, string[] lines, out ShortcutFile parsed)
         {
-            parsed = new ShortcutFile(path, lines);
+            parsed = ScriptFormats.Current.Parse(path, lines);
 
             return IsEditable(parsed, path, lines);
         }
@@ -302,7 +302,7 @@ namespace keycuts.Common
             try
             {
                 var shortcut = Shortcut.FromParts(parsed.Type, parsed.Target, path, string.IsNullOrEmpty(parsed.OpenWithApp) ? null : parsed.OpenWithApp);
-                emitted = Runner.BuildShortcutLines(shortcut, parsed.Description);
+                emitted = ScriptFormats.Current.EmitLines(shortcut, parsed.Description);
             }
             catch (InvalidOperationException)
             {
@@ -685,7 +685,7 @@ namespace keycuts.Common
                     strict = false;
                 }
 
-                var shortcut = new ShortcutFile(file, lines);
+                var shortcut = ScriptFormats.Current.Parse(file, lines);
 
                 if (string.IsNullOrEmpty(shortcut.Shortcut) ||
                     string.IsNullOrEmpty(shortcut.Command) ||
@@ -838,7 +838,7 @@ namespace keycuts.Common
                     throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
                 }
 
-                var lines = Runner.BuildShortcutLines(BuildShortcutForEdit(parsed, edit, name, newPath, folder), edit.Description);
+                var lines = ScriptFormats.Current.EmitLines(BuildShortcutForEdit(parsed, edit, name, newPath, folder), edit.Description);
 
                 // Beside the keycut, and not a .bat, so a listing never sees it; swapped in only once it's complete
                 var temp = Path.Combine(folder, "." + Path.GetFileName(oldPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");

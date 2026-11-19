@@ -15,7 +15,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
-- macOS/Linux: build/format with `-p:EnableWindowsTargeting=true`; tests only run on Windows (CI).
+- macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` runs there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`. `keycuts.Tests` (WPF) only runs on Windows.
 
 ## Gotchas
 

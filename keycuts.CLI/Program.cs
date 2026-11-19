@@ -76,8 +76,7 @@ namespace keycuts.CLI
                     IsInputRedirected = Console.IsInputRedirected,
                     ReadKey = () => Console.ReadKey().KeyChar,
                     CheckName = name => NameCheck.Run(name, repository.OutputFolder, false, NameConflictEnvironment.GetDefault()),
-                    Launch = (path, arguments) => System.Diagnostics.Process.Start(
-                        new System.Diagnostics.ProcessStartInfo(path, arguments) { UseShellExecute = true })?.Dispose()
+                    Launch = Desktops.Current.RunKeycut
                 };
 
                 var result = verb(context);

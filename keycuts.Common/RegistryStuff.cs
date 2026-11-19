@@ -1,14 +1,15 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 
 namespace keycuts.Common
 {
+    /// <summary>The typed settings: value names, defaults and stored forms. Where they're stored is <see cref="Backend"/>'s business.</summary>
     public class RegistryStuff
     {
-        public static readonly RegistryKey CurrentUserContext = Registry.CurrentUser;
+        /// <summary>Every read and write goes through it.</summary>
+        public static readonly ISettingsBackend Backend = new RegistrySettingsBackend();
 
         public static readonly string StartPath = $@"Software\TeamRalon\{Runner.AppName}";
 
@@ -85,16 +86,7 @@ namespace keycuts.Common
         /// <summary>Reads never write: a missing or unreadable value just yields the default.</summary>
         private static object ReadValue(string keyName)
         {
-            try
-            {
-                using var appNameKey = CurrentUserContext.OpenSubKey(StartPath);
-
-                return appNameKey?.GetValue(keyName);
-            }
-            catch (Exception e) when (ContextMenuRegistrar.IsRegistryFailure(e))
-            {
-                return null;
-            }
+            return Backend.Read(keyName);
         }
 
         public static string GetOutputFolder(string path)
@@ -147,7 +139,7 @@ namespace keycuts.Common
 
         public static void SetUseEnvironmentVariables(bool useEnvironmentVariables)
         {
-            SetRegistryValue(UseEnvironmentVariablesKeyName, useEnvironmentVariables, RegistryValueKind.DWord);
+            Backend.WriteDword(UseEnvironmentVariablesKeyName, useEnvironmentVariables ? 1 : 0);
         }
 
         public static ThemePreference GetThemePreference()
@@ -237,42 +229,34 @@ namespace keycuts.Common
 
         #region Set Methods
 
-        public static void SetRegistryValue(string keyName, object keyValue,
-            RegistryValueKind registryValueKind = RegistryValueKind.String)
-        {
-            using var appNameKey = CurrentUserContext.CreateSubKey(StartPath, true);
-
-            appNameKey.SetValue(keyName, keyValue, registryValueKind);
-        }
-
         public static void SetOutputFolder(string path)
         {
-            SetRegistryValue(OutputFolderKeyName, path, RegistryValueKind.String);
+            Backend.WriteString(OutputFolderKeyName, path);
         }
 
         public static void SetAskBeforeReplacing(bool askBeforeReplacing)
         {
-            SetRegistryValue(AskBeforeReplacingKeyName, askBeforeReplacing ? 1 : 0, RegistryValueKind.DWord);
+            Backend.WriteDword(AskBeforeReplacingKeyName, askBeforeReplacing ? 1 : 0);
         }
 
         public static void SetThemePreference(ThemePreference preference)
         {
-            SetRegistryValue(ThemeKeyName, preference.ToString(), RegistryValueKind.String);
+            Backend.WriteString(ThemeKeyName, preference.ToString());
         }
 
         public static void SetAppIcon(AppIconChoice choice)
         {
-            SetRegistryValue(AppIconKeyName, choice.ToString(), RegistryValueKind.String);
+            Backend.WriteString(AppIconKeyName, choice.ToString());
         }
 
         public static void SetAppIconTransparent(bool transparent)
         {
-            SetRegistryValue(AppIconTransparentKeyName, transparent ? 1 : 0, RegistryValueKind.DWord);
+            Backend.WriteDword(AppIconTransparentKeyName, transparent ? 1 : 0);
         }
 
         public static void SetWelcomeDismissed()
         {
-            SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
+            Backend.WriteDword(WelcomeDismissedKeyName, 1);
         }
 
         /// <summary>Whether <paramref name="folder"/> was given the run-counting lines: see <see cref="RunCountingFoldersKeyName"/>.</summary>
@@ -299,7 +283,7 @@ namespace keycuts.Common
 
             if (folders != null)
             {
-                SetRegistryValue(RunCountingFoldersKeyName, folders, RegistryValueKind.MultiString);
+                Backend.WriteMultiString(RunCountingFoldersKeyName, folders);
             }
         }
 
@@ -319,7 +303,7 @@ namespace keycuts.Common
         public static void SetCommandShimFolder(string folder)
         {
             var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + "\\";
-            SetRegistryValue(CommandShimFolderKeyName, value, RegistryValueKind.String);
+            Backend.WriteString(CommandShimFolderKeyName, value);
         }
 
         /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>
@@ -335,7 +319,7 @@ namespace keycuts.Common
 
             if (folders != null)
             {
-                SetRegistryValue(MigratedFoldersKeyName, folders, RegistryValueKind.MultiString);
+                Backend.WriteMultiString(MigratedFoldersKeyName, folders);
             }
         }
 
@@ -360,48 +344,31 @@ namespace keycuts.Common
 
         public static void SetCheckForUpdates(bool checkForUpdates)
         {
-            SetRegistryValue(CheckForUpdatesKeyName, checkForUpdates ? 1 : 0, RegistryValueKind.DWord);
+            Backend.WriteDword(CheckForUpdatesKeyName, checkForUpdates ? 1 : 0);
         }
 
         public static void SetLastUpdateCheck(DateTimeOffset value)
         {
-            SetRegistryValue(LastUpdateCheckKeyName, FormatUpdateCheckTime(value), RegistryValueKind.String);
+            Backend.WriteString(LastUpdateCheckKeyName, FormatUpdateCheckTime(value));
         }
 
         /// <summary>One <c>SetValue</c>, so the version and URL are stored together or not at all. Removes the pre-#191 values afterwards.</summary>
         public static void SetLatestReleaseSeen(string version, string url)
         {
-            SetRegistryValue(LatestReleaseSeenKeyName, FormatLatestReleaseSeen(version, url), RegistryValueKind.MultiString);
+            Backend.WriteMultiString(LatestReleaseSeenKeyName, FormatLatestReleaseSeen(version, url));
             RemoveLegacyUpdateValues();
         }
 
         public static void SetDismissedRelease(string version)
         {
-            SetRegistryValue(DismissedReleaseKeyName, version ?? string.Empty, RegistryValueKind.String);
+            Backend.WriteString(DismissedReleaseKeyName, version ?? string.Empty);
             RemoveLegacyUpdateValues();
         }
 
         // Best effort and idempotent: it runs after the new value is stored, so a failure here leaves harmless leftovers, and the next write tries again
         private static void RemoveLegacyUpdateValues()
         {
-            try
-            {
-                using var appNameKey = CurrentUserContext.OpenSubKey(StartPath, true);
-
-                if (appNameKey == null)
-                {
-                    return;
-                }
-
-                foreach (var name in LegacyUpdateKeyNames)
-                {
-                    appNameKey.DeleteValue(name, false);
-                }
-            }
-            catch (Exception e) when (ContextMenuRegistrar.IsRegistryFailure(e))
-            {
-                // Left for the next write
-            }
+            Backend.DeleteValues(LegacyUpdateKeyNames);
         }
 
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>
@@ -412,7 +379,7 @@ namespace keycuts.Common
 
             if (changed)
             {
-                SetRegistryValue(RightClickContextMenuKeyName, rightClickContextMenu, RegistryValueKind.DWord);
+                Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
             }
 
             return changed;

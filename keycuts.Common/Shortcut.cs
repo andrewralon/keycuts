@@ -19,7 +19,7 @@ namespace keycuts.Common
             Target = target;
         }
 
-        public string Extension { get; private set; } = ".bat";
+        public string Extension { get; private set; } = ScriptFormats.Current.Extension;
 
         public string Filename { get; private set; }
 
@@ -45,7 +45,7 @@ namespace keycuts.Common
         {
             Type = GetShortcutTypeFromTarget(target, out string newTarget);
             Target = newTarget;
-            Extension = ".bat";
+            Extension = ScriptFormats.Current.Extension;
             Filename = GetFilename(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
             Folder = GetFolder(shortcut, defaultFolder);
@@ -82,7 +82,7 @@ namespace keycuts.Common
         /// </summary>
         public static string GetFullPath(string shortcut, string defaultFolder)
         {
-            return Path.Combine(GetFolder(shortcut, defaultFolder), GetFilename(shortcut) + ".bat");
+            return Path.Combine(GetFolder(shortcut, defaultFolder), GetFilename(shortcut) + ScriptFormats.Current.Extension);
         }
 
         /// <summary>The folder a shortcut argument is written to: its own if it's a full path, else <paramref name="defaultFolder"/>.</summary>
@@ -107,7 +107,7 @@ namespace keycuts.Common
                 Type = type,
                 Target = target,
                 Filename = filename,
-                FilenameWithExtension = $"{filename}.bat",
+                FilenameWithExtension = filename + ScriptFormats.Current.Extension,
                 Folder = folder,
                 FullPath = fullPath,
                 OpenWithAppPath = openWithAppPath,

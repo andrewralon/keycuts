@@ -33,7 +33,7 @@ namespace keycuts.Common
         // still have them, so both are read; the closing tag has to match the opening one.
         private static readonly Regex regexRemTarget = new Regex(@"^\s*REM\s+<(?<tag>target|destination)>(?<value>.*)</\k<tag>>\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        public static readonly string Extension = ".bat";
+        public static readonly string Extension = ScriptFormats.Current.Extension;
 
         public string Path { get; set; }
         public string Shortcut { get; set; }

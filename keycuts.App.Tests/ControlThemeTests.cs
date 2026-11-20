@@ -452,12 +452,11 @@ namespace keycuts.App.Tests
         #region Parity with the WPF app, until cutover
 
         /// <summary>
-        /// WPF styles whose Avalonia theme comes with its custom control in Phase 3.3: the control (or the Icon its template
-        /// draws) isn't ported yet. Take each off as it's ported; the test fails while a listed one is already here.
+        /// WPF styles whose Avalonia theme comes with its custom control in Phase 3.3: the folder tabs aren't ported yet. Take
+        /// each off as it's ported; the test fails while a listed one is already here.
         /// </summary>
         static readonly HashSet<string> WithTheirControls = new HashSet<string>
         {
-            "CheckBox", "SectionLabel", "HelperText", "TypeBadge", "CheckBadge", "CardItem", "CardRadio",
             "TabFocusVisual", "RailTabItem", "RailTabControl"
         };
 

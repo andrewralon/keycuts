@@ -12,6 +12,8 @@
     <OutputType>Exe</OutputType>
     <!-- As in keycuts.Tests: the tests use their own tokens -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+    <!-- Reading a rendered frame's pixels -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Headless.XUnit" />

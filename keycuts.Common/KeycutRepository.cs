@@ -1263,7 +1263,7 @@ namespace keycuts.Common
             {
                 try
                 {
-                    var path = Environment.ExpandEnvironmentVariables(target);
+                    var path = PathVariables.Expand(target);
 
                     // Missing means "we looked for this and it isn't there". Text that can't be a path (a quote in it, a
                     // wildcard) was never looked for, so the keycut is left unmarked rather than claimed missing.

@@ -69,6 +69,23 @@ namespace keycuts.Common
                 : GetDefault(Environment.GetEnvironmentVariable, CustomNames(), Directory.Exists);
         }
 
+        /// <summary>
+        /// A saved path as the keycut opens it: <c>%NAME%</c> expanded, and on macOS a leading <c>$HOME</c>, the only variable
+        /// <see cref="ForMac"/> writes. For checks and comparisons; nothing is written.
+        /// </summary>
+        public static string Expand(string path)
+        {
+            return OperatingSystem.IsMacOS()
+                ? Environment.ExpandEnvironmentVariables(ExpandHome(path, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)))
+                : Environment.ExpandEnvironmentVariables(path);
+        }
+
+        /// <summary>The macOS half of <see cref="Expand"/>, with the home folder passed in.</summary>
+        public static string ExpandHome(string path, string home)
+        {
+            return path == "$HOME" || path.StartsWith("$HOME/", StringComparison.Ordinal) ? home.TrimEnd('/') + path.Substring(5) : path;
+        }
+
         /// <summary>macOS has one: the home folder, written <c>$HOME</c>, which the keycut puts in double quotes (Phase 4.6).</summary>
         public static IReadOnlyList<PathVariable> ForMac(string home)
         {

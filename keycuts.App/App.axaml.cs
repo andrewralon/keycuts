@@ -62,6 +62,9 @@ namespace keycuts.GUI
             MacMenuBar.Attach(Current!, desktop, mainWindow);
             if (OperatingSystem.IsMacOS())
             {
+                // Avalonia doesn't report Increase contrast, so the theme reads it
+                ThemeManager.FollowMacIncreaseContrast(MacAccessibility.IncreaseContrast);
+
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
@@ -79,6 +82,10 @@ namespace keycuts.GUI
 
             // Before Show, so the taskbar never shows the exe's own icon first
             AppIconManager.ApplyTo(mainWindow);
+            if (OperatingSystem.IsMacOS())
+            {
+                MacDockIcon.Follow();
+            }
 
             // Phase 6.5: started by the login, keycuts waits in the menu bar with no window and no Dock icon
             if (OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin())

@@ -55,6 +55,25 @@ namespace keycuts.Tests
             Assert.False(ThemeManager.IsHighContrast(null, follows));
         }
 
+        [Fact]
+        public void DetectPalette_IsHighContrast_WhenMacIncreaseContrastIsOn_AndNotBefore()
+        {
+            var read = ThemeManager.ReadMacIncreaseContrast;
+            try
+            {
+                // Avalonia reports no contrast preference on macOS, so the app reads Increase contrast itself; it is off by default
+                Assert.False(ThemeManager.ReadMacIncreaseContrast());
+                Assert.NotEqual(Palette.HighContrast, ThemeManager.DetectPalette());
+
+                ThemeManager.ReadMacIncreaseContrast = () => true;
+                Assert.Equal(Palette.HighContrast, ThemeManager.DetectPalette());
+            }
+            finally
+            {
+                ThemeManager.ReadMacIncreaseContrast = read;
+            }
+        }
+
         // macOS's Increase contrast (Phase 5.4): fixed colors, each text color 4.5:1 or better on the background it sits on
         [Theory]
         [InlineData(false)]

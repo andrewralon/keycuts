@@ -17,12 +17,18 @@ namespace keycuts.GUI
         /// <summary>The top-left corner of what is drawn, in screen pixels.</summary>
         public static PixelPoint? TopLeft(Window window)
         {
-            if (!OperatingSystem.IsWindows() || window.TryGetPlatformHandle()?.Handle is not { } handle || handle == IntPtr.Zero)
+            return window.TryGetPlatformHandle()?.Handle is { } handle ? TopLeft(handle) : null;
+        }
+
+        /// <summary>The top-left corner of what is drawn for the native window <paramref name="hwnd"/>, in screen pixels.</summary>
+        public static PixelPoint? TopLeft(IntPtr hwnd)
+        {
+            if (!OperatingSystem.IsWindows() || hwnd == IntPtr.Zero)
             {
                 return null;
             }
 
-            return DwmGetWindowAttribute(handle, DwmwaExtendedFrameBounds, out var bounds, Marshal.SizeOf<NativeRect>()) == 0
+            return DwmGetWindowAttribute(hwnd, DwmwaExtendedFrameBounds, out var bounds, Marshal.SizeOf<NativeRect>()) == 0
                 ? new PixelPoint(bounds.Left, bounds.Top)
                 : null;
         }

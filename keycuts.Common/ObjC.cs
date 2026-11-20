@@ -39,7 +39,7 @@ namespace keycuts.Common
 
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         [return: MarshalAs(UnmanagedType.I1)]
-        public static extern bool SendBool(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, out IntPtr error);
+        public static extern bool SendBool(IntPtr receiver, IntPtr selector, IntPtr arg1, out IntPtr arg2, out IntPtr error);
 
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern long SendLong(IntPtr receiver, IntPtr selector);

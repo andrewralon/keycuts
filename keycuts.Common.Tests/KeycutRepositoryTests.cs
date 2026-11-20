@@ -336,7 +336,7 @@ namespace keycuts.Tests
 
             public Exception Error { get; set; }
 
-            public void Remove(string path)
+            public string Remove(string path)
             {
                 if (Error != null)
                 {
@@ -345,6 +345,7 @@ namespace keycuts.Tests
 
                 Removed.Add(path);
                 File.Delete(path);
+                return null;
             }
 
             public bool UsesRecycleBin(string path)

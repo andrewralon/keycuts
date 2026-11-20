@@ -797,12 +797,12 @@ namespace keycuts.Common
                 var modified = File.GetLastWriteTime(path);
                 var recycled = _recycler.UsesRecycleBin(path);
 
-                _recycler.Remove(path);
+                var binPath = _recycler.Remove(path);
 
                 // Its run count goes too, so a new keycut with the name starts from nothing; Undo puts it back
                 var usage = _usage?.Remove(ScriptFormats.NameOf(path));
 
-                return new DeletedKeycut(keycut, contents, modified, recycled) { Usage = usage };
+                return new DeletedKeycut(keycut, contents, modified, recycled) { Usage = usage, BinPath = binPath };
             }
             catch (KeycutRepositoryException)
             {
@@ -999,6 +999,13 @@ namespace keycuts.Common
                     throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
                 }
 
+                // Out of the Trash, as Finder's Put Back would, when it's still there as it was; otherwise from the kept bytes
+                if (TryMoveBackFromBin(deleted, path))
+                {
+                    _usage?.Restore(name, deleted.Usage);
+                    return;
+                }
+
                 var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
 
                 try
@@ -1033,6 +1040,34 @@ namespace keycuts.Common
             catch (Exception ex)
             {
                 throw Translate(ex, $"Can't restore \"{path}\".");
+            }
+        }
+
+        /// <summary>
+        /// Moves the deleted file back from <see cref="DeletedKeycut.BinPath"/> if it's there with the same bytes. Never over a
+        /// file: a name taken since throws, as the restore's own check does. False when it can't, and the bytes are written instead.
+        /// </summary>
+        private static bool TryMoveBackFromBin(DeletedKeycut deleted, string path)
+        {
+            var bin = deleted.BinPath;
+
+            try
+            {
+                if (string.IsNullOrEmpty(bin) || !File.Exists(bin) || !File.ReadAllBytes(bin).AsSpan().SequenceEqual(deleted.Contents))
+                {
+                    return false;
+                }
+
+                File.Move(bin, path);
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch (IOException) when (!File.Exists(path))
+            {
+                return false;
             }
         }
 

@@ -143,6 +143,75 @@ namespace keycuts.Tests
             Assert.Equal(bytes, File.ReadAllBytes(path));
         }
 
+        /// <summary>A Trash of its own: moves the file into a folder and says where, as <see cref="TrashRecycler"/> does.</summary>
+        private sealed class FolderBin : IFileRecycler
+        {
+            private readonly string _bin;
+
+            public FolderBin(string bin)
+            {
+                _bin = bin;
+                Directory.CreateDirectory(bin);
+            }
+
+            public string Remove(string path)
+            {
+                // The Trash renames a second item of the same name ("mail 2"), as this does
+                var target = Path.Combine(_bin, Path.GetFileName(path));
+                for (var i = 2; File.Exists(target); i++)
+                {
+                    target = Path.Combine(_bin, Path.GetFileName(path) + " " + i);
+                }
+
+                File.Move(path, target);
+                return target;
+            }
+
+            public bool UsesRecycleBin(string path)
+            {
+                return true;
+            }
+        }
+
+        [MacFact]
+        public async Task Undo_MovesTheFileBackOutOfTheTrash_LikePutBack()
+        {
+            var bin = Path.Combine(_root, "Trash");
+            var repository = new KeycutRepository(_folder, new FolderBin(bin));
+            var path = Create("mail");
+            var bytes = File.ReadAllBytes(path);
+
+            var deleted = await repository.DeleteAsync(repository.Find("mail"));
+            Assert.Equal(Path.Combine(bin, "mail"), deleted.BinPath);
+
+            await repository.RestoreAsync(deleted);
+
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+            Assert.Empty(Directory.GetFiles(bin));
+        }
+
+        [MacFact]
+        public async Task Undo_WritesTheKeptBytes_WhenTheTrashedFileChangedOrWent_AndNeverOverwrites()
+        {
+            var bin = Path.Combine(_root, "Trash");
+            var repository = new KeycutRepository(_folder, new FolderBin(bin));
+            var path = Create("mail");
+            var bytes = File.ReadAllBytes(path);
+
+            var deleted = await repository.DeleteAsync(repository.Find("mail"));
+            File.AppendAllText(deleted.BinPath, "changed in the Trash\n");
+            await repository.RestoreAsync(deleted);
+
+            Assert.Equal(bytes, File.ReadAllBytes(path));
+            Assert.True(File.Exists(deleted.BinPath));   // not ours any more: it stays in the Trash
+
+            var again = await repository.DeleteAsync(repository.Find("mail"));
+            Create("mail", "https://other.example.com");
+            var error = await Assert.ThrowsAsync<KeycutRepositoryException>(() => repository.RestoreAsync(again));
+            Assert.Equal(KeycutRepositoryError.AlreadyExists, error.Error);
+            Assert.True(File.Exists(again.BinPath));
+        }
+
         [MacFact]
         public void MoveAside_RenamesAKeycutNamedKeycuts_ButNotTheShimOfThatName()
         {

@@ -11,8 +11,11 @@ namespace keycuts.Common
     /// </summary>
     public interface IFileRecycler
     {
-        /// <summary>Removes the file. Throws what <see cref="File.Delete"/> would when it can't.</summary>
-        void Remove(string path);
+        /// <summary>
+        /// Removes the file and returns where it went when that's known (the Trash on macOS), so an Undo can move it back;
+        /// null otherwise. Throws what <see cref="File.Delete"/> would when it can't.
+        /// </summary>
+        string Remove(string path);
 
         /// <summary>True if <see cref="Remove"/> keeps the file in the Recycle Bin, so the caller can say when it doesn't.</summary>
         bool UsesRecycleBin(string path);
@@ -26,9 +29,10 @@ namespace keycuts.Common
     [SupportedOSPlatform("windows")]
     public sealed class RecycleBinRecycler : IFileRecycler
     {
-        public void Remove(string path)
+        public string Remove(string path)
         {
             FileSystem.DeleteFile(path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+            return null;
         }
 
         public bool UsesRecycleBin(string path)
@@ -58,22 +62,25 @@ namespace keycuts.Common
 
     /// <summary>
     /// The macOS Trash, through <c>[NSFileManager trashItemAtURL:resultingItemURL:error:]</c>, so Finder's Put Back works. A
-    /// volume with no Trash makes it fail, and the file stays (nothing is deleted for good without a word).
+    /// volume with no Trash makes it fail, and the file stays (nothing is deleted for good without a word). It returns where the
+    /// file landed in the Trash, so the Manager's Undo moves it back from there: Finder has no Put Back to call.
     /// </summary>
     [SupportedOSPlatform("macos")]
     public sealed class TrashRecycler : IFileRecycler
     {
-        public void Remove(string path)
+        public string Remove(string path)
         {
             using (ObjC.AutoreleasePool())
             {
                 var url = ObjC.Send(ObjC.GetClass("NSURL"), ObjC.Selector("fileURLWithPath:"), ObjC.String(Path.GetFullPath(path)));
                 var manager = ObjC.Send(ObjC.GetClass("NSFileManager"), ObjC.Selector("defaultManager"));
 
-                if (!ObjC.SendBool(manager, ObjC.Selector("trashItemAtURL:resultingItemURL:error:"), url, IntPtr.Zero, out var error))
+                if (!ObjC.SendBool(manager, ObjC.Selector("trashItemAtURL:resultingItemURL:error:"), url, out var trashed, out var error))
                 {
                     throw new IOException(ObjC.ErrorText(error) ?? $"Couldn't move \"{path}\" to the Trash.");
                 }
+
+                return trashed == IntPtr.Zero ? null : ObjC.ToManaged(ObjC.Send(trashed, ObjC.Selector("path")));
             }
         }
 
@@ -86,9 +93,10 @@ namespace keycuts.Common
     /// <summary>Deletes the file for good. The default of <see cref="KeycutRepository"/>'s plain constructor, and what tests use.</summary>
     public sealed class PermanentDeleter : IFileRecycler
     {
-        public void Remove(string path)
+        public string Remove(string path)
         {
             File.Delete(path);
+            return null;
         }
 
         public bool UsesRecycleBin(string path)

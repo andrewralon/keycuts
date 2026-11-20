@@ -95,10 +95,21 @@ namespace keycuts.Common
         /// <summary>The run counts this repository reads and keeps in step; null if it has none.</summary>
         public UsageLog Usage => _usage;
 
-        /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179).</summary>
+        /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179) or the Trash.</summary>
         public static KeycutRepository CreateDefault()
         {
-            return new KeycutRepository(new Runner().GetOutputFolder(), OperatingSystem.IsWindows() ? new RecycleBinRecycler() : throw new PlatformNotSupportedException("No Recycle Bin on this platform yet."), null, UsageLog.CreateDefault());
+            return new KeycutRepository(new Runner().GetOutputFolder(), DefaultRecycler(), null, UsageLog.CreateDefault());
+        }
+
+        /// <summary>The Recycle Bin on Windows, the Trash on macOS.</summary>
+        public static IFileRecycler DefaultRecycler()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new RecycleBinRecycler();
+            }
+
+            return OperatingSystem.IsMacOS() ? new TrashRecycler() : throw new PlatformNotSupportedException("No Recycle Bin on this platform.");
         }
 
         /// <summary>

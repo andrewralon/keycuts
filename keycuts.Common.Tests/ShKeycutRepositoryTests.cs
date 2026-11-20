@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using keycuts.Common;
 using Xunit;
@@ -11,6 +12,7 @@ namespace keycuts.Tests
     /// The repository on macOS, where keycuts are <see cref="ShFormat"/> scripts with no extension (docs/macos-port.md, "A keycut
     /// on macOS"): the twins of the <c>.bat</c> tests that are Windows only. A temp folder and a permanent deleter only.
     /// </summary>
+    [SupportedOSPlatform("macos")]
     public class ShKeycutRepositoryTests : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "keycuts-tests-" + Guid.NewGuid().ToString("N"));
@@ -152,6 +154,20 @@ namespace keycuts.Tests
 
             Assert.Equal(new[] { ("keypaste", "keypaste_previous") }, renamed.Select(r => (r.OldName, r.NewName)));
             Assert.True(File.Exists(shim));
+        }
+
+        [MacFact]
+        public void TheDefaultRecycler_IsTheTrash()
+        {
+            Assert.IsType<TrashRecycler>(KeycutRepository.DefaultRecycler());
+        }
+
+        // Never a real file: Finder's Trash is off limits to tests. A missing one goes through the same call and fails.
+        [MacFact]
+        public void TheTrash_RefusesAFileThatIsntThere_WithItsReason()
+        {
+            var error = Assert.Throws<IOException>(() => new TrashRecycler().Remove(Path.Combine(_folder, "missing")));
+            Assert.False(string.IsNullOrWhiteSpace(error.Message));
         }
 
         [MacFact]

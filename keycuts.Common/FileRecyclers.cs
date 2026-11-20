@@ -56,6 +56,33 @@ namespace keycuts.Common
         }
     }
 
+    /// <summary>
+    /// The macOS Trash, through <c>[NSFileManager trashItemAtURL:resultingItemURL:error:]</c>, so Finder's Put Back works. A
+    /// volume with no Trash makes it fail, and the file stays (nothing is deleted for good without a word).
+    /// </summary>
+    [SupportedOSPlatform("macos")]
+    public sealed class TrashRecycler : IFileRecycler
+    {
+        public void Remove(string path)
+        {
+            using (ObjC.AutoreleasePool())
+            {
+                var url = ObjC.Send(ObjC.GetClass("NSURL"), ObjC.Selector("fileURLWithPath:"), ObjC.String(Path.GetFullPath(path)));
+                var manager = ObjC.Send(ObjC.GetClass("NSFileManager"), ObjC.Selector("defaultManager"));
+
+                if (!ObjC.SendBool(manager, ObjC.Selector("trashItemAtURL:resultingItemURL:error:"), url, IntPtr.Zero, out var error))
+                {
+                    throw new IOException(ObjC.ErrorText(error) ?? $"Couldn't move \"{path}\" to the Trash.");
+                }
+            }
+        }
+
+        public bool UsesRecycleBin(string path)
+        {
+            return true;
+        }
+    }
+
     /// <summary>Deletes the file for good. The default of <see cref="KeycutRepository"/>'s plain constructor, and what tests use.</summary>
     public sealed class PermanentDeleter : IFileRecycler
     {

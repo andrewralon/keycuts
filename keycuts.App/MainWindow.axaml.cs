@@ -184,6 +184,15 @@ namespace keycuts.GUI
             };
         }
 
+        /// <summary>Picks a tab by number (1 creator, 2 manager, 3 settings), as Ctrl+1 to 3 do: nothing while the tabs are off.</summary>
+        public void PickTab(int tab)
+        {
+            if (shell.AreTabsEnabled)
+            {
+                ShowTab(tab);
+            }
+        }
+
         private void ShowTab(int tab)
         {
             switch (tab)

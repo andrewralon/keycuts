@@ -17,7 +17,7 @@ namespace keycuts.GUI.Views
             // The view holds it: it subscribes to the view's events
             _ = new CreatorInput(this, Named<TextBox>("TextboxTarget"), Named<TextBox>("TextboxShortcut"),
                 Named<TextBox>("TextboxDescription"), Named<MenuButton>("BtnBrowse"), Named<ContextMenu>("BrowseMenu"));
-            AttachedToVisualTree += (sender, e) => FocusFirstField();
+            Loaded += (sender, e) => FocusFirstField();
         }
 
         private T Named<T>(string name) where T : Control

@@ -40,7 +40,7 @@ namespace keycuts.GUI.Views
         {
             InitializeComponent();
             DataContextChanged += ManagerView_DataContextChanged;
-            AttachedToVisualTree += (sender, e) => FocusSearchOnShow();
+            Loaded += (sender, e) => FocusSearchOnShow();
             AddHandler(KeyDownEvent, ManagerView_PreviewKeyDown, RoutingStrategies.Tunnel);
             AddHandler(PointerPressedEvent, ManagerView_PreviewPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
             AddHandler(ContextRequestedEvent, ManagerView_ContextRequested, RoutingStrategies.Bubble);

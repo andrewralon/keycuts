@@ -30,7 +30,7 @@ namespace keycuts.GUI.Views
         {
             InitializeComponent();
             DataContextChanged += SettingsView_DataContextChanged;
-            AttachedToVisualTree += (sender, e) => FocusFolderOnShow();
+            Loaded += (sender, e) => FocusFolderOnShow();
 
             TextboxOutputFolder.AddHandler(KeyDownEvent, OutputFolder_KeyDown, RoutingStrategies.Tunnel);
             TextboxOutputFolder.LostFocus += (sender, e) => viewModel?.CommitOutputFolder();

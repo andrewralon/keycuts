@@ -59,6 +59,7 @@ namespace keycuts.GUI
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
             MacMenus.Attach(Current!, mainWindow);
+            MacMenuBar.Attach(Current!, desktop, mainWindow);
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a
             // field error, not a crash.

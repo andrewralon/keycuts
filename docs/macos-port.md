@@ -176,7 +176,7 @@ Mockups first: macOS window chrome (traffic lights plus the folder tabs), ⌘ sh
 
 ### Phase 6: the Run box
 
-1. **Menu bar presence and app lifetime** (resident, Dock icon only while a window is open). **M**
+1. **Menu bar presence and app lifetime** (resident, Dock icon only while a window is open). **M** *Done:* `MacMenuBar`: explicit shutdown; closing the window (red light, ⌘W, Escape) hides it and drops the Dock icon (`setActivationPolicy:` accessory), showing it brings both back; a template keycap icon drawn in code, whose menu has New keycut…, Manager, Settings… and Quit keycuts (Run… comes with the box, 6.4); a Reopen activation shows the window. Checked on the real app with System Events: ⌘W hides (process alive, policy accessory), Manager shows it on the Manager with the Dock icon, Quit and ⌘Q end it. Testing note: two copies run from the same executable path are one app to macOS (activation goes to the older one), so tests run a copy from another folder.
 2. **Hotkey service** (Carbon), the Settings picker, and a message when the hotkey can't be registered. **M**
 3. **Matching and ranking** in Common (pure, unit-tested on every platform): exact, prefix, contains (name, description, target), ties broken by runs and then last run. **W** *Done:* `RunBoxMatcher.Find` (any case; ties then go by name; empty text suggests nothing; an optional limit).
 4. **The box**: headless tests for keys (Enter, Tab, Esc, Up/Down), runs through `IDesktop`, focus return, "Create …" fallback. **W** + **M**

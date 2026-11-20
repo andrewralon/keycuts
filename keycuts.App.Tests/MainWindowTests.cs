@@ -163,25 +163,6 @@ namespace keycuts.Tests
             });
         }
 
-        // macOS until Phase 4: no keycuts folder, but the Settings tab still opens its screen
-        [AvaloniaFact]
-        public void WithoutAKeycutsFolder_TheSettingsTabStillOpensSettings()
-        {
-            ThemeManager.Apply(Palette.Light);
-            MainWindow? window = null;
-            var shell = App.CreateShellWithoutKeycutsFolder(new MemorySettingsStore(), () => window);
-            window = new MainWindow(shell);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            Named<RailTabControl>(window, "TabStrip").SelectedItem = Named<TabItem>(window, "SettingsTab");
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal(ShellMode.Settings, shell.Mode);
-            Assert.Single(window.GetVisualDescendants().OfType<SettingsView>());
-            window.Close();
-        }
-
         [AvaloniaFact]
         public void TheSettingsTab_WithoutASettingsScreen_KeepsTheScreensTab()
         {

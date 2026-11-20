@@ -68,6 +68,18 @@ namespace keycuts.Tests
             return new CreatorViewModel(noop, noop, create, name => NameCheck.None(name));
         }
 
+        /// <summary>Runs the dispatcher's jobs until the condition holds (a continuation of work on the thread pool), for at most 5 seconds.</summary>
+        static void PumpUntil(Func<bool> condition)
+        {
+            var until = DateTime.UtcNow.AddSeconds(5);
+
+            while (!condition() && DateTime.UtcNow < until)
+            {
+                Dispatcher.UIThread.RunJobs();
+                System.Threading.Thread.Sleep(5);
+            }
+        }
+
         static void Click(Window window, Control control)
         {
             var at = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
@@ -151,7 +163,8 @@ namespace keycuts.Tests
             window.KeyTextInput("tmp");
             Dispatcher.UIThread.RunJobs();
             MainWindowTests.Press(window, Key.Enter, RawInputModifiers.None);
-            Dispatcher.UIThread.RunJobs();
+            // The name check runs on the thread pool, so the create follows a moment later: pump until it has happened
+            PumpUntil(() => created.Count > 0);
             Assert.Equal(new[] { "tmp" }, created);
             window.Close();
         }

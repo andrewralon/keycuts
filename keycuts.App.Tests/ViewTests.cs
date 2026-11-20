@@ -137,8 +137,9 @@ namespace keycuts.Tests
                 created.Add(name);
                 return Task.FromResult(CreateResult.Success(new Keycut { Name = name, Target = target, FilePath = Path.Combine(Path.GetTempPath(), name + ".bat") }));
             });
-            creator.Target = Path.GetTempPath();
-            creator.TargetKind = KeycutKind.Folder;
+            // A URL resolves the same on every platform (macOS paths are classified from Phase 4)
+            creator.Target = "https://example.com/";
+            creator.TargetKind = KeycutKind.Url;
             var window = Host(new CreatorView(), creator);
 
             var target = Named<TextBox>(window, "TextboxTarget");

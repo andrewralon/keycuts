@@ -167,7 +167,7 @@ Milestone: from a dev build on the Mac, `keycuts create -t https://mail.google.c
 
 Mockups first: macOS window chrome (traffic lights plus the folder tabs), ⌘ shortcuts, menu bar menu, Settings additions.
 
-1. **Window**: traffic lights in a client area extended under the title bar, folder tabs beside them, no zoom or full screen (the "never maximized" rule), the same two sizes. **M**
+1. **Window**: traffic lights in a client area extended under the title bar, folder tabs beside them, no zoom or full screen (the "never maximized" rule), the same two sizes. **M** *Done:* one `CreateShell` for both platforms (the macOS app had a stand-in with no keycuts folder). On macOS the window keeps the native frame (`WindowDecorations.Full`, extended), opaque, with no drawn border or torn corner (the mockup); `CanMaximize = false` turns zoom off. Avalonia leaves the traffic lights at a plain title bar's place, so `MacTrafficLights` makes AppKit's title bar container 48 high and centers the three buttons 20 from the edge, again on each resize and focus change. The bar's empty part moves the window (`BeginMoveDrag`). Checked by capturing the real window.
 2. **Keys**: ⌘ where Windows uses Ctrl (⌘1/2/3, ⌘C/E/F/Z, ⌘, for Settings, ⌘Q), F2 kept, Return for rename as in Finder decided in the mockup. The app menu holds About, Settings, Quit. **M**
 3. **Drag from Finder and browsers, file dialogs.** **M**
 4. **Settings on macOS**: the right-click toggle drives the Quick Action, the PATH status and button, theme following the system (including Increase Contrast), the icon choice (Dock icon while running; the bundle's own icon stays fixed, since changing it would break the signature). **M**

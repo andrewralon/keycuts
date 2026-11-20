@@ -37,6 +37,7 @@ namespace keycuts.Tests
         [AvaloniaFact]
         public void TheBar_IsTheCaption_ExceptTheTabsAndTheCaptionButtons()
         {
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows' frame; macOS has its own (OnTheMac_TheFrameIsMacOS)");
             WithWindow((window, shell) =>
             {
                 Assert.Equal(WindowDecorations.BorderOnly, window.WindowDecorations);
@@ -238,6 +239,7 @@ namespace keycuts.Tests
         [AvaloniaFact]
         public void TheCaptionButtons_HaveNamesAndTooltips_AndAreNotTabStops()
         {
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows' frame; macOS has its own (OnTheMac_TheFrameIsMacOS)");
             WithWindow((window, shell) =>
             {
                 foreach (var (name, expected) in new[] { ("BtnMinimize", "Minimize"), ("BtnMaximize", "Maximize"), ("BtnClose", "Close") })
@@ -295,7 +297,25 @@ namespace keycuts.Tests
                 Assert.Same(AppIcons.GetPreview(AppIcons.GetTransparent(AppIconManager.Current)), icon.Source);
                 Assert.Equal(36, icon.Bounds.Width);
                 Assert.Equal(36, icon.Bounds.Height);
-                Assert.Equal(8, ((StackPanel)icon.Parent!).Margin.Left);
+                Assert.Equal(OperatingSystem.IsMacOS() ? RailView.MacBrandLeft : 8, ((StackPanel)icon.Parent!).Margin.Left);
+            });
+        }
+
+        // Phase 5.1 (mockup macos-window-v1): macOS's own frame and traffic lights, zoom off, no caption buttons, no torn corner
+        [AvaloniaFact]
+        public void OnTheMac_TheFrameIsMacOS()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
+            WithWindow((window, shell) =>
+            {
+                Assert.Equal(WindowDecorations.Full, window.WindowDecorations);
+                Assert.True(window.ExtendClientAreaToDecorationsHint);
+                Assert.Equal(48, window.ExtendClientAreaTitleBarHeightHint);
+                Assert.False(window.CanMaximize);
+                Assert.False(Named<StackPanel>(window, "CaptionButtons").IsVisible);
+                Assert.False(Named<Border>(window, "PageBorder").IsVisible);
+                Assert.False(Named<TornCorner>(window, "Tear").IsVisible);
+                Assert.Equal(88, RailView.MacBrandLeft);
             });
         }
 

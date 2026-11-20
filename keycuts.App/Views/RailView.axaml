@@ -29,7 +29,7 @@
     <Grid ColumnDefinitions="Auto,Auto,*,Auto">
       <!-- The keycap alone at 36, 8 from the edge, 24 to the first tab so the name stands apart from the tabs. 4 at the top moves the
            icon and the name down 2, onto the tab names' line (26 from the top; the tabs lift theirs 2) -->
-      <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,4,24,0" VerticalAlignment="Center" IsHitTestVisible="False">
+      <StackPanel x:Name="Brand" Grid.Column="0" Orientation="Horizontal" Margin="8,4,24,0" VerticalAlignment="Center" IsHitTestVisible="False">
         <Image x:Name="AppIcon" Width="36" Height="36" RenderOptions.BitmapInterpolationMode="HighQuality" />
         <TextBlock Text="keycuts" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="{StaticResource FontSizeSubheading}"
                    FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
@@ -65,7 +65,7 @@
         </Border.OpacityMask>
       </Border>
 
-      <StackPanel Grid.Column="3" Orientation="Horizontal">
+      <StackPanel x:Name="CaptionButtons" Grid.Column="3" Orientation="Horizontal">
         <Button x:Name="BtnMinimize" Theme="{StaticResource CaptionButton}" ToolTip.Tip="Minimize"
                 AutomationProperties.Name="Minimize" Click="Minimize_Click"
                 chrome:WindowDecorationProperties.ElementRole="MinimizeButton">

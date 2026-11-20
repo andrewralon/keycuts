@@ -31,7 +31,7 @@
       <views:RailView x:Name="Rail" Grid.Row="0" />
       <ContentControl Grid.Row="1" Content="{Binding CurrentView}" Focusable="False" IsTabStop="False" />
       <!-- A transparent window gets no border of its own, so the page draws one; the clip cuts it off at the rip -->
-      <Border Grid.RowSpan="2" BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" IsHitTestVisible="False" />
+      <Border x:Name="PageBorder" Grid.RowSpan="2" BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" IsHitTestVisible="False" />
     </Grid>
     <controls:TornCorner x:Name="Tear" Stroke="{DynamicResource ControlBorderBrush}" />
   </Grid>

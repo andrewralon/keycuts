@@ -9,6 +9,24 @@ namespace keycuts.Common
     /// with fixed argument lists. Objects returned by class convenience methods are autoreleased, so callers wrap their
     /// work in <see cref="AutoreleasePool"/>.
     /// </summary>
+    /// <summary><c>CGPoint</c>/<c>NSPoint</c> on 64-bit macOS.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CGPoint
+    {
+        public double X;
+        public double Y;
+    }
+
+    /// <summary><c>CGRect</c>/<c>NSRect</c> on 64-bit macOS: origin, then size.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CGRect
+    {
+        public double X;
+        public double Y;
+        public double Width;
+        public double Height;
+    }
+
     [SupportedOSPlatform("macos")]
     public static class ObjC
     {
@@ -43,6 +61,30 @@ namespace keycuts.Common
 
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern long SendLong(IntPtr receiver, IntPtr selector);
+
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        public static extern void Send(IntPtr receiver, IntPtr selector, CGRect arg);
+
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        public static extern void Send(IntPtr receiver, IntPtr selector, CGPoint arg);
+
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        private static extern CGRect SendRectArm64(IntPtr receiver, IntPtr selector);
+
+        [DllImport(Lib, EntryPoint = "objc_msgSend_stret")]
+        private static extern void SendRectStret(out CGRect result, IntPtr receiver, IntPtr selector);
+
+        /// <summary>A method that returns an <c>NSRect</c> (<c>frame</c>): in registers on Apple Silicon, through <c>objc_msgSend_stret</c> on Intel.</summary>
+        public static CGRect SendRect(IntPtr receiver, IntPtr selector)
+        {
+            if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+            {
+                return SendRectArm64(receiver, selector);
+            }
+
+            SendRectStret(out var result, receiver, selector);
+            return result;
+        }
 
         [DllImport(Lib, EntryPoint = "objc_autoreleasePoolPush")]
         private static extern IntPtr PoolPush();

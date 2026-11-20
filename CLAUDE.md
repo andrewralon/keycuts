@@ -9,13 +9,13 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 .NET SDK 10, Windows only. `global.json` pins the 10.0.4xx band (`latestPatch`). Run from the repo root:
 
 - Build: `dotnet build keycuts.sln`
-- Test: `dotnet test keycuts.sln` (xUnit v3 on VSTest, `keycuts.Common.Tests` and `keycuts.Tests`); one test: `dotnet test keycuts.Common.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
+- Test: `dotnet test keycuts.sln` (xUnit v3 on VSTest: `keycuts.Common.Tests`, `keycuts.Tests` and `keycuts.App.Tests`); one test: `dotnet test keycuts.Common.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep `--severity error`)
 - Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z] [-Runtime win-x64|win-arm64]` → `artifacts/installer/<runtime>/`. `installer/` is not in the sln. Don't install a local MSI over a release whose bundled .NET runtime is newer than your SDK's: the upgrade won't downgrade the runtime's files but the old product's removal deletes them, so `keycuts.exe` can't start (`hostpolicy.dll` missing). Uninstall first or `msiexec /fa`, or publish with the release's runtime (`KnownFrameworkReference` `LatestRuntimeFrameworkVersion`) to test a real upgrade.
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
-- macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` runs there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`. `keycuts.Tests` (WPF) only runs on Windows.
+- macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` and `keycuts.App.Tests` run there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`. `keycuts.Tests` (WPF) only runs on Windows.
 
 ## Gotchas
 
@@ -42,6 +42,8 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected), `paste <name>`, `list [<search>] [--usage] [--sort] [--json]` (`Common.KeycutListing`), and `rm`, `rename`, `open` (`Common.KeycutCommands`, through `KeycutRepository` like the Manager). Bare `keycuts` launches the GUI. PATH gets only the output folder; the `keycuts.cmd`/`keypaste.cmd` shims live there (`Common.CommandShims`, #248) and find `keycuts.exe` through HKCU `InstallFolder`.
 - `keycuts.Common.Tests`: references Common only, no GUI types (it follows Common to `net10.0`). Namespace `keycuts.Tests`. Shares `RepoFiles`, `TestNameChecks` and `UpdateFakes` with `keycuts.Tests` as linked files.
 - `keycuts.Tests`: references Common and GUI; the tests that need WPF.
+- `keycuts.App`: the Avalonia app (`docs/macos-port.md` Phase 3), `net10.0`, built beside WPF until cutover; only its themes so far. `Themes/*.axaml` match `keycuts.GUI/Themes/*.xaml` key for key (`PaletteTests` checks it), high contrast is filled from `GetSysColor` through `SystemColor.Name`.
+- `keycuts.App.Tests`: Avalonia.Headless (`[AvaloniaFact]`) on the real `App`; `App.LoadThemePreference` is faked so it never reads the registry.
 
 **UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it on `keycuts.GUI`'s `.xaml` and `keycuts.App`'s `.axaml`, with deliberate exceptions listed in its `Exceptions`. The guide's "In Avalonia" section maps each token and WPF idiom to Avalonia.
 

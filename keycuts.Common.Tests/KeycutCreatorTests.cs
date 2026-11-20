@@ -48,7 +48,7 @@ namespace keycuts.Tests
             return new CreateOptions { OutputFolder = _out, Overwrite = overwrite, PathUpdater = _path, Description = description };
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task EnvironmentVariables_On_SavesTheFileWithTheVariable()
         {
             var options = Options();
@@ -173,7 +173,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutKind.Url, result.Keycut.Kind);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("")]
         [InlineData("   ")]
         [InlineData(null)]

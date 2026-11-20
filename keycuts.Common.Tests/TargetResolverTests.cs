@@ -179,7 +179,7 @@ namespace keycuts.Tests
             Assert.Equal(path, r.Target);
         }
 
-        [Fact]
+        [WindowsFact]
         public void EnvVarPath_IsExpanded()
         {
             var path = MakeFile("e.txt");

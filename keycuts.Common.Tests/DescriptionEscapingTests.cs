@@ -96,7 +96,7 @@ namespace keycuts.Tests
             Assert.Equal(description, parsed.Description);
         }
 
-        [Theory]
+        [WindowsTheory]
         [MemberData(nameof(Descriptions))]
         public void Description_DoesNotStopTheScript(string description)
         {
@@ -105,7 +105,7 @@ namespace keycuts.Tests
             Assert.Equal("ran", output.Trim());
         }
 
-        [Fact]
+        [WindowsFact]
         public void ControlWithoutDoubling_AStrayPercentTildeStopsTheScript()
         {
             // The reason for the doubling: a raw %~ on a REM line is a cmd syntax error, so nothing after it runs

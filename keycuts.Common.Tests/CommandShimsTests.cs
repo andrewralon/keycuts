@@ -82,7 +82,7 @@ namespace keycuts.Tests
             Assert.Empty(Directory.GetFiles(_other, "*.cmd"));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Move_ToTheSameFolder_KeepsThem()
         {
             CommandShims.Move(_folder, _folder + @"\");
@@ -159,7 +159,7 @@ namespace keycuts.Tests
             Assert.Empty(recorded);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Users\me\AppData\Local\Programs\keycuts\", @"C:\Users\me\AppData\Local\Programs\keycuts\", false, true)]
         [InlineData(@"C:\Users\me\AppData\Local\Programs\keycuts\", @"c:\users\me\appdata\local\programs\keycuts", false, true)]
         [InlineData(@"C:\Users\me\AppData\Local\Programs\keycuts\", @"C:\git\keycuts\keycuts.GUI\bin\Debug\", false, false)]   // a build, not the installed copy

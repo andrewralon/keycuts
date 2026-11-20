@@ -24,7 +24,7 @@ namespace keycuts.Tests
             Assert.Equal(expected, Shortcut.SanitizeBatEscapeCharacters(input));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"D:\Windows\System32\drivers\etc\hosts", true)]   // Windows installed on D:
         [InlineData(@"d:\windows\system32\DRIVERS\etc\HOSTS", true)]
         [InlineData(@"C:\Windows\System32\drivers\etc\hosts", true)]   // the usual path still counts

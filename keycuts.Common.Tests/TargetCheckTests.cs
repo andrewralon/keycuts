@@ -78,7 +78,7 @@ namespace keycuts.Tests
         }
 
         // The control row: one quoted program, a folder to start in
-        [Fact]
+        [WindowsFact]
         public async Task QuotedProgram_InAStartInFolder_IsOk()
         {
             Program("tool.exe");
@@ -93,7 +93,7 @@ namespace keycuts.Tests
         }
 
         // The 0.1.x form with a quoted argument: the program exists, so the keycut isn't Missing
-        [Fact]
+        [WindowsFact]
         public async Task QuotedProgramAndArgument_InAStartInFolder_ChecksTheProgram()
         {
             Program("tool.exe");
@@ -170,7 +170,7 @@ namespace keycuts.Tests
         }
 
         // The hand-written Chrome launcher (tests/corpus/legacy/not-keycuts/chromep0.bat), with a program that exists here
-        [Fact]
+        [WindowsFact]
         public async Task UnquotedProgramAndArgument_InAStartInFolder_ChecksTheProgram()
         {
             Program("tool.exe");
@@ -208,7 +208,7 @@ namespace keycuts.Tests
 
         // The case that was wrong: the folder is missing, and the program is in App Paths. It starts, so not Missing; the stale
         // folder is a Warning.
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderGone_ProgramInAppPaths_IsAWarning_NotMissing()
         {
             var chrome = Program("chrome.exe");
@@ -247,7 +247,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, (await LoadAndCheck("h", Lookup(appPath: chrome))).TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderGone_ProgramFoundNowhere_IsMissing_AndSaysWhatWasSearched()
         {
             WriteLaunch("h", $"START \"\" /D \"{GoneFolder()}\" chrome.exe --profile-directory=\"Default\"");
@@ -308,7 +308,7 @@ namespace keycuts.Tests
             Assert.True(File.Exists(elsewhere));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderThere_ProgramFoundNowhere_IsMissing_AndSaysItSearchedTheFolderToo()
         {
             WriteLaunch("h", $"START \"\" /D \"{_programs}\" nothere.exe");
@@ -334,7 +334,7 @@ namespace keycuts.Tests
         }
 
         // A program given as a full path isn't searched for, so it's the plain check, whatever /D says (and App Paths can't help)
-        [Fact]
+        [WindowsFact]
         public async Task AFullPathProgram_IsAPlainExistsCheck_WhateverTheStartInFolderIs()
         {
             var tool = Program("tool.exe");
@@ -506,7 +506,7 @@ namespace keycuts.Tests
         }
 
         // Step 5: say what was checked
-        [Fact]
+        [WindowsFact]
         public async Task Missing_RemembersTheExpandedPathThatWasLookedFor()
         {
             var systemRoot = Environment.GetEnvironmentVariable("SystemRoot");

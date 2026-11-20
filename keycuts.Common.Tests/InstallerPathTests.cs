@@ -15,7 +15,7 @@ namespace keycuts.Tests
     {
         private static XDocument Wxs()
         {
-            return XDocument.Load(RepoFiles.Find(@"installer\Package.wxs"));
+            return XDocument.Load(RepoFiles.Find(Path.Combine("installer", "Package.wxs")));
         }
 
         [Fact]

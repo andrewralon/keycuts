@@ -178,7 +178,7 @@ Mockups first: macOS window chrome (traffic lights plus the folder tabs), ⌘ sh
 
 1. **Menu bar presence and app lifetime** (resident, Dock icon only while a window is open). **M**
 2. **Hotkey service** (Carbon), the Settings picker, and a message when the hotkey can't be registered. **M**
-3. **Matching and ranking** in Common (pure, unit-tested on every platform): exact, prefix, contains (name, description, target), ties broken by runs and then last run. **W**
+3. **Matching and ranking** in Common (pure, unit-tested on every platform): exact, prefix, contains (name, description, target), ties broken by runs and then last run. **W** *Done:* `RunBoxMatcher.Find` (any case; ties then go by name; empty text suggests nothing; an optional limit).
 4. **The box**: headless tests for keys (Enter, Tab, Esc, Up/Down), runs through `IDesktop`, focus return, "Create …" fallback. **W** + **M**
 5. **Start at login** toggle; the welcome panel offers it. **M**
 

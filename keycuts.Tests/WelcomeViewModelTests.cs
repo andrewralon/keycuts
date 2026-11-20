@@ -369,7 +369,7 @@ namespace keycuts.Tests
             Assert.Equal(new string?[] { null, @"E:\Other" }, fakes.CheckedFolders);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Creator_TellsTheWelcome_WhichFolderTheKeycutWentTo()
         {
             var fakes = new Fakes { OnPath = false };

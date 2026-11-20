@@ -146,7 +146,7 @@ namespace keycuts.Tests
             Assert.False(form.CanSave);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AnInvalidName_StaysInTheForm_BesideTheNameField_WithoutSaving()
         {
             var harness = new Harness();

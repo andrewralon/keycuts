@@ -79,7 +79,7 @@ namespace keycuts.Tests
             Assert.Equal((before.Type, before.Target), (after.Type, after.Target));
         }
 
-        [Fact]
+        [WindowsFact]
         public void TheDateModified_IsKept_AndTheCreationTimeToo()
         {
             var path = Write("dl.bat", OldFolderKeycut(Path.Combine(_folder, "dl.bat")));
@@ -200,7 +200,7 @@ namespace keycuts.Tests
             Assert.Contains($"START \"\" /B \"%SystemRoot%\\explorer.exe\" \"{target}\"", File.ReadAllText(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AnEmitterFormFolderKeycut_IsEditableInTheForm_AfterItsMigrated()
         {
             // As the emitter writes a Folder keycut now, then put back to the old tag and launch line

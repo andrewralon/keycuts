@@ -27,6 +27,7 @@
     <ProjectReference Include="..\keycuts.App\keycuts.App.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\keycuts.Common.Tests\PlatformFacts.cs" Link="Shared\PlatformFacts.cs" />
     <Compile Include="..\keycuts.Common.Tests\RepoFiles.cs" Link="Shared\RepoFiles.cs" />
     <Compile Include="..\keycuts.Common.Tests\TestNameChecks.cs" Link="Shared\TestNameChecks.cs" />
     <Compile Include="..\keycuts.Common.Tests\UpdateFakes.cs" Link="Shared\UpdateFakes.cs" />

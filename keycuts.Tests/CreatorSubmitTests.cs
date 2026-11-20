@@ -72,7 +72,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { expected }, fake.UsedEnvironmentVariables);
         }
 
-        [Fact]
+        [WindowsFact]
         public void TargetText_ShowsThePathWithVariables_WhileItIsNotBeingEdited_AndFollowsShift()
         {
             var creator = FileCreator(new FakeCreator());
@@ -95,7 +95,7 @@ namespace keycuts.Tests
             Assert.Equal(@"C:\Users\me\Desktop\notes.txt", creator.Target);
         }
 
-        [Fact]
+        [WindowsFact]
         public void TargetText_IsTheRealPath_WhileTheTargetBoxIsBeingEdited()
         {
             var creator = FileCreator(new FakeCreator());
@@ -125,7 +125,7 @@ namespace keycuts.Tests
             Assert.Null(creator.TargetKind);   // a new text forgets what the old one resolved to
         }
 
-        [Fact]
+        [WindowsFact]
         public void TargetText_PreviewsTheResolvedTarget_NotTheTypedText()
         {
             var creator = Create(new FakeCreator());

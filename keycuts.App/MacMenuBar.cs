@@ -3,22 +3,18 @@ using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using keycuts.Common;
+using keycuts.GUI.Themes;
 
 namespace keycuts.GUI
 {
     /// <summary>
     /// macOS (Phase 6.1, docs/macos-port.md, The Run box): keycuts stays running in the menu bar. Closing the window hides it, and
-    /// the Dock icon shows only while the window is open. The menu bar icon (a template image, so it follows the menu bar's color)
+    /// the Dock icon shows only while the window is open. The menu bar icon (the app icon's keycap, the one chosen in Settings)
     /// opens the creator, the Manager and Settings, and quits. Clicking keycuts again (Finder, <c>open -b</c>) shows the window.
     /// </summary>
     public static class MacMenuBar
     {
-        /// <summary>The keycap outline from the mockup, on an 18 × 16 box.</summary>
-        public const string KeycapPath = "M3,2.5 H15 L16.5,12 A1.5,1.5 0 0 1 15,13.5 H3 A1.5,1.5 0 0 1 1.5,12 Z M5,4.5 H13 L13.8,10 H4.2 Z";
-
         private static bool quitting;
 
         public static void Attach(Application app, IClassicDesktopStyleApplicationLifetime desktop, MainWindow window)
@@ -59,8 +55,8 @@ namespace keycuts.GUI
             }));
 
             var tray = new TrayIcon { Icon = KeycapIcon(), ToolTipText = "keycuts", Menu = menu, IsVisible = true };
-            MacOSProperties.SetIsTemplateIcon(tray, true);
             TrayIcon.SetIcons(app, new TrayIcons { tray });
+            AppIconManager.Changed += (sender, e) => tray.Icon = KeycapIcon();
 
             // Opened again while it runs (the Dock, Finder, Spotlight, open -b): the window comes back
             if (app.TryGetFeature<IActivatableLifetime>() is { } activation)
@@ -116,17 +112,10 @@ namespace keycuts.GUI
             return item;
         }
 
-        /// <summary>The keycap outline at 32 px, black on clear: a template image, which macOS colors for the menu bar.</summary>
+        /// <summary>The keycap alone (no tile) of the app icon now chosen, in full color. macOS scales it to the menu bar's height.</summary>
         public static WindowIcon KeycapIcon()
         {
-            var bitmap = new RenderTargetBitmap(new PixelSize(32, 32));
-            using (var context = bitmap.CreateDrawingContext(true))
-            using (context.PushTransform(Matrix.CreateTranslation(0, 1) * Matrix.CreateScale(32.0 / 18, 32.0 / 18)))
-            {
-                context.DrawGeometry(null, new Pen(Brushes.Black, 1.4, lineJoin: PenLineJoin.Round), Geometry.Parse(KeycapPath));
-            }
-
-            return new WindowIcon(bitmap);
+            return new WindowIcon(AppIcons.GetPreview(AppIconManager.TabBar));
         }
     }
 }

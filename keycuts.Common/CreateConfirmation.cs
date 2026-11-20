@@ -85,8 +85,8 @@ namespace keycuts.Common
         public static string Describe(string name, NameConflict conflict)
         {
             return conflict.Effect == NameConflictEffect.Hidden
-                ? $"\"{name}\" already opens {conflict.Path}, so Win+R would never run this shortcut."
-                : $"\"{name}\" already opens {conflict.Path}. This shortcut would replace it in Win+R.";
+                ? $"\"{name}\" already opens {conflict.Path}, so {PlatformWords.Launcher} would never run this shortcut."
+                : $"\"{name}\" already opens {conflict.Path}. This shortcut would replace it in {PlatformWords.Launcher}.";
         }
 
         private static string DescribeTarget(string target)

@@ -148,7 +148,7 @@ namespace keycuts.Tests
             var decision = Decide(check, false, false, 'x', out _, out var output, out _);
 
             Assert.Equal(CreateDecision.Declined, decision);
-            Assert.Contains("\"ex\" already opens " + TestNameChecks.ConflictPath + ", so Win+R would never run this shortcut.", output);
+            Assert.Contains("\"ex\" already opens " + TestNameChecks.ConflictPath + ", so " + PlatformWords.Launcher + " would never run this shortcut.", output);
             Assert.Contains("Create it anyway? (y / n)", output);
             Assert.Contains("Didn't create the shortcut.", output);
         }

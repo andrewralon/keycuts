@@ -218,7 +218,7 @@ namespace keycuts.Tests
 
             Assert.Null(check.MainConflict!.Keycut);
             Assert.Equal(
-                $"\u201ctool\u201d already opens {Path.Combine(other, "tool.bat")}, so Win+R would never run this keycut.",
+                $"\u201ctool\u201d already opens {Path.Combine(other, "tool.bat")}, so {PlatformWords.Launcher} would never run this keycut.",
                 CreatorViewModel.GetConflictMessage("tool", check.MainConflict));
         }
 

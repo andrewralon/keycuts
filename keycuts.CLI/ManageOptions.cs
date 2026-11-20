@@ -26,7 +26,7 @@ namespace keycuts.CLI
     }
 
     /// <summary><c>keycuts open &lt;name&gt; [arguments]</c> (#173): runs a keycut as Win+R would.</summary>
-    [Verb("open", HelpText = "Open a keycut, as Win+R would.")]
+    [Verb("open", HelpText = "Open a keycut, as Win+R (Terminal on macOS) would.")]
     public class OpenOptions
     {
         [Value(0, MetaName = "name", Required = true, HelpText = "The keycut to open.")]

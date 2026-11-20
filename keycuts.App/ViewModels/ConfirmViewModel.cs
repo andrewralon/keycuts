@@ -16,7 +16,7 @@ namespace keycuts.GUI.ViewModels
 
         public const string ReplaceIntro = "A keycut with this name already exists. Replacing it changes what it opens.";
 
-        public const string ConflictIntro = "Something else already answers to this name in Win+R.";
+        public static readonly string ConflictIntro = "Something else already answers to this name in " + PlatformWords.Launcher + ".";
 
         private ConfirmViewModel(string title, string heading, string intro, string confirmText, string? currentTarget,
             string? newTarget, IReadOnlyList<string> warnings)

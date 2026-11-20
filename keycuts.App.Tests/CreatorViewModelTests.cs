@@ -140,7 +140,7 @@ namespace keycuts.Tests
 
             Assert.Equal(CreatorState.NameWarning, creator.State);
             Assert.True(creator.HelperIsWarning);
-            Assert.Equal(message, creator.HelperText);
+            Assert.Equal(message.Replace("Win+R", PlatformWords.Launcher), creator.HelperText);
         }
 
         [Fact]

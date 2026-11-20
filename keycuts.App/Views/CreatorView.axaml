@@ -1,0 +1,196 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:keycuts.GUI.Controls"
+             xmlns:themes="using:keycuts.GUI.Themes"
+             xmlns:views="using:keycuts.GUI.Views"
+             xmlns:vm="using:keycuts.GUI.ViewModels"
+             x:Class="keycuts.GUI.Views.CreatorView"
+             x:DataType="vm:CreatorViewModel"
+             Background="{DynamicResource SurfaceBrush}"
+             DragDrop.AllowDrop="{Binding IsInputEnabled}">
+  <!-- WPF's Views/CreatorView. The drop area, the target box, the name's lines and Browse's menu are shared with the Manager's
+       create row (CreatorForm.axaml). -->
+  <UserControl.Styles>
+    <StyleInclude Source="/Views/CreatorForm.axaml" />
+    <!-- The welcome panel's line under the bubbles (#213): the same size and color as the intro above it. Only a PATH problem
+         changes it, to the error color. -->
+    <Style Selector="TextBlock.WelcomeHelperText">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+    </Style>
+    <Style Selector="TextBlock.WelcomeHelperText.error">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+      <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto">
+    <Grid Grid.Row="0" Margin="{StaticResource PagePadding}" RowDefinitions="Auto,Auto,Auto,Auto">
+
+      <!-- First-run welcome (#61, #11, #213): shown once, while the keycuts folder is empty. Its bubbles fill an example into the
+           fields below. Off while a keycut is being saved, like the fields it fills. Hidden without a Welcome. -->
+      <Border x:Name="WelcomePanel" Grid.Row="0" Margin="0,0,0,16" Padding="{StaticResource PanelPadding}"
+              IsEnabled="{Binding IsInputEnabled}" IsVisible="{Binding Welcome.IsVisible, FallbackValue=False}"
+              CornerRadius="{StaticResource RadiusLg}" Background="{DynamicResource AccentSoftBrush}">
+        <StackPanel DataContext="{Binding Welcome}" x:DataType="vm:WelcomeViewModel">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Welcome to keycuts!" Theme="{StaticResource Subheading}" Margin="0" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Theme="{StaticResource SecondaryButton}" Margin="12,0,0,0"
+                    VerticalAlignment="Center" Command="{Binding DismissCommand}" Content="got it"
+                    AutomationProperties.Name="got it" AutomationProperties.HelpText="Hides the welcome panel" />
+          </Grid>
+          <TextBlock TextWrapping="Wrap" Margin="0,4,0,12" Foreground="{DynamicResource TextSecondaryBrush}"
+                     Text="keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it." />
+          <TextBlock Text="Start by creating one of these keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
+          <!-- Three bubbles in a row: type badge and what it opens. Each fills the fields below. -->
+          <ItemsControl x:Name="WelcomeExamples" ItemsSource="{Binding Examples}" Margin="-4,8,-4,0" IsTabStop="False">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Rows="1" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WelcomeExample">
+                <RadioButton Theme="{StaticResource CardRadio}" Margin="4,0" HorizontalContentAlignment="Center"
+                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                             Command="{Binding $parent[ItemsControl].((vm:WelcomeViewModel)DataContext).SelectExampleCommand}"
+                             CommandParameter="{Binding}" AutomationProperties.Name="{Binding AutomationName}">
+                  <StackPanel HorizontalAlignment="Center">
+                    <controls:TypeBadge Kind="{Binding Kind}" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding Label}" Margin="0,8,0,0" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextBrush}" />
+                  </StackPanel>
+                </RadioButton>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <!-- Empty until a bubble is picked, then which button to click, then how to use the keycut, or the PATH warning. The line
+               stays in the tree while empty (a live line, docs/macos-port.md correction 10) and takes no room. -->
+          <Grid Margin="0,8,0,0" ColumnDefinitions="Auto,*" Classes.silent="{Binding !HasHelperText}">
+            <controls:Icon Kind="Rocket" Size="20" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"
+                           IsVisible="{Binding ShowRocket}" />
+            <!-- The same place and size once the keycut is created (and Win+R can find it), in the success color -->
+            <controls:Icon Kind="Check" Size="20" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource SuccessBrush}"
+                           IsVisible="{Binding IsSuccess}" />
+            <TextBlock x:Name="WelcomeHelperTextBlock" Grid.Column="1" Text="{Binding HelperText}"
+                       Classes="WelcomeHelperText" Classes.error="{Binding HelperIsError}" />
+          </Grid>
+          <!-- Only after a create, when the keycuts folder isn't on PATH yet (a portable copy), so Win+R can't find it -->
+          <Button Theme="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                  Command="{Binding AddToPathCommand}" Content="add to PATH" AutomationProperties.Name="add to PATH"
+                  AutomationProperties.HelpText="Adds the keycuts folder to PATH, so Win+R can find your keycuts"
+                  IsVisible="{Binding NeedsPath}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Target drop area -->
+      <Grid x:Name="DropArea" Grid.Row="1" MinHeight="96"
+            Classes.error="{Binding ShowTargetError}" Classes.hover="{Binding ShowDragHover}">
+        <Border Classes="DropGlow" />
+        <Border Classes="DropFill" />
+        <Rectangle Classes="DropStroke" />
+        <Grid Margin="12,16" ColumnDefinitions="Auto,*,Auto">
+          <Border Theme="{StaticResource IconTile}" VerticalAlignment="Center">
+            <controls:Icon Kind="{Binding TargetIcon}" Size="24" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
+          </Border>
+
+          <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+            <TextBlock Text="Target" Theme="{StaticResource FieldLabel}" Margin="0" />
+            <!-- #205: a long target wraps and the box grows with it. Not being edited, it shows the path as it will be saved (#31):
+                 with %VAR% while Shift is held or the setting is on (TargetText). The borderless box sits 2 to the left, so its
+                 text lines up with the label. -->
+            <TextBox x:Name="TextboxTarget" Theme="{StaticResource InlineTextBox}" Margin="-2,4,0,0"
+                     Text="{Binding TargetText}" TextWrapping="Wrap"
+                     PlaceholderText="Drop or paste a file, folder, or URL"
+                     IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
+                     AutomationProperties.HelpText="{Binding TargetHelpText}" />
+          </StackPanel>
+
+          <!-- Icon-only: the tooltip and the automation name say "Browse". Centered in the box, so it stays so when a long target wraps. -->
+          <controls:MenuButton x:Name="BtnBrowse" Grid.Column="2" Theme="{StaticResource SquareButton}" VerticalAlignment="Center"
+                               IsEnabled="{Binding IsInputEnabled}" ToolTip.Tip="Browse" AutomationProperties.Name="Browse">
+            <controls:Icon Kind="Folder" Size="20" VerticalAlignment="Center" />
+            <controls:MenuButton.ContextMenu>
+              <ContextMenu x:Name="BrowseMenu" Width="190">
+                <MenuItem Theme="{StaticResource AppMenuItem}" Classes="BrowseMenuItem" AutomationProperties.Name="File…"
+                          Command="{Binding BrowseFileCommand}">
+                  <MenuItem.Icon>
+                    <controls:Icon Kind="File" Size="16" Foreground="{DynamicResource AccentBrush}" />
+                  </MenuItem.Icon>
+                  <MenuItem.Header>
+                    <StackPanel>
+                      <TextBlock Text="File…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
+                      <TextBlock Text="Choose a single file" FontSize="{StaticResource FontSizeCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Theme="{StaticResource AppMenuItem}" Classes="BrowseMenuItem" AutomationProperties.Name="Folder…"
+                          Command="{Binding BrowseFolderCommand}">
+                  <MenuItem.Icon>
+                    <controls:Icon Kind="Folder" Size="16" Foreground="{DynamicResource AccentBrush}" />
+                  </MenuItem.Icon>
+                  <MenuItem.Header>
+                    <StackPanel>
+                      <TextBlock Text="Folder…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
+                      <TextBlock Text="Choose a directory" FontSize="{StaticResource FontSizeCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+              </ContextMenu>
+            </controls:MenuButton.ContextMenu>
+          </controls:MenuButton>
+        </Grid>
+      </Grid>
+
+      <!-- Name form (docs/mockups/creator-polish-v1): each label at the left of its box, the boxes starting at one edge 16 after
+           the widest label, 16 between the rows -->
+      <Grid Grid.Row="2" Margin="0,16,0,0" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+        <TextBlock Grid.Row="0" Text="Name" Theme="{StaticResource FieldLabel}" Margin="0" VerticalAlignment="Center" />
+        <Grid Grid.Row="0" Grid.Column="1" Margin="16,0,0,0" ColumnDefinitions="*,Auto">
+          <!-- Enter creates only from the name field; Shift+Enter too, with the environment-variables setting flipped (CreatorInput) -->
+          <TextBox x:Name="TextboxShortcut" Text="{Binding ShortcutName}" PlaceholderText="e.g. art"
+                   themes:TextBoxChrome.HasError="{Binding IsNameError}"
+                   themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
+                   IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
+                   AutomationProperties.HelpText="{Binding NameHelpText}" />
+          <!-- Icon-only (#205): a white rocket on the same solid blue. The tooltip and the automation name are "Create", or
+               "Saving" while the keycut is being written, when the rocket gives way to the spinner. -->
+          <Button x:Name="BtnCreateShortcut" Grid.Column="1" Theme="{StaticResource PrimarySquareButton}" Margin="8,0,0,0"
+                  Command="{Binding CreateCommand}" ToolTip.Tip="{Binding CreateButtonName}" ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{Binding CreateButtonName}">
+            <Panel>
+              <controls:Icon Kind="Rocket" Size="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             IsVisible="{Binding !IsSaving}" />
+              <TemplatedControl Theme="{StaticResource Spinner}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Foreground="{Binding $parent[Button].Foreground}" IsVisible="{Binding IsSaving}" />
+            </Panel>
+          </Button>
+        </Grid>
+        <!-- Under the name box and Create: "Saving…", then "Created name" (#205), or a warning or an error. Takes no room while
+             there is nothing to say. -->
+        <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
+          <controls:HelperText x:Name="NameStatusTextBlock" Classes="NameStatus" Margin="0,4,0,0" HorizontalAlignment="Left"
+                               Text="{Binding NameStatusText}" Classes.success="{Binding IsSuccess}"
+                               Classes.silent="{Binding !HasNameStatus}" />
+          <controls:HelperText x:Name="HelperTextBlock" Classes="NameHelper" Text="{Binding HelperText}"
+                               Classes.warning="{Binding HelperIsWarning}" Classes.error="{Binding HelperIsError}"
+                               Classes.silent="{Binding !ShowHelperLine}" />
+        </StackPanel>
+
+        <!-- #162: the description, always shown (the owner, 2026-11-17); the placeholder says it is optional -->
+        <TextBlock Grid.Row="2" Text="Description" Theme="{StaticResource FieldLabel}" Margin="0,16,0,0" VerticalAlignment="Center" />
+        <TextBox x:Name="TextboxDescription" Grid.Row="2" Grid.Column="1" Margin="16,16,0,0"
+                 Text="{Binding Description}" PlaceholderText="e.g. my paintings (optional)"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
+      </Grid>
+    </Grid>
+
+    <!-- #205: the bar the screens share, there only while a newer version is out -->
+    <views:FooterView Grid.Row="1" />
+  </Grid>
+</UserControl>

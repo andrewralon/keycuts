@@ -90,6 +90,17 @@ namespace keycuts.Tests
             // Selection borders: a card whose border goes from 1 to 2 takes 1 off its padding, so nothing moves
             new("Themes/Controls.xaml", "Setter", "Padding", "11", "selected card"),
 
+            // The Avalonia app's views (keycuts.App, Phase 3.5 on) keep the WPF ones' exceptions, for the same reasons
+            new("Views/RailView.axaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
+            new("Views/CreatorView.axaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),
+            new("ConfirmWindow.axaml", "Icon", "Margin", "0,1,8,0", "warning icon lowered onto the first line of its text"),
+            new("Views/CreatorForm.axaml", "Setter", "Margin", "2,0,0,0", "target placeholder, where the text box draws its first character"),
+            new("Views/CreatorForm.axaml", "Setter", "Margin", "-3", "drop area glow, 3 outside it"),
+            new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "15", "drop area glow: RadiusLg + 3"),
+            new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
+            new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "8", "the create row's one-line drop area glow: RadiusSm + 3"),
+            new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "9", "the create row's one-line drop area glow while dragging: RadiusSm + 4"),
+
             // The Avalonia app's control themes (keycuts.App, Phase 3.2) keep the WPF ones' exceptions, for the same reasons
             new("Themes/Controls.axaml", "ControlTheme", "FontSize", "{StaticResource FontSizeSubheading}", "the tab names, the size of keycuts beside them, not headings"),
             new("Themes/Controls.axaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),

@@ -1,0 +1,76 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:keycuts.GUI.Controls"
+        xmlns:vm="using:keycuts.GUI.ViewModels"
+        x:Class="keycuts.GUI.ConfirmWindow"
+        x:DataType="vm:ConfirmViewModel"
+        Title="{Binding Title}" Width="{StaticResource ConfirmWidth}" SizeToContent="Height" CanResize="False" CanMaximize="False"
+        CanMinimize="False" ShowInTaskbar="False" WindowStartupLocation="CenterOwner" UseLayoutRounding="True"
+        Background="{DynamicResource SurfaceBrush}" FontSize="{StaticResource FontSizeBody}">
+  <!-- WPF's ConfirmWindow: the modal confirmation before a keycut replaces another or takes a name another command uses (#153).
+       The body scrolls when the window is capped to the screen; the footer always stays visible. The body takes the focus itself
+       (Tab, or Shift+Tab from Cancel), so a clipped confirmation can be read without a mouse. -->
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="True" IsTabStop="True"
+                  AutomationProperties.Name="{Binding Heading}" AutomationProperties.HelpText="{Binding Summary}"
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="{StaticResource PagePadding}">
+        <Grid Margin="0,0,0,16" ColumnDefinitions="Auto,*">
+          <!-- A warning, not a greeting: the tile is subtle and outlined, with the glyph in the warning color -->
+          <Border Theme="{StaticResource IconTile}" Background="{DynamicResource SurfaceSubtleBrush}"
+                  BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+            <controls:Icon Kind="Warning" Size="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{DynamicResource WarningBrush}" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="12,0,0,0">
+            <TextBlock x:Name="HeadingText" Text="{Binding Heading}" Theme="{StaticResource Heading}" Margin="0" />
+            <TextBlock Text="{Binding Intro}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" />
+          </StackPanel>
+        </Grid>
+
+        <!-- A replace: what the keycut opens now, and what it will open -->
+        <Border Theme="{StaticResource InsetPanel}" IsVisible="{Binding ShowTargets}">
+          <StackPanel>
+            <controls:SectionLabel Text="Opens now" />
+            <TextBlock x:Name="CurrentTargetText" Text="{Binding CurrentTarget}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextBrush}"
+                       AutomationProperties.Name="{Binding CurrentTarget, StringFormat='Opens now: {0}'}" />
+            <controls:SectionLabel Text="Will open" Margin="0,12,0,8" />
+            <TextBlock x:Name="NewTargetText" Text="{Binding NewTarget}" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextBrush}"
+                       AutomationProperties.Name="{Binding NewTarget, StringFormat='Will open: {0}'}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Other commands with this name, most important first -->
+        <ItemsControl x:Name="WarningList" ItemsSource="{Binding Warnings}" Focusable="False" IsTabStop="False"
+                      IsVisible="{Binding ShowWarnings}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Grid Margin="0,0,0,8" ColumnDefinitions="Auto,*">
+                <controls:Icon Kind="Warning" Size="16" Margin="0,1,8,0" VerticalAlignment="Top"
+                               Foreground="{DynamicResource WarningBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Footer, as in Settings: Cancel and Escape keep things as they are; Enter goes ahead -->
+    <Border Grid.Row="1" Theme="{StaticResource DialogFooter}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="BtnCancel" Content="cancel" Theme="{StaticResource SecondaryButton}" IsCancel="True" Click="Cancel_Click" />
+        <Button x:Name="BtnConfirm" Theme="{StaticResource PrimaryButton}" IsDefault="True" Margin="8,0,0,0"
+                Click="Confirm_Click" AutomationProperties.Name="{Binding ConfirmText}"
+                AutomationProperties.HelpText="{Binding Summary}">
+          <StackPanel Orientation="Horizontal">
+            <controls:Icon Kind="Check" Size="16" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

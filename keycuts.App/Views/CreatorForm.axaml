@@ -1,0 +1,131 @@
+<!-- The pieces a creator form is built from (WPF's Views/CreatorForm.xaml), shared by the Creator screen (CreatorView) and the
+     Manager's create row (CreateRowView): the drop area's layers, the borderless target box, the name's status and helper line, and
+     Browse's menu. The drop area's states are classes on the element named DropArea: error and hover, and its :focus-within. -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:keycuts.GUI.Controls">
+  <Styles.Resources>
+    <!-- Borderless single-line field that sits inside the drop area; focus is shown on the drop area instead. -->
+    <ControlTheme x:Key="InlineTextBox" TargetType="TextBox" BasedOn="{StaticResource AppTextBox}">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="ToolTip.Tip" Value="{Binding $self.Text}" />
+      <Style Selector="^ /template/ TextBlock#Placeholder">
+        <!-- 2 in, where the text box draws its first character: an optical offset -->
+        <Setter Property="Margin" Value="2,0,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      </Style>
+      <Style Selector="^:focus-within /template/ Border#Glow">
+        <Setter Property="Opacity" Value="0" />
+      </Style>
+      <Style Selector="^:empty">
+        <Setter Property="ToolTip.IsOpen" Value="False" />
+        <Setter Property="ToolTip.Tip" Value="{x:Null}" />
+      </Style>
+      <Style Selector="^:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+        <Style Selector="^ /template/ Border#Box">
+          <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="^ /template/ TextBlock#Placeholder">
+          <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+        </Style>
+      </Style>
+    </ControlTheme>
+  </Styles.Resources>
+
+  <!-- Drop area layers: the dashed outline, the fill, and the soft glow around it -->
+  <Style Selector="Rectangle.DropStroke">
+    <Setter Property="RadiusX" Value="{StaticResource RadiusLgValue}" />
+    <Setter Property="RadiusY" Value="{StaticResource RadiusLgValue}" />
+    <Setter Property="StrokeThickness" Value="1" />
+    <Setter Property="Stroke" Value="{DynamicResource BorderStrongBrush}" />
+    <Setter Property="StrokeDashArray" Value="4,3" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <Style Selector="#DropArea:focus-within Rectangle.DropStroke">
+    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="#DropArea.error Rectangle.DropStroke">
+    <Setter Property="Stroke" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="#DropArea.hover Rectangle.DropStroke">
+    <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="StrokeDashArray" Value="{x:Null}" />
+  </Style>
+
+  <Style Selector="Border.DropFill">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLg}" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="#DropArea.error Border.DropFill">
+    <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+  </Style>
+  <Style Selector="#DropArea.hover Border.DropFill">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+
+  <!-- The glow is a ring outside the drop area: 3 out at RadiusLg + 3, and 4 out at RadiusLg + 4 while something is dragged over -->
+  <Style Selector="Border.DropGlow">
+    <Setter Property="Margin" Value="-3" />
+    <Setter Property="BorderThickness" Value="3" />
+    <Setter Property="CornerRadius" Value="15" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <Style Selector="#DropArea:focus-within Border.DropGlow">
+    <Setter Property="Opacity" Value="0.2" />
+  </Style>
+  <Style Selector="#DropArea.error:focus-within Border.DropGlow">
+    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="#DropArea.hover Border.DropGlow">
+    <Setter Property="Margin" Value="-4" />
+    <Setter Property="BorderThickness" Value="4" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Opacity" Value="0.2" />
+  </Style>
+
+  <!-- The Manager's create row squeezes the drop area to one line, a text box's height: the same layers at a text box's radius, and
+       the glow 3 out at RadiusSm + 3, 4 out at RadiusSm + 4 while something is dragged over -->
+  <Style Selector="#DropArea.row Rectangle.DropStroke">
+    <Setter Property="RadiusX" Value="{StaticResource RadiusSmValue}" />
+    <Setter Property="RadiusY" Value="{StaticResource RadiusSmValue}" />
+  </Style>
+  <Style Selector="#DropArea.row Border.DropFill">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}" />
+  </Style>
+  <Style Selector="#DropArea.row Border.DropGlow">
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="#DropArea.row.hover Border.DropGlow">
+    <Setter Property="CornerRadius" Value="9" />
+  </Style>
+
+  <!-- The name line's states (#153): an error outranks a warning. A live line is never hidden (docs/macos-port.md, correction 10):
+       with nothing to say it keeps its place in the tree and takes no room. -->
+  <Style Selector="controls|HelperText.NameHelper.warning">
+    <Setter Property="State" Value="Warning" />
+  </Style>
+  <Style Selector="controls|HelperText.NameHelper.error">
+    <Setter Property="State" Value="Error" />
+  </Style>
+  <Style Selector="controls|HelperText.NameStatus.success">
+    <Setter Property="State" Value="Success" />
+  </Style>
+  <Style Selector="controls|HelperText.silent">
+    <Setter Property="MaxHeight" Value="0" />
+    <Setter Property="Margin" Value="0" />
+  </Style>
+
+  <Style Selector="MenuItem.BrowseMenuItem">
+    <Setter Property="MinHeight" Value="48" />
+  </Style>
+</Styles>

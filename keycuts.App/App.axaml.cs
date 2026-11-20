@@ -24,11 +24,36 @@ namespace keycuts.GUI
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // A stand-in until the shell is ported (Phase 3.5)
-                desktop.MainWindow = new Window { Title = "keycuts", Width = 600, Height = 400 };
+                desktop.MainWindow = new MainWindow(CreateShell());
+
+                // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load
+                if (desktop.Args is { Length: > 0 } args)
+                {
+                    var shell = ((MainWindow)desktop.MainWindow).Shell;
+                    var result = TargetResolver.Resolve(args[0]);
+                    shell.Creator.Target = result.Target;
+                    shell.Creator.TargetKind = result.Kind;
+                    shell.Creator.TargetError = result.Error;
+                }
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        /// <summary>The screens over the keycuts folder. Startup's chores (renames, migration, shims) come with Settings.</summary>
+        private static ViewModels.ShellViewModel CreateShell()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                // The keycuts folder is Windows-only until Phase 4
+                return new ViewModels.ShellViewModel(() => System.Threading.Tasks.Task.FromResult(0));
+            }
+
+            return new ViewModels.ShellViewModel(
+                () => KeycutRepository.CreateDefault().CountAsync(),
+                ct => KeycutRepository.CreateDefault().LoadAllAsync(ct),
+                (keycuts, ct) => KeycutRepository.CreateDefault().CheckTargetsAsync(keycuts, ct),
+                new ViewModels.SystemKeycutActions());
         }
     }
 }

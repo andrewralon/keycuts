@@ -25,5 +25,10 @@
     <Compile Include="..\keycuts.GUI\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
     <Compile Include="..\keycuts.GUI\Settings.cs" Link="Settings.cs" />
     <Compile Include="..\keycuts.GUI\Themes\AppIcons.cs" Link="Themes\AppIcons.cs" />
+    <Compile Include="..\keycuts.GUI\ShellIdList.cs" Link="ShellIdList.cs" />
+  </ItemGroup>
+  <!-- The app icons' 256 px images, for the tab bar (Themes/AppIcons.Images.cs) -->
+  <ItemGroup>
+    <AvaloniaResource Include="..\assets\icons\*\*-256.png" Link="Images\AppIcons\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

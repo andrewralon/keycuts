@@ -11,6 +11,10 @@
   <!-- WPF's EditWindow, the modal Edit form (#180). The body scrolls when the window is capped to the screen; the footer always
        stays visible. The error lines are live lines: with nothing to say they stay in the tree and take no room. -->
   <Window.Styles>
+    <!-- 16 above the save error while there is one; a local margin would outrank .silent -->
+    <Style Selector="TextBlock#SaveErrorText:not(.silent)">
+      <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
     <Style Selector="TextBlock.silent">
       <Setter Property="MaxHeight" Value="0" />
       <Setter Property="Margin" Value="0" />
@@ -43,7 +47,7 @@
         <TextBox x:Name="TextboxDescription" Text="{Binding Description}" PlaceholderText="e.g. my paintings (optional)"
                  IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
 
-        <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Theme="{StaticResource ErrorText}" Margin="0,16,0,0"
+        <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Theme="{StaticResource ErrorText}"
                    Classes.silent="{Binding !HasSaveError}" AutomationProperties.LiveSetting="Assertive" />
       </StackPanel>
     </ScrollViewer>

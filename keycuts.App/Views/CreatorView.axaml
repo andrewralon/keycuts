@@ -20,6 +20,14 @@
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
     </Style>
+    <!-- 8 under the bubbles while it has something to say; a live line, it takes no room otherwise -->
+    <Style Selector="Grid.WelcomeHelperRow">
+      <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <Style Selector="Grid.WelcomeHelperRow.silent">
+      <Setter Property="MaxHeight" Value="0" />
+      <Setter Property="Margin" Value="0" />
+    </Style>
     <Style Selector="TextBlock.WelcomeHelperText.error">
       <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
       <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
@@ -68,7 +76,7 @@
           </ItemsControl>
           <!-- Empty until a bubble is picked, then which button to click, then how to use the keycut, or the PATH warning. The line
                stays in the tree while empty (a live line, docs/macos-port.md correction 10) and takes no room. -->
-          <Grid Margin="0,8,0,0" ColumnDefinitions="Auto,*" Classes.silent="{Binding !HasHelperText}">
+          <Grid Classes="WelcomeHelperRow" ColumnDefinitions="Auto,*" Classes.silent="{Binding !HasHelperText}">
             <controls:Icon Kind="Rocket" Size="20" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"
                            IsVisible="{Binding ShowRocket}" />
             <!-- The same place and size once the keycut is created (and Win+R can find it), in the success color -->
@@ -174,7 +182,7 @@
         <!-- Under the name box and Create: "Saving…", then "Created name" (#205), or a warning or an error. Takes no room while
              there is nothing to say. -->
         <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
-          <controls:HelperText x:Name="NameStatusTextBlock" Classes="NameStatus" Margin="0,4,0,0" HorizontalAlignment="Left"
+          <controls:HelperText x:Name="NameStatusTextBlock" Classes="NameStatus" HorizontalAlignment="Left"
                                Text="{Binding NameStatusText}" Classes.success="{Binding IsSuccess}"
                                Classes.silent="{Binding !HasNameStatus}" />
           <controls:HelperText x:Name="HelperTextBlock" Classes="NameHelper" Text="{Binding HelperText}"

@@ -35,6 +35,10 @@
     <Style Selector="controls|HelperText.folder.error">
       <Setter Property="State" Value="Error" />
     </Style>
+    <!-- 16 above the save error while there is one; a local margin would outrank .silent -->
+    <Style Selector="TextBlock#SaveErrorMessage:not(.silent)">
+      <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
     <Style Selector="TextBlock.silent">
       <Setter Property="MaxHeight" Value="0" />
       <Setter Property="Margin" Value="0" />
@@ -203,7 +207,7 @@
           </Grid>
 
           <!-- A change that was only partly stored (for example PATH couldn't be updated) -->
-          <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Theme="{StaticResource ErrorText}" Margin="0,16,0,0"
+          <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Theme="{StaticResource ErrorText}"
                      Classes.silent="{Binding !HasSaveError}" AutomationProperties.LiveSetting="Assertive" />
 
           <!-- Show welcome goes back to the creator with the first-run panel; restore defaults asks first, never touches the folder -->

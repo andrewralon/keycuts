@@ -23,11 +23,9 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # Decides whether the change touches anything but documentation (docs/ and the root *.md files). No test reads those
-  # files and no project builds from them, so a docs-only change skips build, format, macos and installer. The skipped
-  # jobs are not missing: a job skipped by its `if` counts as passed for a required status check, which a workflow-level
-  # `paths-ignore` would not do (the checks would stay pending and block the merge). If this job fails or can't tell,
-  # `code` stays empty and everything runs.
+  # A change that only touches docs/ skips build, format, macos and installer: no test reads those files and no project
+  # builds from them. A job skipped by its `if` counts as passed for a required status check; a workflow-level
+  # `paths-ignore` would leave the checks pending and block the merge. If this job fails, everything still runs.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -39,32 +37,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Look for non-documentation changes
+      - name: Look for changes outside docs/
         id: filter
         env:
-          EVENT: ${{ github.event_name }}
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          PUSH_BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           code=true
-          case "$EVENT" in
-            pull_request) base="$PR_BASE" ;;
-            push) base="$PUSH_BEFORE" ;;
-            *) base="" ;;
-          esac
-          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
-            changed=$(git diff --name-only "$base" HEAD)
-            other=$(printf '%s\n' "$changed" | grep -vE '^(docs/|[^/]+\.md$)' | grep -v '^$' || true)
-            if [ -n "$changed" ] && [ -z "$other" ]; then
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if ! git diff --name-only "$BASE" HEAD | grep -qv '^docs/'; then
               code=false
+              echo "Only docs/ changed, so build, format, macos and installer are skipped." >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "Changed files:"
-            printf '%s\n' "$changed"
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          if [ "$code" = false ]; then
-            echo "Only documentation changed, so build, format, macos and installer are skipped." >> "$GITHUB_STEP_SUMMARY"
-          fi
 
   # The job id is a required status check on develop and main; keep it named build.
   build:

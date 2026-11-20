@@ -29,7 +29,7 @@ The reference sheet, [`mockups/styleguide.html`](mockups/styleguide.html) render
 
 ## Tokens
 
-Tokens live in `keycuts.GUI/Themes/Tokens.xaml` (sizes, type) and the three palettes `Light.xaml`, `Dark.xaml` and `HighContrast.xaml` (brushes, with the same keys in each; `ThemeTests` compares them). Shared styles live in `Themes/Controls.xaml`. Sizes are `StaticResource`; brushes are always `DynamicResource`, so the palette can change while the app runs.
+Tokens live in `keycuts.App/Themes/Tokens.axaml` (sizes, type) and the three palettes `Light.axaml`, `Dark.axaml` and `HighContrast.axaml` (brushes, with the same keys in each; `PaletteTests` compares them). Shared control themes live in `Themes/Controls.axaml`. (Until the Avalonia cutover, Phase 3.12 of [the macOS plan](macos-port.md), they were WPF's `keycuts.GUI/Themes/*.xaml`; the history below names those files.) Sizes are `StaticResource`; brushes are always `DynamicResource`, so the palette can change while the app runs.
 
 Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 
@@ -53,7 +53,7 @@ Kept as they are: `RadiusSm/Md/Lg/Xl` (5/8/12/16), `Space1`-`Space8` and `Inset1
 
 ### In Avalonia
 
-The Avalonia app (`keycuts.App`, Phase 3 of [the macOS plan](macos-port.md)) has the same tokens, with the same keys and values, so every rule in this guide holds for both apps. Its files match the WPF ones: `keycuts.App/Themes/Tokens.axaml`, `Light.axaml`, `Dark.axaml`, `HighContrast.axaml`, `Icons.axaml` and `Controls.axaml`. `StyleGuideTests` applies the same rules to the `.axaml` files as to the `.xaml` ones. Avalonia's unit is a device-independent pixel on both platforms (a point on macOS), so the numbers stay as they are.
+The app is Avalonia since the cutover (Phase 3.12 of [the macOS plan](macos-port.md)), with the tokens WPF had, the same keys and values, so every rule in this guide holds. Its files: `keycuts.App/Themes/Tokens.axaml`, `Light.axaml`, `Dark.axaml`, `HighContrast.axaml`, `Icons.axaml` and `Controls.axaml`. `StyleGuideTests` applies the rules to the `.axaml` files. Avalonia's unit is a device-independent pixel on both platforms (a point on macOS), so the numbers stay as they are.
 
 | WPF resource | Avalonia resource | Tokens |
 |---|---|---|

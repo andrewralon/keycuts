@@ -37,7 +37,7 @@ namespace keycuts.Tests
         };
 
         /// <summary>The apps whose XAML is checked, and the extension each one's XAML has.</summary>
-        static readonly (string Project, string Extension)[] Apps = { ("keycuts.GUI", ".xaml"), ("keycuts.App", ".axaml") };
+        static readonly (string Project, string Extension)[] Apps = { ("keycuts.App", ".axaml") };
 
         /// <summary>
         /// The guide's allowed exceptions (Spacing; Corner radii), each with its reason: a value that breaks a rule on purpose, in
@@ -45,52 +45,7 @@ namespace keycuts.Tests
         /// </summary>
         static readonly Exception[] Exceptions =
         {
-            // The app's name in the tab bar is drawn at the level 2 size, but it names the app, not a section of the screen
-            new("Views/RailView.xaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
-            new("Themes/Controls.xaml", "Style", "FontSize", "{StaticResource FontSizeSubheading}", "the tab names, the size of keycuts beside them, not headings"),
-
-            // An icon preview that follows the theme sets the dark-mode drawing over the light one in a 1 ring of what it sits on
-            new("Views/SettingsView.xaml", "Border", "Padding", "1", "the ring around the dark-mode drawing in an icon preview"),
-
-            // Focus rings and glows sit outside the control and follow its radius plus their offset
-            new("Themes/Controls.xaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),
-            new("Themes/Controls.xaml", "Rectangle", "RadiusY", "7", "focus ring: RadiusSm + 2"),
-            new("Themes/Controls.xaml", "Border", "Margin", "-3", "text box glow, 3 outside the box"),
-            new("Themes/Controls.xaml", "Border", "CornerRadius", "8", "text box glow: RadiusSm + 3"),
-            new("Themes/Controls.xaml", "Rectangle", "Margin", "-4,-2", "toggle focus ring, 2 outside the track"),
-            new("Themes/Controls.xaml", "Rectangle", "RadiusX", "12", "toggle focus ring: the track's 10 + 2"),
-            new("Themes/Controls.xaml", "Rectangle", "RadiusY", "12", "toggle focus ring: the track's 10 + 2"),
-            new("Views/CreatorForm.xaml", "Setter", "Margin", "-3", "drop area glow, 3 outside it"),
-            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "15", "drop area glow: RadiusLg + 3"),
-            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
-            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "8", "the create row's one-line drop area glow: RadiusSm + 3"),
-            new("Views/CreatorForm.xaml", "Setter", "CornerRadius", "9", "the create row's one-line drop area glow while dragging: RadiusSm + 4"),
-
-            // Fully round shapes use half their height
-            new("Themes/Controls.xaml", "Border", "CornerRadius", "9", "radio box and check badge, 18 high"),
-            new("Themes/Controls.xaml", "Border", "CornerRadius", "10", "toggle track, 20 high"),
-            new("Views/ManagerView.xaml", "Border", "CornerRadius", "11", "count pill, 22 high"),
-
-            // Negative margins that cancel a known inset
-            new("Views/CreatorView.xaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),
-            new("Views/ManagerView.xaml", "Setter", "Margin", "-5,0,0,0", "sort header, its label lined up with its column's values past the frame's 1 + 4"),
-
-            // Slim scroll thumbs
-            new("Themes/Controls.xaml", "Border", "Margin", "2", "scroll thumb's inset"),
-            new("Themes/Controls.xaml", "Border", "CornerRadius", "3", "scroll thumb"),
-
-            // Optical offsets of 1-2px inside a control template or beside an icon
-            new("Themes/Controls.xaml", "Ellipse", "Margin", "2,0,0,0", "toggle thumb, 2 inside the track"),
-            new("Themes/Controls.xaml", "Setter", "Margin", "0,0,2,0", "toggle thumb when on, 2 inside the track"),
-            new("Themes/Controls.xaml", "Icon", "Margin", "0,2,4,0", "helper text icon lowered onto the first line"),
-            new("ConfirmWindow.xaml", "Icon", "Margin", "0,1,8,0", "warning icon lowered onto the first line of its text"),
-            new("Views/CreatorForm.xaml", "TextBlock", "Margin", "2,0,0,0", "target placeholder, where the text box draws its first character"),
-            new("Views/ManagerView.xaml", "Border", "Padding", "4,2", "sort header's focus frame, close to its 12px label"),
-
-            // Selection borders: a card whose border goes from 1 to 2 takes 1 off its padding, so nothing moves
-            new("Themes/Controls.xaml", "Setter", "Padding", "11", "selected card"),
-
-            // The Avalonia app's views (keycuts.App, Phase 3.5 on) keep the WPF ones' exceptions, for the same reasons
+            // The views: the tab bar's name, optical offsets, glows outside their control, fully round shapes, sort headers
             new("Views/RailView.axaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
             new("Views/CreatorView.axaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),
             new("ConfirmWindow.axaml", "Icon", "Margin", "0,1,8,0", "warning icon lowered onto the first line of its text"),
@@ -104,7 +59,7 @@ namespace keycuts.Tests
             new("Views/ManagerView.axaml", "Setter", "Margin", "-5,0,0,0", "sort header, its label lined up with its column's values past the frame's 1 + 4"),
             new("Views/ManagerView.axaml", "Border", "Padding", "4,2", "sort header's focus frame, close to its 12px label"),
 
-            // The Avalonia app's control themes (keycuts.App, Phase 3.2) keep the WPF ones' exceptions, for the same reasons
+            // The control themes: focus rings and glows, fully round shapes, slim scroll thumbs, optical offsets, selection borders
             new("Themes/Controls.axaml", "ControlTheme", "FontSize", "{StaticResource FontSizeSubheading}", "the tab names, the size of keycuts beside them, not headings"),
             new("Themes/Controls.axaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),
             new("Themes/Controls.axaml", "Rectangle", "RadiusY", "7", "focus ring: RadiusSm + 2"),
@@ -392,7 +347,7 @@ namespace keycuts.Tests
             var files = GuiXaml().ToDictionary(f => f.Name, f => f.Doc, StringComparer.OrdinalIgnoreCase);
             foreach (var name in NotYetConverted)
             {
-                Assert.True(files.ContainsKey(name), $"{name} is on NotYetConverted but isn't a XAML file in keycuts.GUI or keycuts.App");
+                Assert.True(files.ContainsKey(name), $"{name} is on NotYetConverted but isn't a XAML file in keycuts.App");
                 Assert.True(Check(name, files[name]).Any(v => !IsException(v)),
                     $"{name} follows the style guide now: take it off StyleGuideTests.NotYetConverted, so the test guards it");
             }
@@ -456,7 +411,7 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void XamlFiles_ReadsEachAppsOwnDialect_AndSkipsBuildOutput()
+        public void XamlFiles_ReadsTheAppsAxaml_AndSkipsBuildOutput()
         {
             var repoRoot = Path.Combine(Path.GetTempPath(), "keycuts-styleguide-" + Guid.NewGuid().ToString("N"));
             try
@@ -473,7 +428,7 @@ namespace keycuts.Tests
                     File.WriteAllText(path, "<Grid />");
                 }
 
-                Assert.Equal(new[] { "Themes/Tokens.axaml", "Views/CreatorView.axaml", "Views/CreatorView.xaml" },
+                Assert.Equal(new[] { "Themes/Tokens.axaml", "Views/CreatorView.axaml" },
                     XamlFiles(repoRoot).Select(file => file.Name));
             }
             finally

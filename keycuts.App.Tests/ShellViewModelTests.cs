@@ -3,11 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-#if AVALONIA
 using Avalonia;
-#else
-using System.Windows;
-#endif
 using keycuts.Common;
 using keycuts.GUI;
 using keycuts.GUI.Mvvm;

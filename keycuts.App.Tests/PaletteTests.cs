@@ -10,8 +10,8 @@ using Xunit;
 namespace keycuts.Tests
 {
     /// <summary>
-    /// The Avalonia app's tokens, palettes and icons, read from their files (WPF's ThemeTests, ported). Until cutover they also
-    /// have to match the WPF app's, value for value: the <c>*_MatchTheWpf*</c> tests go with keycuts.GUI in Phase 3.12.
+    /// The app's tokens, palettes and icons, read from their files (WPF's ThemeTests, ported). They matched the WPF app's
+    /// value for value until the cutover (Phase 3.12).
     /// </summary>
     public class PaletteTests
     {
@@ -160,48 +160,15 @@ namespace keycuts.Tests
             Assert.Throws<FormatException>(() => ColorContrast.Ratio("#fff", "#000000"));
         }
 
-        #region Parity with the WPF app, until cutover
-
-        [Theory]
-        [InlineData("Light")]
-        [InlineData("Dark")]
-        [InlineData("HighContrast")]
-        public void Palettes_MatchTheWpfPalettes(string palette)
-        {
-            Assert.Equal(LoadColors(WpfTheme(palette)).OrderBy(c => c.Key), LoadColors(AppTheme(palette)).OrderBy(c => c.Key));
-        }
-
+        // The font is a platform token (docs/styleguide.md, In Avalonia): Segoe UI on Windows, the system font elsewhere
         [Fact]
-        public void Tokens_MatchTheWpfTokens()
+        public void Tokens_TheFontIsAPlatformToken()
         {
-            var wpf = LoadValues(WpfTheme("Tokens"));
-            var app = LoadValues(AppTheme("Tokens"));
-
-            Assert.Equal(wpf.Keys.OrderBy(k => k), app.Keys.OrderBy(k => k));
-            foreach (var (key, value) in wpf.Where(t => t.Key != "AppFontFamily"))
-            {
-                Assert.True(value == app[key], $"{key} is {app[key]} in Tokens.axaml and {value} in Tokens.xaml");
-            }
-
-            // The font is a platform token (docs/styleguide.md, In Avalonia): WPF's on Windows, the system font elsewhere
             var font = XDocument.Load(AppTheme("Tokens")).Root!.Elements().Single(e => (string?)e.Attribute(Xaml + "Key") == "AppFontFamily");
             Assert.Equal("OnPlatform", font.Name.LocalName);
-            Assert.Equal(wpf["AppFontFamily"], (string?)font.Attribute("Windows"));
+            Assert.Equal("Segoe UI Variable, Segoe UI", (string?)font.Attribute("Windows"));
             Assert.Equal("$Default", (string?)font.Attribute("Default"));
         }
-
-        [Fact]
-        public void Icons_MatchTheWpfIcons()
-        {
-            var wpf = XDocument.Load(WpfTheme("Icons")).Root!.Elements()
-                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => (string)e.Attribute("Figures")!);
-            var app = XDocument.Load(AppTheme("Icons")).Root!.Elements()
-                .ToDictionary(e => (string)e.Attribute(Xaml + "Key")!, e => e.Value.Trim());
-
-            Assert.Equal(wpf.OrderBy(i => i.Key), app.OrderBy(i => i.Key));
-        }
-
-        #endregion
 
         static HashSet<string> LoadKeys(string path)
         {
@@ -249,11 +216,6 @@ namespace keycuts.Tests
         static string AppTheme(string name)
         {
             return RepoFiles.Find(Path.Combine("keycuts.App", "Themes", name + ".axaml"));
-        }
-
-        static string WpfTheme(string name)
-        {
-            return RepoFiles.Find(Path.Combine("keycuts.GUI", "Themes", name + ".xaml"));
         }
     }
 }

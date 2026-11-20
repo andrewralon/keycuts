@@ -1,38 +1,29 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- The Avalonia app (docs/macos-port.md Phase 3), built beside the WPF one (keycuts.GUI) until it reaches parity. At cutover
-       its assembly becomes keycuts.GUI, so the shortcuts, the context menu and the MSI keep their file names. -->
+  <!-- The app (Avalonia, docs/macos-port.md Phase 3). It replaced the WPF app at the cutover and took its assembly name,
+       keycuts.GUI, so the shortcuts, the context menu and the MSI keep their file names. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>keycuts.GUI</RootNamespace>
-    <AssemblyName>keycuts.App</AssemblyName>
+    <AssemblyName>keycuts.GUI</AssemblyName>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <!-- The exe's own icon, as WPF's: Porcelain, the default choice. The windows show the Settings choice (Themes/AppIconManager). -->
+    <!-- The exe's own icon: Porcelain, the default choice. The windows show the Settings choice (Themes/AppIconManager). -->
     <ApplicationIcon>..\assets\icons\porcelain\porcelain.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Controls.DataGrid" />
-    <!-- The base theme under keycuts' own control themes (Themes/Controls.axaml), as WPF has Aero under Controls.xaml -->
+    <!-- The base theme under keycuts' own control themes (Themes/Controls.axaml) -->
     <PackageReference Include="Avalonia.Themes.Fluent" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
   </ItemGroup>
-  <!-- The view models and the house Mvvm, one copy for both apps until cutover (docs/macos-port.md, correction 15). Each app
-       supplies the few types they name that differ between WPF and Avalonia. -->
-  <ItemGroup>
-    <Compile Include="..\keycuts.GUI\Mvvm\*.cs" Link="Mvvm\%(Filename)%(Extension)" />
-    <Compile Include="..\keycuts.GUI\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
-    <Compile Include="..\keycuts.GUI\Settings.cs" Link="Settings.cs" />
-    <Compile Include="..\keycuts.GUI\Themes\AppIcons.cs" Link="Themes\AppIcons.cs" />
-    <Compile Include="..\keycuts.GUI\ShellIdList.cs" Link="ShellIdList.cs" />
-  </ItemGroup>
   <!-- The app icons (Themes/AppIcons.Images.cs): the 256 px images for the tab bar and the picker, and the .ico files Settings
        offers, built in for the windows and copied to icons\ beside the exe for the shortcuts that point at them
-       (Common/ShortcutIcons), as in WPF -->
+       (Common/ShortcutIcons) -->
   <ItemGroup>
     <AvaloniaResource Include="..\assets\icons\*\*-256.png" Link="Images\AppIcons\%(Filename)%(Extension)" />
     <AppIconFile Include="..\assets\icons\porcelain\porcelain.ico;..\assets\icons\onyx\onyx.ico;..\assets\icons\cobalt\cobalt.ico;..\assets\icons\twilight\twilight.ico;..\assets\icons\classic\classic.ico" />

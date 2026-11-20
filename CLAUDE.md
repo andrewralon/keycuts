@@ -2,20 +2,20 @@
 
 ## What keycuts is
 
-keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens anything by nickname (`npp`, `gmail`). The `.bat` is the product: no database, no list file. The output folder (default `%USERPROFILE%\Shortcuts`) is stored in `HKCU\Software\TeamRalon\keycuts`. Entry points: the WPF app, the Explorer right-click verb (passes the target as `args[0]`, `keycuts.GUI/App.xaml.cs`), the CLI, or `keycuts.Common`.
+keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens anything by nickname (`npp`, `gmail`). The `.bat` is the product: no database, no list file. The output folder (default `%USERPROFILE%\Shortcuts`) is stored in `HKCU\Software\TeamRalon\keycuts`. Entry points: the app (Avalonia), the Explorer right-click verb (passes the target as `args[0]`, `keycuts.App/App.axaml.cs`), the CLI, or `keycuts.Common`.
 
 ## Commands
 
 .NET SDK 10, Windows only. `global.json` pins the 10.0.4xx band (`latestPatch`). Run from the repo root:
 
 - Build: `dotnet build keycuts.sln`
-- Test: `dotnet test keycuts.sln` (xUnit v3 on VSTest: `keycuts.Common.Tests`, `keycuts.Tests` and `keycuts.App.Tests`); one test: `dotnet test keycuts.Common.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
+- Test: `dotnet test keycuts.sln` (xUnit v3 on VSTest: `keycuts.Common.Tests` and `keycuts.App.Tests`); one test: `dotnet test keycuts.Common.Tests --filter "FullyQualifiedName~KeycutCreatorTests.SomeTest"`
 - Format: `dotnet format keycuts.sln --verify-no-changes --severity error` (keep `--severity error`)
 - Installer: `pwsh -File tools/Build-Installer.ps1 [-Version x.y.z] [-Runtime win-x64|win-arm64]` → `artifacts/installer/<runtime>/`. `installer/` is not in the sln. Don't install a local MSI over a release whose bundled .NET runtime is newer than your SDK's: the upgrade won't downgrade the runtime's files but the old product's removal deletes them, so `keycuts.exe` can't start (`hostpolicy.dll` missing). Uninstall first or `msiexec /fa`, or publish with the release's runtime (`KnownFrameworkReference` `LatestRuntimeFrameworkVersion`) to test a real upgrade.
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
-- macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` and `keycuts.App.Tests` run there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`. `keycuts.Tests` (WPF) only runs on Windows.
+- macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` and `keycuts.App.Tests` run there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`; an `[AvaloniaFact]` measured in Segoe UI starts with `Assert.SkipUnless(OperatingSystem.IsWindows(), …)`.
 
 ## Gotchas
 
@@ -23,9 +23,10 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Build fails with MSB3021/MSB3027 if `keycuts.GUI.exe` is running: kill it (approved). Close any instance you launch.
 - Package versions only in `Directory.Packages.props` (CPM). No lockfiles.
 - **Tests never touch the real output folder, registry, PATH, network or Recycle Bin.** Use explicit `OutputFolder` and `Overwrite` (null reads HKCU), a fake `IPathUpdater`, fake `NameConflictEnvironment`/`checkName`, fake `IClassesStore`, `ISettingsStore`, `FakeReleaseSource`/`FakeUpdateState`. Never `KeycutRepository.CreateDefault()` (recycles, can hang on a shell dialog) or `UpdateChecker.CreateDefault()`. `PathVariables` has an injectable overload.
-- WPF-hosting test classes go in `[Collection(WpfCollection.Name)]`.
 - Tests that only hold on one OS use `[WindowsFact]`/`[WindowsTheory]`/`[MacFact]`/`[MacTheory]` (`keycuts.Common.Tests/PlatformFacts.cs`); they're skipped elsewhere.
-- Key tests use `AccessibilityTests.Press` / `FakeKeyboardDevice`; handlers read `e.KeyboardDevice.Modifiers`, never static `Keyboard.*` (flaky if a real key is held). `CreatorView` still reads static state.
+- Key tests press real keys through Avalonia.Headless (`MainWindowTests.Press`, `window.KeyTextInput`) to whatever has the focus; handlers read `e.KeyModifiers`. Avalonia has no static keyboard state: Shift held outside the window is read with `Modal.IsShiftDown()` (Windows only).
+- The view models ask synchronously (`ConfirmName`, `ShowEditForm`, pickers): dialogs run in a nested dispatcher frame (`Modal.Show`/`Modal.Wait`); tests answer them with `Modal.Answer`.
+- Avalonia traps: a style `Setter` holding a control shares one instance (the row menu is a template, built per row); a local `Margin` outranks a style, so a live line's margin goes in a style that `.silent` can override; a view takes its first focus on `Loaded`, not when attached.
 - Fakes of `IKeycutActions` (`FakeActions`, `RecordingActions`) must implement every member.
 - **Line endings:** `* text=auto`; mixed CRLF/LF is normal, don't convert. Byte-sensitive: `*.cmd` shims (CRLF) and `tests/corpus/**/*.bat`. Never rewrite those through anything that normalizes newlines.
 - Debug builds honor `KEYCUTS_OUTPUT_FOLDER`; `tools/New-SampleKeycuts.ps1` makes fixture folders.
@@ -38,14 +39,12 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 ## Architecture
 
 - `keycuts.Common`: domain logic, no UI, no logging (`Runner`'s "Shortcut created" line excepted). `.lnk` via late-bound `WScript.Shell` COM.
-- `keycuts.GUI`: WPF, one window, three screens (Creator, Manager, Settings) switched by `ShellViewModel`. No Windows title bar: `Views/RailView` is a folder-tab bar with own caption buttons under `WindowChrome`. **The window is never maximized** (owner's decision; `NoMaximizeHook`). `NoSystemCaptionHook` stops Windows painting classic caption buttons over the bar. Side effects go through `IKeycutActions`. Settings save immediately (no Save button); the folder only on commit.
+- `keycuts.App` (assembly **`keycuts.GUI`**, so `keycuts.GUI.exe`, the context menu, Start menu and MSI names stayed): the Avalonia app, `net10.0`, namespaces `keycuts.GUI.*`. It replaced WPF at the cutover (`docs/macos-port.md` Phase 3.12). One window, three screens (Creator, Manager, Settings) switched by `ShellViewModel`. No system title bar: `WindowDecorations=BorderOnly` with the client area extended, and `Views/RailView` is a folder-tab bar whose element roles (`TitleBar`, `User`, `MinimizeButton`, `CloseButton`) give Windows its caption and buttons. **The window is never maximized** (owner's decision): `CanMaximize=false`, and `NoMaximizeHook` refuses a posted `SC_MAXIMIZE`, drops the classic caption paints and adds `WS_SYSMENU`; the disabled Maximize is `User`, not `MaximizeButton` (Windows 11 snap layouts). Side effects go through `IKeycutActions`. Settings save immediately (no Save button); the folder only on commit. Themes: `Themes/*.axaml` (Fluent as the base under `Controls.axaml`), high contrast filled from `GetSysColor` through `SystemColor.Name`. The Manager's table is `Avalonia.Controls.DataGrid` with its own row, cell and header themes.
 - `keycuts.CLI`: assembly is **`keycuts.exe`**. Verbs `create` (default; `-t`/`-s`, old `-d` deliberately rejected), `paste <name>`, `list [<search>] [--usage] [--sort] [--json]` (`Common.KeycutListing`), and `rm`, `rename`, `open` (`Common.KeycutCommands`, through `KeycutRepository` like the Manager). Bare `keycuts` launches the GUI. PATH gets only the output folder; the `keycuts.cmd`/`keypaste.cmd` shims live there (`Common.CommandShims`, #248) and find `keycuts.exe` through HKCU `InstallFolder`.
-- `keycuts.Common.Tests`: references Common only, no GUI types (it follows Common to `net10.0`). Namespace `keycuts.Tests`. Shares `RepoFiles`, `TestNameChecks` and `UpdateFakes` with `keycuts.Tests` as linked files.
-- `keycuts.Tests`: references Common and GUI; the tests that need WPF.
-- `keycuts.App`: the Avalonia app (`docs/macos-port.md` Phase 3), `net10.0`, built beside WPF until cutover; its namespaces are already `keycuts.GUI.*` (its assembly takes that name at cutover), and its tests' are `keycuts.Tests`; it compiles `keycuts.GUI`'s view models, Mvvm, `Settings.cs` and `Themes/AppIcons.cs` as linked files (one copy; WPF-only halves live in `ViewModels/Wpf/`, so keep `System.Windows` out of `ViewModels/*.cs`); its themes and shared control themes (`Themes/Controls.axaml`, Fluent as the base) so far. `Themes/*.axaml` match `keycuts.GUI/Themes/*.xaml` key for key (`PaletteTests` checks it), high contrast is filled from `GetSysColor` through `SystemColor.Name`.
-- `keycuts.App.Tests`: Avalonia.Headless (`[AvaloniaFact]`) on the real `App`; it also runs `keycuts.Tests`' view model test files, linked, drawn with Skia (so geometry and `CaptureRenderedFrame` are real); `App.LoadThemePreference` is faked so it never reads the registry.
+- `keycuts.Common.Tests`: references Common only, no GUI types (`net10.0`). Namespace `keycuts.Tests`. Shares `PlatformFacts`, `RepoFiles`, `TestNameChecks` and `UpdateFakes` with `keycuts.App.Tests` as linked files.
+- `keycuts.App.Tests`: Avalonia.Headless (`[AvaloniaFact]`) on the real `App`, drawn with Skia (so geometry, `CaptureRenderedFrame` and the README screenshots are real); `App.LoadThemePreference` is faked so it never reads the registry. Runs on Windows and macOS.
 
-**UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it on `keycuts.GUI`'s `.xaml` and `keycuts.App`'s `.axaml`, with deliberate exceptions listed in its `Exceptions`. The guide's "In Avalonia" section maps each token and WPF idiom to Avalonia.
+**UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.axaml` themes, never literal sizes/colors; `StyleGuideTests` enforces it on `keycuts.App`'s `.axaml`, with deliberate exceptions listed in its `Exceptions`.
 
 ### Creation and parsing
 

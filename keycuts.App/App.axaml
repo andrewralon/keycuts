@@ -7,6 +7,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="/Themes/Tokens.axaml" />
         <ResourceInclude Source="/Themes/Icons.axaml" />
+        <ResourceInclude Source="/Themes/Controls.axaml" />
       </ResourceDictionary.MergedDictionaries>
       <!-- The palettes (docs/styleguide.md, In Avalonia): ThemeManager picks one through RequestedThemeVariant, and every
            DynamicResource brush follows it. High contrast is keycuts' own variant, its colors filled in from Windows. -->
@@ -19,6 +20,9 @@
   </Application.Resources>
 
   <Application.Styles>
+    <!-- The base for every control keycuts has no theme of its own for (Window, ScrollViewer, ListBox…); its ControlThemes
+         lose to the ones in Themes/Controls.axaml, which are application resources -->
+    <FluentTheme />
     <!-- Every window, derived ones included, starts from the palette and the app's font (WPF's ThemeManager.ApplyWindowChrome) -->
     <Style Selector=":is(Window)">
       <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />

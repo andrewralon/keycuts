@@ -191,14 +191,14 @@ namespace keycuts.Tests
                     (Key.NumPad2, ShellMode.Manager, "ManagerTab")
                 })
                 {
-                    Press(window, key, RawInputModifiers.Control);
+                    Press(window, key, PlatformKeys.RawCommand);
                     Assert.Equal(mode, shell.Mode);
                     Assert.Same(Named<TabItem>(window, tab), rail.SelectedItem);
                 }
 
                 // Not without Ctrl, nor with Ctrl+Shift
                 Press(window, Key.D1, RawInputModifiers.None);
-                Press(window, Key.D1, RawInputModifiers.Control | RawInputModifiers.Shift);
+                Press(window, Key.D1, PlatformKeys.RawCommand | RawInputModifiers.Shift);
                 Assert.Equal(ShellMode.Manager, shell.Mode);
 
                 // While the icon picker has the tabs off, the keys don't switch either
@@ -207,7 +207,7 @@ namespace keycuts.Tests
                 Dispatcher.UIThread.RunJobs();
                 Assert.False(rail.IsEnabled);
                 Assert.True(Named<Button>(window, "BtnClose").IsEnabled);
-                Press(window, Key.D1, RawInputModifiers.Control);
+                Press(window, Key.D1, PlatformKeys.RawCommand);
                 Assert.Equal(ShellMode.Settings, shell.Mode);
                 shell.Settings.IsIconPickerOpen = false;
             }, withSettings: true);
@@ -288,6 +288,24 @@ namespace keycuts.Tests
         }
 
         // The keycap alone at 36, in no socket (docs/mockups/icon-size-v2, R3)
+        // macOS: ⌘, opens Settings, as in every Mac app, and ⌘W closes the window
+        [AvaloniaFact]
+        public void OnTheMac_CommandCommaOpensSettings_AndCommandWCloses()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS keys");
+            WithWindow((window, shell) =>
+            {
+                Press(window, Key.OemComma, RawInputModifiers.Meta);
+                Assert.Equal(ShellMode.Settings, shell.Mode);
+                var closed = false;
+                window.Closed += (sender, e) => closed = true;
+                // Closed on the press, so there is no window to release the key on
+                window.KeyPress(Key.W, RawInputModifiers.Meta, PhysicalKey.None, null);
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(closed);
+            }, withSettings: true);
+        }
+
         [AvaloniaFact]
         public void TheAppIcon_InTheBar_IsTheOneFromSettings_WithoutItsBackground_At36()
         {

@@ -232,7 +232,7 @@ namespace keycuts.GUI.Views
                 return;
             }
 
-            if (e.Key != Key.V || e.KeyModifiers != KeyModifiers.Control || ViewModel?.IsInputEnabled != true)
+            if (e.Key != Key.V || e.KeyModifiers != PlatformKeys.Command || ViewModel?.IsInputEnabled != true)
             {
                 return;
             }

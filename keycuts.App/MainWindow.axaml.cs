@@ -139,8 +139,10 @@ namespace keycuts.GUI
                 return;
             }
 
-            // Ctrl+1, Ctrl+2 and Ctrl+3 pick the tabs left to right, as in a browser; nothing while the tabs are off (the icon picker)
-            if (e.KeyModifiers == KeyModifiers.Control && TabNumber(e.Key) is int tab)
+            // Ctrl+1, Ctrl+2 and Ctrl+3 (⌘ on macOS) pick the tabs left to right, as in a browser; nothing while the tabs are off
+            // (the icon picker). On macOS ⌘, is Settings too, as in every Mac app.
+            var settingsKey = PlatformKeys.IsMac && e.Key == Key.OemComma;
+            if (e.KeyModifiers == PlatformKeys.Command && (settingsKey ? 3 : TabNumber(e.Key)) is int tab)
             {
                 e.Handled = true;
                 if (shell.AreTabsEnabled)
@@ -148,6 +150,14 @@ namespace keycuts.GUI
                     ShowTab(tab);
                 }
 
+                return;
+            }
+
+            // ⌘W closes the window on macOS; keycuts stays in the menu bar (Phase 6.1)
+            if (PlatformKeys.IsMac && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.W)
+            {
+                e.Handled = true;
+                Close();
                 return;
             }
 

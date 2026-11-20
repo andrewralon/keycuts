@@ -19,6 +19,7 @@ tools/mac/check-app.sh drops contrast       # some checks
 
 **What it changes on your Mac while it runs:** hides your other apps and minimizes your other Finder windows (`desktop.sh` puts them back, also
 on failure), opens a Finder window, Safari (needs the network, example.com) and System Settings, and flips Increase contrast for a few seconds.
+A banner across the top of the screen says what it is doing and has **Pause** (it waits before its next click or keystroke) and **Stop** (it ends and puts everything back).
 Don't use the machine while it runs; it moves the pointer.
 
 **Needs:** Accessibility and Screen Recording for the app running it (System Settings → Privacy & Security), `cliclick` (`brew install cliclick`), `swift`.

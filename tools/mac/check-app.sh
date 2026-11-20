@@ -5,6 +5,7 @@
 #
 # It builds a throwaway bundle (new-test-bundle.sh), hides your other apps and minimizes your Finder windows while it runs
 # and puts them back (desktop.sh), and flips Increase contrast in System Settings for a few seconds and back.
+# A banner across the top of the screen shows what it is doing, with Pause and Stop buttons (banner.swift).
 # Needs: Accessibility and Screen Recording for the terminal running it, cliclick (brew install cliclick), the Debug build.
 # Coordinates are for macOS 26 (Tahoe); another version may need them adjusted (the constants below).
 set -uo pipefail
@@ -21,6 +22,14 @@ pass=0
 fail=0
 
 # macOS 26 layout: the keycuts window at WIN_X,WIN_Y; Finder's list rows; the Increase contrast switch in System Settings
+# Pause (the banner's button) makes every click and keystroke wait; Stop ends this script, which then puts everything back
+cleaning=""
+status() { printf '%s\n' "$*" > "$sandbox/status"; }
+gate() { [ -n "$cleaning" ] && return; while [ -e "$sandbox/pause" ]; do sleep 0.5; done; }
+cliclick() { gate; command cliclick "$@"; }
+osascript() { gate; command osascript "$@"; }
+trap 'exit 130' TERM INT
+
 WIN_X=760; WIN_Y=150; DROP_X=1000; DROP_Y=450
 CONTRAST_SWITCH="678,411"
 
@@ -31,11 +40,14 @@ check() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1 (expected '$3', got '$2
 
 cleanup()
 {
+  cleaning=1
+  status "Putting your desktop back…"
   [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null
   osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1 || true
   # never leave the system's Increase contrast on
   [ "$("$sandbox/contrast")" = "true" ] 2>/dev/null && set_contrast false
   "$here/desktop.sh" restore "$state"
+  [ -n "${banner_pid:-}" ] && kill "$banner_pid" 2>/dev/null
 }
 trap cleanup EXIT
 
@@ -89,6 +101,10 @@ dock_tile()
 
 say "sandbox: $sandbox"
 swiftc -O "$here/contrast.swift" -o "$sandbox/contrast" 2>/dev/null
+swiftc -O "$here/banner.swift" -o "$sandbox/banner" 2>/dev/null
+status "starting"
+"$sandbox/banner" $$ "$sandbox/status" "$sandbox/pause" >/dev/null 2>&1 &
+banner_pid=$!
 app="$("$here/new-test-bundle.sh" "$sandbox" 2>/dev/null | tail -1)"
 [ -d "$app" ] || { say "could not build the bundle"; exit 2; }
 
@@ -114,6 +130,7 @@ front; osascript -e 'tell application "System Events" to keystroke "1" using com
 
 for name in "${checks[@]}"; do
   say "--- $name"
+  status "$name"
   case "$name" in
     menus)
       app_menu="$(osascript -e "tell application \"System Events\" to tell (first process whose unix id is $pid) to return name of every menu item of menu 1 of menu bar item 2 of menu bar 1")"
@@ -128,6 +145,7 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
       rows=("Stuff" "Calculator.app" "note.txt" "site.webloc" "Term alias")
       expected=("$drop/Stuff" "$drop/Calculator.app" "$drop/note.txt" "https://example.com/" "$drop/Term alias")
       for i in 0 1 2 3 4; do
+        status "drops: Finder drop of ${rows[$i]}"
         drag 310 $((155 + 20 * i))
         check "Finder drop: ${rows[$i]}" "$(wait_target "${expected[$i]}")" "${expected[$i]}"
       done
@@ -165,6 +183,7 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
       front; osascript -e 'tell application "System Events" to keystroke "3" using command down'
       cliclick c:"$(find_at AXRadioButton "System theme")"; sleep 2
       off="$(black_pixels)"
+      status "contrast: Increase contrast is on for a few seconds (restored after)"
       set_contrast true; sleep 4; on="$(black_pixels)"
       set_contrast false; sleep 4; again="$(black_pixels)"
       [ "$off" = 0 ] && [ "$on" -gt 1000 ] && [ "$again" = 0 ] && ok "Increase contrast: black pixels $off → $on → $again" || bad "Increase contrast: black pixels $off → $on → $again"

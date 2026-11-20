@@ -33,6 +33,7 @@
     <Compile Include="..\keycuts.Common.Tests\RepoFiles.cs" Link="Shared\RepoFiles.cs" />
     <Compile Include="..\keycuts.Common.Tests\TestNameChecks.cs" Link="Shared\TestNameChecks.cs" />
     <Compile Include="..\keycuts.Common.Tests\UpdateFakes.cs" Link="Shared\UpdateFakes.cs" />
+    <Compile Include="..\keycuts.Tests\GifWriter.cs" Link="Shared\GifWriter.cs" />
   </ItemGroup>
   <!-- The view model tests, run against the view models both apps share (docs/macos-port.md, correction 15): the same files
        keycuts.Tests runs against the WPF build. -->

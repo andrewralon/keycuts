@@ -60,6 +60,11 @@ namespace keycuts.GUI
             desktop.MainWindow = mainWindow;
             MacMenus.Attach(Current!, mainWindow);
             MacMenuBar.Attach(Current!, desktop, mainWindow);
+            if (OperatingSystem.IsMacOS())
+            {
+                // Phase 6.2: the Run box shortcut, from any app. The box is 6.4's; until then it brings up the creator
+                MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), () => MacMenuBar.Show(mainWindow, 1));
+            }
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a
             // field error, not a crash.

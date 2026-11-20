@@ -45,6 +45,9 @@ namespace keycuts.Common
         /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
         public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
 
+        /// <summary>macOS: the Run box shortcut (Phase 6.2) as <see cref="RunBoxHotkey.Stored"/>; unset is the default, empty is none.</summary>
+        public static readonly string RunBoxHotkeyKeyName = "RunBoxHotkey";
+
         /// <summary>When the last update check read a release, as a round-trip UTC timestamp.</summary>
         public static readonly string LastUpdateCheckKeyName = "LastUpdateCheck";
 
@@ -299,6 +302,18 @@ namespace keycuts.Common
         }
 
         /// <summary>Where the MSI installed keycuts (<c>InstallFolder</c>, with a trailing backslash); null for a copy that wasn't installed.</summary>
+        /// <summary>The Run box shortcut: the default until one is chosen, null after "none" (or text that can't be read).</summary>
+        public static RunBoxHotkey GetRunBoxHotkey()
+        {
+            return ReadValue(RunBoxHotkeyKeyName) is string text ? RunBoxHotkey.Parse(text) : RunBoxHotkey.Default;
+        }
+
+        /// <summary>Stores the Run box shortcut; null stores "none".</summary>
+        public static void SetRunBoxHotkey(RunBoxHotkey hotkey)
+        {
+            Backend.WriteString(RunBoxHotkeyKeyName, hotkey?.Stored ?? "");
+        }
+
         public static string GetInstallFolder()
         {
             // macOS has no installer value: the app records the folder it runs from (CommandShims.RecordInstallFolder)

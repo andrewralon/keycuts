@@ -133,6 +133,49 @@ namespace keycuts.Tests
             Assert.Equal(ShellPathStatus.NotOnPath, path.Status("/Volumes/Other"));
         }
 
+        private static (ExitCode Code, string Output, string Error) RunPath(string action, MacShellPath shell)
+        {
+            var output = new StringWriter();
+            var error = new StringWriter();
+            var code = KeycutPathCommand.Run(action, Folder, shell, output, error);
+
+            return (code, output.ToString().Trim(), error.ToString().Trim());
+        }
+
+        [Fact]
+        public void ThePathCommand_SaysAddsAndRemoves_InTheProfile()
+        {
+            var shell = Shell();
+
+            Assert.Equal((ExitCode.Success, Folder + " isn't on PATH. 'keycuts path add' adds it to ~/.zprofile, so Terminal runs your keycuts by name.", ""), RunPath(null, shell));
+            Assert.Equal((ExitCode.Success, "Added " + Folder + " to PATH in ~/.zprofile. Open a new Terminal window to run your keycuts by name.", ""), RunPath("add", shell));
+            Assert.Equal((ExitCode.Success, Folder + " is in ~/.zprofile. Open a new Terminal window to run your keycuts by name.", ""), RunPath("STATUS", shell));
+            Assert.Equal((ExitCode.Success, "Took keycuts out of ~/.zprofile. New Terminal windows won't find your keycuts by name.", ""), RunPath("remove", shell));
+            Assert.Equal((ExitCode.Success, "keycuts hadn't added anything to ~/.zprofile.", ""), RunPath("remove", shell));
+            Assert.Equal("", File.ReadAllText(shell.ProfilePath));
+        }
+
+        [Fact]
+        public void ThePathCommand_OnPathAlready_SaysSo()
+        {
+            Assert.Equal((ExitCode.Success, Folder + " is on PATH, so Terminal runs your keycuts by name.", ""), RunPath("status", Shell(processPath: Folder)));
+        }
+
+        [Fact]
+        public void ThePathCommand_ForFish_GivesInstructions_AndAddFails()
+        {
+            var fish = Shell("/opt/homebrew/bin/fish");
+
+            Assert.Equal((ExitCode.Success, Folder + " isn't on PATH. Run: fish_add_path '" + Folder + "'", ""), RunPath("status", fish));
+            Assert.Equal((ExitCode.CannotUpdatePath, "", "keycuts: keycuts doesn't edit fish's startup files. Run: fish_add_path '" + Folder + "'"), RunPath("add", fish));
+        }
+
+        [Fact]
+        public void ThePathCommand_RefusesAnotherAction()
+        {
+            Assert.Equal((ExitCode.BadArguments, "", "keycuts: path takes status, add, remove."), RunPath("on", Shell()));
+        }
+
         [Fact]
         public void AFolderChange_MovesABlockThatsThere_AndAddsNoneWithoutConsent()
         {

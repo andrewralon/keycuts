@@ -17,6 +17,64 @@ namespace keycuts.Common
         NotOnPath
     }
 
+    /// <summary><c>keycuts path [status|add|remove]</c> on macOS (Phase 4.9): what <see cref="MacShellPath"/> says and does, in words.</summary>
+    public static class KeycutPathCommand
+    {
+        public static readonly IReadOnlyList<string> Actions = new[] { "status", "add", "remove" };
+
+        public static ExitCode Run(string action, string folder, MacShellPath shell, TextWriter output, TextWriter error)
+        {
+            var profile = shell.ProfilePath == null ? null : "~/" + Path.GetFileName(shell.ProfilePath);
+
+            switch (string.IsNullOrEmpty(action) ? "status" : action.ToLowerInvariant())
+            {
+                case "status":
+                    var status = shell.Status(folder);
+                    output.WriteLine(status switch
+                    {
+                        ShellPathStatus.OnPath => $"{folder} is on PATH, so Terminal runs your keycuts by name.",
+                        ShellPathStatus.InProfile => $"{folder} is in {profile}. Open a new Terminal window to run your keycuts by name.",
+                        _ => profile != null
+                            ? $"{folder} isn't on PATH. 'keycuts path add' adds it to {profile}, so Terminal runs your keycuts by name."
+                            : $"{folder} isn't on PATH. {shell.Instructions(folder)}"
+                    });
+                    return ExitCode.Success;
+
+                case "add":
+                    if (profile == null)
+                    {
+                        error.WriteLine($"keycuts: keycuts doesn't edit {shell.Shell}'s startup files. {shell.Instructions(folder)}");
+                        return ExitCode.CannotUpdatePath;
+                    }
+
+                    if (!shell.Add(folder))
+                    {
+                        error.WriteLine($"keycuts: couldn't add {folder} to PATH in {profile}.");
+                        return ExitCode.CannotUpdatePath;
+                    }
+
+                    output.WriteLine($"Added {folder} to PATH in {profile}. Open a new Terminal window to run your keycuts by name.");
+                    return ExitCode.Success;
+
+                case "remove":
+                    var had = shell.ReadBlockFolder() != null;
+
+                    if (!shell.Remove())
+                    {
+                        error.WriteLine($"keycuts: couldn't change {profile}.");
+                        return ExitCode.CannotUpdatePath;
+                    }
+
+                    output.WriteLine(had ? $"Took keycuts out of {profile}. New Terminal windows won't find your keycuts by name." : $"keycuts hadn't added anything to {profile ?? "a startup file"}.");
+                    return ExitCode.Success;
+
+                default:
+                    error.WriteLine($"keycuts: path takes {string.Join(", ", Actions)}.");
+                    return ExitCode.BadArguments;
+            }
+        }
+    }
+
     /// <summary>
     /// The keycuts folder on a Mac's PATH (docs/macos-port.md, Phase 4.9, #101). Only with the user's consent (<see cref="Add"/>): a
     /// marked block at the end of <c>~/.zprofile</c> (zsh, the default) or <c>~/.bash_profile</c> (bash). Other shells (fish,

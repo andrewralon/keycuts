@@ -198,9 +198,13 @@ namespace keycuts.Common
                 return Quote(target);
             }
 
-            var rest = target.Substring(home.Length).Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$").Replace("`", "\\`");
+            return "\"" + home + EscapeForDoubleQuotes(target.Substring(home.Length)) + "\"";
+        }
 
-            return "\"" + home + rest + "\"";
+        /// <summary>Text for inside double quotes, where it stays as is: <c>\ " $</c> and backticks escaped.</summary>
+        public static string EscapeForDoubleQuotes(string text)
+        {
+            return text.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$").Replace("`", "\\`");
         }
 
         /// <summary>

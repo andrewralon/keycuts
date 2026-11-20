@@ -23,8 +23,53 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
+  # Decides whether the change touches anything but documentation (docs/ and the root *.md files). No test reads those
+  # files and no project builds from them, so a docs-only change skips build, format, macos and installer. The skipped
+  # jobs are not missing: a job skipped by its `if` counts as passed for a required status check, which a workflow-level
+  # `paths-ignore` would not do (the checks would stay pending and block the merge). If this job fails or can't tell,
+  # `code` stays empty and everything runs.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Look for non-documentation changes
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          code=true
+          case "$EVENT" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$PUSH_BEFORE" ;;
+            *) base="" ;;
+          esac
+          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$base" HEAD)
+            other=$(printf '%s\n' "$changed" | grep -vE '^(docs/|[^/]+\.md$)' | grep -v '^$' || true)
+            if [ -n "$changed" ] && [ -z "$other" ]; then
+              code=false
+            fi
+            echo "Changed files:"
+            printf '%s\n' "$changed"
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" = false ]; then
+            echo "Only documentation changed, so build, format, macos and installer are skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # The job id is a required status check on develop and main; keep it named build.
   build:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
@@ -116,6 +161,8 @@ jobs:
   # the Windows build instead of after it. EnableWindowsTargeting lets the net10.0-windows projects restore on Linux.
   # The job id is a required status check on develop and main.
   format:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -160,6 +207,8 @@ jobs:
   # don't need the GUI pass there. Windows-only tests show as skipped ([WindowsFact]). The WPF projects stay on Windows;
   # the Avalonia app (Phase 3) builds and runs its headless tests here too.
   macos:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
@@ -209,7 +258,8 @@ jobs:
   # will release. The script publishes everything itself, so this doesn't wait for the build job; it runs beside it.
   # The job id is a required status check on main.
   installer:
-    if: github.base_ref == 'main'
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' && github.base_ref == 'main' }}
     runs-on: windows-latest
     timeout-minutes: 30
     defaults:

@@ -1,0 +1,59 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Radii: sm / md / lg / xl -->
+    <CornerRadius x:Key="RadiusSm">5</CornerRadius>
+    <CornerRadius x:Key="RadiusMd">8</CornerRadius>
+    <CornerRadius x:Key="RadiusLg">12</CornerRadius>
+    <CornerRadius x:Key="RadiusXl">16</CornerRadius>
+    <!-- The same radii as numbers, for Rectangle.RadiusX/Y (the dashed drop and empty-state outlines) -->
+    <x:Double x:Key="RadiusSmValue">5</x:Double>
+    <x:Double x:Key="RadiusMdValue">8</x:Double>
+    <x:Double x:Key="RadiusLgValue">12</x:Double>
+
+    <!-- 4px spacing grid -->
+    <x:Double x:Key="Space1">4</x:Double>
+    <x:Double x:Key="Space2">8</x:Double>
+    <x:Double x:Key="Space3">12</x:Double>
+    <x:Double x:Key="Space4">16</x:Double>
+    <x:Double x:Key="Space5">20</x:Double>
+    <x:Double x:Key="Space6">24</x:Double>
+    <x:Double x:Key="Space8">32</x:Double>
+    <Thickness x:Key="Inset1">4</Thickness>
+    <Thickness x:Key="Inset2">8</Thickness>
+    <Thickness x:Key="Inset3">12</Thickness>
+    <Thickness x:Key="Inset4">16</Thickness>
+    <Thickness x:Key="Inset6">24</Thickness>
+
+    <!-- Layout (docs/styleguide.md, Layout): every screen and dialog body; the shared dialog footer; an inset panel -->
+    <Thickness x:Key="PagePadding">24,16,24,24</Thickness>
+    <Thickness x:Key="DialogFooterPadding">24,12</Thickness>
+    <Thickness x:Key="PanelPadding">16</Thickness>
+
+    <!-- Window widths. MainWidth (the Creator's, and Settings' once #218's second part lands) is what the tab bar needs plus about 60 of empty bar. -->
+    <x:Double x:Key="MainWidth">600</x:Double>
+    <x:Double x:Key="ConfirmWidth">440</x:Double>
+    <x:Double x:Key="EditWidth">480</x:Double>
+
+    <!-- Control metrics -->
+    <x:Double x:Key="ControlHeight">36</x:Double>
+    <x:Double x:Key="InputHeight">36</x:Double>
+    <x:Double x:Key="IconButtonSize">32</x:Double>
+    <x:Double x:Key="TileSize">40</x:Double>
+
+    <!-- The tab bar that replaces the title bar (#218). The caption buttons are the Windows standard sizes, an exception to the grid. -->
+    <x:Double x:Key="RailHeight">48</x:Double>
+    <x:Double x:Key="TabHeight">40</x:Double>
+    <x:Double x:Key="TabCut">8</x:Double>
+    <x:Double x:Key="TabSlant">16</x:Double>
+    <x:Double x:Key="CaptionButtonWidth">46</x:Double>
+
+    <!-- Typography: 12 is the smallest text, and every heading is 20 (level 1) or 16 (level 2) -->
+    <!-- A platform token (docs/styleguide.md, In Avalonia): Segoe UI on Windows, the system font ($Default) on macOS -->
+    <OnPlatform x:Key="AppFontFamily" x:TypeArguments="FontFamily" Default="$Default" Windows="Segoe UI Variable, Segoe UI" />
+    <x:Double x:Key="FontSizeCaption">12</x:Double>
+    <x:Double x:Key="FontSizeBody">13</x:Double>
+    <x:Double x:Key="FontSizeInput">14</x:Double>
+    <x:Double x:Key="FontSizeSubheading">16</x:Double>
+    <x:Double x:Key="FontSizeHeading">20</x:Double>
+</ResourceDictionary>

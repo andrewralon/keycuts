@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Avalonia app (docs/macos-port.md Phase 3), built beside the WPF one (keycuts.GUI) until it reaches parity. At cutover
+       its assembly becomes keycuts.GUI, so the shortcuts, the context menu and the MSI keep their file names. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>keycuts.App</RootNamespace>
+    <AssemblyName>keycuts.App</AssemblyName>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
+  </ItemGroup>
+</Project>

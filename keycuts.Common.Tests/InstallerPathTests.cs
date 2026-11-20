@@ -51,7 +51,7 @@ namespace keycuts.Tests
 
             Assert.Equal(@"Software\TeamRalon\keycuts", (string)value.Attribute("Key"));
             Assert.Equal("HKCU", (string)value.Attribute("Root"));
-            Assert.Contains(@"""HKCU\Software\TeamRalon\keycuts"" /v InstallFolder", CommandShims.Content("keycuts"));
+            Assert.Contains(@"""HKCU\Software\TeamRalon\keycuts"" /v InstallFolder", CommandShims.CmdContent("keycuts"));
         }
 
         // Review of #253: shims the app moved to another folder would outlive the uninstall
@@ -65,7 +65,7 @@ namespace keycuts.Tests
             Assert.Equal("SHIMFOLDER", (string)search.Parent.Attribute("Id"));
 
             var removed = wxs.Descendants().Where(e => e.Name.LocalName == "RemoveFile" && (string)e.Attribute("Property") == "SHIMFOLDER").ToList();
-            Assert.Equal(CommandShims.FileNames.OrderBy(n => n), removed.Select(e => (string)e.Attribute("Name")).OrderBy(n => n));
+            Assert.Equal(CommandNames.All.Select(n => n + ".cmd").OrderBy(n => n), removed.Select(e => (string)e.Attribute("Name")).OrderBy(n => n));
             Assert.All(removed, e => Assert.Equal("uninstall", (string)e.Attribute("On")));
         }
 
@@ -85,7 +85,7 @@ namespace keycuts.Tests
         {
             var bytes = File.ReadAllBytes(RepoFiles.Find(Path.Combine("keycuts.CLI", "shims", command + ".cmd")));
 
-            Assert.Equal(CommandShims.Bytes(command), bytes);
+            Assert.Equal(Encoding.ASCII.GetBytes(CommandShims.CmdContent(command)), bytes);
             var text = Encoding.ASCII.GetString(bytes);
             Assert.DoesNotContain("\n", text.Replace("\r\n", string.Empty));
             Assert.NotEqual(0xEF, bytes[0]);
@@ -96,7 +96,7 @@ namespace keycuts.Tests
         [InlineData("keypaste", @"@""%KEYCUTS_DIR%\keycuts.exe"" paste %*")]
         public void Shim_runs_the_installed_keycuts_exe_and_passes_its_arguments(string command, string launchLine)
         {
-            var lines = CommandShims.Content(command).Split("\r\n");
+            var lines = CommandShims.CmdContent(command).Split("\r\n");
 
             Assert.Equal(launchLine, lines.Last(line => line.Length > 0));
             Assert.Contains("@SETLOCAL", lines);   // KEYCUTS_DIR doesn't leak into the caller's cmd

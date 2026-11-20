@@ -17,10 +17,17 @@ namespace keycuts.Common
     /// <c>keycuts.bat</c> would beat <c>keycuts.cmd</c> in the same folder (Win+R tries .bat first, #209), so those names stay
     /// refused (<see cref="CommandNames"/>). The Manager lists .bat files only, so it never offers to delete these, and
     /// <see cref="KeycutRepository.DeleteAsync"/> refuses them too.
+    /// On macOS they are sh scripts named <c>keycuts</c> and <c>keypaste</c> (LF, mode 755) that read the install folder from
+    /// <see cref="InstallFolderPointer"/>, which the app writes at start (docs/macos-port.md, correction 3); their second line
+    /// isn't keycuts' header, so the Manager never lists them.
     /// </summary>
     public static class CommandShims
     {
-        public const string Extension = ".cmd";
+        public static readonly string Extension = OperatingSystem.IsMacOS() ? "" : ".cmd";
+
+        /// <summary>The macOS shims' pointer to the folder holding the <c>keycuts</c> executable: one line, written by the app.</summary>
+        public static readonly string InstallFolderPointer = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "keycuts", "install-folder");
 
         /// <summary>The shim file names: <c>keycuts.cmd</c>, <c>keypaste.cmd</c>.</summary>
         public static IReadOnlyList<string> FileNames => CommandNames.All.Select(name => name + Extension).ToList();
@@ -32,8 +39,33 @@ namespace keycuts.Common
             return FileNames.Contains(name, StringComparer.OrdinalIgnoreCase);
         }
 
-        /// <summary>The shim's text, lines joined with CRLF. <paramref name="command"/> is <c>keycuts</c> or <c>keypaste</c>.</summary>
+        /// <summary>The shim's text for this platform. <paramref name="command"/> is <c>keycuts</c> or <c>keypaste</c>.</summary>
         public static string Content(string command)
+        {
+            return OperatingSystem.IsMacOS() ? ShContent(command) : CmdContent(command);
+        }
+
+        /// <summary>The macOS shim: sh, LF. A missing or wrong pointer says so on stderr and exits 2, as the .cmd does.</summary>
+        public static string ShContent(string command)
+        {
+            var paste = string.Equals(command, "keypaste", StringComparison.OrdinalIgnoreCase);
+            var lines = new[]
+            {
+                "#!/bin/sh",
+                paste
+                    ? "# The keypaste command: \"keycuts paste\" under its old name. keycuts keeps this file in the keycuts folder."
+                    : "# The keycuts command on PATH: keycuts keeps this file in the keycuts folder, which is on PATH.",
+                "# It runs keycuts from the folder the app recorded. Changes to this file are replaced.",
+                "d=$(cat \"$HOME/Library/Application Support/keycuts/install-folder\" 2>/dev/null)",
+                "if [ -z \"$d\" ] || [ ! -x \"$d/keycuts\" ]; then echo \"keycuts isn't installed: open the keycuts app once, or run keycuts from its folder.\" >&2; exit 2; fi",
+                paste ? "exec \"$d/keycuts\" paste \"$@\"" : "exec \"$d/keycuts\" \"$@\""
+            };
+
+            return string.Join("\n", lines) + "\n";
+        }
+
+        /// <summary>The Windows shim, lines joined with CRLF.</summary>
+        public static string CmdContent(string command)
         {
             var paste = string.Equals(command, "keypaste", StringComparison.OrdinalIgnoreCase);
             var lines = new[]
@@ -92,6 +124,12 @@ namespace keycuts.Common
                     // Whole or not at all: a half-written shim would break the command
                     var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
                     File.WriteAllBytes(temp, bytes);
+
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        File.SetUnixFileMode(temp, ExecutableMode);
+                    }
+
                     File.Move(temp, path, true);
                     written.Add(path);
                 }
@@ -102,6 +140,56 @@ namespace keycuts.Common
             }
 
             return written;
+        }
+
+        private const UnixFileMode ExecutableMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+            UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+
+        /// <summary>The folder <see cref="InstallFolderPointer"/> names (<paramref name="pointer"/> in tests), or null.</summary>
+        public static string ReadInstallFolder(string pointer)
+        {
+            try
+            {
+                var folder = File.Exists(pointer) ? File.ReadAllText(pointer).Trim() : "";
+                return folder.Length == 0 ? null : folder;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The macOS app's step at start (correction 3): when <paramref name="runningFolder"/> holds the <c>keycuts</c> executable
+        /// (an installed bundle's <c>Contents/MacOS</c>; a build of the app alone doesn't), <paramref name="pointer"/> names it, so the
+        /// shims run this copy. Written only when it changes. Never throws; true if it names the running folder now.
+        /// </summary>
+        public static bool RecordInstallFolder(string pointer, string runningFolder, Func<string, bool> fileExists)
+        {
+            var folder = (runningFolder ?? "").TrimEnd('/');
+
+            if (folder.Length == 0 || !fileExists(Path.Combine(folder, "keycuts")))
+            {
+                return false;
+            }
+
+            try
+            {
+                if (ReadInstallFolder(pointer) != folder)
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(pointer));
+                    var temp = pointer + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                    File.WriteAllText(temp, folder + "\n");
+                    File.Move(temp, pointer, true);
+                }
+
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                Debug.WriteLine($"keycuts: couldn't write \"{pointer}\": {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>

@@ -295,6 +295,12 @@ namespace keycuts.Common
         /// <summary>Where the MSI installed keycuts (<c>InstallFolder</c>, with a trailing backslash); null for a copy that wasn't installed.</summary>
         public static string GetInstallFolder()
         {
+            // macOS has no installer value: the app records the folder it runs from (CommandShims.RecordInstallFolder)
+            if (OperatingSystem.IsMacOS())
+            {
+                return CommandShims.ReadInstallFolder(CommandShims.InstallFolderPointer);
+            }
+
             return ReadValue("InstallFolder") as string;
         }
 
@@ -307,7 +313,7 @@ namespace keycuts.Common
         /// <summary>Stored with a trailing backslash: the MSI reads it as a folder property to remove the shims on uninstall.</summary>
         public static void SetCommandShimFolder(string folder)
         {
-            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + "\\";
+            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
             Backend.WriteString(CommandShimFolderKeyName, value);
         }
 

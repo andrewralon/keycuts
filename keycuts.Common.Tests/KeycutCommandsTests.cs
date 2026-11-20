@@ -105,7 +105,7 @@ namespace keycuts.Tests
             CommandShims.Ensure(_folder);
 
             Assert.Equal(ExitCode.CannotFindFile, KeycutCommands.Remove(Context(), "keycuts"));
-            Assert.True(File.Exists(Path.Combine(_folder, "keycuts.cmd")));
+            Assert.True(File.Exists(Path.Combine(_folder, "keycuts" + CommandShims.Extension)));
         }
 
         #endregion

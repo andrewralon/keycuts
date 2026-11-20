@@ -58,6 +58,11 @@ namespace keycuts.GUI
                 ? CreateWindowsShell(() => mainWindow)
                 : CreateShellWithoutKeycutsFolder(new RunnerSettingsStore(), () => mainWindow);
 
+            if (OperatingSystem.IsMacOS())
+            {
+                _ = Task.Run(PrepareMacFolder);
+            }
+
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
 
@@ -262,10 +267,33 @@ namespace keycuts.GUI
         }
 
         /// <summary>
-        /// Puts keycuts.cmd and keypaste.cmd in the keycuts folder (#248). Only the installed copy does it, never under the Debug
-        /// folder override. Runs on a worker thread. Never fails.
+        /// What the installer does on Windows, done by the app's own start on macOS (correction 3): an installed copy (the
+        /// <c>keycuts</c> CLI beside it) records its folder for the shims and makes the keycuts folder; then keycuts named after
+        /// the commands are moved aside and the shims kept, as on Windows. Runs on a worker thread. Never fails.
         /// </summary>
-        [SupportedOSPlatform("windows")]
+        private static void PrepareMacFolder()
+        {
+            try
+            {
+                if (DebugOverrides.GetOutputFolder() == null &&
+                    CommandShims.RecordInstallFolder(CommandShims.InstallFolderPointer, AppContext.BaseDirectory, System.IO.File.Exists))
+                {
+                    System.IO.Directory.CreateDirectory(new Runner().GetOutputFolder());
+                }
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't make the keycuts folder: " + ex.Message);
+            }
+
+            MoveAsideCommandNames();
+            KeepCommandShims();
+        }
+
+        /// <summary>
+        /// Puts keycuts.cmd and keypaste.cmd in the keycuts folder (#248; keycuts and keypaste on macOS). Only the installed copy
+        /// does it, never under the Debug folder override. Runs on a worker thread. Never fails.
+        /// </summary>
         private static void KeepCommandShims()
         {
             try
@@ -304,7 +332,6 @@ namespace keycuts.GUI
         /// Renames keycuts named keycuts or keypaste, which clash with those commands in the keycuts folder (#209). Runs on a worker
         /// thread. Never fails.
         /// </summary>
-        [SupportedOSPlatform("windows")]
         private static IReadOnlyList<RenamedKeycut> MoveAsideCommandNames()
         {
             try

@@ -9,13 +9,17 @@ namespace keycuts.Common
     /// <summary>An environment variable whose value is a folder, used to save paths that work on any machine or account.</summary>
     public sealed class PathVariable
     {
-        public PathVariable(string name, string value)
+        /// <param name="reference">How a keycut names it: <c>%NAME%</c> (a .bat) unless given, <c>$HOME</c> on macOS.</param>
+        public PathVariable(string name, string value, string reference = null)
         {
             Name = name;
             Value = value;
+            Reference = reference ?? "%" + name + "%";
         }
 
         public string Name { get; }
+
+        public string Reference { get; }
 
         /// <summary>The expanded folder, without a trailing separator.</summary>
         public string Value { get; }
@@ -60,7 +64,19 @@ namespace keycuts.Common
         /// </summary>
         public static IReadOnlyList<PathVariable> GetDefault()
         {
-            return GetDefault(Environment.GetEnvironmentVariable, CustomNames(), Directory.Exists);
+            return OperatingSystem.IsMacOS()
+                ? ForMac(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
+                : GetDefault(Environment.GetEnvironmentVariable, CustomNames(), Directory.Exists);
+        }
+
+        /// <summary>macOS has one: the home folder, written <c>$HOME</c>, which the keycut puts in double quotes (Phase 4.6).</summary>
+        public static IReadOnlyList<PathVariable> ForMac(string home)
+        {
+            var folder = (home ?? "").TrimEnd('/');
+
+            return folder.StartsWith("/", StringComparison.Ordinal)
+                ? new[] { new PathVariable("HOME", folder, "$HOME") }
+                : Array.Empty<PathVariable>();
         }
 
         /// <summary>
@@ -87,11 +103,12 @@ namespace keycuts.Common
 
         /// <summary>
         /// Replaces the longest variable value that <paramref name="path"/> starts with (ending at a folder boundary) with
-        /// <c>%NAME%</c>. Returns the path unchanged if none matches, or if it already starts with a variable.
+        /// its <see cref="PathVariable.Reference"/> (<c>%NAME%</c>, or <c>$HOME</c> on macOS). Returns the path unchanged if none
+        /// matches, or if it already starts with a variable.
         /// </summary>
         public static string Substitute(string path, IEnumerable<PathVariable> variables)
         {
-            if (string.IsNullOrEmpty(path) || path.StartsWith("%", StringComparison.Ordinal) || variables == null)
+            if (string.IsNullOrEmpty(path) || path.StartsWith("%", StringComparison.Ordinal) || path.StartsWith("$", StringComparison.Ordinal) || variables == null)
             {
                 return path;
             }
@@ -115,7 +132,7 @@ namespace keycuts.Common
                 }
             }
 
-            return best == null ? path : "%" + best.Name + "%" + path.Substring(best.Value.Length);
+            return best == null ? path : best.Reference + path.Substring(best.Value.Length);
         }
 
         /// <summary>

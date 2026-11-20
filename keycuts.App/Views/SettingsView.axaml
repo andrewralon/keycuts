@@ -51,6 +51,9 @@
       <Setter Property="MaxHeight" Value="0" />
       <Setter Property="Margin" Value="0" />
     </Style>
+    <Style Selector="TextBlock.SettingNote.warning">
+      <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+    </Style>
     <Style Selector="TextBlock#IconPickerNoteText.error">
       <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
     </Style>
@@ -151,8 +154,24 @@
         <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
 
         <StackPanel x:Name="RightColumn" Grid.Column="2">
+          <!-- macOS (Phase 6.2, mockup macos-settings-v1): the Run box. The shortcut is recorded by pressing it. -->
+          <StackPanel x:Name="RunBoxSection" IsVisible="{Binding IsRunBoxOffered}">
+            <controls:SectionLabel Text="Run box" />
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="Shortcut" Classes="SettingName" />
+                <TextBlock x:Name="ShortcutNoteText" Text="{Binding ShortcutNote}" Classes="SettingNote" Classes.warning="{Binding ShortcutIsWarning}"
+                           AutomationProperties.LiveSetting="Polite" />
+              </StackPanel>
+              <!-- Click, then press the keys (SettingsView.ShortcutRecorder_KeyDown); Esc cancels, Delete clears -->
+              <Button x:Name="ShortcutRecorder" Grid.Column="1" Theme="{StaticResource SecondaryButton}" Margin="16,0,0,0"
+                      VerticalAlignment="Center" Content="{Binding ShortcutText}" Command="{Binding RecordShortcutCommand}"
+                      AutomationProperties.Name="Run box shortcut" AutomationProperties.HelpText="{Binding ShortcutNote}" />
+            </Grid>
+          </StackPanel>
+
           <!-- Appearance. The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
-          <controls:SectionLabel Text="Appearance" />
+          <controls:SectionLabel Text="Appearance" Classes.LaterSection="{Binding IsRunBoxOffered}" />
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="Theme" Classes="SettingName" VerticalAlignment="Center" />
             <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">

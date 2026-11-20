@@ -70,6 +70,12 @@ namespace keycuts.GUI
         public static int Register(RunBoxHotkey? hotkey, Action onPressed)
         {
             pressed = onPressed;
+            return Register(hotkey);
+        }
+
+        /// <summary>The same, for what the shortcut already does.</summary>
+        public static int Register(RunBoxHotkey? hotkey)
+        {
             Current = hotkey;
 
             if (hotKeyRef != IntPtr.Zero)
@@ -88,6 +94,20 @@ namespace keycuts.GUI
 
             Changed?.Invoke(null, EventArgs.Empty);
             return Status;
+        }
+
+        /// <summary>Lets go of the shortcut while Settings records a new one, keeping <see cref="Current"/>; false takes it back.</summary>
+        public static void Pause(bool paused)
+        {
+            if (paused && hotKeyRef != IntPtr.Zero)
+            {
+                UnregisterEventHotKey(hotKeyRef);
+                hotKeyRef = IntPtr.Zero;
+            }
+            else if (!paused && hotKeyRef == IntPtr.Zero)
+            {
+                Register(Current);
+            }
         }
 
         private static int Install()

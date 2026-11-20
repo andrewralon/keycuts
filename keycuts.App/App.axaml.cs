@@ -136,7 +136,10 @@ namespace keycuts.GUI
                 applyTheme: ThemeManager.SetPreference,
                 confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults()),
                 // The Debug folder override never writes PATH, so it has no PATH switch either
-                shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null);
+                shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
+            {
+                RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null
+            };
 
             var shell = new ShellViewModel(
                 async () =>

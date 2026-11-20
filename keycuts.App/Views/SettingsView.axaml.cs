@@ -39,6 +39,9 @@ namespace keycuts.GUI.Views
                 choice.IsCheckedChanged += Theme_Checked;
             }
 
+            // Phase 6.2: the Run box shortcut is the next key pressed on its button while it records
+            ShortcutRecorder.AddHandler(KeyDownEvent, ShortcutRecorder_KeyDown, RoutingStrategies.Tunnel);
+
             IconPickerScrim.PointerPressed += IconPickerScrim_PointerPressed;
             // Each group's list: its cards, and the choice, which goes through the view model so the other list lets go of its own
             IconGroups.AddHandler(ListBox.SelectionChangedEvent, IconList_SelectionChanged, RoutingStrategies.Bubble);
@@ -154,6 +157,74 @@ namespace keycuts.GUI.Views
 
         // Enter stores the folder; an invalid one keeps the focus in the box with its error. Escape drops an edit and puts the
         // stored folder back; with no edit to drop it goes on to the window, which returns to the creator.
+        /// <summary>
+        /// While the shortcut records: Esc cancels, Delete (or ⌫) alone clears it, a key with ⌘ or ⌃ becomes it, and one without
+        /// is shown as refused. Modifier keys alone wait for the key. Every key is taken, so none reaches the window.
+        /// </summary>
+        private void ShortcutRecorder_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (viewModel is not { IsRecordingShortcut: true })
+            {
+                return;
+            }
+
+            e.Handled = true;
+            var modifiers = e.KeyModifiers;
+            if (e.Key == Key.Escape && modifiers == KeyModifiers.None)
+            {
+                viewModel.IsRecordingShortcut = false;
+            }
+            else if (e.Key is Key.Back or Key.Delete && modifiers == KeyModifiers.None)
+            {
+                viewModel.ClearShortcut();
+            }
+            else if (ShortcutKeyName(e) is string key)
+            {
+                viewModel.RecordShortcut(new RunBoxHotkey(key, modifiers.HasFlag(KeyModifiers.Control), modifiers.HasFlag(KeyModifiers.Alt),
+                    modifiers.HasFlag(KeyModifiers.Shift), modifiers.HasFlag(KeyModifiers.Meta)));
+            }
+        }
+
+        /// <summary>The key as <see cref="RunBoxHotkey"/> names it, by its place on the keyboard; null for a modifier or a key it doesn't take.</summary>
+        public static string? ShortcutKeyName(KeyEventArgs e)
+        {
+            var physical = e.PhysicalKey.ToString();
+            string? name = physical switch
+            {
+                _ when physical.Length == 1 && char.IsLetter(physical[0]) => physical,
+                _ when physical.StartsWith("Digit", StringComparison.Ordinal) => physical.Substring(5),
+                "Space" => "Space",
+                "Comma" => ",",
+                "Period" => ".",
+                "Slash" => "/",
+                "Semicolon" => ";",
+                "Quote" => "'",
+                "BracketLeft" => "[",
+                "BracketRight" => "]",
+                "Backslash" => "\\",
+                "Minus" => "-",
+                "Equal" => "=",
+                "Backquote" => "`",
+                _ when physical.Length <= 3 && physical.StartsWith('F') => physical,
+                _ => null
+            };
+
+            // Without a physical key (some tests, some input methods), the key itself for letters, digits and Space
+            if (name == null && e.PhysicalKey == PhysicalKey.None)
+            {
+                name = e.Key switch
+                {
+                    >= Key.A and <= Key.Z => e.Key.ToString(),
+                    >= Key.D0 and <= Key.D9 => ((int)(e.Key - Key.D0)).ToString(),
+                    Key.Space => "Space",
+                    >= Key.F1 and <= Key.F12 => e.Key.ToString(),
+                    _ => null
+                };
+            }
+
+            return name != null && RunBoxHotkey.KeyCodes.ContainsKey(name) ? name : null;
+        }
+
         private void OutputFolder_KeyDown(object? sender, KeyEventArgs e)
         {
             if (viewModel == null)

@@ -23,9 +23,15 @@ Tests never touch the real settings, registry, PATH, `~/Shortcuts`, network or R
 - **Prove a race instead of guessing.** Run the test many times under load (it didn't fail in 25 runs), then make the slow part slow on purpose: a
   300 ms fake name check reproduced the CI failure at once. Check that the fix passes with the delay, then put the delay in every similar hop and run the
   whole suite to find other tests with the same flaw (none did).
-- **A `Test Case Cleanup Failure` inside `EnsureIsolatedApplication` (`Dispatcher.VerifyAccess`, about 1 ms into a test) is Avalonia's headless session, not
-  the test.** It hit random tests on Windows and macOS CI, in different places each time, and passed on rerun. Rerun the failed job; don't change the
-  test. It is not fixed.
+- **A test that makes Avalonia objects must be `[AvaloniaFact]`, even if it looks like plain logic.** Each Avalonia test resets
+  `Dispatcher.UIThread` and builds a new app; `Dispatcher.UIThread` belongs to whichever thread touches it first after the reset. A plain `[Fact]`
+  runs on a pool thread in parallel, and anything that creates or sets an Avalonia object (`NativeMenuItem`, a control, a brush resource) touches it,
+  so it can take it in that gap and the *next* Avalonia test fails at setup: `Test Case Cleanup Failure … The calling thread cannot access this object
+  because a different thread owns it`, in `EnsureIsolatedApplication`, about 1 ms in, on a random test, passing on rerun. `MacMenusTests` did this
+  (#284), which showed up as CI flakes on Windows and macOS. How it was found: the failure reproduced locally under CPU load (4 to 9 runs in 30),
+  disappeared with `xUnit.ParallelizeTestCollections=false` (0 in 25), then bisecting the plain test classes by filter (20 runs per half) narrowed it to
+  one class (12 of 20 with it alone, 0 of 20 without). With the fix: 0 in 30. A probe test that spins a pool thread on `Dispatcher.UIThread` makes the next
+  tests fail the same way, which is a quick way to confirm the mechanism.
 - Faking: `ThemeManager.ReadMacIncreaseContrast` is off by default so a test never reads the machine's setting; fakes for `ILoginItem`, `IRunBoxShortcut`,
   `ISettingsStore`. A seam that reads the machine defaults to "off".
 

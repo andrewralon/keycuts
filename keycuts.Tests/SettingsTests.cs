@@ -20,7 +20,7 @@ namespace keycuts.Tests
             Assert.False(Settings.IsValidOutputFolder(folder));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(@"C:\Shortcuts")]
         [InlineData(@"\\server\share\keys")]
         public void Accepts_full_paths(string folder)

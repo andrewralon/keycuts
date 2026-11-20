@@ -256,6 +256,8 @@ namespace keycuts.Tests
         [AvaloniaFact]
         public void TheBar_Is48High_WithTabsOf40_AndTheCreatorIsMainWidth()
         {
+            // Measured in Segoe UI: macOS draws the app in its own font (AppFontFamily)
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows font metrics");
             WithWindow((window, shell) =>
             {
                 Assert.Equal("keycuts", window.Title);
@@ -417,6 +419,8 @@ namespace keycuts.Tests
         [InlineData(544)]
         public void Manager_Has24UnderItsLastRow(double height)
         {
+            // Measured in Segoe UI: macOS draws the app in its own font (AppFontFamily)
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows font metrics");
             WithWindow((window, shell) =>
             {
                 shell.ShowManager();

@@ -50,6 +50,7 @@
     <Compile Include="..\keycuts.Tests\WelcomeViewModelTests.cs" Link="Shared\ViewModels\WelcomeViewModelTests.cs" />
     <Compile Include="..\keycuts.Tests\ShellViewModelTests.cs" Link="Shared\ViewModels\ShellViewModelTests.cs" />
     <Compile Include="..\keycuts.Tests\SettingsTests.cs" Link="Shared\ViewModels\SettingsTests.cs" />
+    <Compile Include="..\keycuts.Tests\SettingsViewModelTests.cs" Link="Shared\ViewModels\SettingsViewModelTests.cs" />
     <Compile Include="..\keycuts.Tests\ShellIdListTests.cs" Link="Shared\ShellIdListTests.cs" />
   </ItemGroup>
 </Project>

@@ -192,7 +192,7 @@ namespace keycuts.Tests
         }
 
         // #238: a folder chosen in Settings gets the run-counting lines before it is counted, not at the next start
-        [Fact]
+        [WindowsFact]
         public async Task ANewFolder_IsPrepared_ThenCounted()
         {
             var steps = new List<string>();
@@ -224,7 +224,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "prepare", "count" }, steps);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFolderThatCantBePrepared_IsStillCounted()
         {
             var counts = 0;
@@ -383,7 +383,7 @@ namespace keycuts.Tests
             Assert.Equal(5, shell.Creator.KeycutCount);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANewOutputFolder_ReloadsTheCount()
         {
             var count = 3;

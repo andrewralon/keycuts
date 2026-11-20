@@ -1830,10 +1830,11 @@ namespace keycuts.Tests
         }
 
         [Theory]
-        [InlineData(true, " It\u2019s still in the Recycle Bin.")]
+        [InlineData(true, " It\u2019s still in the {0}.")]
         [InlineData(false, "")]
         public async Task Undo_AnotherFailure_SaysWhy_AndPointsToTheRecycleBinWhenItIsThere(bool recycled, string hint)
         {
+            hint = string.Format(hint, PlatformWords.Bin);
             var actions = new FakeActions { Recycled = recycled };
             var manager = await LoadedAsync(actions, "a", "b");
             await manager.DeleteKeycutAsync(manager.Rows[1]);
@@ -2001,7 +2002,7 @@ namespace keycuts.Tests
 
             await manager.DeleteKeycutAsync(manager.Rows[1]);
 
-            Assert.Equal("Deleted \u201Cb\u201D (this drive has no Recycle Bin)", manager.StatusMessage);
+            Assert.Equal("Deleted \u201Cb\u201D (this drive has no " + PlatformWords.Bin + ")", manager.StatusMessage);
             Assert.True(manager.CanUndoDelete);
         }
 

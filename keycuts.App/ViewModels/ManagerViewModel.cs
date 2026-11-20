@@ -670,7 +670,7 @@ namespace keycuts.GUI.ViewModels
                 RemoveRow(row);
 
                 // A drive without a Recycle Bin deleted it for good: say so, since Undo is then the only way back
-                var message = "Deleted \u201C" + row.Name + "\u201D" + (deleted != null && !deleted.Recycled ? " (this drive has no Recycle Bin)" : string.Empty);
+                var message = "Deleted \u201C" + row.Name + "\u201D" + (deleted != null && !deleted.Recycled ? " (this drive has no " + PlatformWords.Bin + ")" : string.Empty);
                 ShowStatusMessage(message, false, deleted);
             }
             catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotFound)
@@ -720,7 +720,7 @@ namespace keycuts.GUI.ViewModels
             }
             catch (Exception ex)
             {
-                var binHint = deleted.Recycled ? " It’s still in the Recycle Bin." : string.Empty;
+                var binHint = deleted.Recycled ? " It’s still in the " + PlatformWords.Bin + "." : string.Empty;
                 ShowStatusMessage("Couldn’t restore “" + name + "”: " + ReasonOf(ex) + binHint, true, deleted);
                 return;
             }

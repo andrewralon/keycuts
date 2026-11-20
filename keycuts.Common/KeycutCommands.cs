@@ -54,7 +54,7 @@ namespace keycuts.Common
             try
             {
                 var deleted = context.Repository.DeleteAsync(keycut).GetAwaiter().GetResult();
-                context.Output.WriteLine(deleted.Recycled ? $"Deleted {keycut.Name}. It's in the Recycle Bin." : $"Deleted {keycut.Name}.");
+                context.Output.WriteLine(deleted.Recycled ? $"Deleted {keycut.Name}. It's in the {PlatformWords.Bin}." : $"Deleted {keycut.Name}.");
                 return ExitCode.Success;
             }
             catch (KeycutRepositoryException ex)

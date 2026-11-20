@@ -14,7 +14,9 @@ namespace keycuts.Tests
     /// Holds the GUI's XAML to docs/styleguide.md (#219): no literal font size, no hex color outside the three palettes, margins
     /// and padding on the 4px grid, radii only from the tokens, no plain Bold, and every heading marked as one. A file that
     /// doesn't follow the guide yet is on <see cref="NotYetConverted"/>; the rest are checked, so each file is guarded from the
-    /// moment it is done. The guide's own exceptions are in <see cref="Exceptions"/>.
+    /// moment it is done. The guide's own exceptions are in <see cref="Exceptions"/>. The same rules read the WPF app's
+    /// <c>.xaml</c> and the Avalonia app's <c>.axaml</c> (styleguide.md, In Avalonia): a <c>ControlTheme</c> counts as a
+    /// <c>Style</c>, <c>Theme=</c> as <c>Style=</c>, and a heading level of <c>0</c> as <c>None</c>.
     /// </summary>
     public class StyleGuideTests
     {
@@ -30,8 +32,12 @@ namespace keycuts.Tests
         /// <summary>The palettes, the only files where a hex color belongs.</summary>
         static readonly HashSet<string> Palettes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "Themes/Light.xaml", "Themes/Dark.xaml", "Themes/HighContrast.xaml"
+            "Themes/Light.xaml", "Themes/Dark.xaml", "Themes/HighContrast.xaml",
+            "Themes/Light.axaml", "Themes/Dark.axaml", "Themes/HighContrast.axaml"
         };
+
+        /// <summary>The apps whose XAML is checked, and the extension each one's XAML has.</summary>
+        static readonly (string Project, string Extension)[] Apps = { ("keycuts.GUI", ".xaml"), ("keycuts.App", ".axaml") };
 
         /// <summary>
         /// The guide's allowed exceptions (Spacing; Corner radii), each with its reason: a value that breaks a rule on purpose, in
@@ -102,6 +108,18 @@ namespace keycuts.Tests
         static readonly string[] HeadingSizes = { "FontSizeHeading", "FontSizeSubheading" };
         static readonly Regex HexColor = new Regex(@"(?<![&\w])#[0-9A-Fa-f]{3,8}\b", RegexOptions.Compiled);
 
+        /// <summary>The elements whose setters are checked as elements of their own: a WPF or Avalonia style, an Avalonia control theme.</summary>
+        static bool IsStyle(string name)
+        {
+            return name is "Style" or "ControlTheme";
+        }
+
+        /// <summary>A heading level that takes the heading away: WPF's <c>None</c>, Avalonia's <c>0</c>.</summary>
+        static bool IsNoHeading(string level)
+        {
+            return level.Trim() is "None" or "0";
+        }
+
         /// <summary>Every rule broken in one XAML document, before exceptions.</summary>
         public static List<Violation> Check(string file, XDocument doc)
         {
@@ -120,7 +138,8 @@ namespace keycuts.Tests
 
                 if (!isPalette)
                 {
-                    foreach (var attribute in element.Attributes().Where(a => !a.IsNamespaceDeclaration && HexColor.IsMatch(a.Value)))
+                    // An Avalonia selector's #Name is a name, not a color ("Border#Face")
+                    foreach (var attribute in element.Attributes().Where(a => !a.IsNamespaceDeclaration && a.Name.LocalName != "Selector" && HexColor.IsMatch(a.Value)))
                     {
                         Add("a color comes from a palette brush, never a hex literal", attribute.Name.LocalName, attribute.Value);
                     }
@@ -132,7 +151,7 @@ namespace keycuts.Tests
                 }
 
                 // A Style's setters are checked as elements of their own
-                foreach (var (property, value) in name == "Style" ? Enumerable.Empty<(string, string)>() : Settings(element))
+                foreach (var (property, value) in IsStyle(name) ? Enumerable.Empty<(string, string)>() : Settings(element))
                 {
                     if (IsMarkupExtension(value))
                     {
@@ -179,7 +198,7 @@ namespace keycuts.Tests
 
             if (element.Name.LocalName == "SectionLabel")
             {
-                if (level != null && level.Trim() == "None")
+                if (level != null && IsNoHeading(level))
                 {
                     add(rule, "AutomationProperties.HeadingLevel", level);
                 }
@@ -187,8 +206,8 @@ namespace keycuts.Tests
                 return;
             }
 
-            // "None" takes the heading away, the same as leaving the level out
-            if (level != null && level.Trim() != "None")
+            // "None" (or 0) takes the heading away, the same as leaving the level out
+            if (level != null && !IsNoHeading(level))
             {
                 return;
             }
@@ -199,12 +218,16 @@ namespace keycuts.Tests
                 add(rule, "FontSize", fontSize);
             }
 
-            // A window-local section label without a level, or a shared heading style whose level was set to None here
-            var style = (string)element.Attribute("Style");
-            if (style != null && (Regex.IsMatch(style, @"Resource\s+SectionLabel\s*}")
-                || (level != null && Regex.IsMatch(style, @"Resource\s+(Heading|Subheading)\s*}"))))
+            // A window-local section label without a level, or a shared heading style whose level was set to None here. In
+            // Avalonia the shared style is a control theme, set with Theme=
+            foreach (var attribute in new[] { "Style", "Theme" })
             {
-                add(rule, "Style", style);
+                var style = (string)element.Attribute(attribute);
+                if (style != null && (Regex.IsMatch(style, @"Resource\s+SectionLabel\s*}")
+                    || (level != null && Regex.IsMatch(style, @"Resource\s+(Heading|Subheading)\s*}"))))
+                {
+                    add(rule, attribute, style);
+                }
             }
         }
 
@@ -217,7 +240,8 @@ namespace keycuts.Tests
             var name = element.Name.LocalName;
             if (name == "Setter")
             {
-                var property = (string)element.Attribute("Property");
+                // Avalonia may write an attached property in parentheses: "(AutomationProperties.HeadingLevel)"
+                var property = ((string)element.Attribute("Property"))?.Trim().TrimStart('(').TrimEnd(')');
                 var value = (string)element.Attribute("Value")
                     ?? element.Elements().Where(e => e.Name.LocalName == "Setter.Value").Select(PropertyElementValue).FirstOrDefault();
                 if (property != null && value != null)
@@ -229,10 +253,10 @@ namespace keycuts.Tests
                 yield break;
             }
 
-            if (element.Name.LocalName == "Style")
+            if (IsStyle(name))
             {
-                // A Style's own attributes are its key and target, and its setters are checked as elements; for the heading
-                // rule, a style counts as one element with all its setters
+                // A Style's own attributes are its key and target (or selector), and its setters are checked as elements; for
+                // the heading rule, a style counts as one element with all its setters
                 foreach (var setter in element.Elements().Where(e => e.Name.LocalName == "Setter"))
                 {
                     foreach (var setting in Settings(setter))
@@ -336,7 +360,7 @@ namespace keycuts.Tests
             var files = GuiXaml().ToDictionary(f => f.Name, f => f.Doc, StringComparer.OrdinalIgnoreCase);
             foreach (var name in NotYetConverted)
             {
-                Assert.True(files.ContainsKey(name), $"{name} is on NotYetConverted but isn't a XAML file in keycuts.GUI");
+                Assert.True(files.ContainsKey(name), $"{name} is on NotYetConverted but isn't a XAML file in keycuts.GUI or keycuts.App");
                 Assert.True(Check(name, files[name]).Any(v => !IsException(v)),
                     $"{name} follows the style guide now: take it off StyleGuideTests.NotYetConverted, so the test guards it");
             }
@@ -368,25 +392,62 @@ namespace keycuts.Tests
 
         static IEnumerable<(string Name, XDocument Doc)> GuiXaml()
         {
-            var root = GuiFolder();
-            return Directory.EnumerateFiles(root, "*.xaml", SearchOption.AllDirectories)
-                .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/'))
-                .Where(name => !name.StartsWith("bin/", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("obj/", StringComparison.OrdinalIgnoreCase))
-                .OrderBy(name => name, StringComparer.Ordinal)
-                .Select(name => (name, XDocument.Load(Path.Combine(root, name), LoadOptions.SetLineInfo)))
+            var repoRoot = Path.GetDirectoryName(RepoFiles.Find("keycuts.sln"));
+            return XamlFiles(repoRoot)
+                .Select(file => (file.Name, XDocument.Load(file.Path, LoadOptions.SetLineInfo)))
                 .ToList();
         }
 
-        static string GuiFolder()
+        /// <summary>
+        /// The XAML each app is built from: <c>keycuts.GUI</c>'s <c>.xaml</c> and <c>keycuts.App</c>'s <c>.axaml</c> (none until
+        /// Phase 3.2 adds the project), named by their path inside the project, without <c>bin</c> and <c>obj</c>.
+        /// </summary>
+        static List<(string Name, string Path)> XamlFiles(string repoRoot)
         {
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "keycuts.sln")))
+            var files = new List<(string Name, string Path)>();
+            foreach (var (project, extension) in Apps)
             {
-                dir = dir.Parent;
+                var root = Path.Combine(repoRoot, project);
+                if (!Directory.Exists(root))
+                {
+                    continue;
+                }
+
+                files.AddRange(Directory.EnumerateFiles(root, "*" + extension, SearchOption.AllDirectories)
+                    // Take the extension exactly: Windows' wildcards also match on short names and longer extensions
+                    .Where(path => Path.GetExtension(path).Equals(extension, StringComparison.OrdinalIgnoreCase))
+                    .Select(path => (Name: Path.GetRelativePath(root, path).Replace('\\', '/'), Path: path))
+                    .Where(file => !file.Name.StartsWith("bin/", StringComparison.OrdinalIgnoreCase) && !file.Name.StartsWith("obj/", StringComparison.OrdinalIgnoreCase)));
             }
 
-            Assert.NotNull(dir);
-            return Path.Combine(dir.FullName, "keycuts.GUI");
+            return files.OrderBy(file => file.Name, StringComparer.Ordinal).ToList();
+        }
+
+        [Fact]
+        public void XamlFiles_ReadsEachAppsOwnDialect_AndSkipsBuildOutput()
+        {
+            var repoRoot = Path.Combine(Path.GetTempPath(), "keycuts-styleguide-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                foreach (var file in new[]
+                {
+                    "keycuts.GUI/Views/CreatorView.xaml", "keycuts.GUI/obj/Debug/CreatorView.g.xaml", "keycuts.GUI/Views/Stray.axaml",
+                    "keycuts.App/Views/CreatorView.axaml", "keycuts.App/Themes/Tokens.axaml", "keycuts.App/bin/Debug/Copied.axaml",
+                    "keycuts.App/Views/Stray.xaml", "keycuts.Common/Other.xaml"
+                })
+                {
+                    var path = Path.Combine(repoRoot, file);
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    File.WriteAllText(path, "<Grid />");
+                }
+
+                Assert.Equal(new[] { "Themes/Tokens.axaml", "Views/CreatorView.axaml", "Views/CreatorView.xaml" },
+                    XamlFiles(repoRoot).Select(file => file.Name));
+            }
+            finally
+            {
+                Directory.Delete(repoRoot, true);
+            }
         }
 
         #endregion
@@ -395,9 +456,12 @@ namespace keycuts.Tests
 
         const string Ns = "xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" xmlns:controls=\"clr-namespace:keycuts.GUI.Controls\"";
 
+        const string AvaloniaNs = "xmlns=\"https://github.com/avaloniaui\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" xmlns:controls=\"using:keycuts.App.Controls\"";
+
         static List<Violation> CheckSnippet(string body, string file = "Views/Sample.xaml")
         {
-            return Check(file, XDocument.Parse($"<Grid {Ns}>{body}</Grid>", LoadOptions.SetLineInfo));
+            var ns = file.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase) ? AvaloniaNs : Ns;
+            return Check(file, XDocument.Parse($"<Grid {ns}>{body}</Grid>", LoadOptions.SetLineInfo));
         }
 
         [Theory]
@@ -463,6 +527,41 @@ namespace keycuts.Tests
             const string brush = "<SolidColorBrush x:Key=\"TextBrush\" Color=\"#172033\" />";
             Assert.Empty(CheckSnippet(brush, "Themes/Light.xaml"));
             Assert.NotEmpty(CheckSnippet(brush, "Themes/Controls.xaml"));
+            Assert.Empty(CheckSnippet(brush, "Themes/Dark.axaml"));
+            Assert.NotEmpty(CheckSnippet(brush, "Themes/Controls.axaml"));
+        }
+
+        // The Avalonia dialect (styleguide.md, In Avalonia): control themes, selectors, Theme=, numeric heading levels
+        [Theory]
+        [InlineData("<TextBlock FontSize=\"11\" />", "FontSize")]
+        [InlineData("<Border Background=\"#ffffff\" />", "Background")]
+        [InlineData("<ControlTheme x:Key=\"Heading\" TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"22\" /></ControlTheme>", "FontSize")]
+        [InlineData("<Style Selector=\"Border.card\"><Setter Property=\"Padding\" Value=\"14,12\" /></Style>", "Padding")]
+        [InlineData("<ControlTheme x:Key=\"Card\" TargetType=\"Border\"><Style Selector=\"^:pointerover\"><Setter Property=\"CornerRadius\" Value=\"10\" /></Style></ControlTheme>", "CornerRadius")]
+        [InlineData("<ControlTheme x:Key=\"Name\" TargetType=\"TextBlock\"><Setter Property=\"FontWeight\" Value=\"Bold\" /></ControlTheme>", "FontWeight")]
+        [InlineData("<TextBlock FontSize=\"{StaticResource FontSizeHeading}\" />", "FontSize")]
+        [InlineData("<TextBlock FontSize=\"{StaticResource FontSizeHeading}\" AutomationProperties.HeadingLevel=\"0\" />", "FontSize")]
+        [InlineData("<controls:SectionLabel Text=\"Output\" AutomationProperties.HeadingLevel=\"0\" />", "AutomationProperties.HeadingLevel")]
+        [InlineData("<TextBlock Text=\"OUTPUT\" Theme=\"{StaticResource SectionLabel}\" />", "Theme")]
+        [InlineData("<TextBlock Theme=\"{StaticResource Heading}\" AutomationProperties.HeadingLevel=\"0\" />", "Theme")]
+        [InlineData("<ControlTheme x:Key=\"Subheading\" TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"{StaticResource FontSizeSubheading}\" /><Setter Property=\"(AutomationProperties.HeadingLevel)\" Value=\"0\" /></ControlTheme>", "FontSize")]
+        public void Check_FindsEachBrokenRule_InAxaml(string xaml, string property)
+        {
+            Assert.Contains(CheckSnippet(xaml, "Views/Sample.axaml"), v => v.Property == property);
+        }
+
+        [Theory]
+        [InlineData("<TextBlock FontSize=\"{StaticResource FontSizeCaption}\" FontWeight=\"SemiBold\" Padding=\"{StaticResource PagePadding}\" />")]
+        [InlineData("<TextBlock Text=\"Heading\" FontSize=\"{StaticResource FontSizeHeading}\" AutomationProperties.HeadingLevel=\"1\" />")]
+        [InlineData("<TextBlock Text=\"Heading\" Theme=\"{StaticResource Heading}\" />")]
+        [InlineData("<controls:SectionLabel Text=\"Follows the theme\" AutomationProperties.HeadingLevel=\"3\" />")]
+        [InlineData("<ControlTheme x:Key=\"Subheading\" TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"{StaticResource FontSizeSubheading}\" /><Setter Property=\"AutomationProperties.HeadingLevel\" Value=\"2\" /></ControlTheme>")]
+        [InlineData("<ControlTheme x:Key=\"Card\" TargetType=\"Border\"><Setter Property=\"Margin\" Value=\"4,0,4,8\" /><Style Selector=\"^:pointerover\"><Setter Property=\"Background\" Value=\"{DynamicResource SurfaceHoverBrush}\" /></Style></ControlTheme>")]
+        [InlineData("<Style Selector=\"Border#Face, #Bad /template/ Rectangle\"><Setter Property=\"Opacity\" Value=\"0\" /></Style>")]
+        [InlineData("<Border><Border.Effect><DropShadowDirectionEffect BlurRadius=\"28\" ShadowDepth=\"8\" /></Border.Effect></Border>")]
+        public void Check_PassesWhatTheGuideAllows_InAxaml(string xaml)
+        {
+            Assert.Empty(CheckSnippet(xaml, "Views/Sample.axaml"));
         }
 
         #endregion

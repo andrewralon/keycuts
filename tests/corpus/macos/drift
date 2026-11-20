@@ -1,0 +1,10 @@
+#!/bin/sh
+# keycuts 2.0.0
+# <shortcut>/Users/me/Shortcuts/drift</shortcut>
+# <type>url</type>
+# <target>https://example.com</target>
+# <description>Edited by hand</description>
+open -a '/Applications/Firefox.app' 'https://example.org'
+s=$?
+u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null
+exit $s

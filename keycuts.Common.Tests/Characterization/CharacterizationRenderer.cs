@@ -71,7 +71,7 @@ namespace keycuts.Tests.Characterization
             return builder.ToString();
         }
 
-        private static void AppendParsed(StringBuilder builder, ShortcutFile parsed)
+        internal static void AppendParsed(StringBuilder builder, ShortcutFile parsed)
         {
             builder.Append("Shortcut:    ").Append(Show(parsed.Shortcut)).Append('\n');
             builder.Append("Type:        ").Append(parsed.Type).Append('\n');
@@ -323,12 +323,12 @@ namespace keycuts.Tests.Characterization
                 .ToList();
         }
 
-        private static string Show(string value)
+        internal static string Show(string value)
         {
             return value == null ? "<null>" : $"|{value}|";
         }
 
-        private static string MaskVersion(string line)
+        internal static string MaskVersion(string line)
         {
             return line.Replace($"{Runner.AppName} {Runner.Version}", $"{Runner.AppName} <version>");
         }

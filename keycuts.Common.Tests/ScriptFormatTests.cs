@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using keycuts.Common;
@@ -17,6 +18,54 @@ namespace keycuts.Tests
             Assert.Equal(".bat", format.Extension);
             Assert.Equal("REM", format.CommentPrefix);
             Assert.False(format.NeedsExecutableBit);
+        }
+
+        [Fact]
+        public void ShFormat_IsAnExtensionlessShScriptWithHashComments_ThatNeedsTheExecutableBit()
+        {
+            var format = new ShFormat();
+
+            Assert.Equal("", format.Extension);
+            Assert.Equal("#", format.CommentPrefix);
+            Assert.True(format.NeedsExecutableBit);
+        }
+
+        [Theory]
+        [InlineData("plain")]
+        [InlineData("it's")]
+        [InlineData("''")]
+        [InlineData("a \"b\" $HOME `c` \\ d")]
+        [InlineData("café ☕ \t tab")]
+        [InlineData("")]
+        public void ShFormat_Quote_IsOneWordThatSplitsBackToTheValue(string value)
+        {
+            Assert.Equal(new[] { value }, ShFormat.SplitWords(ShFormat.Quote(value)));
+        }
+
+        [Fact]
+        public void ShFormat_SplitWords_ReadsDoubleQuotesWithoutExpanding_AndRefusesAnUnclosedQuote()
+        {
+            Assert.Equal(new[] { "open", "$HOME/a \"b\" $c" }, ShFormat.SplitWords("open \"$HOME/a \\\"b\\\" \\$c\""));
+            Assert.Null(ShFormat.SplitWords("open 'x"));
+            Assert.Null(ShFormat.SplitWords("open \"x"));
+        }
+
+        [MacFact]
+        [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+        public void MarkExecutable_GivesAShKeycutMode755()
+        {
+            var path = Path.GetTempFileName();
+
+            try
+            {
+                ScriptFormats.MarkExecutable(new ShFormat(), path);
+
+                Assert.Equal("755", Convert.ToString((int)File.GetUnixFileMode(path), 8));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
         }
 
         [Fact]

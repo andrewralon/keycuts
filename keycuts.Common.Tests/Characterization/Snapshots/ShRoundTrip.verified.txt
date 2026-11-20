@@ -1,0 +1,16 @@
+# Round trip: Parse(Emit(Parse(f))) compared with Parse(f) on Type, Target, OpenWithApp and Description.
+# "launch line" is the same without the emitted <type> and <target> lines. Unknown files are skipped.
+
+dl: ok, launch line FAILS
+    launch line: Type: Folder -> File
+drift: ok, launch line ok
+gmail: ok, launch line ok
+hello: ok, launch line ok
+nasty: ok, launch line ok
+no-header: ok, launch line ok
+no-header-app: ok, launch line ok
+not-a-keycut: skipped (parses as Unknown)
+notes: ok, launch line ok
+safari: ok, launch line ok
+unclosed: skipped (parses as Unknown)
+url-quote: ok, launch line ok

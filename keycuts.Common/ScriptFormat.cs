@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace keycuts.Common
 {
@@ -49,5 +51,15 @@ namespace keycuts.Common
     {
         /// <summary>Every platform uses <see cref="BatFormat"/> until macOS gets its own (Phase 4).</summary>
         public static readonly IScriptFormat Current = new BatFormat();
+
+        /// <summary>Mode 755 for a keycut written in a format that <see cref="IScriptFormat.NeedsExecutableBit"/>. Windows has no such mode.</summary>
+        public static void MarkExecutable(IScriptFormat format, string path)
+        {
+            if (format.NeedsExecutableBit && !OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                    UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+            }
+        }
     }
 }

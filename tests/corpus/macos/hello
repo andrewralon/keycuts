@@ -1,0 +1,10 @@
+#!/bin/sh
+# keycuts 2.0.0
+# <shortcut>/Users/me/Shortcuts/hello</shortcut>
+# <type>command</type>
+# <target>say 'hi there'</target>
+# <description></description>
+/bin/sh -c 'say '\''hi there'\'''
+s=$?
+u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null
+exit $s

@@ -320,6 +320,7 @@ namespace keycuts.Common
 
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
+                ScriptFormats.MarkExecutable(ScriptFormats.Current, shortcut.FullPath);
 
                 if (Usage != null)
                 {

@@ -197,8 +197,14 @@ namespace keycuts.Common
             type = ShortcutType.Unknown;
             target = null;
 
-            var typeText = FirstRemValue(lines, regexRemType);
-            var targetText = FirstRemValue(lines, regexRemTarget);
+            return TryParseTypeAndTarget(FirstRemValue(lines, regexRemType), FirstRemValue(lines, regexRemTarget), out type, out target);
+        }
+
+        /// <summary>The checks of <see cref="TryParseRemTypeAndTarget"/> on header values already read (null if missing), for every format.</summary>
+        internal static bool TryParseTypeAndTarget(string typeText, string targetText, out ShortcutType type, out string target)
+        {
+            type = ShortcutType.Unknown;
+            target = null;
 
             // The name must match a defined value exactly (ignoring case): Enum.TryParse alone also accepts numbers
             // ("3" is Folder, "-1" is an undefined value whose name is "-1") and lists ("file,folder").

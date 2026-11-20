@@ -452,13 +452,10 @@ namespace keycuts.App.Tests
         #region Parity with the WPF app, until cutover
 
         /// <summary>
-        /// WPF styles whose Avalonia theme comes with its custom control in Phase 3.3: the folder tabs aren't ported yet. Take
-        /// each off as it's ported; the test fails while a listed one is already here.
+        /// WPF styles whose Avalonia theme waits for a control that isn't ported yet: none since Phase 3.3. A style that has to
+        /// wait goes here, and comes off as soon as it's ported; the test fails while a listed one is already here.
         /// </summary>
-        static readonly HashSet<string> WithTheirControls = new HashSet<string>
-        {
-            "TabFocusVisual", "RailTabItem", "RailTabControl"
-        };
+        static readonly HashSet<string> WithTheirControls = new HashSet<string>();
 
         /// <summary>WPF resources with no Avalonia twin, and why.</summary>
         static readonly Dictionary<string, string> NotNeeded = new Dictionary<string, string>

@@ -175,6 +175,48 @@
         </ControlTemplate>
       </Setter>
     </ControlTheme>
+    <!-- A row's actions: each row gets its own menu from this template (ManagerView.Table_LoadingRow), so the menu's bindings follow
+         that row, as WPF's x:Shared="False" did. 250 wide for the key names beside the items. A screen reader names it after its keycut. -->
+    <DataTemplate x:Key="RowMenu" x:DataType="vm:KeycutRowViewModel">
+      <ContextMenu Width="250" AutomationProperties.Name="{Binding ActionsLabel}">
+        <MenuItem Header="Open keycut" InputGesture="Enter" Command="{Binding OpenCommand}" Classes="Safe">
+          <MenuItem.Icon>
+            <controls:Icon Kind="Play" Size="16" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
+        <MenuItem Header="Edit…" InputGesture="Ctrl+E" Command="{Binding EditCommand}" Classes="Safe"
+                  ToolTip.Tip="{Binding EditTooltip}" ToolTip.ShowOnDisabled="True" ToolTip.IsEnabled="{Binding !CanEditInForm}">
+          <MenuItem.Icon>
+            <controls:Icon Kind="File" Size="16" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Edit in Notepad" InputGesture="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Classes="Safe">
+          <MenuItem.Icon>
+            <controls:Icon Kind="External" Size="16" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Open file location" InputGesture="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Classes="Safe">
+          <MenuItem.Icon>
+            <controls:Icon Kind="Folder" Size="16" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Copy target" InputGesture="Ctrl+C" Command="{Binding CopyTargetCommand}" Classes="Safe">
+          <MenuItem.Icon>
+            <controls:Icon Kind="Copy" Size="16" />
+          </MenuItem.Icon>
+        </MenuItem>
+        <!-- Not Safe: the focus goes to the name or description box -->
+        <MenuItem Header="Rename" InputGesture="F2" Command="{Binding RenameCommand}" />
+        <MenuItem Header="Edit description" InputGesture="Shift+F2" Command="{Binding EditDescriptionCommand}" />
+        <Separator />
+        <MenuItem Header="Delete" InputGesture="Delete" Theme="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+          <MenuItem.Icon>
+            <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
+          </MenuItem.Icon>
+        </MenuItem>
+      </ContextMenu>
+    </DataTemplate>
   </UserControl.Resources>
 
   <UserControl.Styles>
@@ -184,51 +226,6 @@
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
       <Setter Property="TextWrapping" Value="NoWrap" />
       <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-    </Style>
-
-    <!-- A row's actions: each row gets its own copy of the menu (a setter's control is made once per row), so the menu's bindings
-         follow that row. 250 wide for the key names beside the items. A screen reader names it after its keycut. -->
-    <Style Selector="DataGrid#Table DataGridRow" x:DataType="vm:KeycutRowViewModel">
-      <Setter Property="ContextMenu">
-        <ContextMenu Width="250" AutomationProperties.Name="{Binding ActionsLabel}">
-          <MenuItem Header="Open keycut" InputGesture="Enter" Command="{Binding OpenCommand}" Classes="Safe">
-            <MenuItem.Icon>
-              <controls:Icon Kind="Play" Size="16" />
-            </MenuItem.Icon>
-          </MenuItem>
-          <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
-          <MenuItem Header="Edit…" InputGesture="Ctrl+E" Command="{Binding EditCommand}" Classes="Safe"
-                    ToolTip.Tip="{Binding EditTooltip}" ToolTip.ShowOnDisabled="True" ToolTip.IsEnabled="{Binding !CanEditInForm}">
-            <MenuItem.Icon>
-              <controls:Icon Kind="File" Size="16" />
-            </MenuItem.Icon>
-          </MenuItem>
-          <MenuItem Header="Edit in Notepad" InputGesture="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Classes="Safe">
-            <MenuItem.Icon>
-              <controls:Icon Kind="External" Size="16" />
-            </MenuItem.Icon>
-          </MenuItem>
-          <MenuItem Header="Open file location" InputGesture="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Classes="Safe">
-            <MenuItem.Icon>
-              <controls:Icon Kind="Folder" Size="16" />
-            </MenuItem.Icon>
-          </MenuItem>
-          <MenuItem Header="Copy target" InputGesture="Ctrl+C" Command="{Binding CopyTargetCommand}" Classes="Safe">
-            <MenuItem.Icon>
-              <controls:Icon Kind="Copy" Size="16" />
-            </MenuItem.Icon>
-          </MenuItem>
-          <!-- Not Safe: the focus goes to the name or description box -->
-          <MenuItem Header="Rename" InputGesture="F2" Command="{Binding RenameCommand}" />
-          <MenuItem Header="Edit description" InputGesture="Shift+F2" Command="{Binding EditDescriptionCommand}" />
-          <Separator />
-          <MenuItem Header="Delete" InputGesture="Delete" Theme="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
-            <MenuItem.Icon>
-              <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
-            </MenuItem.Icon>
-          </MenuItem>
-        </ContextMenu>
-      </Setter>
     </Style>
   </UserControl.Styles>
 

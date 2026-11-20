@@ -324,8 +324,11 @@ namespace keycuts.GUI.Views
                 e.Row.LayoutUpdated += Row_LayoutUpdated;
             }
 
-            if (e.Row.ContextMenu is { } menu && menu.Tag == null)
+            // Each row its own menu, so its bindings follow that row; a recycled row brings its menu along to its new keycut
+            if (e.Row.ContextMenu == null && Resources["RowMenu"] is Avalonia.Controls.Templates.IDataTemplate template
+                && template.Build(null) is ContextMenu menu)
             {
+                e.Row.ContextMenu = menu;
                 menu.Tag = e.Row;
                 menu.Opened += RowMenu_Opened;
                 menu.Closed += RowMenu_Closed;

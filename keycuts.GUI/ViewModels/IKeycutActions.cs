@@ -1,8 +1,4 @@
-using System;
-using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using keycuts.Common;
 
 namespace keycuts.GUI.ViewModels
@@ -59,13 +55,12 @@ namespace keycuts.GUI.ViewModels
         Task<Keycut> SetDescriptionAsync(Keycut keycut, string description);
     }
 
-    /// <summary>The production implementation, which uses the shell, the clipboard and the configured output folder.</summary>
-    public class SystemKeycutActions : IKeycutActions
+    /// <summary>
+    /// The production implementation, which uses the shell, the clipboard and the configured output folder. The clipboard is each
+    /// app's own (<see cref="SetClipboardText"/>: ViewModels/Wpf, keycuts.App).
+    /// </summary>
+    public partial class SystemKeycutActions : IKeycutActions
     {
-        private const int ClipboardAttempts = 5;
-
-        private const int ClipboardRetryDelayMs = 50;
-
         public void Launch(string path)
         {
             Desktops.Current.RunKeycut(path);
@@ -93,20 +88,11 @@ namespace keycuts.GUI.ViewModels
 
         public void CopyText(string text)
         {
-            // Another process can hold the clipboard open for a moment.
-            for (var attempt = 1; ; attempt++)
-            {
-                try
-                {
-                    Clipboard.SetDataObject(text, true);
-                    return;
-                }
-                catch (COMException) when (attempt < ClipboardAttempts)
-                {
-                    Thread.Sleep(ClipboardRetryDelayMs);
-                }
-            }
+            SetClipboardText(text);
         }
+
+        /// <summary>Puts the text on the clipboard; throws if it can't be used.</summary>
+        private static partial void SetClipboardText(string text);
 
         public Task<DeletedKeycut> DeleteAsync(Keycut keycut)
         {

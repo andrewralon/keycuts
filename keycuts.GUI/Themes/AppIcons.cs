@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using keycuts.Common;
 
 namespace keycuts.GUI.Themes
@@ -29,8 +26,11 @@ namespace keycuts.GUI.Themes
         ClassicTransparent
     }
 
-    /// <summary>A choice in the Settings icon picker: its name, what it shows, and which drawing it uses in light and dark mode.</summary>
-    public sealed class AppIconOption
+    /// <summary>
+    /// A choice in the Settings icon picker: its name, what it shows, and which drawing it uses in light and dark mode. Shared by
+    /// both apps (docs/macos-port.md, correction 15); the images are each app's own (AppIcons.Images.cs).
+    /// </summary>
+    public sealed partial class AppIconOption
     {
         public AppIconOption(AppIconChoice choice, string name, string description, AppIconArt lightArt, AppIconArt darkArt)
         {
@@ -59,19 +59,13 @@ namespace keycuts.GUI.Themes
 
         /// <summary>Classic sits alone on the picker's last row.</summary>
         public bool IsWide => Choice == AppIconChoice.Classic;
-
-        public ImageSource LightImage => AppIcons.GetPreview(LightArt);
-
-        public ImageSource DarkImage => AppIcons.GetPreview(DarkArt);
-
-        /// <summary>The drawings without their background, which the picker shows while the icon is transparent.</summary>
-        public ImageSource LightTransparentImage => AppIcons.GetPreview(AppIcons.GetTransparent(LightArt));
-
-        public ImageSource DarkTransparentImage => AppIcons.GetPreview(AppIcons.GetTransparent(DarkArt));
     }
 
-    /// <summary>The app icons: the choices Settings offers, which drawing each one shows, and the images themselves.</summary>
-    public static class AppIcons
+    /// <summary>
+    /// The app icons: the choices Settings offers and which drawing each one shows. Shared by both apps; the images themselves
+    /// are each app's own (AppIcons.Images.cs).
+    /// </summary>
+    public static partial class AppIcons
     {
         public const string FollowsThemeGroup = "FOLLOWS THE THEME";
 
@@ -79,12 +73,6 @@ namespace keycuts.GUI.Themes
 
         /// <summary>The folder, beside the exe, that the .ico files are copied to, for the shortcuts that point at them.</summary>
         public const string FolderName = "icons";
-
-        private static readonly Dictionary<AppIconArt, BitmapFrame> windowIcons = new();
-
-        private static readonly Dictionary<AppIconArt, BitmapSource> previews = new();
-
-        private static readonly object gate = new();
 
         /// <summary>In the picker's order.</summary>
         public static IReadOnlyList<AppIconOption> Options { get; } = new[]
@@ -108,20 +96,6 @@ namespace keycuts.GUI.Themes
         {
             var option = Get(choice);
             return light ? option.LightArt : option.DarkArt;
-        }
-
-        /// <summary>
-        /// Whether the app is in a light theme, for the options that follow it. High contrast has no light or dark of its own, so
-        /// its window background decides: a black one (High Contrast Black, Aquatic) counts as dark.
-        /// </summary>
-        public static bool IsLight(ThemeVariant variant, Color highContrastWindow)
-        {
-            return variant switch
-            {
-                ThemeVariant.Light => true,
-                ThemeVariant.Dark => false,
-                _ => (0.2126 * highContrastWindow.R + 0.7152 * highContrastWindow.G + 0.0722 * highContrastWindow.B) / 255 >= 0.5
-            };
         }
 
         /// <summary>
@@ -152,47 +126,6 @@ namespace keycuts.GUI.Themes
                 _ => art.ToString().ToLowerInvariant()
             };
             return name + ".ico";
-        }
-
-        public static Uri GetPackUri(AppIconArt art)
-        {
-            return new Uri($"pack://application:,,,/keycuts.GUI;component/Images/AppIcons/{GetFileName(art)}", UriKind.Absolute);
-        }
-
-        /// <summary>
-        /// For <c>Window.Icon</c>: a frame of the .ico's decoder, from which WPF picks the frames nearest the title bar's small
-        /// size and the taskbar and Alt+Tab's large one at the current DPI.
-        /// </summary>
-        public static BitmapFrame GetWindowIcon(AppIconArt art)
-        {
-            lock (gate)
-            {
-                if (!windowIcons.TryGetValue(art, out var icon))
-                {
-                    icon = BitmapFrame.Create(GetPackUri(art), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-                    icon.Freeze();
-                    windowIcons[art] = icon;
-                }
-
-                return icon;
-            }
-        }
-
-        /// <summary>The largest frame (256 px), for showing the icon in the app at any size and DPI.</summary>
-        public static BitmapSource GetPreview(AppIconArt art)
-        {
-            lock (gate)
-            {
-                if (!previews.TryGetValue(art, out var preview))
-                {
-                    var decoder = BitmapDecoder.Create(GetPackUri(art), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-                    preview = decoder.Frames.OrderByDescending(f => f.PixelWidth).First();
-                    preview.Freeze();
-                    previews[art] = preview;
-                }
-
-                return preview;
-            }
         }
     }
 }

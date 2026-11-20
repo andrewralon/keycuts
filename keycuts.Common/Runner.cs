@@ -316,7 +316,7 @@ namespace keycuts.Common
             // If the shortcut file already exists, let overwrite decide
             if (isNew || overwrite)
             {
-                var lines = BuildShortcutLines(shortcut, description);
+                var lines = ScriptFormats.Current.EmitLines(shortcut, description);
 
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());

@@ -43,7 +43,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - `keycuts.Common.Tests`: references Common only, no GUI types (it follows Common to `net10.0`). Namespace `keycuts.Tests`. Shares `RepoFiles`, `TestNameChecks` and `UpdateFakes` with `keycuts.Tests` as linked files.
 - `keycuts.Tests`: references Common and GUI; the tests that need WPF.
 
-**UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it, with deliberate exceptions listed in its `Exceptions`.
+**UI rules:** follow `docs/styleguide.md` (update it first for a design change). Views use its tokens and `Themes/Controls.xaml` styles, never literal sizes/colors; `StyleGuideTests` enforces it on `keycuts.GUI`'s `.xaml` and `keycuts.App`'s `.axaml`, with deliberate exceptions listed in its `Exceptions`. The guide's "In Avalonia" section maps each token and WPF idiom to Avalonia.
 
 ### Creation and parsing
 

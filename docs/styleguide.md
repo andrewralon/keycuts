@@ -51,6 +51,32 @@ Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 
 Kept as they are: `RadiusSm/Md/Lg/Xl` (5/8/12/16), `Space1`-`Space8` and `Inset1`-`Inset4`, `IconButtonSize` (32), `AppFontFamily` (Segoe UI Variable, Segoe UI), `FontSizeCaption` (12), `FontSizeBody` (13), `FontSizeInput` (14), `FontSizeSubheading` (16), `FontSizeHeading` (20). Add `Inset6` (24) for the outer padding, and `Thickness` tokens for the composite values used below (`PagePadding` 24,16,24,24, `DialogFooterPadding` 24,12, `PanelPadding` 16).
 
+### In Avalonia
+
+The Avalonia app (`keycuts.App`, Phase 3 of [the macOS plan](macos-port.md)) has the same tokens, with the same keys and values, so every rule in this guide holds for both apps. Its files match the WPF ones: `keycuts.App/Themes/Tokens.axaml`, `Light.axaml`, `Dark.axaml`, `HighContrast.axaml`, `Icons.axaml` and `Controls.axaml`. `StyleGuideTests` applies the same rules to the `.axaml` files as to the `.xaml` ones. Avalonia's unit is a device-independent pixel on both platforms (a point on macOS), so the numbers stay as they are.
+
+| WPF resource | Avalonia resource | Tokens |
+|---|---|---|
+| `<CornerRadius>` | `<CornerRadius>` | `RadiusSm`, `RadiusMd`, `RadiusLg`, `RadiusXl` |
+| `<sys:Double>` | `<x:Double>` | `Space*`, `Radius*Value`, `FontSize*`, `MainWidth`, `ConfirmWidth`, `EditWidth`, `ControlHeight`, `InputHeight`, `IconButtonSize`, `TileSize`, `RailHeight`, `TabHeight`, `TabCut`, `TabSlant`, `CaptionButtonWidth`, `ShadowOpacity` |
+| `<Thickness>` | `<Thickness>` | `Inset*`, `PagePadding`, `DialogFooterPadding`, `PanelPadding`, `FooterBarPadding` |
+| `<FontFamily>` | **A platform token**: an `OnPlatform` resource, `Segoe UI Variable, Segoe UI` on Windows and `$Default` (the system font) on macOS | `AppFontFamily` |
+| `<SolidColorBrush>`, `<LinearGradientBrush>`, `<Color>` | The same elements | The palette brushes, `ShadowColor` |
+| `<DrawingBrush>` with `Viewport` and `Viewbox` | `<DrawingBrush>` with `DestinationRect` and `SourceRect` | `RailTextureBrush`, `RailGripBrush`, `TabTextureBrush` |
+
+How the rest carries over:
+
+- **Resources**: sizes are `StaticResource` and brushes `DynamicResource`, as in WPF.
+- **Palettes**: `Light.axaml` and `Dark.axaml` are the theme dictionaries for `ThemeVariant.Light` and `Dark`, so a `DynamicResource` brush follows the theme without code. High contrast is a third, custom `ThemeVariant`, chosen when the platform reports `ContrastPreference.High`. Avalonia has no `SystemColors`. So `ThemeManager` reads the Windows system colors itself (`GetSysColor`), and each key takes the same system color as in `HighContrast.xaml`. How `HighContrast.axaml` names those colors is decided in Phase 3.2. A high-contrast look for macOS ("Increase contrast") is decided in Phase 5.
+- **Shared styles**: a keyed WPF `Style` (`Style="{StaticResource PrimaryButton}"`) becomes a `ControlTheme` with the same key (`Theme="{StaticResource PrimaryButton}"`). Its variants use `BasedOn`, as `PrimaryButton` does on `BaseButton`. An implicit style (check box, radio, scroll bar, tooltip, menu) becomes a `ControlTheme` keyed by its type. WPF triggers become nested styles on pseudo-classes: `^:pointerover`, `^:pressed`, `^:focus-visible`, `^:disabled`, `^:checked`, `^:selected`.
+- **Focus**: `AppFocusVisual` becomes the `FocusAdorner` template of the shared themes. Like WPF's focus visual, it shows only for keyboard focus. The rule against `FocusVisualStyle="{x:Null}"` applies to `FocusAdorner="{x:Null}"` too.
+- **Headings**: `AutomationProperties.HeadingLevel` is a number in Avalonia: `1` for `Level1`, `2` for `Level2`, and `0` for none.
+- **Section labels**: Avalonia has no text-transform either, so `SectionLabel` stays a control.
+- **Live regions**: in Avalonia, `AutomationProperties.LiveSetting` announces by itself when the element's text changes, so `LiveRegion.Announce` has no counterpart. **A live line is never collapsed.** It stays in the tree with empty text, because a line that comes back from collapsed is never announced ([correction 10](macos-port.md#plan-corrections-found-on-windows)).
+- **Shadows**: WPF's `DropShadowEffect` (`BlurRadius`, `ShadowDepth`, `Direction`) becomes `DropShadowDirectionEffect` with the same values. Avalonia's `DropShadowEffect` takes `OffsetX` and `OffsetY` instead. The sheet's shadow stays on a separate border behind it, so the effect never re-renders the sheet's text.
+- **Same names**: `KeyboardNavigation.TabNavigation="Cycle"`, `IsDefault`, `IsCancel`, `SizeToContent` and `AutomationProperties.AcceleratorKey`. **Renamed**: `ToolTipService.ShowOnDisabled` is `ToolTip.ShowOnDisabled`, and a menu's `InputGestureText` is `MenuItem.InputGesture` (only the text shown; `HotKey` binds the key).
+- **Windows only**: the caption buttons (`CaptionButtonWidth`, the `Caption*` brushes), because macOS keeps its own window buttons beside the tabs. Key names in text stay Windows' (`Ctrl+1`) until the Phase 5 mockup settles the macOS ones.
+
 ## Spacing
 
 **Everything sits on a 4px grid.** Every margin, padding and gap is a multiple of 4 and comes from `Space*` (a `Double`, for one side or a gap) or `Inset*` (a `Thickness`). The scale:
@@ -166,7 +192,7 @@ These are centered in the space the content would take. Top to bottom: an illust
 
 ## Type
 
-Font: `AppFontFamily`, Segoe UI Variable with Segoe UI as the fallback. Set once on each window; views inherit it.
+Font: `AppFontFamily`, Segoe UI Variable with Segoe UI as the fallback. In the Avalonia app it is a platform token: those on Windows, the system font on macOS, at the same sizes ([In Avalonia](#in-avalonia)). Set once on each window; views inherit it.
 
 ### Ramp
 
@@ -413,6 +439,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-17 | The Modified column's place | Before Runs and Last run | **The last column**, at the far right while the table is wide enough to show it |
 | 2026-11-17 | Settings at a narrow window | The two columns stacked into one below 840 | **Always two columns**: at the minimum 720 × 470 they fit side by side without scrolling (rendered from the real view; stacked, the page scrolled 231) |
 | 2026-11-17 | Large size at first, smaller | 960 × 544 | **768 × 470**: the smallest height, and just wide enough for the Manager's Runs column. Settings fits in two columns there; the Manager shows the header and 5 rows, and widening brings back Last run, then Modified |
+| 2026-11-19 | The font on macOS ([the macOS plan](macos-port.md), Phase 3.1) | Segoe UI, the only platform | **A platform token**: Segoe UI Variable and Segoe UI on Windows, the system font on macOS, with the same sizes and weights |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

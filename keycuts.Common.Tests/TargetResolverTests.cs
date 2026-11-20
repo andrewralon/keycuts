@@ -106,7 +106,8 @@ namespace keycuts.Tests
             Assert.Equal(target, r.Target, ignoreCase: true);
         }
 
-        [Theory]
+        // CLSIDs are Windows only; macOS reads none (Phase 4.4)
+        [WindowsTheory]
         [InlineData("{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]
         [InlineData("::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]
         [InlineData("shell:::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]

@@ -99,6 +99,18 @@ exit $s
 
 Who checks each step: **W** = this Windows machine, **M** = the Mac, **CI** = GitHub Actions.
 
+**How the rest is done (the owner, 2026-11-20).** From Phase 3.5 on, the port is a plain refactor: each WPF view and its code-behind is translated to Avalonia directly, with the WPF tests that cover it, and each step is recorded here in a line or two. No new test machinery, prototypes or long notes. Several steps share one PR, one change per commit inside it:
+
+1. Phase 3.5 + 3.6: the shell, the window and the Creator
+2. Phase 3.7: the Manager
+3. Phase 3.8 + 3.9: Settings, dialogs, startup, accessibility
+4. Phase 3.10 + 3.11: the remaining WPF tests, screenshots
+5. Phase 3.12: cutover and 2.0.0
+6. Phase 4: keycuts core on macOS
+7. Phases 5 + 6: the app on macOS, the Run box
+8. Phases 7 + 8: Quick Action, packaging
+9. Phases 9 + 10: docs, Spotlight
+
 ### Phase 0: prototypes on the Mac (before product code)
 
 Throwaway projects outside the repo. Each answers a question the later phases depend on. Record the answers in this file's "Phase 0 results" section.

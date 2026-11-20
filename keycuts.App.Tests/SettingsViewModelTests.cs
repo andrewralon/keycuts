@@ -767,6 +767,8 @@ namespace keycuts.Tests
 
         #region Run keycuts in Terminal (Phase 5.4)
 
+        // The profile's PATH is :-separated, so these need macOS paths (a Windows C:\ would split at its colon)
+
         /// <summary>A shell profile under the temp root: nothing touches the real ~/.zprofile or PATH.</summary>
         private (SettingsViewModel Settings, MacShellPath Shell, string Folder) WithShell(string shell = "zsh", bool onPathAlready = false)
         {
@@ -786,7 +788,7 @@ namespace keycuts.Tests
             Assert.True(WithShell().Settings.IsTerminalPathOffered);
         }
 
-        [Fact]
+        [MacFact]
         public void RunInTerminal_AddsTheBlock_SaysToOpenANewWindow_AndTakesItOutAgain()
         {
             var (settings, shell, folder) = WithShell();
@@ -805,7 +807,7 @@ namespace keycuts.Tests
             Assert.Null(shell.ReadBlockFolder());
         }
 
-        [Fact]
+        [MacFact]
         public void RunInTerminal_IsOnAndLocked_WhenSomethingElsePutTheFolderOnPath()
         {
             var (settings, shell, _) = WithShell(onPathAlready: true);

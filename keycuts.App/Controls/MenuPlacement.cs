@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// Where a menu opens under the control that opens it (WPF's Controls/MenuPlacement, ported). WPF needed a custom placement

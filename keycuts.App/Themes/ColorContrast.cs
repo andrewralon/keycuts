@@ -1,6 +1,6 @@
 using System;
 
-namespace keycuts.App.Themes
+namespace keycuts.GUI.Themes
 {
     /// <summary>
     /// WCAG 2.x contrast math on sRGB colors given as #rrggbb.

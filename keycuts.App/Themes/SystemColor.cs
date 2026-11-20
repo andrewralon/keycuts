@@ -6,7 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace keycuts.App.Themes
+namespace keycuts.GUI.Themes
 {
     /// <summary>The Windows system colors the high-contrast palette uses (WPF's <c>SystemColors.*ColorKey</c>).</summary>
     public enum SystemColorName

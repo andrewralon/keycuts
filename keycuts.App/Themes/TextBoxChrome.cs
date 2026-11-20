@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace keycuts.App.Themes
+namespace keycuts.GUI.Themes
 {
     /// <summary>
     /// Attached properties that let views drive the themed TextBox chrome (WPF's TextBoxChrome, ported). The placeholder is

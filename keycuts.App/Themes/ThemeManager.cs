@@ -8,7 +8,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using keycuts.Common;
 
-namespace keycuts.App.Themes
+namespace keycuts.GUI.Themes
 {
     /// <summary>keycuts' three palettes (<c>Themes/Light.axaml</c>, <c>Dark.axaml</c>, <c>HighContrast.axaml</c>).</summary>
     public enum Palette

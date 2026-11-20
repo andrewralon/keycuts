@@ -4,7 +4,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// A button that owns a context menu and exposes it to UI Automation as an expand/collapse control (WPF's Controls/MenuButton,

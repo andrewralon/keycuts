@@ -5,7 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     public enum IconKind
     {

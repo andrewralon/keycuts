@@ -15,14 +15,13 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using keycuts.App.Controls;
-using keycuts.App.Themes;
 using keycuts.Common;
-using keycuts.Tests;
+using keycuts.GUI.Controls;
+using keycuts.GUI.Themes;
 using Xunit;
 using Path = System.IO.Path;
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>
     /// The custom controls of Phase 3.3a (Icon, SectionLabel, HelperText, TypeBadge), and the themes that draw them (the check

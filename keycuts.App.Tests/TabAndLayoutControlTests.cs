@@ -13,11 +13,11 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using keycuts.App.Controls;
-using keycuts.App.Themes;
+using keycuts.GUI.Controls;
+using keycuts.GUI.Themes;
 using Xunit;
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>
     /// The custom controls of Phase 3.3b: the folder tabs (FolderTabShape, RailTabControl and their themes), TornCorner, StarCell,

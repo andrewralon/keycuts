@@ -1,11 +1,12 @@
 using Avalonia;
 using Avalonia.Headless;
-using keycuts.App.Tests;
 using keycuts.Common;
+using keycuts.GUI;
+using keycuts.Tests;
 
 [assembly: AvaloniaTestApplication(typeof(TestAppBuilder))]
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>The real <see cref="App"/>, headless but drawn with Skia, with the saved theme choice faked so no test reads the registry.</summary>
     public static class TestAppBuilder

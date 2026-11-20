@@ -4,7 +4,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Controls.Primitives;
 using keycuts.Common;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// Compact "icon + label" badge for a keycut's display kind (WPF's Controls/TypeBadge, ported). The look comes from its theme

@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls.Primitives;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>What a <see cref="HelperText"/> line is saying.</summary>
     public enum HelperTextState

@@ -1,7 +1,7 @@
 using System;
 using Avalonia;
 
-namespace keycuts.App
+namespace keycuts.GUI
 {
     public static class Program
     {

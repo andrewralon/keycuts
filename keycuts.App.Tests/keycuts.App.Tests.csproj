@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- The Avalonia app's tests (docs/macos-port.md Phase 3), headless, so they run on Windows, macOS and Linux. At cutover
-       (Phase 3.12) they take keycuts.Tests' place. -->
+  <!-- The app's tests (docs/macos-port.md Phase 3): headless on Avalonia.Headless and Skia, so they run on Windows, macOS and
+       Linux. The view model tests came from the WPF app's keycuts.Tests at the cutover (Phase 3.12). -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <!-- Annotations without the warnings, as in keycuts.Tests (nullable off): the view model tests are its files, linked -->
+    <!-- Annotations without the warnings: the view model tests were written with nullable off -->
     <Nullable>annotations</Nullable>
     <RootNamespace>keycuts.Tests</RootNamespace>
     <AssemblyName>keycuts.App.Tests</AssemblyName>
@@ -11,7 +11,7 @@
     <IsTestProject>true</IsTestProject>
     <!-- xUnit v3 test projects are executables; VSTest still runs them through xunit.runner.visualstudio. -->
     <OutputType>Exe</OutputType>
-    <!-- As in keycuts.Tests: the tests use their own tokens -->
+    <!-- The tests use their own tokens -->
     <NoWarn>$(NoWarn);xUnit1051</NoWarn>
     <!-- Reading a rendered frame's pixels -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -31,20 +31,5 @@
     <Compile Include="..\keycuts.Common.Tests\RepoFiles.cs" Link="Shared\RepoFiles.cs" />
     <Compile Include="..\keycuts.Common.Tests\TestNameChecks.cs" Link="Shared\TestNameChecks.cs" />
     <Compile Include="..\keycuts.Common.Tests\UpdateFakes.cs" Link="Shared\UpdateFakes.cs" />
-  </ItemGroup>
-  <!-- The view model tests, run against the view models both apps share (docs/macos-port.md, correction 15): the same files
-       keycuts.Tests runs against the WPF build. -->
-  <ItemGroup>
-    <Compile Include="..\keycuts.Tests\CommandNameTests.cs" Link="Shared\ViewModels\CommandNameTests.cs" />
-    <Compile Include="..\keycuts.Tests\CreatorSubmitTests.cs" Link="Shared\ViewModels\CreatorSubmitTests.cs" />
-    <Compile Include="..\keycuts.Tests\CreatorViewModelTests.cs" Link="Shared\ViewModels\CreatorViewModelTests.cs" />
-    <Compile Include="..\keycuts.Tests\EditKeycutViewModelTests.cs" Link="Shared\ViewModels\EditKeycutViewModelTests.cs" />
-    <Compile Include="..\keycuts.Tests\KeycutMigrationTests.cs" Link="Shared\ViewModels\KeycutMigrationTests.cs" />
-    <Compile Include="..\keycuts.Tests\ManagerRowActionsTests.cs" Link="Shared\ViewModels\ManagerRowActionsTests.cs" />
-    <Compile Include="..\keycuts.Tests\ManagerSearchSortTests.cs" Link="Shared\ViewModels\ManagerSearchSortTests.cs" />
-    <Compile Include="..\keycuts.Tests\ManagerViewModelTests.cs" Link="Shared\ViewModels\ManagerViewModelTests.cs" />
-    <Compile Include="..\keycuts.Tests\NameWarningMessageTests.cs" Link="Shared\ViewModels\NameWarningMessageTests.cs" />
-    <Compile Include="..\keycuts.Tests\UpdateNoticeViewModelTests.cs" Link="Shared\ViewModels\UpdateNoticeViewModelTests.cs" />
-    <Compile Include="..\keycuts.Tests\WelcomeViewModelTests.cs" Link="Shared\ViewModels\WelcomeViewModelTests.cs" />
   </ItemGroup>
 </Project>

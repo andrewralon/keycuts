@@ -448,49 +448,7 @@ namespace keycuts.Tests
 
         #endregion
 
-        #region Parity with the WPF app, until cutover
-
-        /// <summary>
-        /// WPF styles whose Avalonia theme waits for a control that isn't ported yet: none since Phase 3.3. A style that has to
-        /// wait goes here, and comes off as soon as it's ported; the test fails while a listed one is already here.
-        /// </summary>
-        static readonly HashSet<string> WithTheirControls = new HashSet<string>();
-
-        /// <summary>WPF resources with no Avalonia twin, and why.</summary>
-        static readonly Dictionary<string, string> NotNeeded = new Dictionary<string, string>
-        {
-            ["AppButtonTemplate"] = "BaseButton holds its template",
-            ["Label"] = "WPF's Label didn't inherit the window's Foreground; Avalonia's does",
-        };
-
-        [Fact]
-        public void EveryWpfStyle_IsPorted_OrWaitsForItsControl()
-        {
-            var wpf = XDocument.Load(RepoFiles.Find(Path.Combine("keycuts.GUI", "Themes", "Controls.xaml"))).Root!.Elements()
-                .Where(e => e.Name.LocalName is "Style" or "ControlTemplate")
-                .Select(e => Name((string?)e.Attribute(Xaml + "Key") ?? (string)e.Attribute("TargetType")!))
-                .ToList();
-            var app = XDocument.Load(RepoFiles.Find(Path.Combine("keycuts.App", "Themes", "Controls.axaml"))).Root!.Elements()
-                .Where(e => e.Name.LocalName is "ControlTheme" or "FocusAdornerTemplate")
-                .Select(e => Name((string)e.Attribute(Xaml + "Key")!))
-                .ToList();
-
-            Assert.Empty(wpf.Except(app).Except(WithTheirControls).Except(NotNeeded.Keys));
-            Assert.Empty(app.Except(wpf));
-            Assert.Empty(WithTheirControls.Intersect(app));
-        }
-
-        /// <summary>"{x:Type Button}" and "Button" are Button; "controls:TypeBadge" is TypeBadge; WPF's menu separator key is Separator.</summary>
-        static string Name(string key)
-        {
-            if (key.Contains("SeparatorStyleKey", StringComparison.Ordinal))
-            {
-                return "Separator";
-            }
-
-            var name = key.Replace("{x:Type ", "").TrimEnd('}');
-            return name.Contains(':') ? name.Split(':')[1] : name;
-        }
+        #region Shadows
 
         [Fact]
         public void EveryShadow_TakesItsOpacityFromThePalette()

@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:keycuts.GUI.ViewModels"
+        xmlns:views="using:keycuts.GUI.Views"
+        xmlns:controls="using:keycuts.GUI.Controls"
+        x:Class="keycuts.GUI.MainWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="{Binding Title}" Width="{StaticResource MainWidth}" SizeToContent="Height" CanResize="False" CanMaximize="False"
+        WindowStartupLocation="CenterScreen" UseLayoutRounding="True"
+        WindowDecorations="BorderOnly" ExtendClientAreaToDecorationsHint="True"
+        TransparencyLevelHint="Transparent" Background="Transparent"
+        FontSize="{StaticResource FontSizeBody}">
+  <!-- #218: no standard title bar (WPF's MainWindow). The tab bar (RailView) is the top row and does what a title bar does; the
+       system keeps a 1 px frame, the shadow, the resize edges at the large size and Win+arrow snapping (docs/macos-port.md,
+       correction 8). The window is never maximized, on any screen (NoMaximizeHook). The Title stays "keycuts" for the taskbar. -->
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:CreatorViewModel">
+      <views:CreatorView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:ManagerViewModel">
+      <views:ManagerView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:SettingsViewModel">
+      <views:SettingsView />
+    </DataTemplate>
+  </Window.DataTemplates>
+  <!-- The torn bottom-right corner (docs/mockups/torn-corner-v2, B2): the window is transparent, the page (Frame) is clipped to the
+       torn shape in MainWindow, and TornCorner draws the frayed edge and threads over it. High contrast keeps the plain rectangle. -->
+  <Grid>
+    <Grid x:Name="Frame" Background="{DynamicResource CanvasBrush}" RowDefinitions="Auto,*">
+      <views:RailView x:Name="Rail" Grid.Row="0" />
+      <ContentControl Grid.Row="1" Content="{Binding CurrentView}" Focusable="False" IsTabStop="False" />
+      <!-- A transparent window gets no border of its own, so the page draws one; the clip cuts it off at the rip -->
+      <Border Grid.RowSpan="2" BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1" IsHitTestVisible="False" />
+    </Grid>
+    <controls:TornCorner x:Name="Tear" Stroke="{DynamicResource ControlBorderBrush}" />
+  </Grid>
+</Window>

@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:keycuts.GUI.Controls"
+             x:Class="keycuts.GUI.Views.FooterView"
+             x:CompileBindings="False">
+  <!-- #205 (WPF's Views/FooterView): the bar the screens share, there only to say a newer version is out (#171). It binds to
+       whichever view model it sits in, which has an UpdateNotice. Tab goes Download, then dismiss. The window's torn corner: the
+       bar's right padding (FooterBarPadding, a palette value) clears the rip. -->
+  <Border x:Name="Bar" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="0,1,0,0" Padding="{DynamicResource FooterBarPadding}" MinHeight="48"
+          IsVisible="{Binding UpdateNotice.IsVisible, FallbackValue=False}">
+    <!-- The text is right-aligned in the space it gets, so the dismiss button follows it closely; it wraps when narrow -->
+    <Grid x:Name="UpdateNotice" Margin="0,8" VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+      <!-- The line appears after a background check, with focus elsewhere: its text change is announced (LiveSetting) -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <TextBlock x:Name="UpdateNoticeText" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Right"
+                   Text="{Binding UpdateNotice.Message}" Foreground="{DynamicResource TextSecondaryBrush}"
+                   AutomationProperties.LiveSetting="Polite" />
+        <TextBlock Text=" · " VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+        <HyperlinkButton x:Name="UpdateDownloadLink" Padding="0" VerticalAlignment="Center" Content="download"
+                         Command="{Binding UpdateNotice.DownloadCommand}" Foreground="{DynamicResource AccentTextBrush}"
+                         AutomationProperties.Name="{Binding UpdateNotice.DownloadName}" />
+      </StackPanel>
+      <Button x:Name="BtnDismissUpdate" Grid.Column="1" Theme="{StaticResource IconButton}" VerticalAlignment="Center"
+              Command="{Binding UpdateNotice.DismissCommand}" ToolTip.Tip="Dismiss" AutomationProperties.Name="Dismiss update notice">
+        <controls:Icon Kind="Close" Size="16" />
+      </Button>
+    </Grid>
+  </Border>
+</UserControl>

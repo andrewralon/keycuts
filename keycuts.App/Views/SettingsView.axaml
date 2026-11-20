@@ -1,0 +1,286 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:common="using:keycuts.Common"
+             xmlns:controls="using:keycuts.GUI.Controls"
+             xmlns:themes="using:keycuts.GUI.Themes"
+             xmlns:views="using:keycuts.GUI.Views"
+             xmlns:vm="using:keycuts.GUI.ViewModels"
+             x:Class="keycuts.GUI.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Background="{DynamicResource SurfaceBrush}" AutomationProperties.Name="settings">
+  <!-- #218 (WPF's Views/SettingsView): Settings as the main window's third screen. No heading and no Save button: every change is
+       stored as it is made (SettingsViewModel). Rows 16 apart, sections 24. Live lines stay in the tree and take no room while
+       empty (docs/macos-port.md, correction 10). -->
+  <UserControl.Styles>
+    <!-- A setting's name: body text, SemiBold -->
+    <Style Selector="TextBlock.SettingName">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- What a setting does, 4 under its name -->
+    <Style Selector="TextBlock.SettingNote">
+      <Setter Property="Theme" Value="{StaticResource Caption}" />
+      <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+    <!-- A row after the first in its section; the control sits 16 to the right of the text -->
+    <Style Selector="Grid.SettingRow">
+      <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
+    <!-- A section after the first: 24 above its label -->
+    <Style Selector="controls|SectionLabel.LaterSection">
+      <Setter Property="Margin" Value="0,24,0,8" />
+    </Style>
+    <Style Selector="controls|HelperText.folder.error">
+      <Setter Property="State" Value="Error" />
+    </Style>
+    <!-- 16 above the save error while there is one; a local margin would outrank .silent -->
+    <Style Selector="TextBlock#SaveErrorMessage:not(.silent)">
+      <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
+    <Style Selector="TextBlock.silent">
+      <Setter Property="MaxHeight" Value="0" />
+      <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="TextBlock#IconPickerNoteText.error">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+    <!-- A card in the icon picker. Two share a row: the list is 428 wide and a card 205 with 4 on each side. Classic, the last,
+         takes the whole row: 418. -->
+    <Style Selector="ListBox.IconCards > ListBoxItem">
+      <Setter Property="Theme" Value="{StaticResource CardItem}" />
+      <Setter Property="Width" Value="205" />
+    </Style>
+    <Style Selector="ListBox.IconCards > ListBoxItem.wide">
+      <Setter Property="Width" Value="418" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.DataTemplates>
+    <!-- An icon choice as a picture, 52. One that follows the theme shows both drawings: the light-mode one at the top left, and
+         the dark-mode one over it, smaller, at the bottom right, in a ring of whatever it sits on. With a transparent background,
+         the drawings the taskbar and the shortcuts will show (IconPreview picks them). -->
+    <DataTemplate DataType="themes:AppIconOption">
+      <views:IconPreview Option="{Binding}" />
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Grid RowDefinitions="*,Auto">
+    <!-- The page scrolls when the window is shorter than it; the footer stays. Off while the icon picker is open. -->
+    <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False" IsEnabled="{Binding IsBodyEnabled}"
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <!-- Two columns at every width: Output and Behavior on the left, the rest on the right, with a rule 24 from each -->
+      <Grid x:Name="Columns" Margin="{StaticResource PagePadding}" ColumnDefinitions="*,Auto,*">
+        <StackPanel x:Name="LeftColumn" Grid.Column="0">
+          <!-- Output -->
+          <controls:SectionLabel Text="Output" />
+          <TextBlock Text="Output folder" Theme="{StaticResource FieldLabel}" />
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <!-- Stored when committed: Enter or leaving the box, or a pick from the folder button. Escape drops an edit. -->
+            <TextBox x:Name="TextboxOutputFolder" Grid.Column="0" Text="{Binding OutputFolder}"
+                     PlaceholderText="Choose where keycuts are saved" ToolTip.Tip="{Binding $self.Text}"
+                     themes:TextBoxChrome.HasError="{Binding HasOutputFolderError}"
+                     AutomationProperties.Name="Output folder" AutomationProperties.HelpText="{Binding OutputFolderMessage}" />
+            <Button x:Name="BtnChoose" Grid.Column="1" Margin="8,0,0,0" Theme="{StaticResource SquareButton}"
+                    Command="{Binding ChooseCommand}" ToolTip.Tip="Choose a folder" AutomationProperties.Name="Choose a folder">
+              <controls:Icon Kind="Folder" Size="20" />
+            </Button>
+            <!-- Disabled while the folder doesn't exist; the tooltip still shows then -->
+            <Button x:Name="BtnLaunch" Grid.Column="2" Margin="8,0,0,0" Theme="{StaticResource SquareButton}"
+                    Command="{Binding LaunchCommand}" ToolTip.Tip="Open the output folder" ToolTip.ShowOnDisabled="True"
+                    AutomationProperties.Name="Open the output folder">
+              <controls:Icon Kind="External" Size="20" />
+            </Button>
+          </Grid>
+          <controls:HelperText x:Name="OutputFolderMessage" Classes="folder" Classes.error="{Binding HasOutputFolderError}"
+                               Text="{Binding OutputFolderMessage}" />
+
+          <!-- Behavior -->
+          <controls:SectionLabel Text="Behavior" Classes="LaterSection" />
+          <!-- No visible note: the toggle's help text tells a screen reader what it does -->
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Ask before replacing a keycut" Classes="SettingName" VerticalAlignment="Center" />
+            <ToggleButton x:Name="ToggleAskBeforeReplacing" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding AskBeforeReplacing}"
+                          AutomationProperties.Name="Ask before replacing a keycut"
+                          AutomationProperties.HelpText="Confirm before a new keycut replaces one with the same name." />
+          </Grid>
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Right-click context menus" Classes="SettingName" />
+              <TextBlock Text="Add “keycut this!” to File Explorer menus." Classes="SettingNote" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleRightClick" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding RightClickContextMenus}"
+                          AutomationProperties.Name="Right-click context menus"
+                          AutomationProperties.HelpText="Add “keycut this!” to File Explorer menus." />
+          </Grid>
+          <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating -->
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Use environment variables in paths" Classes="SettingName" />
+              <TextBlock Text="Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled."
+                         Classes="SettingNote" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleEnvironmentVariables" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding UseEnvironmentVariables}"
+                          AutomationProperties.Name="Use environment variables in paths"
+                          AutomationProperties.HelpText="Saves C:\Users\you\Desktop as %USERPROFILE%\Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut." />
+          </Grid>
+        </StackPanel>
+
+        <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
+
+        <StackPanel x:Name="RightColumn" Grid.Column="2">
+          <!-- Appearance. The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
+          <controls:SectionLabel Text="Appearance" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Theme" Classes="SettingName" VerticalAlignment="Center" />
+            <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+              <RadioButton Content="System" GroupName="Theme" Tag="{x:Static common:ThemePreference.System}"
+                           AutomationProperties.Name="System theme" Margin="0,0,16,0" />
+              <RadioButton Content="Light" GroupName="Theme" Tag="{x:Static common:ThemePreference.Light}"
+                           AutomationProperties.Name="Light theme" Margin="0,0,16,0" />
+              <RadioButton Content="Dark" GroupName="Theme" Tag="{x:Static common:ThemePreference.Dark}"
+                           AutomationProperties.Name="Dark theme" />
+            </StackPanel>
+          </Grid>
+
+          <!-- The icon: its name and what it does, and the icon itself as the button that opens the picker -->
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Classes="SettingName">
+                <Run Text="Icon" /><Run Text=" · " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
+                    Text="{Binding SelectedIcon.Name}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+              </TextBlock>
+              <TextBlock x:Name="IconDescription" Text="{Binding SelectedIcon.Description}" Classes="SettingNote" />
+            </StackPanel>
+            <Button x:Name="BtnIcon" Grid.Column="1" Margin="16,0,0,0" Padding="4" VerticalAlignment="Center"
+                    Command="{Binding OpenIconPickerCommand}" Content="{Binding SelectedIcon}"
+                    ToolTip.Tip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
+          </Grid>
+
+          <!-- The icon without its background everywhere but the tab bar, which always shows it so -->
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Transparent icon background" Classes="SettingName" />
+              <TextBlock Text="Affects the taskbar, Alt+Tab, and shortcuts." Classes="SettingNote" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleTransparentIcon" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding TransparentIcon}"
+                          AutomationProperties.Name="Transparent icon background"
+                          AutomationProperties.HelpText="Affects the taskbar, Alt+Tab, and shortcuts." />
+          </Grid>
+
+          <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->
+          <controls:SectionLabel Text="Updates" Classes="LaterSection" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Check for updates daily" Classes="SettingName" VerticalAlignment="Center" />
+            <ToggleButton x:Name="ToggleCheckForUpdates" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding CheckForUpdates}" AutomationProperties.Name="Check for updates daily" />
+          </Grid>
+
+          <!-- The version, the update status and check now: hidden only for the README's screenshots -->
+          <Grid x:Name="VersionRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding ShowVersionRow}">
+            <StackPanel VerticalAlignment="Center">
+              <!-- "Version · 1.6.0", like "Icon · Black & White": the name SemiBold, the value in secondary text -->
+              <TextBlock x:Name="CurrentVersionText" Classes="SettingName" AutomationProperties.Name="{Binding CurrentVersionText}">
+                <Run Text="Version" /><Run Text=" · " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
+                    Text="{Binding CurrentVersionNumber}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+              </TextBlock>
+              <WrapPanel Margin="0,4,0,0">
+                <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Theme="{StaticResource Caption}"
+                           Classes.silent="{Binding !HasUpdateStatus}" AutomationProperties.LiveSetting="Polite" />
+                <!-- Only while a newer release is known -->
+                <StackPanel Orientation="Horizontal" IsVisible="{Binding IsUpdateAvailable}">
+                  <TextBlock Text=" · " Theme="{StaticResource Caption}" />
+                  <HyperlinkButton x:Name="SettingsDownloadLink" Padding="0" Content="download" FontSize="{StaticResource FontSizeCaption}"
+                                   Command="{Binding DownloadUpdateCommand}" Foreground="{DynamicResource AccentTextBrush}"
+                                   AutomationProperties.Name="Download the new version" />
+                </StackPanel>
+              </WrapPanel>
+            </StackPanel>
+            <Button x:Name="BtnCheckNow" Grid.Column="1" Margin="16,0,0,0" Content="check now" Theme="{StaticResource SecondaryButton}"
+                    VerticalAlignment="Center" Command="{Binding CheckNowCommand}" AutomationProperties.Name="check for updates now"
+                    IsVisible="{Binding CanCheckForUpdates}" />
+          </Grid>
+
+          <!-- A change that was only partly stored (for example PATH couldn't be updated) -->
+          <TextBlock x:Name="SaveErrorMessage" Text="{Binding SaveError}" Theme="{StaticResource ErrorText}"
+                     Classes.silent="{Binding !HasSaveError}" AutomationProperties.LiveSetting="Assertive" />
+
+          <!-- Show welcome goes back to the creator with the first-run panel; restore defaults asks first, never touches the folder -->
+          <Grid Margin="0,24,0,0" ColumnDefinitions="Auto,*,Auto">
+            <Button x:Name="BtnShowWelcome" Grid.Column="0" Content="show welcome" Theme="{StaticResource SecondaryButton}"
+                    Command="{Binding ShowWelcomeCommand}" AutomationProperties.Name="show the welcome panel" />
+            <Button x:Name="BtnRestoreDefaults" Grid.Column="2" Content="restore defaults" Theme="{StaticResource SecondaryButton}"
+                    Command="{Binding RestoreDefaultsCommand}" AutomationProperties.Name="restore defaults"
+                    AutomationProperties.HelpText="{x:Static vm:ConfirmViewModel.RestoreDefaultsIntro}" />
+          </Grid>
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+
+    <views:FooterView x:Name="Footer" Grid.Row="1" DataContext="{Binding Footer}"
+                     IsEnabled="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).IsBodyEnabled, FallbackValue=True}" />
+
+    <!-- The icon picker, over the page and the footer (the tabs are off meanwhile through the shell). A click on a card applies it
+         at once; the close button, Escape and a click on the dimmed page close it, and closing undoes nothing. -->
+    <Panel x:Name="IconPicker" Grid.RowSpan="2" IsVisible="{Binding IsIconPickerOpen}">
+      <Border x:Name="IconPickerScrim" Theme="{StaticResource OverlayScrim}" />
+      <ContentControl x:Name="IconPickerSheet" Theme="{StaticResource OverlaySheet}" Width="456">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Theme="{StaticResource OverlaySheetHeader}" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Icon" Theme="{StaticResource Subheading}" />
+              <TextBlock x:Name="IconPickerNoteText" Text="{Binding IconPickerNote}" Theme="{StaticResource Caption}"
+                         Classes.error="{Binding HasIconError}" AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+            <Button x:Name="BtnCloseIconPicker" Grid.Column="1" Theme="{StaticResource IconButton}" VerticalAlignment="Top"
+                    Command="{Binding CloseIconPickerCommand}" ToolTip.Tip="Close" AutomationProperties.Name="Close the icon picker">
+              <controls:Icon Kind="Close" Size="16" />
+            </Button>
+          </Grid>
+
+          <!-- The groups, each a section label over its cards. Selection goes through SettingsView, so the two lists never clear
+               each other's choice. -->
+          <ScrollViewer x:Name="IconScroller" Grid.Row="1" Margin="0,0,0,8" Focusable="False" IsTabStop="False"
+                        VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl x:Name="IconGroups" ItemsSource="{Binding IconOptionsView}" Width="428" HorizontalAlignment="Center"
+                          AutomationProperties.Name="Icons">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:CompileBindings="False">
+                  <StackPanel>
+                    <controls:SectionLabel Text="{Binding Key}" Margin="4,8,0,8"
+                                           AutomationProperties.HeadingLevel="3" />
+                    <ListBox Classes="IconCards" ItemsSource="{Binding}" Background="Transparent" BorderThickness="0"
+                             ContainerPrepared="IconList_ContainerPrepared"
+                             SelectionMode="Single">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="themes:AppIconOption">
+                          <Grid ColumnDefinitions="Auto,*">
+                            <views:IconPreview Option="{Binding}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Margin="12,0,16,0" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Name}" Classes="SettingName" />
+                              <TextBlock Text="{Binding Description}" Classes="SettingNote" />
+                            </StackPanel>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </ContentControl>
+    </Panel>
+  </Grid>
+</UserControl>

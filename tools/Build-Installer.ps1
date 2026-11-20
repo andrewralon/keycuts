@@ -37,7 +37,8 @@ foreach ($folder in $publish, $output) {
 # each character as its own argument (dotnet then sees "- p : V e r s i o n")
 $versionArgs = @(if ($Version) { "-p:Version=$Version" })
 
-foreach ($project in 'keycuts.GUI', 'keycuts.CLI') {
+# The app's project is keycuts.App; its assembly, and so the exe the MSI installs, is keycuts.GUI (docs/macos-port.md, Phase 3.12)
+foreach ($project in 'keycuts.App', 'keycuts.CLI') {
     dotnet publish (Join-Path $root "$project\$project.csproj") -c Release -r $Runtime --self-contained true `
         -p:SatelliteResourceLanguages=en @versionArgs -o $publish
     if ($LASTEXITCODE -ne 0) { throw "Publishing $project for $Runtime failed." }

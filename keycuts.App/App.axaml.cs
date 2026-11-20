@@ -82,6 +82,10 @@ namespace keycuts.GUI
 
             // Before Show, so the taskbar never shows the exe's own icon first
             AppIconManager.ApplyTo(mainWindow);
+            if (OperatingSystem.IsMacOS())
+            {
+                MacDockIcon.Follow();
+            }
 
             // Phase 6.5: started by the login, keycuts waits in the menu bar with no window and no Dock icon
             if (OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin())

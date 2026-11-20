@@ -22,11 +22,18 @@ namespace keycuts.GUI
                 return;
             }
 
-            var appMenu = new NativeMenu();
-            appMenu.Add(Item("About keycuts", null, () => NoticeWindow.Show(window, "keycuts " + new Version(Runner.Version).ToString(3))));
-            appMenu.Add(new NativeMenuItemSeparator());
-            appMenu.Add(Item("Settings…", new KeyGesture(Key.OemComma, KeyModifiers.Meta), () => Show(window, 3)));
-            NativeMenu.SetMenu(app, appMenu);
+            var about = () => NoticeWindow.Show(window, "keycuts " + new Version(Runner.Version).ToString(3));
+
+            // Avalonia has already built the app menu (About Avalonia, Services, Hide, Quit) and doesn't look at a menu set now:
+            // change that one in place so macOS redraws it
+            var appMenu = NativeMenu.GetMenu(app);
+            if (appMenu == null)
+            {
+                appMenu = new NativeMenu();
+                NativeMenu.SetMenu(app, appMenu);
+            }
+
+            FillAppMenu(appMenu, about, () => Show(window, 3));
 
             var menuBar = new NativeMenu();
             menuBar.Add(Submenu("View",
@@ -39,6 +46,22 @@ namespace keycuts.GUI
             menuBar.Add(Submenu("Help",
                 Item("keycuts Help", null, () => Desktops.Current.OpenTarget(HelpUrl))));
             NativeMenu.SetMenu(window, menuBar);
+        }
+
+        /// <summary>About keycuts and Settings… (⌘,) at the top of the app menu, in place of Avalonia's About; the items macOS adds stay.</summary>
+        public static void FillAppMenu(NativeMenu appMenu, Action about, Action settings)
+        {
+            for (var i = appMenu.Items.Count - 1; i >= 0; i--)
+            {
+                if (appMenu.Items[i] is NativeMenuItem { Header: "About Avalonia" })
+                {
+                    appMenu.Items.RemoveAt(i);
+                }
+            }
+
+            appMenu.Items.Insert(0, Item("About keycuts", null, about));
+            appMenu.Items.Insert(1, new NativeMenuItemSeparator());
+            appMenu.Items.Insert(2, Item("Settings…", new KeyGesture(Key.OemComma, KeyModifiers.Meta), settings));
         }
 
         private static void Show(MainWindow window, int tab)

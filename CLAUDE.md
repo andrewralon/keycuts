@@ -68,7 +68,7 @@ All creates end in `Runner.Run` → `CreateShortcutFile` (GUI goes through `Keyc
 
 ## Sequencing rule
 
-**Never move two variables in one commit.** Behavior (bugs included) is pinned by `keycuts.Common.Tests/Characterization/` snapshots. A mismatch writes `.received.txt`; if intended, copy it over `.verified.txt` in the same commit.
+**Don't mix a behavior change with a refactor or port step.** A commit can hold as many changes as it needs; what matters is that a snapshot diff has one explainable cause. Behavior (bugs included) is pinned by `keycuts.Common.Tests/Characterization/` snapshots. A mismatch writes `.received.txt`; if intended, copy it over `.verified.txt` in the same commit.
 
 ## Conventions
 

@@ -79,7 +79,7 @@ The overall order hasn't changed: **Windows first, then the parser safety net be
 
 ## Rules that still apply
 
-- **Never move two variables in one commit.** An emitter or parser change must show up as a reviewed diff in `keycuts.Common.Tests/Characterization/Snapshots/*.verified.txt`. When a snapshot test fails, it writes a `.received.txt` next to the snapshot; if the change is intended, copy it over the `.verified.txt` in the same commit.
+- **Don't mix a behavior change with a refactor or port step.** A commit can hold as many changes as it needs; what matters is that a snapshot diff has one explainable cause. An emitter or parser change must show up as a reviewed diff in `keycuts.Common.Tests/Characterization/Snapshots/*.verified.txt`. When a snapshot test fails, it writes a `.received.txt` next to the snapshot; if the change is intended, copy it over the `.verified.txt` in the same commit.
 - **Never edit or delete corpus files**; add new ones (`tests/corpus/legacy/README.md`).
 - **Add an interface only when a fix needs one to be testable**, the way `IPathUpdater`, `IClassesStore` and `IKeycutActions` were added.
 

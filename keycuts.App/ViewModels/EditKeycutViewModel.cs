@@ -20,7 +20,7 @@ namespace keycuts.GUI.ViewModels
     /// </summary>
     public class EditKeycutViewModel : ObservableObject
     {
-        public const string NotEditableMessage = "This keycut can’t be edited here. Edit it in Notepad.";
+        public static readonly string NotEditableMessage = "This keycut can’t be edited here. Edit it " + PlatformText.InEditor + ".";
 
         public const string MissingMessage = "This keycut no longer exists.";
 

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:gui="using:keycuts.GUI"
              xmlns:vm="using:keycuts.GUI.ViewModels"
              x:Class="keycuts.GUI.Views.ManagerStatusView"
              x:DataType="vm:ManagerViewModel">
@@ -34,7 +35,7 @@
   <Grid x:Name="Root" MaxWidth="300" ColumnDefinitions="*,Auto">
     <!-- #179, #205: Undo comes after the message, against the count, so it is always in the same place -->
     <Button x:Name="UndoButton" Grid.Column="1" Classes="StatusLink" Margin="8,0,0,0" VerticalAlignment="Center" Content="undo"
-            Command="{Binding UndoDeleteCommand}" ToolTip.Tip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="undo delete"
+            Command="{Binding UndoDeleteCommand}" ToolTip.Tip="{x:Static gui:PlatformText.UndoDeleteTip}" AutomationProperties.Name="undo delete"
             IsVisible="{Binding CanUndoDelete}" />
     <TextBlock x:Name="StatusMessageText" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                FontSize="{StaticResource FontSizeCaption}" Text="{Binding StatusMessage}" ToolTip.Tip="{Binding StatusMessage}"

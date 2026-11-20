@@ -131,8 +131,8 @@ namespace keycuts.Tests
                     Assert.Equal(AutomationControlType.TabItem, ControlAutomationPeer.CreatePeerForElement(tab).GetAutomationControlType());
                     Assert.Equal(name, AutomationProperties.GetName(tab));
                     // The key that picks it, in the tooltip after the name and as the accelerator a screen reader reads
-                    Assert.Equal(name + " (Ctrl+" + (i + 1) + ")", ToolTip.GetTip(tab));
-                    Assert.Equal("Ctrl+" + (i + 1), AutomationProperties.GetAcceleratorKey(tab));
+                    Assert.Equal(PlatformKeys.Tip(name, (i + 1).ToString()), ToolTip.GetTip(tab));
+                    Assert.Equal(PlatformKeys.Name((i + 1).ToString()), AutomationProperties.GetAcceleratorKey(tab));
                 }
 
                 // The gear is the tab, with no text of its own; the other two are text only

@@ -905,7 +905,7 @@ namespace keycuts.GUI.ViewModels
                 }
                 catch (KeycutRepositoryException ex) when (ex.Error == KeycutRepositoryError.NotEditable)
                 {
-                    ShowStatusMessage("Couldn’t change the description of “" + row.Name + "”: its file isn’t valid UTF-8. Edit it in Notepad.", true);
+                    ShowStatusMessage("Couldn’t change the description of “" + row.Name + "”: its file isn’t valid UTF-8. Edit it " + PlatformText.InEditor + ".", true);
                     Refocus();
                     _ = LoadAsync();
                     return;

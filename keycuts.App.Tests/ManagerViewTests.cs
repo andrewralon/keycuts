@@ -478,10 +478,14 @@ namespace keycuts.Tests
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(manager.Rows[0].ActionsLabel, AutomationProperties.GetName(menu));
                 menu.Close();
+                // ⌘ on macOS, where the words are a text editor and Finder, and ⌘⌫ deletes
+                var mac = OperatingSystem.IsMacOS();
+                var command = mac ? "Cmd+" : "Ctrl+";
                 var expected = new[]
                 {
-                    ("Open keycut", "Enter"), ("Edit…", "Ctrl+E"), ("Edit in Notepad", "Ctrl+Shift+E"), ("Open file location", "Ctrl+Shift+O"),
-                    ("Copy target", "Ctrl+C"), ("Rename", "F2"), ("Edit description", "Shift+F2"), ("Delete", "Delete")
+                    ("Open keycut", "Enter"), ("Edit…", command + "E"), (mac ? "Edit in text editor" : "Edit in Notepad", command + "Shift+E"),
+                    (mac ? "Show in Finder" : "Open file location", command + "Shift+O"),
+                    ("Copy target", command + "C"), ("Rename", "F2"), ("Edit description", "Shift+F2"), ("Delete", mac ? "Cmd+Back" : "Delete")
                 };
                 Assert.Equal(expected.Select(e => (e.Item1, KeyGesture.Parse(e.Item2))), menu.Items.OfType<MenuItem>().Select(i => ((string)i.Header!, i.InputGesture!)));
             });

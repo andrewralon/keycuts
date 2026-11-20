@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="using:keycuts.GUI.Controls"
+             xmlns:gui="using:keycuts.GUI"
              xmlns:views="using:keycuts.GUI.Views"
              xmlns:vm="using:keycuts.GUI.ViewModels"
              x:Class="keycuts.GUI.Views.ManagerView"
@@ -185,23 +186,23 @@
           </MenuItem.Icon>
         </MenuItem>
         <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
-        <MenuItem Header="Edit…" InputGesture="Ctrl+E" Command="{Binding EditCommand}" Classes="Safe"
+        <MenuItem Header="Edit…" InputGesture="{x:Static gui:PlatformKeys.Edit}" Command="{Binding EditCommand}" Classes="Safe"
                   ToolTip.Tip="{Binding EditTooltip}" ToolTip.ShowOnDisabled="True" ToolTip.IsEnabled="{Binding !CanEditInForm}">
           <MenuItem.Icon>
             <controls:Icon Kind="File" Size="16" />
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Edit in Notepad" InputGesture="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Classes="Safe">
+        <MenuItem Header="{x:Static gui:PlatformText.EditInEditor}" InputGesture="{x:Static gui:PlatformKeys.EditInEditor}" Command="{Binding EditInNotepadCommand}" Classes="Safe">
           <MenuItem.Icon>
             <controls:Icon Kind="External" Size="16" />
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Open file location" InputGesture="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Classes="Safe">
+        <MenuItem Header="{x:Static gui:PlatformText.ShowFile}" InputGesture="{x:Static gui:PlatformKeys.ShowFile}" Command="{Binding OpenFileLocationCommand}" Classes="Safe">
           <MenuItem.Icon>
             <controls:Icon Kind="Folder" Size="16" />
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Copy target" InputGesture="Ctrl+C" Command="{Binding CopyTargetCommand}" Classes="Safe">
+        <MenuItem Header="Copy target" InputGesture="{x:Static gui:PlatformKeys.CopyTarget}" Command="{Binding CopyTargetCommand}" Classes="Safe">
           <MenuItem.Icon>
             <controls:Icon Kind="Copy" Size="16" />
           </MenuItem.Icon>
@@ -210,7 +211,7 @@
         <MenuItem Header="Rename" InputGesture="F2" Command="{Binding RenameCommand}" />
         <MenuItem Header="Edit description" InputGesture="Shift+F2" Command="{Binding EditDescriptionCommand}" />
         <Separator />
-        <MenuItem Header="Delete" InputGesture="Delete" Theme="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+        <MenuItem Header="Delete" InputGesture="{x:Static gui:PlatformKeys.Delete}" Theme="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
           <MenuItem.Icon>
             <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
           </MenuItem.Icon>

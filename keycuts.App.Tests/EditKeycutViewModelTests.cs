@@ -217,7 +217,7 @@ namespace keycuts.Tests
 
             await harness.Form.SaveAsync();
 
-            Assert.Equal("This keycut can\u2019t be edited here. Edit it in Notepad.", harness.Form.SaveError);
+            Assert.Equal(EditKeycutViewModel.NotEditableMessage, harness.Form.SaveError);
             Assert.True(harness.Form.HasSaveError);
             Assert.Empty(harness.Closed);
         }

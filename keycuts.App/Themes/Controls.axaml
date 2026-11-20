@@ -4,12 +4,12 @@
     type, which wins over the Fluent base theme's. WPF triggers are nested styles on pseudo-classes, in the same order, so the
     later one wins as it did. All colors are DynamicResource, so the palette follows the theme.
 
-    The themes of the custom controls (SectionLabel, HelperText, TypeBadge, the check box's and cards' check marks, the folder
-    tabs) come with those controls in Phase 3.3.
+    The folder tabs' themes come with their controls in Phase 3.3.
 -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:conv="using:Avalonia.Controls.Converters"
+                    xmlns:controls="using:keycuts.App.Controls"
                     xmlns:themes="using:keycuts.App.Themes">
 
     <ResourceDictionary.MergedDictionaries>
@@ -290,6 +290,121 @@
         <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+    </ControlTheme>
+
+    <!-- Section label (Controls/SectionLabel): 12 ExtraBold accent capitals, 8 above its first row, a level 2 heading -->
+    <ControlTheme x:Key="{x:Type controls:SectionLabel}" TargetType="controls:SectionLabel">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="AutomationProperties.HeadingLevel" Value="2" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <TextBlock Text="{TemplateBinding DisplayText}" TextWrapping="Wrap" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- Helper text (Controls/HelperText): 12 secondary, 4 below its control. A warning or a success adds a 12px icon, 4 from
+         the text; it never uses TextTertiaryBrush, which is for hints only. -->
+    <ControlTheme x:Key="{x:Type controls:HelperText}" TargetType="controls:HelperText">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*">
+                    <!-- The icon is lowered 2 to sit on the first line's text: an optical offset -->
+                    <controls:Icon Name="StateIcon" Kind="Warning" Size="12" Margin="0,2,4,0" VerticalAlignment="Top"
+                                   IsVisible="False" />
+                    <TextBlock Grid.Column="1" Text="{TemplateBinding Text}" TextWrapping="Wrap" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^[State=Warning]">
+            <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+            <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+            <Style Selector="^ /template/ controls|Icon#StateIcon">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
+        <Style Selector="^[State=Error]">
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+            <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
+        </Style>
+        <Style Selector="^[State=Success]">
+            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+            <Style Selector="^ /template/ controls|Icon#StateIcon">
+                <Setter Property="Kind" Value="Check" />
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
+    </ControlTheme>
+
+    <!-- CheckBox: 18px box, accent fill with a check mark when checked. The text keeps the size it inherits. -->
+    <ControlTheme x:Key="{x:Type CheckBox}" TargetType="CheckBox">
+        <Setter Property="FocusAdorner" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Background="Transparent" ColumnDefinitions="Auto,*">
+                    <Border Name="Box" Width="18" Height="18" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource RadiusSm}">
+                        <controls:Icon Name="Mark" Kind="Check" Size="14" IsVisible="False"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource OnAccentBrush}" />
+                    </Border>
+                    <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Margin="{TemplateBinding Padding}"
+                                      Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      RecognizesAccessKey="True" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#Box">
+            <Setter Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#Box">
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        </Style>
+        <Style Selector="^:checked">
+            <Style Selector="^ /template/ Border#Box">
+                <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+            </Style>
+            <Style Selector="^ /template/ controls|Icon#Mark">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
+        <Style Selector="^:checked:pointerover /template/ Border#Box">
+            <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+        </Style>
+        <Style Selector="^:checked:pressed /template/ Border#Box">
+            <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentPressedBrush}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Cursor" Value="Arrow" />
+            <Style Selector="^ /template/ Border#Box">
+                <Setter Property="Background" Value="{DynamicResource SurfaceSubtleBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            </Style>
+            <Style Selector="^ /template/ controls|Icon#Mark">
+                <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            </Style>
+        </Style>
     </ControlTheme>
 
     <!-- RadioButton: an 18px round box, with an accent fill and a dot when selected -->
@@ -604,6 +719,50 @@
         </Style>
     </ControlTheme>
 
+    <!-- Type badge: 22px tall, icon + label. Colors per kind come from the Badge*Brush palette entries. -->
+    <ControlTheme x:Key="{x:Type controls:TypeBadge}" TargetType="controls:TypeBadge">
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="4,0,8,0" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource BadgeCommandForegroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BadgeCommandBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BadgeCommandBorderBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{StaticResource RadiusSm}"
+                        Padding="{TemplateBinding Padding}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <controls:Icon Kind="{TemplateBinding IconKind}" Size="12" VerticalAlignment="Center" />
+                        <TextBlock Text="{TemplateBinding Label}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^[Kind=Url]">
+            <Setter Property="Foreground" Value="{DynamicResource BadgeUrlForegroundBrush}" />
+            <Setter Property="Background" Value="{DynamicResource BadgeUrlBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BadgeUrlBorderBrush}" />
+        </Style>
+        <Style Selector="^[Kind=File]">
+            <Setter Property="Foreground" Value="{DynamicResource BadgeFileForegroundBrush}" />
+            <Setter Property="Background" Value="{DynamicResource BadgeFileBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BadgeFileBorderBrush}" />
+        </Style>
+        <Style Selector="^[Kind=Folder]">
+            <Setter Property="Foreground" Value="{DynamicResource BadgeFolderForegroundBrush}" />
+            <Setter Property="Background" Value="{DynamicResource BadgeFolderBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BadgeFolderBorderBrush}" />
+        </Style>
+    </ControlTheme>
+
     <!--
         Layout pieces (docs/styleguide.md, Layout and Control sizes).
     -->
@@ -681,6 +840,118 @@
          at the top right, whose automation name starts with "Close" -->
     <ControlTheme x:Key="OverlaySheetHeader" TargetType="Grid">
         <Setter Property="Margin" Value="16,16,16,8" />
+    </ControlTheme>
+
+    <!-- The check badge of a selected card: an 18 round accent badge with a 12 check, 8 in from the card's top right corner -->
+    <ControlTheme x:Key="CheckBadge" TargetType="ContentControl">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Margin" Value="0,8,8,0" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <!-- Fully round: the radius is half its size -->
+                <Border CornerRadius="9" Background="{DynamicResource AccentBrush}">
+                    <controls:Icon Kind="Check" Size="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource OnAccentBrush}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+        Cards in a sheet or panel: SurfaceBrush, a 1px border, RadiusMd, 12 inside, 4 at the sides and 8 below (so cards in a
+        row are 8 apart), SurfaceHoverBrush on hover. The selected card gets a 2px accent border with 1 less padding, so nothing
+        moves, and the check badge; the background doesn't change, and the badge means selection never relies on color alone.
+        CardItem is for a ListBox (the icon picker), CardRadio for radio buttons (the welcome bubbles); give either content of
+        its own.
+    -->
+    <ControlTheme x:Key="CardItem" TargetType="ListBoxItem">
+        <Setter Property="Margin" Value="4,0,4,8" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="FocusAdorner" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="Card" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                            CornerRadius="{StaticResource RadiusMd}">
+                        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                    <ContentControl Name="Check" Theme="{StaticResource CheckBadge}" IsVisible="False" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#Card">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Style Selector="^ /template/ Border#Card">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="BorderThickness" Value="2" />
+                <!-- The selection border's extra 1 comes off the padding: an exception to the grid -->
+                <Setter Property="Padding" Value="11" />
+            </Style>
+            <Style Selector="^ /template/ ContentControl#Check">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="CardRadio" TargetType="RadioButton">
+        <Setter Property="Margin" Value="4,0,4,8" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="FocusAdorner" Value="{StaticResource AppFocusVisual}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="Card" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+                            CornerRadius="{StaticResource RadiusMd}">
+                        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+                    </Border>
+                    <ContentControl Name="Check" Theme="{StaticResource CheckBadge}" IsVisible="False" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#Card">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+        </Style>
+        <Style Selector="^:checked">
+            <Style Selector="^ /template/ Border#Card">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                <Setter Property="BorderThickness" Value="2" />
+                <!-- The selection border's extra 1 comes off the padding: an exception to the grid -->
+                <Setter Property="Padding" Value="11" />
+            </Style>
+            <Style Selector="^ /template/ ContentControl#Check">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
     </ControlTheme>
 
     <!-- Minimize, maximize or restore, and close: CaptionButtonWidth by RailHeight, a 10px glyph in the text color. They are not

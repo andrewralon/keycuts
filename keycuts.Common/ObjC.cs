@@ -66,6 +66,10 @@ namespace keycuts.Common
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern long SendLong(IntPtr receiver, IntPtr selector);
 
+        /// <summary>A method that returns an <c>NSPoint</c>: two doubles, in registers on both architectures.</summary>
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        public static extern CGPoint SendPoint(IntPtr receiver, IntPtr selector);
+
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern void Send(IntPtr receiver, IntPtr selector, CGRect arg);
 

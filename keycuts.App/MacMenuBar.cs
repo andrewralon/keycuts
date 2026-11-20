@@ -47,6 +47,7 @@ namespace keycuts.GUI
             };
 
             var menu = new NativeMenu();
+            menu.Add(Item("Run…", MacRunBox.Show));
             menu.Add(Item("New keycut…", () => Show(window, 1)));
             menu.Add(Item("Manager", () => Show(window, 2)));
             menu.Add(Item("Settings…", () => Show(window, 3)));

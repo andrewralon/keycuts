@@ -48,6 +48,14 @@
     <x:Double x:Key="TabSlant">16</x:Double>
     <x:Double x:Key="CaptionButtonWidth">46</x:Double>
 
+    <!-- The Run box on macOS (docs/styleguide.md, The Run box): 600 wide, a 56 high input, 40 high rows, a 32 high hint line -->
+    <x:Double x:Key="RunBoxWidth">600</x:Double>
+    <x:Double x:Key="RunBoxInputHeight">56</x:Double>
+    <x:Double x:Key="RunBoxRowHeight">40</x:Double>
+    <x:Double x:Key="RunBoxHintHeight">32</x:Double>
+    <x:Double x:Key="RunBoxNameWidth">112</x:Double>
+    <x:Double x:Key="RunBoxIconSize">28</x:Double>
+
     <!-- Typography: 12 is the smallest text, and every heading is 20 (level 1) or 16 (level 2) -->
     <!-- A platform token (docs/styleguide.md, In Avalonia): Segoe UI on Windows, the system font ($Default) on macOS -->
     <OnPlatform x:Key="AppFontFamily" x:TypeArguments="FontFamily" Default="$Default" Windows="Segoe UI Variable, Segoe UI" />

@@ -157,7 +157,8 @@ jobs:
           $lines | Add-Content $env:GITHUB_STEP_SUMMARY
 
   # The macOS port (docs/macos-port.md, Phase 2.3): Common and the CLI build for net10.0 on a Mac, and the tests that
-  # don't need the GUI pass there. Windows-only tests show as skipped ([WindowsFact]). The WPF projects stay on Windows.
+  # don't need the GUI pass there. Windows-only tests show as skipped ([WindowsFact]). The WPF projects stay on Windows;
+  # the Avalonia app (Phase 3) builds and runs its headless tests here too.
   macos:
     runs-on: macos-latest
     timeout-minutes: 15
@@ -174,10 +175,20 @@ jobs:
         run: |
           dotnet build keycuts.CLI -c Release
           dotnet build keycuts.Common.Tests -c Release
+          dotnet build keycuts.App.Tests -c Release
 
       - name: Test
         run: >-
           dotnet test keycuts.Common.Tests -c Release --no-build
+          --results-directory artifacts/test-results
+          --logger trx
+          --logger "GitHubActions;summary-include-passed=false"
+          -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Test the Avalonia app
+        if: ${{ !cancelled() }}
+        run: >-
+          dotnet test keycuts.App.Tests -c Release --no-build
           --results-directory artifacts/test-results
           --logger trx
           --logger "GitHubActions;summary-include-passed=false"

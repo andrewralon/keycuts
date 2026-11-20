@@ -1,0 +1,66 @@
+<!-- Windows high contrast. Same keys as Light/Dark. Avalonia has no SystemColors, so a brush names the Windows system color it
+     takes (SystemColor.Name) and ThemeManager fills it in from GetSysColor when high contrast is on (docs/styleguide.md, In Avalonia). -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:themes="using:keycuts.App.Themes">
+    <SolidColorBrush x:Key="AccentBrush" themes:SystemColor.Name="HotTrack" />
+    <SolidColorBrush x:Key="AccentHoverBrush" themes:SystemColor.Name="HotTrack" />
+    <SolidColorBrush x:Key="AccentPressedBrush" themes:SystemColor.Name="HotTrack" />
+    <SolidColorBrush x:Key="AccentSoftBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="AccentTextBrush" themes:SystemColor.Name="HotTrack" />
+    <SolidColorBrush x:Key="CanvasBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SidebarBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SurfaceBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SurfaceSubtleBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush" themes:SystemColor.Name="Control" />
+    <SolidColorBrush x:Key="TextBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" themes:SystemColor.Name="GrayText" />
+    <SolidColorBrush x:Key="BorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BorderStrongBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="ControlBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="DangerBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="DangerSoftBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SuccessBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="WarningBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="OnAccentBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="BadgeUrlForegroundBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeUrlBackgroundBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="BadgeUrlBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeFileForegroundBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeFileBackgroundBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="BadgeFileBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeFolderForegroundBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeFolderBackgroundBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="BadgeFolderBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeCommandForegroundBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="BadgeCommandBackgroundBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="BadgeCommandBorderBrush" themes:SystemColor.Name="WindowText" />
+    <!-- No dimming and no shadow in high contrast: the sheet's outline sets it apart -->
+    <SolidColorBrush x:Key="ScrimBrush" Color="Transparent" />
+    <Color x:Key="ShadowColor">Transparent</Color>
+    <!-- A shadow's strength. WPF's DropShadowEffect ignored a color's alpha, so a Transparent ShadowColor alone still drew one: high contrast turns it off here -->
+    <x:Double x:Key="ShadowOpacity">0</x:Double>
+    <!-- No torn corner in high contrast: the bottom bar as it was -->
+    <Thickness x:Key="FooterBarPadding">24,0</Thickness>
+
+    <!-- Tab bar (#218): no gradients, textures or shadow. The bar is the window color, the tabs are outlined in the text color,
+         and the selected tab is the one whose outline runs into the page. -->
+    <SolidColorBrush x:Key="RailBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="RailTextureBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="RailGripBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TabBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="TabTextureBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="TabBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="TabSelectedBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="TabTextBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="TabBaseBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="SocketBrush" themes:SystemColor.Name="Window" />
+    <SolidColorBrush x:Key="SocketBorderBrush" themes:SystemColor.Name="WindowText" />
+    <SolidColorBrush x:Key="CaptionHoverBrush" themes:SystemColor.Name="Highlight" />
+    <SolidColorBrush x:Key="CaptionPressedBrush" themes:SystemColor.Name="Highlight" />
+    <SolidColorBrush x:Key="CaptionHoverGlyphBrush" themes:SystemColor.Name="HighlightText" />
+    <SolidColorBrush x:Key="CaptionCloseBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="CaptionCloseGlyphBrush" Color="#ffffff" />
+</ResourceDictionary>

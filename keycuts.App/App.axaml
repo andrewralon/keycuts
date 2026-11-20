@@ -1,0 +1,29 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:themes="using:keycuts.App.Themes"
+             x:Class="keycuts.App.App">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="/Themes/Tokens.axaml" />
+        <ResourceInclude Source="/Themes/Icons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <!-- The palettes (docs/styleguide.md, In Avalonia): ThemeManager picks one through RequestedThemeVariant, and every
+           DynamicResource brush follows it. High contrast is keycuts' own variant, its colors filled in from Windows. -->
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceInclude x:Key="Light" Source="/Themes/Light.axaml" />
+        <ResourceInclude x:Key="Dark" Source="/Themes/Dark.axaml" />
+        <ResourceInclude x:Key="{x:Static themes:ThemeManager.HighContrastVariant}" Source="/Themes/HighContrast.axaml" />
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <!-- Every window, derived ones included, starts from the palette and the app's font (WPF's ThemeManager.ApplyWindowChrome) -->
+    <Style Selector=":is(Window)">
+      <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+      <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+    </Style>
+  </Application.Styles>
+</Application>

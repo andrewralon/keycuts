@@ -98,6 +98,44 @@
 |u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
 |exit $s|
 
+## folder-under-home
+# Note: Saved with variables (Phase 4.6): double quotes, so only $HOME expands.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/folder-under-home</shortcut>|
+|# <type>folder</type>|
+|# <target>$HOME/it's "odd" $x `y` \z</target>|
+|# <description></description>|
+|open "$HOME/it's \"odd\" \$x \`y\` \\z"|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-under-home-with-app
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-under-home-with-app</shortcut>|
+|# <type>file</type>|
+|# <target>$HOME/notes.txt</target>|
+|# <description></description>|
+|open -a '/System/Applications/TextEdit.app' "$HOME/notes.txt"|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-named-like-home
+# Note: Only $HOME itself or $HOME/ is the variable.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-named-like-home</shortcut>|
+|# <type>file</type>|
+|# <target>/Users/me/$HOMEWORK.txt</target>|
+|# <description></description>|
+|open '/Users/me/$HOMEWORK.txt'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
 ## command
 # Note: Never produced by create, as on Windows.
 |#!/bin/sh|

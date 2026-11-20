@@ -42,6 +42,18 @@ namespace keycuts.Tests
             Assert.Equal(new[] { value }, ShFormat.SplitWords(ShFormat.Quote(value)));
         }
 
+        [Theory]
+        [InlineData("$HOME", "\"$HOME\"")]
+        [InlineData("$HOME/Downloads", "\"$HOME/Downloads\"")]
+        [InlineData("$HOME/a \"b\" $c `d` \\e 'f'", "\"$HOME/a \\\"b\\\" \\$c \\`d\\` \\\\e 'f'\"")]
+        [InlineData("$HOMEWORK", "'$HOMEWORK'")]
+        [InlineData("/Users/me/$HOME/x", "'/Users/me/$HOME/x'")]
+        public void ShFormat_QuoteTarget_DoubleQuotesOnlyAHomePath_AndSplitsBackToIt(string target, string quoted)
+        {
+            Assert.Equal(quoted, ShFormat.QuoteTarget(target));
+            Assert.Equal(new[] { target }, ShFormat.SplitWords(quoted));
+        }
+
         [Fact]
         public void ShFormat_SplitWords_ReadsDoubleQuotesWithoutExpanding_AndRefusesAnUnclosedQuote()
         {

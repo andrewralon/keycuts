@@ -6,6 +6,8 @@ dl: ok, launch line FAILS
 drift: ok, launch line ok
 gmail: ok, launch line ok
 hello: ok, launch line ok
+home: ok, launch line FAILS
+    launch line: Type: Folder -> File
 nasty: ok, launch line ok
 no-header: ok, launch line ok
 no-header-app: ok, launch line ok

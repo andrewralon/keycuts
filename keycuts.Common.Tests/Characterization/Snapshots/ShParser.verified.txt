@@ -34,6 +34,14 @@ OpenWithApp: <null>
 Command:     |/bin/sh -c 'say '\''hi there'\'''|
 Description: ||
 
+## home
+Shortcut:    |home|
+Type:        Folder
+Target:      |$HOME/it's "odd" $x `y` \z|
+OpenWithApp: <null>
+Command:     |open "$HOME/it's \"odd\" \$x \`y\` \\z"|
+Description: |Saved with $HOME|
+
 ## nasty
 Shortcut:    |nasty|
 Type:        File

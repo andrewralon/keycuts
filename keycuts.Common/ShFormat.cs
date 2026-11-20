@@ -9,7 +9,7 @@ namespace keycuts.Common
     /// <summary>
     /// The macOS keycut (docs/macos-port.md, "A keycut on macOS"): a <c>#!/bin/sh</c> script with no extension, mode 755,
     /// whose <c># </c> header lines mirror the <c>.bat</c>'s <c>REM</c> ones. Every target is single-quoted, so nothing in
-    /// it is expanded. Url, File and Folder open with <c>open</c>, a File with an app with <c>open -a</c>, and a Command
+    /// it is expanded, except <c>$HOME</c> (<see cref="QuoteTarget"/>). Url, File and Folder open with <c>open</c>, a File with an app with <c>open -a</c>, and a Command
     /// (parsed, never created) runs through <c>/bin/sh -c</c>. CLSID and hosts-file keycuts are Windows only.
     /// </summary>
     public sealed class ShFormat : IScriptFormat
@@ -59,13 +59,13 @@ namespace keycuts.Common
         {
             if (shortcut.OpenWithApp)
             {
-                return $"open -a {Quote(shortcut.OpenWithAppPath)} {Quote(shortcut.Target)}";
+                return $"open -a {Quote(shortcut.OpenWithAppPath)} {QuoteTarget(shortcut.Target)}";
             }
 
 #pragma warning disable CS8524
             return shortcut.Type switch
             {
-                ShortcutType.Url or ShortcutType.File or ShortcutType.Folder => $"open {Quote(shortcut.Target)}",
+                ShortcutType.Url or ShortcutType.File or ShortcutType.Folder => $"open {QuoteTarget(shortcut.Target)}",
                 ShortcutType.Command => $"/bin/sh -c {Quote(shortcut.Target)}",
                 ShortcutType.CLSIDKey or ShortcutType.HostsFile or ShortcutType.Unknown =>
                     throw new InvalidOperationException($"Can't write a keycut of type {shortcut.Type} on macOS."),
@@ -183,6 +183,24 @@ namespace keycuts.Common
         public static string Quote(string value)
         {
             return "'" + value.Replace("'", "'\\''") + "'";
+        }
+
+        /// <summary>
+        /// A target as one word: <see cref="Quote"/>, except a path saved with <c>$HOME</c> (<see cref="PathVariables.ForMac"/>),
+        /// which goes in double quotes so the variable expands, with <c>\ " $</c> and backticks in the rest escaped.
+        /// </summary>
+        public static string QuoteTarget(string target)
+        {
+            const string home = "$HOME";
+
+            if (target != home && !target.StartsWith(home + "/", StringComparison.Ordinal))
+            {
+                return Quote(target);
+            }
+
+            var rest = target.Substring(home.Length).Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("$", "\\$").Replace("`", "\\`");
+
+            return "\"" + home + rest + "\"";
         }
 
         /// <summary>

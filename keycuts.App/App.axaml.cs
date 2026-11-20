@@ -59,6 +59,13 @@ namespace keycuts.GUI
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
             MacMenus.Attach(Current!, mainWindow);
+            MacMenuBar.Attach(Current!, desktop, mainWindow);
+            if (OperatingSystem.IsMacOS())
+            {
+                // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
+                MacRunBox.Attach(mainWindow, shell);
+                MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
+            }
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a
             // field error, not a crash.
@@ -72,7 +79,16 @@ namespace keycuts.GUI
 
             // Before Show, so the taskbar never shows the exe's own icon first
             AppIconManager.ApplyTo(mainWindow);
-            mainWindow.Show();
+
+            // Phase 6.5: started by the login, keycuts waits in the menu bar with no window and no Dock icon
+            if (OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin())
+            {
+                MacMenuBar.HideFromDock();
+            }
+            else
+            {
+                mainWindow.Show();
+            }
             _ = LoadPathVariablesAsync(shell);
         }
 
@@ -130,7 +146,11 @@ namespace keycuts.GUI
                 applyTheme: ThemeManager.SetPreference,
                 confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults()),
                 // The Debug folder override never writes PATH, so it has no PATH switch either
-                shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null);
+                shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
+            {
+                RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null,
+                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null
+            };
 
             var shell = new ShellViewModel(
                 async () =>

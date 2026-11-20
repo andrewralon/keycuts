@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:keycuts.GUI.ViewModels"
+        xmlns:controls="using:keycuts.GUI.Controls"
+        x:Class="keycuts.GUI.RunBoxWindow"
+        x:DataType="vm:RunBoxViewModel"
+        Title="Run a keycut" Width="{StaticResource RunBoxWidth}" SizeToContent="Height" CanResize="False" CanMaximize="False"
+        WindowDecorations="None" Topmost="True" ShowInTaskbar="False" ShowActivated="True"
+        TransparencyLevelHint="Transparent" Background="Transparent" FontSize="{StaticResource FontSizeBody}">
+  <!-- Phase 6.4 (docs/styleguide.md, The Run box; mockup macos-settings-v1, parts 4 and 5): one text box, the suggestions under
+       it, and a line naming the keys. The keys are RunBoxWindow's; the rows come from RunBoxViewModel. -->
+  <Window.Resources>
+    <!-- The box's one text box draws nothing of its own: no border, fill or focus glow; the window is its frame -->
+    <ControlTheme x:Key="RunTextBox" TargetType="TextBox" BasedOn="{StaticResource AppTextBox}">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Style Selector="^:pointerover /template/ Border#Box">
+        <Setter Property="Background" Value="Transparent" />
+      </Style>
+      <Style Selector="^:focus-within /template/ Border#Box">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+      </Style>
+      <Style Selector="^:focus-within /template/ Border#Glow">
+        <Setter Property="Opacity" Value="0" />
+      </Style>
+    </ControlTheme>
+  </Window.Resources>
+  <Window.Styles>
+    <!-- Rows 40 high, inset 8, RadiusMd: the row's own grid sets the height -->
+    <Style Selector="ListBox#RunRows > ListBoxItem">
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
+    </Style>
+    <Style Selector="ListBox#RunRows > ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+    </Style>
+    <!-- A style, not a local value, so the selected row's style below can change it -->
+    <Style Selector="TextBlock.target">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+    <!-- On the accent, the target and the runs take the accent's text color too, for 4.5:1 -->
+    <Style Selector="ListBox#RunRows > ListBoxItem:selected TextBlock.secondary">
+      <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderStrongBrush}"
+          BorderThickness="1" ClipToBounds="True">
+    <StackPanel>
+      <Grid Height="{StaticResource RunBoxInputHeight}" ColumnDefinitions="Auto,*" Margin="16,0">
+        <Image x:Name="Keycap" Width="{StaticResource RunBoxIconSize}" Height="{StaticResource RunBoxIconSize}" VerticalAlignment="Center"
+               RenderOptions.BitmapInterpolationMode="HighQuality" />
+        <!-- The gray rest of the selected name sits right after the typed text, where Tab would put it -->
+        <Grid Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+          <TextBlock x:Name="CompletionText" FontSize="{StaticResource FontSizeHeading}" Foreground="{DynamicResource TextTertiaryBrush}"
+                     IsHitTestVisible="False" VerticalAlignment="Center">
+            <Run x:Name="CompletionTyped" Foreground="Transparent" Text="{Binding Text}" /><Run Text="{Binding Completion}" />
+          </TextBlock>
+          <TextBox x:Name="RunText" Theme="{StaticResource RunTextBox}" FontSize="{StaticResource FontSizeHeading}" Text="{Binding Text}"
+                   VerticalAlignment="Center" AutomationProperties.Name="Run a keycut" />
+        </Grid>
+      </Grid>
+
+      <StackPanel IsVisible="{Binding HasRows}">
+        <Border Height="1" Background="{DynamicResource BorderBrush}" />
+        <ListBox x:Name="RunRows" ItemsSource="{Binding Rows}" SelectedIndex="{Binding SelectedIndex}" Margin="8" Background="Transparent"
+                 Focusable="False" AutomationProperties.Name="Suggestions">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:RunBoxRow">
+              <Grid Height="{StaticResource RunBoxRowHeight}" ColumnDefinitions="Auto,Auto,*,Auto"
+                    AutomationProperties.Name="{Binding AutomationName}">
+                <TextBlock Grid.Column="0" Width="{StaticResource RunBoxNameWidth}" Text="{Binding Name}" FontWeight="SemiBold"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <controls:TypeBadge Grid.Column="1" Kind="{Binding Kind}" Margin="12,0,0,0" VerticalAlignment="Center" IsVisible="{Binding IsKeycut}" />
+                <controls:Icon Grid.Column="1" Kind="Rocket" Size="16" Margin="12,0,0,0" VerticalAlignment="Center" IsVisible="{Binding IsCreate}" />
+                <TextBlock Grid.Column="2" Margin="12,0" Text="{Binding Target}" Classes="secondary target"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="3" Text="{Binding RunsText}" Theme="{StaticResource Caption}" Classes="secondary" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Border Height="{StaticResource RunBoxHintHeight}" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0" Padding="16,0">
+          <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+            <TextBlock Theme="{StaticResource Caption}"><Run Text="Return" FontWeight="SemiBold" /><Run Text="{Binding ReturnHint}" /></TextBlock>
+            <TextBlock Theme="{StaticResource Caption}" IsVisible="{Binding !OffersCreate}"><Run Text="Tab" FontWeight="SemiBold" /><Run Text=" complete" /></TextBlock>
+            <TextBlock Theme="{StaticResource Caption}" IsVisible="{Binding !OffersCreate}"><Run Text="↑ ↓" FontWeight="SemiBold" /><Run Text=" choose" /></TextBlock>
+            <TextBlock Theme="{StaticResource Caption}"><Run Text="Esc" FontWeight="SemiBold" /><Run Text=" close" /></TextBlock>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

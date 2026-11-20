@@ -47,6 +47,8 @@ namespace keycuts.Tests
         {
             // The views: the tab bar's name, optical offsets, glows outside their control, fully round shapes, sort headers
             new("Views/RailView.axaml", "TextBlock", "FontSize", "{StaticResource FontSizeSubheading}", "the name keycuts in the tab bar (Fluent Body Large), not a heading"),
+            new("RunBoxWindow.axaml", "TextBox", "FontSize", "{StaticResource FontSizeHeading}", "the Run box's input, typed at 20 (styleguide.md, The Run box), not a heading"),
+            new("RunBoxWindow.axaml", "TextBlock", "FontSize", "{StaticResource FontSizeHeading}", "the Run box's gray completion, under the input at its size"),
             new("Views/CreatorView.axaml", "TextBox", "Margin", "-2,4,0,0", "borderless target box, its text lined up with the Target label"),
             new("ConfirmWindow.axaml", "Icon", "Margin", "0,1,8,0", "warning icon lowered onto the first line of its text"),
             new("Views/CreatorForm.axaml", "Setter", "Margin", "2,0,0,0", "target placeholder, where the text box draws its first character"),

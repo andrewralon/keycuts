@@ -89,6 +89,21 @@ namespace keycuts.Tests
 
             // Selection borders: a card whose border goes from 1 to 2 takes 1 off its padding, so nothing moves
             new("Themes/Controls.xaml", "Setter", "Padding", "11", "selected card"),
+
+            // The Avalonia app's control themes (keycuts.App, Phase 3.2) keep the WPF ones' exceptions, for the same reasons
+            new("Themes/Controls.axaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),
+            new("Themes/Controls.axaml", "Rectangle", "RadiusY", "7", "focus ring: RadiusSm + 2"),
+            new("Themes/Controls.axaml", "Border", "Margin", "-3", "text box glow, 3 outside the box"),
+            new("Themes/Controls.axaml", "Border", "CornerRadius", "8", "text box glow: RadiusSm + 3"),
+            new("Themes/Controls.axaml", "Rectangle", "Margin", "-4,-2", "toggle focus ring, 2 outside the track"),
+            new("Themes/Controls.axaml", "Rectangle", "RadiusX", "12", "toggle focus ring: the track's 10 + 2"),
+            new("Themes/Controls.axaml", "Rectangle", "RadiusY", "12", "toggle focus ring: the track's 10 + 2"),
+            new("Themes/Controls.axaml", "Border", "CornerRadius", "9", "radio box, 18 high"),
+            new("Themes/Controls.axaml", "Border", "CornerRadius", "10", "toggle track, 20 high"),
+            new("Themes/Controls.axaml", "Border", "Margin", "2", "scroll thumb's inset"),
+            new("Themes/Controls.axaml", "Border", "CornerRadius", "3", "scroll thumb"),
+            new("Themes/Controls.axaml", "Ellipse", "Margin", "2,0,0,0", "toggle thumb, 2 inside the track"),
+            new("Themes/Controls.axaml", "Setter", "Margin", "0,0,2,0", "toggle thumb when on, 2 inside the track"),
         };
 
         sealed record Exception(string File, string Element, string Property, string Value, string Why);

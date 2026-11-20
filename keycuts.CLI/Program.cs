@@ -303,7 +303,7 @@ namespace keycuts.CLI
             // Check the exact file the create will write, so a replace shows that file's target
             var batPath = Shortcut.GetFullPath(options.Shortcut, outputFolder);
 
-            return NameCheck.Run(System.IO.Path.GetFileNameWithoutExtension(batPath), System.IO.Path.GetDirectoryName(batPath),
+            return NameCheck.Run(ScriptFormats.NameOf(batPath), System.IO.Path.GetDirectoryName(batPath),
                 askBeforeReplacing, environment);
         }
     }

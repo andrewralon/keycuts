@@ -340,7 +340,7 @@ namespace keycuts.Common
                     // first run is counted even before keycuts is opened again.
                     if (isNew)
                     {
-                        Usage.Forget(Path.GetFileNameWithoutExtension(shortcut.FullPath));
+                        Usage.Forget(ScriptFormats.NameOf(shortcut.FullPath));
                     }
 
                     Usage.EnsureFolder();

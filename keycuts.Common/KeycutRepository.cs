@@ -161,7 +161,7 @@ namespace keycuts.Common
 
                 return TryParse(file) ?? new Keycut
                 {
-                    Name = Path.GetFileNameWithoutExtension(file),
+                    Name = ScriptFormats.NameOf(file),
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.Unknown,
                     Target = "",
@@ -435,7 +435,7 @@ namespace keycuts.Common
                 {
                     // The file's own spelling, so a "KeyPaste.bat" is reported as it's named
                     var path = Directory.EnumerateFiles(_outputFolder, command + ShortcutFile.Extension)
-                        .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), command, StringComparison.OrdinalIgnoreCase));
+                        .FirstOrDefault(f => string.Equals(ScriptFormats.NameOf(f), command, StringComparison.OrdinalIgnoreCase));
 
                     if (path == null)
                     {
@@ -450,7 +450,7 @@ namespace keycuts.Common
                     }
 
                     Rename(path, newName);
-                    renamed.Add(new RenamedKeycut(Path.GetFileNameWithoutExtension(path), newName));
+                    renamed.Add(new RenamedKeycut(ScriptFormats.NameOf(path), newName));
                 }
                 catch (Exception ex) when (ex is KeycutRepositoryException || ex is IOException || ex is UnauthorizedAccessException)
                 {
@@ -781,7 +781,7 @@ namespace keycuts.Common
                 _recycler.Remove(path);
 
                 // Its run count goes too, so a new keycut with the name starts from nothing; Undo puts it back
-                var usage = _usage?.Remove(Path.GetFileNameWithoutExtension(path));
+                var usage = _usage?.Remove(ScriptFormats.NameOf(path));
 
                 return new DeletedKeycut(keycut, contents, modified, recycled) { Usage = usage };
             }
@@ -861,7 +861,7 @@ namespace keycuts.Common
                         if (!string.Equals(newPath, oldPath, StringComparison.Ordinal))
                         {
                             File.Move(oldPath, newPath);
-                            _usage?.Move(Path.GetFileNameWithoutExtension(oldPath), name);
+                            _usage?.Move(ScriptFormats.NameOf(oldPath), name);
                         }
                     }
                     else
@@ -882,7 +882,7 @@ namespace keycuts.Common
                             throw;
                         }
 
-                        _usage?.Move(Path.GetFileNameWithoutExtension(oldPath), name);
+                        _usage?.Move(ScriptFormats.NameOf(oldPath), name);
                     }
                 }
                 finally
@@ -970,7 +970,7 @@ namespace keycuts.Common
         private void Restore(DeletedKeycut deleted)
         {
             var path = deleted.Keycut.FilePath;
-            var name = Path.GetFileNameWithoutExtension(path);
+            var name = ScriptFormats.NameOf(path);
 
             try
             {
@@ -1050,7 +1050,7 @@ namespace keycuts.Common
 
                 File.Move(path, newPath);
                 TryRewriteShortcutLine(newPath);
-                _usage?.Move(Path.GetFileNameWithoutExtension(path), newName);
+                _usage?.Move(ScriptFormats.NameOf(path), newName);
 
                 return newPath;
             }
@@ -1241,7 +1241,7 @@ namespace keycuts.Common
         {
             return new Keycut
             {
-                Name = Path.GetFileNameWithoutExtension(keycut.FilePath),
+                Name = ScriptFormats.NameOf(keycut.FilePath),
                 Kind = KeycutKind.File,
                 RawType = ShortcutType.Unknown,
                 Target = "",

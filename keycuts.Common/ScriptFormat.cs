@@ -76,6 +76,15 @@ namespace keycuts.Common
         /// <summary>Every platform uses <see cref="BatFormat"/> until macOS gets its own (Phase 4).</summary>
         public static readonly IScriptFormat Current = new BatFormat();
 
+        /// <summary>
+        /// A keycut's name from its file's path: the file name without the format's extension. With no extension (macOS) that's
+        /// the whole file name, so a keycut named <c>my.app</c> keeps its dot.
+        /// </summary>
+        public static string NameOf(string path)
+        {
+            return Current.Extension.Length == 0 ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path);
+        }
+
         /// <summary>Mode 755 for a keycut written in a format that <see cref="IScriptFormat.NeedsExecutableBit"/>. Windows has no such mode.</summary>
         public static void MarkExecutable(IScriptFormat format, string path)
         {

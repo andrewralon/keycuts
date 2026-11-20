@@ -372,6 +372,41 @@ namespace keycuts.Tests
             Assert.Equal(new Rect(0, 0, 1024, 728), WindowLayout.ClampToWorkArea(new Rect(10, 10, 1400, 900), workArea));
         }
 
+        // Two columns at every size the window takes, the smallest included (the owner's pick, 2026-11-17: no stacking)
+        [AvaloniaTheory]
+        [InlineData(960, 544)]
+        [InlineData(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight)]
+        [InlineData(WindowLayout.ManagerMinWidth, WindowLayout.ManagerMinHeight)]
+        public void Settings_IsTwoColumns_AndFitsWithoutScrolling(double width, double height)
+        {
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Dispatcher.UIThread.RunJobs();
+                window.Width = width;
+                window.Height = height;
+                Dispatcher.UIThread.RunJobs();
+
+                var view = window.GetVisualDescendants().OfType<SettingsView>().Single();
+                var labels = view.GetVisualDescendants().OfType<SectionLabel>().ToList();
+                var output = labels.Single(l => l.Text == "Output").TranslatePoint(new Point(0, 0), view)!.Value;
+                var appearance = labels.Single(l => l.Text == "Appearance").TranslatePoint(new Point(0, 0), view)!.Value;
+                Assert.Equal(output.Y, appearance.Y, 0.5);
+                Assert.True(appearance.X > view.Bounds.Width / 2);
+
+                // The left column's controls end before the rule, and the right one's buttons end inside the page
+                var folder = Named<TextBox>(window, "TextboxOutputFolder");
+                var ruleX = Named<Border>(window, "ColumnRule").TranslatePoint(new Point(0, 0), view)!.Value.X;
+                Assert.True(folder.TranslatePoint(new Point(folder.Bounds.Width, 0), view)!.Value.X <= ruleX - 24 + 0.5);
+                var restore = Named<Button>(window, "BtnRestoreDefaults");
+                Assert.True(restore.TranslatePoint(new Point(restore.Bounds.Width, 0), view)!.Value.X <= view.Bounds.Width - 24 + 0.5);
+
+                // All of it fits, without scrolling
+                var scroller = Named<ScrollViewer>(window, "BodyScroller");
+                Assert.Equal(0, scroller.Extent.Height - scroller.Viewport.Height, 0.5);
+            }, withSettings: true);
+        }
+
         #endregion Sizes
 
         #region The Manager

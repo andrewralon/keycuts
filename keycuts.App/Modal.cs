@@ -37,17 +37,23 @@ namespace keycuts.GUI
                 return default;
             }
 
+            return Wait(() => dialog.ShowDialog<T>(owner));
+        }
+
+        /// <summary>Runs <paramref name="work"/> (a dialog, a picker) in a nested dispatcher frame and returns its result.</summary>
+        public static T? Wait<T>(Func<System.Threading.Tasks.Task<T>> work)
+        {
             var result = default(T);
             var frame = new DispatcherFrame();
-            _ = Wait();
+            _ = Run();
             Dispatcher.UIThread.PushFrame(frame);
             return result;
 
-            async System.Threading.Tasks.Task Wait()
+            async System.Threading.Tasks.Task Run()
             {
                 try
                 {
-                    result = await dialog.ShowDialog<T>(owner);
+                    result = await work();
                 }
                 finally
                 {

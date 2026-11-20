@@ -28,8 +28,14 @@
     <Compile Include="..\keycuts.GUI\Themes\AppIcons.cs" Link="Themes\AppIcons.cs" />
     <Compile Include="..\keycuts.GUI\ShellIdList.cs" Link="ShellIdList.cs" />
   </ItemGroup>
-  <!-- The app icons' 256 px images, for the tab bar (Themes/AppIcons.Images.cs) -->
+  <!-- The app icons (Themes/AppIcons.Images.cs): the 256 px images for the tab bar and the picker, and the .ico files Settings
+       offers, built in for the windows and copied to icons\ beside the exe for the shortcuts that point at them
+       (Common/ShortcutIcons), as in WPF -->
   <ItemGroup>
     <AvaloniaResource Include="..\assets\icons\*\*-256.png" Link="Images\AppIcons\%(Filename)%(Extension)" />
+    <AppIconFile Include="..\assets\icons\porcelain\porcelain.ico;..\assets\icons\onyx\onyx.ico;..\assets\icons\cobalt\cobalt.ico;..\assets\icons\twilight\twilight.ico;..\assets\icons\classic\classic.ico" />
+    <AppIconFile Include="..\assets\icons\key-white\key-white.ico;..\assets\icons\key-charcoal\key-charcoal.ico;..\assets\icons\key-blue\key-blue.ico;..\assets\icons\classic-transparent\classic-transparent.ico" />
+    <AvaloniaResource Include="@(AppIconFile)" Link="Images\AppIcons\%(Filename)%(Extension)" />
+    <Content Include="@(AppIconFile)" Link="icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

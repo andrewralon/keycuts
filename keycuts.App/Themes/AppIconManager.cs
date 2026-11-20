@@ -4,9 +4,8 @@ using keycuts.Common;
 namespace keycuts.GUI.Themes
 {
     /// <summary>
-    /// The app icon the user chose, and the drawing it shows now (WPF's Themes/AppIconManager, its state only). The Settings view
-    /// model reads and changes it through <c>AppIconService</c>. Setting the windows' icons and repointing the shortcuts comes with
-    /// the icon picker in Phase 3.8.
+    /// The app icon the user chose, and the drawing it shows now (WPF's Themes/AppIconManager). The Settings view
+    /// model reads and changes it through <c>AppIconService</c>. It gives the windows their icon (<see cref="ApplyTo"/>) and has the shortcuts repointed.
     /// </summary>
     public static class AppIconManager
     {
@@ -26,11 +25,29 @@ namespace keycuts.GUI.Themes
         /// <summary>Raised when <see cref="Current"/> changes: a new choice, the transparent setting, or a theme change.</summary>
         public static event EventHandler? Changed;
 
-        public static void Initialize(AppIconChoice choice, bool transparent)
+        static Action<AppIconArt>? updateShortcuts;
+
+        /// <summary>Gives a window the current icon, and keeps it in step with the choice and the theme.</summary>
+        public static void ApplyTo(Avalonia.Controls.Window window)
         {
+            window.Icon = AppIcons.GetWindowIcon(Current);
+            EventHandler changed = (_, _) => window.Icon = AppIcons.GetWindowIcon(Current);
+            Changed += changed;
+            window.Closed += (_, _) => Changed -= changed;
+        }
+
+        /// <summary>
+        /// After <see cref="ThemeManager.Initialize"/>, which it follows, and before the first window. <paramref name="shortcuts"/>
+        /// repoints the app's shortcuts (Start menu, pinned taskbar) at the icon now shown: now, which brings it back on shortcuts an
+        /// upgrade recreated, and at each change.
+        /// </summary>
+        public static void Initialize(AppIconChoice choice, bool transparent, Action<AppIconArt>? shortcuts = null)
+        {
+            updateShortcuts = shortcuts;
             Choice = choice;
             Transparent = transparent;
             Current = Resolve(choice, transparent);
+            updateShortcuts?.Invoke(Current);
             ThemeManager.Applied -= OnThemeApplied;
             ThemeManager.Applied += OnThemeApplied;
         }
@@ -83,6 +100,7 @@ namespace keycuts.GUI.Themes
 
             Current = art;
             Changed?.Invoke(null, EventArgs.Empty);
+            updateShortcuts?.Invoke(art);
         }
     }
 }

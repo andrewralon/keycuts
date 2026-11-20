@@ -8,6 +8,8 @@
     <RootNamespace>keycuts.GUI</RootNamespace>
     <AssemblyName>keycuts.App</AssemblyName>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- The exe's own icon, as WPF's: Porcelain, the default choice. The windows show the Settings choice (Themes/AppIconManager). -->
+    <ApplicationIcon>..\assets\icons\porcelain\porcelain.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />

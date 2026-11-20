@@ -102,7 +102,7 @@ Who checks each step: **W** = this Windows machine, **M** = the Mac, **CI** = Gi
 **How the rest is done (the owner, 2026-11-20).** From Phase 3.5 on, the port is a plain refactor: each WPF view and its code-behind is translated to Avalonia directly, with the WPF tests that cover it, and each step is recorded here in a line or two. No new test machinery, prototypes or long notes. Three PRs are left, one change per commit inside each:
 
 1. **Phase 3.5–3.12**: the whole Avalonia app on Windows, through cutover and 2.0.0 (*merged as #280; the owner's release steps are left, see 3.12*)
-2. **Phases 4–6**: keycuts on macOS (the core, the app, the Run box). **Next.** Windows-testable parts first; stop when only Mac checks remain
+2. **Phases 4–6**: keycuts on macOS (the core, the app, the Run box). **Next.** One PR, two machines: first on Windows, the steps marked **W** (4.1, 4.2, 4.4, 4.6, 4.7, 4.9, 6.3; the `[MacFact]` tests run in CI's `macos` job), stopping when only **M** work is left. Then the same PR continues on the Mac: 4.3, 4.5, 4.8, the Phase 4 milestone, the **M** halves of the **W** + **M** steps, Phase 5 (mockups approved first) and the rest of Phase 6
 3. **Phases 7–10**: Quick Action, packaging, docs, Spotlight
 
 ### Phase 0: prototypes on the Mac (before product code)

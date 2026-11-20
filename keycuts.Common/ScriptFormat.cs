@@ -24,6 +24,15 @@ namespace keycuts.Common
 
         /// <summary>Reads lines already read from <paramref name="file"/>, which is only used for its name.</summary>
         ShortcutFile Parse(string file, string[] lines);
+
+        /// <summary>A description as its comment line holds it: on one line, plus whatever the script language needs.</summary>
+        string SanitizeDescription(string description);
+
+        /// <summary>The text of the first description line, as <see cref="Parse"/> reads it, or empty.</summary>
+        string ParseDescription(string[] lines);
+
+        /// <summary>Whether <see cref="Parse"/> takes this line for the launch line; a missing description line goes just before it.</summary>
+        bool IsLaunchLine(string line);
     }
 
     /// <summary>The <c>.bat</c> keycut: <see cref="Runner.BuildShortcutLines"/> writes it and <see cref="ShortcutFile"/> reads it.</summary>
@@ -43,6 +52,21 @@ namespace keycuts.Common
         public ShortcutFile Parse(string file, string[] lines)
         {
             return new ShortcutFile(file, lines);
+        }
+
+        public string SanitizeDescription(string description)
+        {
+            return Runner.SanitizeDescription(description);
+        }
+
+        public string ParseDescription(string[] lines)
+        {
+            return ShortcutFile.ParseDescription(lines);
+        }
+
+        public bool IsLaunchLine(string line)
+        {
+            return ShortcutFile.IsLaunchLine(line);
         }
     }
 

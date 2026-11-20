@@ -321,29 +321,35 @@ namespace keycuts.Common
                 .SequenceEqual(emitted.Where(line => !UsageLog.IsUsageLine(line)).Select(NormalizeForComparison), StringComparer.Ordinal);
         }
 
+        // The header lines are comments of the format: REM in a .bat, # in a sh script ("A keycut on macOS")
+        private static readonly string Rem = ScriptFormats.Current.CommentPrefix;
+
+        // The prefix as a pattern, then the space after it: REM needs one, # can do without (as the sh parser reads it)
+        private static readonly string RemPattern = System.Text.RegularExpressions.Regex.Escape(Rem) + (char.IsLetter(Rem[Rem.Length - 1]) ? @"\s+" : @"\s*");
+
         private static readonly System.Text.RegularExpressions.Regex DescriptionRemLine = new System.Text.RegularExpressions.Regex(
-            @"^\s*REM\s+<description>.*</description>\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            @"^\s*" + RemPattern + @"<description>.*</description>\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex HeaderRemLine = new System.Text.RegularExpressions.Regex(
-            @"^REM keycuts(\s.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            "^" + System.Text.RegularExpressions.Regex.Escape(Rem) + @" keycuts(\s.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex ShortcutRemPath = new System.Text.RegularExpressions.Regex(
-            @"^REM <shortcut>.*</shortcut>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            "^" + System.Text.RegularExpressions.Regex.Escape(Rem) + " <shortcut>.*</shortcut>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex DestinationRemTag = new System.Text.RegularExpressions.Regex(
-            @"^REM <destination>(.*)</destination>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            "^" + System.Text.RegularExpressions.Regex.Escape(Rem) + " <destination>(.*)</destination>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         /// <summary>A line with what <see cref="CanEditInForm(string, string[])"/> ignores taken out.</summary>
         private static string NormalizeForComparison(string line)
         {
             if (HeaderRemLine.IsMatch(line))
             {
-                return "REM keycuts";
+                return Rem + " keycuts";
             }
 
             if (ShortcutRemPath.IsMatch(line))
             {
-                return "REM <shortcut></shortcut>";
+                return Rem + " <shortcut></shortcut>";
             }
 
             // Folder and CLSID keycuts written before #160 call explorer.exe without START. They run the same, so they stay
@@ -355,7 +361,7 @@ namespace keycuts.Common
                 return "START \"\" /B " + line;
             }
 
-            return DestinationRemTag.Replace(line, "REM <target>$1</target>");
+            return DestinationRemTag.Replace(line, Rem + " <target>$1</target>");
         }
 
         /// <summary>
@@ -1012,7 +1018,7 @@ namespace keycuts.Common
         }
 
         private static readonly System.Text.RegularExpressions.Regex ShortcutRemLine = new System.Text.RegularExpressions.Regex(
-            @"^(\s*REM\s+<shortcut>).*?(</shortcut>)",
+            @"^(\s*" + RemPattern + @"<shortcut>).*?(</shortcut>)",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
 
         private string Rename(string path, string newName)
@@ -1113,7 +1119,7 @@ namespace keycuts.Common
         }
 
         private static readonly System.Text.RegularExpressions.Regex DescriptionLineParts = new System.Text.RegularExpressions.Regex(
-            @"^(?<pre>\s*REM\s+<description>)(?<text>.*)(?<post></description>\s*)$",
+            @"^(?<pre>\s*" + RemPattern + @"<description>)(?<text>.*)(?<post></description>\s*)$",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly char[] LineBreaks = { '\r', '\n' };
@@ -1174,18 +1180,18 @@ namespace keycuts.Common
 
                 // The keycut was loaded some time ago. If its description has been changed since (Notepad, another window),
                 // saving would quietly put the old one back over it
-                if (!string.Equals(ShortcutFile.ParseDescription(lines), keycut.Description ?? string.Empty, StringComparison.Ordinal))
+                if (!string.Equals(ScriptFormats.Current.ParseDescription(lines), keycut.Description ?? string.Empty, StringComparison.Ordinal))
                 {
                     throw new KeycutRepositoryException(KeycutRepositoryError.Changed, $"\"{path}\" changed since it was loaded.");
                 }
 
-                // As the Creator writes it (one line, every % doubled, #162), and as reading it back gives it
-                var sanitized = Runner.SanitizeDescription(description);
-                var wanted = ShortcutFile.ParseDescription(new[] { $"REM <description>{sanitized}</description>" });
+                // As the Creator writes it (one line, every % doubled in a .bat, #162), and as reading it back gives it
+                var sanitized = ScriptFormats.Current.SanitizeDescription(description);
+                var wanted = ScriptFormats.Current.ParseDescription(new[] { $"{Rem} <description>{sanitized}</description>" });
                 var existing = Array.FindIndex(lines, line => DescriptionLineParts.IsMatch(line));
 
                 // Nothing to change: the file keeps its bytes and its date. No line and nothing to say needs no line.
-                if (existing >= 0 ? string.Equals(ShortcutFile.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
+                if (existing >= 0 ? string.Equals(ScriptFormats.Current.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
                 {
                     return WithUsage(TryParse(path)) ?? UnreadableKeycut(keycut);
                 }
@@ -1203,7 +1209,7 @@ namespace keycuts.Common
                 {
                     // A keycut from before descriptions (1.0) or a hand-written launcher has no line: add one where the
                     // emitter puts it, just before the launch line, with the file's own line breaks
-                    var launch = Array.FindIndex(lines, ShortcutFile.IsLaunchLine);
+                    var launch = Array.FindIndex(lines, ScriptFormats.Current.IsLaunchLine);
 
                     if (launch < 0)
                     {
@@ -1211,8 +1217,8 @@ namespace keycuts.Common
                     }
 
                     var firstBreak = text.IndexOfAny(LineBreaks);
-                    var lineBreak = firstBreak < 0 ? "\r\n" : text[firstBreak] == '\r' && firstBreak + 1 < text.Length && text[firstBreak + 1] == '\n' ? "\r\n" : text[firstBreak].ToString();
-                    updated = text.Insert(spans[launch].Start, $"REM <description>{sanitized}</description>" + lineBreak);
+                    var lineBreak = firstBreak < 0 ? Environment.NewLine : text[firstBreak] == '\r' && firstBreak + 1 < text.Length && text[firstBreak + 1] == '\n' ? "\r\n" : text[firstBreak].ToString();
+                    updated = text.Insert(spans[launch].Start, $"{Rem} <description>{sanitized}</description>" + lineBreak);
                 }
 
                 var body = strict.GetBytes(updated);

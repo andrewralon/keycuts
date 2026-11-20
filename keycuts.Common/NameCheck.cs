@@ -71,12 +71,14 @@ namespace keycuts.Common
             return keycut == null ? conflict : new NameConflict(conflict.Path, conflict.Effect, conflict.Source, keycut);
         }
 
-        // Every version of keycuts writes "REM keycuts <version>" among the first lines
+        // Every version of keycuts writes "REM keycuts <version>" among the first lines ("# keycuts <version>" on macOS)
         private static bool HasKeycutsHeader(string path)
         {
+            var header = ScriptFormats.Current.CommentPrefix + " keycuts ";
+
             try
             {
-                return File.ReadLines(path).Take(5).Any(line => line.TrimStart().StartsWith("REM keycuts ", StringComparison.OrdinalIgnoreCase));
+                return File.ReadLines(path).Take(5).Any(line => line.TrimStart().StartsWith(header, StringComparison.OrdinalIgnoreCase));
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {

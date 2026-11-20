@@ -10,7 +10,8 @@ out="${1:-$HOME/Desktop}"
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
 arch="$(uname -m)"; rid="osx-arm64"; [ "$arch" = "x86_64" ] && rid="osx-x64"
 version="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$repo/Directory.Build.props" | head -1)"
-app="$out/keycuts.app"
+work="$(mktemp -d)"   # built and signed here: a synced folder such as the Desktop keeps adding attributes that codesign refuses
+app="$work/keycuts.app"
 
 dotnet publish "$repo/keycuts.App" -c Release -r "$rid" --self-contained -p:EnableWindowsTargeting=true --nologo -v q >&2
 rm -rf "$app"
@@ -51,5 +52,8 @@ cat > "$app/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+xattr -cr "$app"
 codesign --force --deep --sign - "$app" >&2
-echo "$app"
+rm -rf "$out/keycuts.app"
+mv "$app" "$out/keycuts.app"
+echo "$out/keycuts.app"

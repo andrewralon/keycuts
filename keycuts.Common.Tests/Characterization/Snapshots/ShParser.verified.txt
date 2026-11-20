@@ -1,0 +1,119 @@
+# ShFormat parse of every file in tests/corpus/macos
+# Values are wrapped in | | so leading and trailing spaces show.
+
+## dl
+Shortcut:    |dl|
+Type:        Folder
+Target:      |/Users/me/Downloads|
+OpenWithApp: <null>
+Command:     |open '/Users/me/Downloads'|
+Description: ||
+
+## drift
+Shortcut:    |drift|
+Type:        Url
+Target:      |https://example.com|
+OpenWithApp: |/Applications/Firefox.app|
+Command:     |open -a '/Applications/Firefox.app' 'https://example.org'|
+Description: |Edited by hand|
+Note:        The header's url wins over the Firefox launch line, as the REM lines do in a .bat. Command keeps the real line, and OpenWithApp comes from it.
+
+## gmail
+Shortcut:    |gmail|
+Type:        Url
+Target:      |https://mail.google.com/mail/u/0/#inbox|
+OpenWithApp: <null>
+Command:     |open 'https://mail.google.com/mail/u/0/#inbox'|
+Description: |Inbox|
+
+## hello
+Shortcut:    |hello|
+Type:        Command
+Target:      |say 'hi there'|
+OpenWithApp: <null>
+Command:     |/bin/sh -c 'say '\''hi there'\'''|
+Description: ||
+
+## home
+Shortcut:    |home|
+Type:        Folder
+Target:      |$HOME/it's "odd" $x `y` \z|
+OpenWithApp: <null>
+Command:     |open "$HOME/it's \"odd\" \$x \`y\` \\z"|
+Description: |Saved with $HOME|
+
+## nasty
+Shortcut:    |nasty|
+Type:        File
+Target:      |/Users/me/it's "odd" $HOME `x` café ☕.txt|
+Program:     |/Users/me/it's "odd" $HOME `x` café ☕.txt|
+Arguments:   ||
+OpenWithApp: <null>
+Command:     |open '/Users/me/it'\''s "odd" $HOME `x` café ☕.txt'|
+Description: |100% "done" $HOME `rm -rf` 'x' # <b> \|
+
+## no-header
+Shortcut:    |no-header|
+Type:        Url
+Target:      |https://github.com|
+OpenWithApp: <null>
+Command:     |open 'https://github.com'|
+Description: ||
+Note:        No header: the launch line alone says Url.
+
+## no-header-app
+Shortcut:    |no-header-app|
+Type:        File
+Target:      |$HOME/page.html|
+Program:     |$HOME/page.html|
+Arguments:   ||
+OpenWithApp: |/Applications/Safari.app|
+Command:     |open -a '/Applications/Safari.app' "$HOME/page.html"|
+Description: ||
+Note:        No header: a path reads as a File (a Folder needs the header). "$HOME/…" is kept as text, not expanded.
+
+## not-a-keycut
+Shortcut:    |not-a-keycut|
+Type:        Unknown
+Target:      <null>
+OpenWithApp: <null>
+Command:     <null>
+Description: ||
+Note:        No open or /bin/sh -c line, so Unknown.
+
+## notes
+Shortcut:    |notes|
+Type:        File
+Target:      |/Users/me/notes.txt|
+Program:     |/Users/me/notes.txt|
+Arguments:   ||
+OpenWithApp: |/System/Applications/TextEdit.app|
+Command:     |open -a '/System/Applications/TextEdit.app' '/Users/me/notes.txt'|
+Description: |In TextEdit|
+
+## safari
+Shortcut:    |safari|
+Type:        File
+Target:      |/Applications/Safari.app|
+Program:     |/Applications/Safari.app|
+Arguments:   ||
+OpenWithApp: <null>
+Command:     |open '/Applications/Safari.app'|
+Description: ||
+
+## unclosed
+Shortcut:    |unclosed|
+Type:        Unknown
+Target:      <null>
+OpenWithApp: <null>
+Command:     <null>
+Description: ||
+Note:        The quote never closes, so it isn't a launch line: Unknown.
+
+## url-quote
+Shortcut:    |url-quote|
+Type:        Url
+Target:      |https://example.com/?q=it's+$5&x=`a`|
+OpenWithApp: <null>
+Command:     |open 'https://example.com/?q=it'\''s+$5&x=`a`'|
+Description: ||

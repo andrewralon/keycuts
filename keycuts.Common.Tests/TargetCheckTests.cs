@@ -77,6 +77,20 @@ namespace keycuts.Tests
             return keycut;
         }
 
+        // A path saved with $HOME (Phase 4.6) is looked for where it expands to, and still reads as saved
+        [MacFact]
+        public async Task OnMacOS_AHomeFolderTarget_IsChecked_Expanded()
+        {
+            File.WriteAllLines(Path.Combine(_folder, "home.bat"), new[] { "REM <type>folder</type>", "REM <target>$HOME</target>", "START x" });
+            File.WriteAllLines(Path.Combine(_folder, "gone.bat"), new[] { "REM <type>folder</type>", "REM <target>$HOME/keycuts-missing-" + Guid.NewGuid().ToString("N") + "</target>", "START x" });
+
+            var home = await LoadAndCheck("home");
+            var gone = await LoadAndCheck("gone");
+
+            Assert.Equal(("$HOME", TargetStatus.Ok), (home.Target, home.TargetStatus));
+            Assert.Equal(TargetStatus.Missing, gone.TargetStatus);
+        }
+
         // The control row: one quoted program, a folder to start in
         [WindowsFact]
         public async Task QuotedProgram_InAStartInFolder_IsOk()

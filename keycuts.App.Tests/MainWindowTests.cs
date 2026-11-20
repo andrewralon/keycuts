@@ -182,14 +182,6 @@ namespace keycuts.Tests
             window.Close();
         }
 
-        // Settings can't be stored on macOS until Phase 4.2: a save says so on the screen instead of failing the app
-        [MacFact]
-        public void OnMacOS_ASettingsSave_SaysItCouldntBeStored()
-        {
-            var message = new Settings { OutputFolder = "/tmp", Theme = ThemePreference.Dark }.SaveOptions();
-            Assert.StartsWith(Settings.SaveFailedPrefix, message);
-        }
-
         [AvaloniaFact]
         public void TheSettingsTab_WithoutASettingsScreen_KeepsTheScreensTab()
         {

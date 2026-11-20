@@ -1,0 +1,10 @@
+#!/bin/sh
+# keycuts 2.0.0
+# <shortcut>/Users/me/Shortcuts/notes</shortcut>
+# <type>file</type>
+# <target>/Users/me/notes.txt</target>
+# <description>In TextEdit</description>
+open -a '/System/Applications/TextEdit.app' '/Users/me/notes.txt'
+s=$?
+u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null
+exit $s

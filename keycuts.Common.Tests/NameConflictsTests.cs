@@ -377,5 +377,54 @@ namespace keycuts.Tests
             Assert.Same(shadows, NameConflicts.GetMain(new[] { shadows }));
             Assert.Null(NameConflicts.GetMain(Array.Empty<NameConflict>()));
         }
+
+        #region macOS (Phase 4.7)
+
+        const string MacOutput = "/Users/me/Shortcuts";
+
+        static NameConflictEnvironment MacEnvironment(params string[] files)
+        {
+            var set = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
+
+            return new NameConflictEnvironment
+            {
+                IsMacOS = true,
+                WindowsFolder = "/Windows",
+                SystemFolder = "/System32",
+                MachinePath = "/usr/bin:/bin",
+                UserPath = MacOutput + ":/opt/homebrew/bin",
+                FileExists = set.Contains,
+                FindAppPath = _ => "/usr/bin/x"
+            };
+        }
+
+        [Theory]
+        [InlineData("cd")]
+        [InlineData("CD")]
+        [InlineData("r")]
+        [InlineData("which")]
+        public void OnMacOS_AShellBuiltin_HidesTheKeycut(string name)
+        {
+            var conflict = Assert.Single(NameConflicts.Find(name, MacOutput, MacEnvironment()));
+
+            Assert.Equal((name, NameConflictEffect.Hidden, NameConflictSource.ShellBuiltin), (conflict.Path, conflict.Effect, conflict.Source));
+        }
+
+        [MacFact]
+        public void OnMacOS_PathFolders_AreSearchedForTheExactNameInAnyCase()
+        {
+            var found = NameConflicts.Find("gmail", MacOutput, MacEnvironment(
+                "/usr/bin/gmail", MacOutput + "/gmail", "/opt/homebrew/bin/GMAIL", "/bin/gmail.sh", "/bin/gmail.bat"));
+
+            Assert.Equal(new[] { "Hidden PathBefore /usr/bin/gmail", "Shadows PathAfter /opt/homebrew/bin/gmail" }, found.Select(c => c.ToString()));
+        }
+
+        [MacFact]
+        public void OnMacOS_TheWindowsFoldersAndAppPaths_ArentSearched()
+        {
+            Assert.Empty(NameConflicts.Find("x", MacOutput, MacEnvironment("/Windows/x", "/System32/x")));
+        }
+
+        #endregion macOS (Phase 4.7)
     }
 }

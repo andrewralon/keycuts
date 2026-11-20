@@ -7,6 +7,9 @@
 # (Not *.bat: tests/corpus holds .bat files whose bytes the parser tests depend on.)
 *.cmd text eol=crlf
 
+# macOS keycuts are sh scripts: /bin/sh reads a CR as part of the line
+tests/corpus/macos/** text eol=lf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

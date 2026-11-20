@@ -25,7 +25,7 @@ namespace keycuts.Common
         /// <summary>The program a Folder or CLSID keycut's launch line starts. Keycuts written before #160 call it directly, without START.</summary>
         internal const string ExplorerProgram = "%SystemRoot%\\explorer.exe";
 
-        private readonly IPathUpdater _pathUpdater = OperatingSystem.IsWindows() ? new UserPathUpdater() : new NoOpPathUpdater();
+        private readonly IPathUpdater _pathUpdater = DefaultPathUpdater();
 
         private readonly string _fixedOutputFolder;
 
@@ -56,7 +56,18 @@ namespace keycuts.Common
             _fixedOutputFolder = fixedOutputFolder;
             _pathUpdater = DebugOverrides.IsOverride(fixedOutputFolder)
                 ? new NoOpPathUpdater()
-                : pathUpdater ?? (OperatingSystem.IsWindows() ? new UserPathUpdater() : new NoOpPathUpdater());
+                : pathUpdater ?? DefaultPathUpdater();
+        }
+
+        /// <summary>
+        /// The user PATH on Windows. On macOS the shell profile's block (#101), which a folder change only moves: adding it takes
+        /// the user's yes (<c>keycuts path add</c>, Settings).
+        /// </summary>
+        private static IPathUpdater DefaultPathUpdater()
+        {
+            return OperatingSystem.IsWindows() ? new UserPathUpdater()
+                : OperatingSystem.IsMacOS() ? MacShellPath.CreateDefault()
+                : new NoOpPathUpdater();
         }
 
         public ExitCode Run(KeycutArgs args)
@@ -320,6 +331,7 @@ namespace keycuts.Common
 
                 // Write the file to the given save path
                 File.WriteAllLines(shortcut.FullPath, lines.ToArray());
+                ScriptFormats.MarkExecutable(ScriptFormats.Current, shortcut.FullPath);
 
                 if (Usage != null)
                 {

@@ -128,6 +128,14 @@ namespace keycuts.Common
             newTarget = target;
             var type = new ShortcutType();
 
+            // macOS has its own kinds of target (app bundles, .webloc, aliases): one classifier for the CLI and the app
+            if (OperatingSystem.IsMacOS())
+            {
+                var resolved = TargetResolver.Resolve(target);
+                newTarget = resolved.IsValid ? resolved.Target : target;
+                return resolved.IsValid ? resolved.RawType : ShortcutType.Unknown;
+            }
+
             if (IsCLSIDKey(target))
             {
                 type = ShortcutType.CLSIDKey;

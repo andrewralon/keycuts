@@ -40,6 +40,52 @@ namespace keycuts.Tests
             Assert.Equal(path, PathVariables.Substitute(path, Vars));
         }
 
+        [Theory]
+        [InlineData("/Users/me", "/Users/me")]
+        [InlineData("/Users/me/", "/Users/me")]
+        public void ForMac_IsTheHomeFolder_WrittenAsDollarHome(string home, string value)
+        {
+            var variable = Assert.Single(PathVariables.ForMac(home));
+
+            Assert.Equal(("HOME", value, "$HOME"), (variable.Name, variable.Value, variable.Reference));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(null)]
+        [InlineData("/")]
+        [InlineData("relative")]
+        public void ForMac_WithoutAUsableHome_HasNone(string home)
+        {
+            Assert.Empty(PathVariables.ForMac(home));
+        }
+
+        [Theory]
+        [InlineData("$HOME", "/Users/me")]
+        [InlineData("$HOME/Downloads", "/Users/me/Downloads")]
+        [InlineData("$HOMEWORK", "$HOMEWORK")]
+        [InlineData("/x/$HOME/y", "/x/$HOME/y")]
+        public void ExpandHome_ReadsALeadingDollarHome(string path, string expected)
+        {
+            Assert.Equal(expected, PathVariables.ExpandHome(path, "/Users/me/"));
+        }
+
+        [MacFact]
+        public void OnMacOS_Expand_ReadsDollarHome()
+        {
+            Assert.Equal(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/Downloads", PathVariables.Expand("$HOME/Downloads"));
+        }
+
+        [MacTheory]
+        [InlineData("/Users/me/Downloads", "$HOME/Downloads")]
+        [InlineData("/Users/me", "$HOME")]
+        [InlineData("/Users/meow/x", "/Users/meow/x")]
+        [InlineData("$HOME/x", "$HOME/x")]
+        public void OnMacOS_Substitute_WritesDollarHome(string path, string expected)
+        {
+            Assert.Equal(expected, PathVariables.Substitute(path, PathVariables.ForMac("/Users/me")));
+        }
+
         [WindowsFact]
         public void Substitute_ATieGoesToTheEarlierVariable()
         {

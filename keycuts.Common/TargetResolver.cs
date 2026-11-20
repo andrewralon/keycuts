@@ -99,7 +99,7 @@ namespace keycuts.Common
                 return TargetResult.Invalid(TargetError.Empty, text);
             }
 
-            if (Shortcut.IsCLSIDKey(text))
+            if (!OperatingSystem.IsMacOS() && Shortcut.IsCLSIDKey(text))
             {
                 return TargetResult.Valid(ShortcutType.CLSIDKey, text);
             }
@@ -125,12 +125,17 @@ namespace keycuts.Common
 
         private static TargetResult ResolvePath(string text)
         {
-            var expanded = Environment.ExpandEnvironmentVariables(text);
+            var expanded = Environment.ExpandEnvironmentVariables(OperatingSystem.IsMacOS() ? MacTargets.ExpandHome(text) : text);
 
             string fullPath;
             try
             {
                 fullPath = Path.GetFullPath(expanded);
+
+                if (OperatingSystem.IsMacOS())
+                {
+                    fullPath = MacTargets.ResolveLinks(fullPath);
+                }
             }
             catch (Exception)
             {
@@ -153,6 +158,25 @@ namespace keycuts.Common
             catch (Exception)
             {
                 return TargetResult.Invalid(TargetError.Unsupported, text);
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                // An app is a folder that open launches; an alias needs the Finder to read it
+                if (MacTargets.IsAppBundle(fullPath))
+                {
+                    return TargetResult.Valid(ShortcutType.File, fullPath);
+                }
+
+                if (MacTargets.IsFinderAlias(fullPath))
+                {
+                    return TargetResult.Invalid(TargetError.Unsupported, text);
+                }
+
+                if (MacTargets.ReadWebloc(fullPath) is string webloc)
+                {
+                    return TargetResult.Valid(ShortcutType.Url, webloc);
+                }
             }
 
             if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
@@ -206,6 +230,86 @@ namespace keycuts.Common
                 return line == null ? null : line.Substring(4).Trim();
             }
             catch (Exception)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// What <see cref="TargetResolver"/> does differently on macOS (docs/macos-port.md, Phase 4.4). Plain file reads, so
+    /// they're tested on every platform. None of them throws.
+    /// </summary>
+    public static class MacTargets
+    {
+        // A Finder alias file holds bookmark data, which starts like this
+        private static readonly byte[] BookmarkMagic = System.Text.Encoding.ASCII.GetBytes("book\0\0\0\0mark\0\0\0\0");
+
+        private static readonly Regex WeblocUrl = new Regex(@"<key>\s*URL\s*</key>\s*<string>(?<url>[^<]*)</string>", RegexOptions.Compiled);
+
+        /// <summary><c>~</c> and <c>~/…</c> as the home folder, as a shell reads them.</summary>
+        public static string ExpandHome(string text, string home = null)
+        {
+            home ??= Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            return text == "~" ? home : text.StartsWith("~/", StringComparison.Ordinal) ? home + text.Substring(1) : text;
+        }
+
+        /// <summary>A symbolic link's final target, so the keycut opens it even if the link goes; anything else as it is.</summary>
+        public static string ResolveLinks(string path)
+        {
+            try
+            {
+                return File.ResolveLinkTarget(path, true)?.FullName ?? path;
+            }
+            catch (Exception)
+            {
+                return path;
+            }
+        }
+
+        /// <summary>A folder named <c>*.app</c>: a bundle, which is opened as one file.</summary>
+        public static bool IsAppBundle(string fullPath)
+        {
+            return fullPath.TrimEnd('/').EndsWith(".app", StringComparison.OrdinalIgnoreCase) && Directory.Exists(fullPath);
+        }
+
+        /// <summary>A Finder alias: a file of bookmark data, which only the Finder's APIs resolve.</summary>
+        public static bool IsFinderAlias(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    return false;
+                }
+
+                using var stream = File.OpenRead(path);
+                var start = new byte[BookmarkMagic.Length];
+
+                return stream.Read(start, 0, start.Length) == start.Length && start.AsSpan().SequenceEqual(BookmarkMagic);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>The URL in a <c>.webloc</c> written as an XML property list; null for anything else (a binary one is left a File, which <c>open</c> opens).</summary>
+        public static string ReadWebloc(string path)
+        {
+            try
+            {
+                if (!string.Equals(Path.GetExtension(path), ".webloc", StringComparison.OrdinalIgnoreCase) || !File.Exists(path))
+                {
+                    return null;
+                }
+
+                var match = WeblocUrl.Match(File.ReadAllText(path));
+
+                return match.Success ? System.Net.WebUtility.HtmlDecode(match.Groups["url"].Value.Trim()) : null;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
                 return null;
             }

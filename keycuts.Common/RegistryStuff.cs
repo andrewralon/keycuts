@@ -8,10 +8,12 @@ namespace keycuts.Common
     /// <summary>The typed settings: value names, defaults and stored forms. Where they're stored is <see cref="Backend"/>'s business.</summary>
     public class RegistryStuff
     {
-        /// <summary>Every read and write goes through it. Only Windows has one so far; elsewhere every setting reads as its default.</summary>
+        /// <summary>Every read and write goes through it: the registry on Windows, the settings file on macOS. Elsewhere every setting reads as its default.</summary>
         public static readonly ISettingsBackend Backend = OperatingSystem.IsWindows()
             ? new RegistrySettingsBackend()
-            : new UnavailableSettingsBackend();
+            : OperatingSystem.IsMacOS()
+                ? new JsonSettingsBackend(JsonSettingsBackend.DefaultPath)
+                : new UnavailableSettingsBackend();
 
         public static readonly string StartPath = $@"Software\TeamRalon\{Runner.AppName}";
 

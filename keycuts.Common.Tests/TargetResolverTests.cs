@@ -106,7 +106,8 @@ namespace keycuts.Tests
             Assert.Equal(target, r.Target, ignoreCase: true);
         }
 
-        [Theory]
+        // CLSIDs are Windows only; macOS reads none (Phase 4.4)
+        [WindowsTheory]
         [InlineData("{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]
         [InlineData("::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]
         [InlineData("shell:::{20D04FE0-3AEA-1069-A2D8-08002B30309D}")]
@@ -245,6 +246,105 @@ namespace keycuts.Tests
             await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => TargetResolver.ResolveAsync(_dir, cts.Token));
         }
+
+        #region macOS (Phase 4.4)
+
+        [Fact]
+        public void MacTargets_ExpandHome_ReadsATildeAsTheShellDoes()
+        {
+            Assert.Equal("/Users/me", MacTargets.ExpandHome("~", "/Users/me"));
+            Assert.Equal("/Users/me/Downloads", MacTargets.ExpandHome("~/Downloads", "/Users/me"));
+            Assert.Equal("~other/x", MacTargets.ExpandHome("~other/x", "/Users/me"));
+            Assert.Equal("/a/~/b", MacTargets.ExpandHome("/a/~/b", "/Users/me"));
+        }
+
+        [Fact]
+        public void MacTargets_ReadWebloc_TakesTheUrlOfAnXmlPlist_AndNothingElse()
+        {
+            var webloc = MakeFile("page.webloc",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<plist version=\"1.0\">\n<dict>\n\t<key>URL</key>\n\t<string>https://example.com/?a=1&amp;b=2</string>\n</dict>\n</plist>\n");
+
+            Assert.Equal("https://example.com/?a=1&b=2", MacTargets.ReadWebloc(webloc));
+            Assert.Null(MacTargets.ReadWebloc(MakeFile("binary.webloc", "bplist00Ñ\u0001\u0002SURL")));
+            Assert.Null(MacTargets.ReadWebloc(MakeFile("page.xml", File.ReadAllText(webloc))));
+            Assert.Null(MacTargets.ReadWebloc(Path.Combine(_dir, "missing.webloc")));
+        }
+
+        [Fact]
+        public void MacTargets_IsFinderAlias_KnowsBookmarkData()
+        {
+            var alias = Path.Combine(_dir, "Downloads alias");
+            File.WriteAllBytes(alias, System.Text.Encoding.ASCII.GetBytes("book\0\0\0\0mark\0\0\0\08\0\0\0rest"));
+
+            Assert.True(MacTargets.IsFinderAlias(alias));
+            Assert.False(MacTargets.IsFinderAlias(MakeFile("book.txt", "book")));
+            Assert.False(MacTargets.IsFinderAlias(_dir));
+        }
+
+        [Fact]
+        public void MacTargets_IsAppBundle_IsAFolderNamedApp()
+        {
+            var app = Directory.CreateDirectory(Path.Combine(_dir, "Tool.app")).FullName;
+
+            Assert.True(MacTargets.IsAppBundle(app));
+            Assert.True(MacTargets.IsAppBundle(app + "/"));
+            Assert.False(MacTargets.IsAppBundle(MakeFile("file.app")));
+            Assert.False(MacTargets.IsAppBundle(_dir));
+        }
+
+        [MacFact]
+        public void OnMacOS_AnAppBundle_IsAFile()
+        {
+            var app = Directory.CreateDirectory(Path.Combine(_dir, "Tool.app")).FullName;
+
+            var r = TargetResolver.Resolve(app);
+
+            Assert.Equal((true, ShortcutType.File, app), (r.IsValid, r.RawType, r.Target));
+        }
+
+        [MacFact]
+        public void OnMacOS_AWebloc_IsItsUrl_AndAnAlias_IsUnsupported()
+        {
+            var webloc = MakeFile("page.webloc", "<plist><dict><key>URL</key><string>https://example.com</string></dict></plist>");
+            var alias = Path.Combine(_dir, "alias");
+            File.WriteAllBytes(alias, System.Text.Encoding.ASCII.GetBytes("book\0\0\0\0mark\0\0\0\0rest"));
+
+            var url = TargetResolver.Resolve(webloc);
+            Assert.Equal((ShortcutType.Url, "https://example.com"), (url.RawType, url.Target));
+            Assert.Equal(TargetError.Unsupported, TargetResolver.Resolve(alias).Error);
+        }
+
+        [MacFact]
+        public void OnMacOS_ASymlink_IsItsTarget()
+        {
+            var file = MakeFile("real.txt");
+            var link = Path.Combine(_dir, "link.txt");
+            File.CreateSymbolicLink(link, file);
+
+            var r = TargetResolver.Resolve(link);
+
+            Assert.Equal((ShortcutType.File, file), (r.RawType, r.Target));
+        }
+
+        [MacFact]
+        public void OnMacOS_BracesArentACLSID_AndATildeIsHome()
+        {
+            Assert.NotEqual(ShortcutType.CLSIDKey, TargetResolver.Resolve("::{645FF040-5081-101B-9F08-00AA002F954E}").RawType);
+
+            var home = TargetResolver.Resolve("~");
+            Assert.Equal((ShortcutType.Folder, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)), (home.RawType, home.Target));
+        }
+
+        [MacFact]
+        public void OnMacOS_TheCliClassifier_IsTheResolver()
+        {
+            var app = Directory.CreateDirectory(Path.Combine(_dir, "Tool.app")).FullName;
+
+            Assert.Equal(ShortcutType.File, Shortcut.GetShortcutTypeFromTarget(app, out var target));
+            Assert.Equal(app, target);
+        }
+
+        #endregion macOS (Phase 4.4)
 
         [Theory]
         [InlineData(ShortcutType.Url, KeycutKind.Url)]

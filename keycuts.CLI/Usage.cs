@@ -53,6 +53,7 @@ namespace keycuts.CLI
                 : type == typeof(RemoveOptions) ? "rm"
                 : type == typeof(RenameOptions) ? "rename"
                 : type == typeof(OpenOptions) ? "open"
+                : type == typeof(PathOptions) ? "path"
                 : "create";
         }
 
@@ -139,6 +140,7 @@ namespace keycuts.CLI
                     "  keycuts rm <name>                               Delete a keycut",
                     "  keycuts rename <old> <new> [-f]                 Rename a keycut",
                     "  keycuts open <name> [arguments]                 Open a keycut",
+                    "  keycuts path [status|add|remove]                PATH: say, add or take out",
                     "  keycuts <command> --help                        Help for that command",
                     "  keycuts --help                                  Open this help message",
                     "",
@@ -154,6 +156,7 @@ namespace keycuts.CLI
                         : verb == "rm" ? "Usage: keycuts rm <name>"
                         : verb == "rename" ? "Usage: keycuts rename <old> <new> [-f]"
                         : verb == "open" ? "Usage: keycuts open <name> [arguments]"
+                        : verb == "path" ? "Usage: keycuts path [status|add|remove]"
                         : "Usage: keycuts [create] -t <path> -s <name> [options]",
                     "",
                     "Options:"

@@ -47,7 +47,7 @@ namespace keycuts.CLI
             // "create" is the default verb, so the original "keycuts -t … -s …" still works
             // -h is the usual short form of --help; the parser only knows the long one
             args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
-            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions, RemoveOptions, RenameOptions, OpenOptions>(args);
+            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions, RemoveOptions, RenameOptions, OpenOptions, PathOptions>(args);
             return result.MapResult(
                 (Options parsed) => RunCreate(parsed),
                 (PasteOptions parsed) => RunPaste(parsed),
@@ -55,6 +55,7 @@ namespace keycuts.CLI
                 (RemoveOptions parsed) => RunManage(context => KeycutCommands.Remove(context, parsed.Name)),
                 (RenameOptions parsed) => RunManage(context => KeycutCommands.Rename(context, parsed.OldName, parsed.NewName, parsed.Force)),
                 (OpenOptions parsed) => RunManage(context => KeycutCommands.Open(context, parsed.Name, KeycutCommands.JoinArguments((parsed.Arguments ?? Enumerable.Empty<string>()).ToArray(), 0))),
+                (PathOptions parsed) => RunPath(parsed.Action),
                 errors => Usage.Show(result, errors, Console.Out, Console.Error));
         }
 
@@ -94,6 +95,56 @@ namespace keycuts.CLI
             }
         }
 
+
+        /// <summary>
+        /// <c>keycuts path [status|add|remove]</c> (#101): on macOS the block in the shell profile (<see cref="KeycutPathCommand"/>);
+        /// on Windows the user PATH, which creates already keep up to date.
+        /// </summary>
+        private static ExitCode RunPath(string action)
+        {
+            var folder = new Runner().GetOutputFolder();
+
+            if (OperatingSystem.IsMacOS())
+            {
+                var result = KeycutPathCommand.Run(action, folder, MacShellPath.CreateDefault(), Console.Out, Console.Error);
+                if (result != ExitCode.Success)
+                {
+                    Usage.MarkErrorWritten();
+                }
+
+                return result;
+            }
+
+            if (!OperatingSystem.IsWindows())
+            {
+                Console.Error.WriteLine("keycuts: PATH isn't supported on this platform.");
+                Usage.MarkErrorWritten();
+                return ExitCode.CannotUpdatePath;
+            }
+
+            switch (string.IsNullOrEmpty(action) ? "status" : action.ToLowerInvariant())
+            {
+                case "status":
+                    Console.WriteLine(UserPathUpdater.IsOnPath(folder) ? $"{folder} is on PATH, so Win+R runs your keycuts by name." : $"{folder} isn't on PATH. 'keycuts path add' adds it.");
+                    return ExitCode.Success;
+                case "add":
+                case "remove":
+                    var add = action.Equals("add", StringComparison.OrdinalIgnoreCase);
+                    if (!new UserPathUpdater().AddToOrReplace(add ? null : folder, add ? folder : null))
+                    {
+                        Console.Error.WriteLine("keycuts: couldn't change the user PATH.");
+                        Usage.MarkErrorWritten();
+                        return ExitCode.CannotUpdatePath;
+                    }
+
+                    Console.WriteLine(add ? $"Added {folder} to the user PATH." : $"Took {folder} out of the user PATH.");
+                    return ExitCode.Success;
+                default:
+                    Console.Error.WriteLine($"keycuts: path takes {string.Join(", ", KeycutPathCommand.Actions)}.");
+                    Usage.MarkErrorWritten();
+                    return ExitCode.BadArguments;
+            }
+        }
 
         /// <summary>
         /// <c>keycuts list</c> (#173, #237): the keycuts folder's keycuts, read like the Manager reads them, with this user's run

@@ -36,6 +36,24 @@ namespace keycuts.Tests.Characterization
         }
 
         [Fact]
+        public void ShParser_MatchesSnapshot()
+        {
+            AssertMatchesSnapshot("ShParser", ShCharacterizationRenderer.RenderParser(RepoRoot));
+        }
+
+        [Fact]
+        public void ShEmitter_MatchesSnapshot()
+        {
+            AssertMatchesSnapshot("ShEmitter", ShCharacterizationRenderer.RenderEmitter());
+        }
+
+        [Fact]
+        public void ShRoundTrip_MatchesSnapshot()
+        {
+            AssertMatchesSnapshot("ShRoundTrip", ShCharacterizationRenderer.RenderRoundTrip(RepoRoot));
+        }
+
+        [Fact]
         public void Corpus_IsFound()
         {
             // Guards against an empty snapshot passing because the corpus moved

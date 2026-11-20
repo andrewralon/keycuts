@@ -1,0 +1,10 @@
+#!/bin/sh
+# keycuts 2.0.0
+# <shortcut>/Users/me/Shortcuts/gmail</shortcut>
+# <type>url</type>
+# <target>https://mail.google.com/mail/u/0/#inbox</target>
+# <description>Inbox</description>
+open 'https://mail.google.com/mail/u/0/#inbox'
+s=$?
+u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null
+exit $s

@@ -1,0 +1,202 @@
+# ShFormat.EmitLines output. <version> stands for Runner.Version.
+
+## url
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/url</shortcut>|
+|# <type>url</type>|
+|# <target>https://mail.google.com/mail/u/0/#inbox</target>|
+|# <description></description>|
+|open 'https://mail.google.com/mail/u/0/#inbox'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## url-with-quote-dollar-backtick
+# Note: Single quotes: nothing in them expands; ' is written '\''.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/url-with-quote-dollar-backtick</shortcut>|
+|# <type>url</type>|
+|# <target>https://example.com/?q=it's+$5&x=`a`</target>|
+|# <description></description>|
+|open 'https://example.com/?q=it'\''s+$5&x=`a`'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## url-with-open-with-app
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/url-with-open-with-app</shortcut>|
+|# <type>url</type>|
+|# <target>https://example.com</target>|
+|# <description></description>|
+|open -a '/Applications/Firefox.app' 'https://example.com'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file</shortcut>|
+|# <type>file</type>|
+|# <target>/Users/me/notes.txt</target>|
+|# <description></description>|
+|open '/Users/me/notes.txt'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-app-bundle
+# Note: open launches an app bundle.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-app-bundle</shortcut>|
+|# <type>file</type>|
+|# <target>/Applications/Safari.app</target>|
+|# <description></description>|
+|open '/Applications/Safari.app'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-with-open-with-app
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-with-open-with-app</shortcut>|
+|# <type>file</type>|
+|# <target>/Users/me/notes.txt</target>|
+|# <description></description>|
+|open -a '/System/Applications/TextEdit.app' '/Users/me/notes.txt'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-nasty
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-nasty</shortcut>|
+|# <type>file</type>|
+|# <target>/Users/me/it's "odd" $HOME `x` café ☕.txt</target>|
+|# <description></description>|
+|open '/Users/me/it'\''s "odd" $HOME `x` café ☕.txt'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## folder
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/folder</shortcut>|
+|# <type>folder</type>|
+|# <target>/Users/me/Downloads</target>|
+|# <description></description>|
+|open '/Users/me/Downloads'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## folder-under-home
+# Note: Saved with variables (Phase 4.6): double quotes, so only $HOME expands.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/folder-under-home</shortcut>|
+|# <type>folder</type>|
+|# <target>$HOME/it's "odd" $x `y` \z</target>|
+|# <description></description>|
+|open "$HOME/it's \"odd\" \$x \`y\` \\z"|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-under-home-with-app
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-under-home-with-app</shortcut>|
+|# <type>file</type>|
+|# <target>$HOME/notes.txt</target>|
+|# <description></description>|
+|open -a '/System/Applications/TextEdit.app' "$HOME/notes.txt"|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## file-named-like-home
+# Note: Only $HOME itself or $HOME/ is the variable.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/file-named-like-home</shortcut>|
+|# <type>file</type>|
+|# <target>/Users/me/$HOMEWORK.txt</target>|
+|# <description></description>|
+|open '/Users/me/$HOMEWORK.txt'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## command
+# Note: Never produced by create, as on Windows.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/command</shortcut>|
+|# <type>command</type>|
+|# <target>say 'hi there'</target>|
+|# <description></description>|
+|/bin/sh -c 'say '\''hi there'\'''|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## description
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/description</shortcut>|
+|# <type>url</type>|
+|# <target>https://example.com</target>|
+|# <description>Line one  line two</description>|
+|open 'https://example.com'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## description-null
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/description-null</shortcut>|
+|# <type>url</type>|
+|# <target>https://example.com</target>|
+|# <description></description>|
+|open 'https://example.com'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## description-special-characters
+# Note: Kept as is: nothing in a sh comment is special.
+|#!/bin/sh|
+|# keycuts <version>|
+|# <shortcut>/Users/me/Shortcuts/description-special-characters</shortcut>|
+|# <type>url</type>|
+|# <target>https://example.com</target>|
+|# <description>100% "done" $HOME `rm -rf` 'x' # <b> \</description>|
+|open 'https://example.com'|
+|s=$?|
+|u="$HOME/Library/Application Support/keycuts/usage"; { mkdir -p "$u" && echo 1 >>"$u/${0##*/}.runs"; } 2>/dev/null|
+|exit $s|
+
+## target-with-line-break
+# Note: The rest of the header line would run as a command.
+throws InvalidOperationException: A keycut's name, target or app can't hold a line break.
+
+## clsidkey
+# Note: Windows only.
+throws InvalidOperationException: Can't write a keycut of type CLSIDKey on macOS.
+
+## hostsfile
+# Note: Windows only.
+throws InvalidOperationException: Can't write a keycut of type HostsFile on macOS.
+
+## unknown
+throws InvalidOperationException: Can't write a keycut of type Unknown on macOS.

@@ -120,7 +120,16 @@ namespace keycuts.GUI
 
         private static string? LocalPath(IStorageItem? item)
         {
-            return item?.TryGetLocalPath();
+            return TrimFolderSlash(item?.TryGetLocalPath());
+        }
+
+        /// <summary>
+        /// macOS hands over a folder with a trailing <c>/</c> (Phase 0.4): taken off, so a dropped folder is the same target as a
+        /// typed one (the root, <c>/</c>, stays). Windows paths are left as they are.
+        /// </summary>
+        public static string? TrimFolderSlash(string? path)
+        {
+            return path != null && path.Length > 1 && path.EndsWith('/') && !path.Contains('\\') ? path.TrimEnd('/') : path;
         }
 
         private static async Task<byte[]?> TryGet(IAsyncDataTransfer data, DataFormat<byte[]> format)

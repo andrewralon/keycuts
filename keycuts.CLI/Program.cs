@@ -278,6 +278,12 @@ namespace keycuts.CLI
                 {
                     Console.WriteLine($"Shortcut file {options.Shortcut} already exists. Run it again with -f to replace it.");
                 }
+                else if (result == ExitCode.NotStarted && OperatingSystem.IsMacOS() && IsFinderAlias(options.Target))
+                {
+                    // Phase 4.4: an alias needs the Finder to read it, so it's refused with the reason
+                    Console.Error.WriteLine($"keycuts: \"{options.Target}\" is a Finder alias, which a keycut can't open. Use the original file or folder.");
+                    Usage.MarkErrorWritten();
+                }
             }
             else
             {
@@ -287,6 +293,18 @@ namespace keycuts.CLI
             }
 
             return result;
+        }
+
+        private static bool IsFinderAlias(string target)
+        {
+            try
+            {
+                return MacTargets.IsFinderAlias(System.IO.Path.GetFullPath(target));
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException)
+            {
+                return false;
+            }
         }
 
         /// <summary>

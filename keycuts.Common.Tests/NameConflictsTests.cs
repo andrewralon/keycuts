@@ -207,7 +207,7 @@ namespace keycuts.Tests
             Assert.Equal(NameConflicts.ParsePathExt(NameConflicts.DefaultPathExt), NameConflicts.ParsePathExt(null));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AppPaths_IsShadowed_AndReportsTheRegisteredProgram()
         {
             const string word = @"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE";

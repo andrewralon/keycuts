@@ -95,8 +95,8 @@ namespace keycuts.Tests
         public void AFullPathEndingInExe_FindsTheExistingKeycut()
         {
             var shortcut = Path.Combine(root, "tool.exe");
-            File.WriteAllLines(shortcut + ".bat", Runner.BuildShortcutLines(
-                Shortcut.FromParts(ShortcutType.Url, "https://old.example.com", shortcut + ".bat")));
+            File.WriteAllLines(shortcut + ShortcutFile.Extension, ScriptFormats.Current.EmitLines(
+                Shortcut.FromParts(ShortcutType.Url, "https://old.example.com", shortcut + ShortcutFile.Extension)));
 
             var check = NameCheck.Run(Shortcut.GetName(shortcut), Shortcut.GetFolder(shortcut, @"C:\elsewhere"), true, NoCommands);
 
@@ -200,8 +200,8 @@ namespace keycuts.Tests
         [Fact]
         public void NameCheck_ReportsAnExistingKeycut_OnlyWhenReplacingAsks()
         {
-            File.WriteAllLines(Path.Combine(root, "gmail.bat"), Runner.BuildShortcutLines(
-                Shortcut.FromParts(ShortcutType.Url, "https://mail.example.com", Path.Combine(root, "gmail.bat"))));
+            File.WriteAllLines(Path.Combine(root, "gmail" + ShortcutFile.Extension), ScriptFormats.Current.EmitLines(
+                Shortcut.FromParts(ShortcutType.Url, "https://mail.example.com", Path.Combine(root, "gmail" + ShortcutFile.Extension))));
 
             var asks = NameCheck.Run(" GMail ", root, true, NoCommands);
             var doesNotAsk = NameCheck.Run("gmail", root, false, NoCommands);
@@ -226,11 +226,12 @@ namespace keycuts.Tests
         [Fact]
         public void RepositoryFind_ReturnsAnUnparseableFile_WithAnEmptyTarget()
         {
-            File.WriteAllText(Path.Combine(root, "junk.bat"), "not a keycut");
+            // On macOS only a file with keycuts' header counts (any other script is left alone), so this one has it
+            File.WriteAllText(Path.Combine(root, "junk" + ShortcutFile.Extension), OperatingSystem.IsMacOS() ? "#!/bin/sh\n# keycuts 2.0.0\nnot a keycut\n" : "not a keycut");
 
             var found = new KeycutRepository(root).Find("JUNK");
 
-            Assert.Equal(Path.Combine(root, "junk.bat"), found!.FilePath);
+            Assert.Equal(Path.Combine(root, "junk" + ShortcutFile.Extension), found!.FilePath);
             Assert.Equal(string.Empty, found.Target);
             Assert.Null(new KeycutRepository(root).Find("missing"));
             Assert.Null(new KeycutRepository(Path.Combine(root, "nope")).Find("junk"));

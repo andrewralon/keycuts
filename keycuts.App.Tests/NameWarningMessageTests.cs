@@ -41,12 +41,12 @@ namespace keycuts.Tests
         {
             var other = Path.Combine(root, "other");
             Directory.CreateDirectory(other);
-            var file = Path.Combine(other, name + ".bat");
-            File.WriteAllLines(file, Runner.BuildShortcutLines(Shortcut.FromParts(type, target, file)));
+            var file = Path.Combine(other, name + ShortcutFile.Extension);
+            File.WriteAllLines(file, ScriptFormats.Current.EmitLines(Shortcut.FromParts(type, target, file)));
 
             var output = Path.Combine(root, "output");
             Directory.CreateDirectory(output);
-            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists };
+            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists, IsMacOS = OperatingSystem.IsMacOS() };
 
             return (other, NameCheck.Run(name, output, true, env));
         }
@@ -183,7 +183,7 @@ namespace keycuts.Tests
             var (folder, check) = CheckAgainstAKeycutOnPath("dl", Downloads);
             var conflict = check.MainConflict!;
 
-            Assert.Equal(Path.Combine(folder, "dl.bat"), conflict.Path);
+            Assert.Equal(Path.Combine(folder, "dl" + ShortcutFile.Extension), conflict.Path);
             Assert.Equal(Downloads, conflict.Keycut!.Target);
             Assert.Equal(
                 $"\u201cdl\u201d is already a keycut in {folder} that opens {Downloads}, so this keycut would be ignored.",
@@ -206,13 +206,13 @@ namespace keycuts.Tests
                 CreatorViewModel.GetNameWarningMessage(check, Downloads));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AConflictThatIsABatFileButNotAKeycut_IsStillAProgram()
         {
             var other = Path.Combine(root, "other");
             Directory.CreateDirectory(other);
             File.WriteAllText(Path.Combine(other, "tool.bat"), "@echo off\r\necho hi\r\n");
-            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists };
+            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists, IsMacOS = OperatingSystem.IsMacOS() };
 
             var check = NameCheck.Run("tool", Path.Combine(root, "output"), true, env);
 
@@ -222,14 +222,14 @@ namespace keycuts.Tests
                 CreatorViewModel.GetConflictMessage("tool", check.MainConflict));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AHeaderlessLauncher_IsAProgram_EvenThoughTheRepositoryParserAcceptsIt()
         {
             var other = Path.Combine(root, "other");
             Directory.CreateDirectory(other);
             var file = Path.Combine(other, "app.bat");
             File.WriteAllText(file, "@ECHO OFF\r\nSTART \"\" /B \"C:\\Tools\\app.exe\"\r\nEXIT\r\n");
-            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists };
+            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists, IsMacOS = OperatingSystem.IsMacOS() };
 
             var check = NameCheck.Run("app", Path.Combine(root, "output"), true, env);
 
@@ -243,9 +243,9 @@ namespace keycuts.Tests
         {
             var other = Path.Combine(root, "other");
             Directory.CreateDirectory(other);
-            var file = Path.Combine(other, "dl.bat");
-            File.WriteAllLines(file, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Folder, Downloads, file)));
-            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists };
+            var file = Path.Combine(other, "dl" + ShortcutFile.Extension);
+            File.WriteAllLines(file, ScriptFormats.Current.EmitLines(Shortcut.FromParts(ShortcutType.Folder, Downloads, file)));
+            var env = new NameConflictEnvironment { UserPath = other, FileExists = File.Exists, IsMacOS = OperatingSystem.IsMacOS() };
 
             var check = NameCheck.Run("dl", Path.Combine(root, "output"), false, env);
 

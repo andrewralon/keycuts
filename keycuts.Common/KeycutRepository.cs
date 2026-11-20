@@ -154,7 +154,8 @@ namespace keycuts.Common
                 var file = Directory.EnumerateFiles(_outputFolder, "*" + ShortcutFile.Extension)
                     .FirstOrDefault(f => string.Equals(Path.GetFileName(f), fileName, StringComparison.OrdinalIgnoreCase));
 
-                if (file == null)
+                // Another script in a folder of extensionless keycuts (macOS) isn't one, and is left alone
+                if (file == null || !ScriptFormats.IsKeycutFile(file))
                 {
                     return null;
                 }
@@ -437,7 +438,8 @@ namespace keycuts.Common
                     var path = Directory.EnumerateFiles(_outputFolder, command + ShortcutFile.Extension)
                         .FirstOrDefault(f => string.Equals(ScriptFormats.NameOf(f), command, StringComparison.OrdinalIgnoreCase));
 
-                    if (path == null)
+                    // On macOS the keycuts and keypaste shims have exactly these names
+                    if (path == null || !ScriptFormats.IsKeycutFile(path))
                     {
                         continue;
                     }
@@ -689,6 +691,12 @@ namespace keycuts.Common
                 {
                     lines = File.ReadAllLines(file);
                     strict = false;
+                }
+
+                // On macOS any file in the folder is read: only one with keycuts' header is a keycut (not the shims, not other scripts)
+                if (!ScriptFormats.Current.IsKeycut(lines))
+                {
+                    return null;
                 }
 
                 var shortcut = ScriptFormats.Current.Parse(file, lines);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace keycuts.Common
 {
@@ -33,6 +34,12 @@ namespace keycuts.Common
 
         /// <summary>Whether <see cref="Parse"/> takes this line for the launch line; a missing description line goes just before it.</summary>
         bool IsLaunchLine(string line);
+
+        /// <summary>
+        /// Whether a file with these lines is a keycut at all, before it's parsed. Any <c>.bat</c> is (the parser is lenient,
+        /// so a headerless launcher is listed); a sh script only with keycuts' header, so the shims and other scripts are left alone.
+        /// </summary>
+        bool IsKeycut(string[] lines);
     }
 
     /// <summary>The <c>.bat</c> keycut: <see cref="Runner.BuildShortcutLines"/> writes it and <see cref="ShortcutFile"/> reads it.</summary>
@@ -68,13 +75,39 @@ namespace keycuts.Common
         {
             return ShortcutFile.IsLaunchLine(line);
         }
+
+        public bool IsKeycut(string[] lines)
+        {
+            return true;
+        }
     }
 
     /// <summary>The format keycuts are written and read in.</summary>
     public static class ScriptFormats
     {
-        /// <summary>Every platform uses <see cref="BatFormat"/> until macOS gets its own (Phase 4).</summary>
-        public static readonly IScriptFormat Current = new BatFormat();
+        /// <summary><see cref="ShFormat"/> on macOS, <see cref="BatFormat"/> everywhere else.</summary>
+        public static readonly IScriptFormat Current = OperatingSystem.IsMacOS() ? new ShFormat() : new BatFormat();
+
+        /// <summary>
+        /// <see cref="IScriptFormat.IsKeycut"/> for a file: one with the format's extension is, without reading it; with no
+        /// extension, its first two lines decide. False if they can't be read.
+        /// </summary>
+        public static bool IsKeycutFile(string path)
+        {
+            if (Current.Extension.Length > 0)
+            {
+                return true;
+            }
+
+            try
+            {
+                return Current.IsKeycut(File.ReadLines(path).Take(2).ToArray());
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// A keycut's name from its file's path: the file name without the format's extension. With no extension (macOS) that's

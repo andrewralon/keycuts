@@ -81,9 +81,21 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void TheCurrentFormat_IsBat()
+        public void TheCurrentFormat_IsSh_OnMacOS_AndBatElsewhere()
         {
-            Assert.IsType<BatFormat>(ScriptFormats.Current);
+            Assert.IsType(OperatingSystem.IsMacOS() ? typeof(ShFormat) : typeof(BatFormat), ScriptFormats.Current);
+        }
+
+        [Fact]
+        public void AShScript_IsAKeycut_OnlyWithTheShebangThenKeycutsHeader()
+        {
+            var sh = new ShFormat();
+
+            Assert.True(sh.IsKeycut(new[] { "#!/bin/sh", "# keycuts 2.0.0", "open 'x'" }));
+            Assert.False(sh.IsKeycut(new[] { "#!/bin/sh", "open 'x'" }));
+            Assert.False(sh.IsKeycut(new[] { "#!/bin/bash", "# keycuts 2.0.0" }));
+            Assert.False(sh.IsKeycut(new[] { "# keycuts 2.0.0", "#!/bin/sh" }));
+            Assert.True(new BatFormat().IsKeycut(new[] { "anything" }));
         }
 
         [Theory]

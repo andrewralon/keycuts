@@ -66,7 +66,7 @@ namespace keycuts.Tests
 
         #region Which files the form may rewrite
 
-        [Fact]
+        [WindowsFact]
         public void AFileTheCurrentEmitterWrote_CanBeEdited()
         {
             var path = Emit("gmail", ShortcutType.Url, "https://mail.google.com", "Work email");
@@ -74,7 +74,7 @@ namespace keycuts.Tests
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public void TheOlderDestinationTag_AndAnOldVersionHeader_DontMatter()
         {
             var path = WriteLines("old",
@@ -85,7 +85,7 @@ namespace keycuts.Tests
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData(ShortcutType.Folder, @"C:\Users\me\Downloads")]
         [InlineData(ShortcutType.Folder, @"%USERPROFILE%\Google Drive")]
         [InlineData(ShortcutType.CLSIDKey, "::{645FF040-5081-101B-9F08-00AA002F954E}")]
@@ -119,7 +119,7 @@ namespace keycuts.Tests
             Assert.False(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AKeycutFromBeforeDescriptions_HasNoDescriptionLine_AndCanStillBeEdited()
         {
             // keycuts 1.0 wrote no REM <description>; adding an empty one loses nothing
@@ -185,7 +185,7 @@ namespace keycuts.Tests
             Assert.False(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task TheAsyncCheck_SaysNotFoundForAGoneFile_NotJustNo()
         {
             var path = Emit("gone", ShortcutType.Url, "https://example.com");
@@ -197,7 +197,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutRepositoryError.NotFound, ex.Error);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task TheAsyncCheck_ReadsTheFile()
         {
             Emit("ok", ShortcutType.Url, "https://example.com");
@@ -207,7 +207,7 @@ namespace keycuts.Tests
 
         // What a real folder of keycuts does: pins which of the corpus files the form offers to, so a change to the
         // emitter or the parser that moves one of them shows up here
-        [Fact]
+        [WindowsFact]
         public void TheCorpus_OffersTheFormToTheFilesTheEmitterWritesIdentically()
         {
             var root = FindRepoRoot();
@@ -269,7 +269,7 @@ namespace keycuts.Tests
         }
 
         // #202: the manager greys out Edit from what the load found, so the flag has to say what the form would
-        [Fact]
+        [WindowsFact]
         public async Task ALoadedKeycut_CarriesTheAnswerOfTheFormsCheck()
         {
             Emit("fine", ShortcutType.Url, "https://example.com");
@@ -287,7 +287,7 @@ namespace keycuts.Tests
         }
 
         // A listed keycut that isn't valid UTF-8 keeps its row, read leniently as before, but the form would lose bytes of it
-        [Fact]
+        [WindowsFact]
         public async Task AFileThatIsNotUtf8_IsStillListed_ButCannotBeEdited()
         {
             var lines = new[]
@@ -304,7 +304,7 @@ namespace keycuts.Tests
             Assert.Equal(keycut.CanEditInForm, KeycutRepository.CanEditInForm(keycut.FilePath));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileWithAUtf8ByteOrderMark_CanStillBeEdited()
         {
             var path = Emit("bom", ShortcutType.Url, "https://example.com", "Résumé");
@@ -317,7 +317,7 @@ namespace keycuts.Tests
         }
 
         // The same answer as the static check, for every real file, so the menu and Ctrl+E can't disagree with the form
-        [Fact]
+        [WindowsFact]
         public async Task TheCorpus_LoadedWithTheSameAnswerAsTheFormsOwnCheck()
         {
             var corpus = Path.Combine(FindRepoRoot(), "tests", "corpus", "legacy");
@@ -356,7 +356,7 @@ namespace keycuts.Tests
 
         #region Saving
 
-        [Fact]
+        [WindowsFact]
         public async Task ChangingOnlyTheDescription_RewritesTheFile_KeepingTheLaunchLine()
         {
             var path = Emit("gmail", ShortcutType.Url, "https://mail.google.com/mail/u/0/#inbox");
@@ -372,7 +372,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "gmail.bat" }, Everything());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AnUnchangedTarget_IsWrittenExactlyAsItWas_EvenWithEnvironmentVariables()
         {
             // A folder saved with a variable: the type and target aren't read again, so the variable is still there
@@ -387,7 +387,7 @@ namespace keycuts.Tests
             Assert.Equal(before.Select(l => l.Replace("REM <description>Dropbox</description>", "REM <description>Dropbox folder</description>")), File.ReadAllLines(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANewTarget_IsResolvedLikeANewKeycut_AndChangesTheTypeAndTheLaunchLine()
         {
             Emit("site", ShortcutType.Url, "https://example.com");
@@ -442,7 +442,7 @@ namespace keycuts.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANewName_IsARenameAndAnEditInOne_TheOldFileIsGone()
         {
             var old = Emit("old", ShortcutType.Url, "https://example.com", "Note");
@@ -458,7 +458,7 @@ namespace keycuts.Tests
             Assert.Equal("fresh", (await Repo().LoadAllAsync()).Single().Name);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ANameThatIsTaken_IsRefused_AndNeitherFileChanges()
         {
             var one = Emit("one", ShortcutType.Url, "https://example.com/one");
@@ -475,7 +475,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "one.bat", "two.bat" }, Everything());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ACaseOnlyRename_IsAllowed_AndLeavesOneFile()
         {
             Emit("Docs", ShortcutType.Url, "https://example.com");
@@ -506,7 +506,7 @@ namespace keycuts.Tests
             Assert.Equal(bytes, File.ReadAllBytes(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ATargetThatCantBeUsed_IsRefusedWithTheReason_AndTheFileIsUntouched()
         {
             var path = Emit("keep", ShortcutType.Url, "https://example.com");
@@ -538,7 +538,7 @@ namespace keycuts.Tests
             Assert.Equal(bytes, File.ReadAllBytes(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileThatIsGone_IsNotFound()
         {
             var path = Emit("gone", ShortcutType.Url, "https://example.com");
@@ -551,7 +551,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutRepositoryError.NotFound, ex.Error);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AnOlderKeycut_IsWrittenAgainWithTheCurrentTagAndHeader()
         {
             var path = WriteLines("older",
@@ -567,7 +567,7 @@ namespace keycuts.Tests
             Assert.Contains("REM <description>Now with a note</description>", lines);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ADescriptionWithPercentTilde_IsWrittenEscaped_AndReadsBackAsTyped()
         {
             var path = Emit("pct", ShortcutType.Url, "https://example.com");
@@ -579,7 +579,7 @@ namespace keycuts.Tests
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ASavedKeycut_CanBeEditedAgain()
         {
             Emit("again", ShortcutType.Url, "https://example.com");
@@ -676,7 +676,7 @@ namespace keycuts.Tests
 
         #region Files that changed, and files that aren't UTF-8
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileChangedSinceTheFormOpened_IsRefused_RatherThanPuttingTheOldTargetBack()
         {
             var path = Emit("moved", ShortcutType.Url, "https://example.com/original");
@@ -693,7 +693,7 @@ namespace keycuts.Tests
             Assert.Equal(elsewhere, File.ReadAllBytes(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ADescriptionChangedSinceTheFormOpened_IsRefusedToo()
         {
             var path = Emit("noted", ShortcutType.Url, "https://example.com", "first");
@@ -708,7 +708,7 @@ namespace keycuts.Tests
             Assert.Equal(elsewhere, File.ReadAllBytes(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileThatHasNotChanged_IsSavedAsUsual_EvenAfterAnotherSaveOfTheSameValues()
         {
             Emit("same", ShortcutType.Url, "https://example.com", "note");
@@ -784,7 +784,7 @@ namespace keycuts.Tests
             Assert.False(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AUtf8FileWithAccentsAndABom_IsOffered_AndKeepsItsAccents()
         {
             var path = Path.Combine(_folder, "accents.bat");

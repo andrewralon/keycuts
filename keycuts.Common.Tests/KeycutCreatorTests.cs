@@ -58,7 +58,7 @@ namespace keycuts.Tests
             var result = await KeycutCreator.CreateAsync(_target, "mine", options);
 
             Assert.Equal(CreateOutcome.Success, result.Outcome);
-            var lines = File.ReadAllLines(Path.Combine(_out, "mine.bat"));
+            var lines = File.ReadAllLines(Path.Combine(_out, "mine" + ShortcutFile.Extension));
             Assert.Contains(@"REM <target>%KC_TEST_ROOT%\target.txt</target>", lines);
             Assert.Contains(@"START """" /B ""%KC_TEST_ROOT%\target.txt""", lines);
             Assert.Equal(@"%KC_TEST_ROOT%\target.txt", result.Keycut.Target);
@@ -94,20 +94,20 @@ namespace keycuts.Tests
             var result = await KeycutCreator.CreateAsync(_target, "mine", Options(description: "hello"));
 
             Assert.Equal(CreateOutcome.Success, result.Outcome);
-            Assert.True(File.Exists(Path.Combine(_out, "mine.bat")));
+            Assert.True(File.Exists(Path.Combine(_out, "mine" + ShortcutFile.Extension)));
             Assert.Equal("mine", result.Keycut.Name);
             Assert.Equal("hello", result.Keycut.Description);
             Assert.Equal(KeycutKind.File, result.Keycut.Kind);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Success_ADescriptionWithPercentSigns_ReadsBackAsTyped_AndIsEscapedInTheFile()
         {
             var result = await KeycutCreator.CreateAsync(_target, "mine", Options(description: "Opens %~dp0 at 100%"));
 
             Assert.True(result.IsSuccess);
             Assert.Equal("Opens %~dp0 at 100%", result.Keycut.Description);
-            Assert.Contains("REM <description>Opens %%~dp0 at 100%%</description>", File.ReadAllLines(Path.Combine(_out, "mine.bat")));
+            Assert.Contains("REM <description>Opens %%~dp0 at 100%%</description>", File.ReadAllLines(Path.Combine(_out, "mine" + ShortcutFile.Extension)));
         }
 
         [Fact]
@@ -136,14 +136,14 @@ namespace keycuts.Tests
             var result = await KeycutCreator.CreateAsync(_target, "notes.v2", Options());
 
             Assert.True(result.IsSuccess);
-            Assert.True(File.Exists(Path.Combine(_out, "notes.v2.bat")));
+            Assert.True(File.Exists(Path.Combine(_out, "notes.v2" + ShortcutFile.Extension)));
         }
 
         [Fact]
         public async Task Duplicate_WithoutOverwrite_ReturnsDuplicateAndKeepsFile()
         {
             await KeycutCreator.CreateAsync(_target, "dup", Options());
-            var path = Path.Combine(_out, "dup.bat");
+            var path = Path.Combine(_out, "dup" + ShortcutFile.Extension);
             var before = File.ReadAllText(path);
 
             var result = await KeycutCreator.CreateAsync("https://example.com", "dup", Options());
@@ -267,7 +267,7 @@ namespace keycuts.Tests
             var result = await KeycutCreator.CreateAsync(_target, "x", Options());
 
             Assert.Equal(CreateOutcome.PathUpdateError, result.Outcome);
-            Assert.False(File.Exists(Path.Combine(_out, "x.bat")));
+            Assert.False(File.Exists(Path.Combine(_out, "x" + ShortcutFile.Extension)));
         }
 
         [Fact]
@@ -284,7 +284,7 @@ namespace keycuts.Tests
         {
             // A directory squatting on the .bat path makes the write throw
             Directory.CreateDirectory(_out);
-            Directory.CreateDirectory(Path.Combine(_out, "blocked.bat"));
+            Directory.CreateDirectory(Path.Combine(_out, "blocked" + ShortcutFile.Extension));
 
             var result = await KeycutCreator.CreateAsync(_target, "blocked", Options(overwrite: true));
 
@@ -303,7 +303,7 @@ namespace keycuts.Tests
             await KeycutCreator.CreateAsync(_target, "same", Options());
 
             var expected = File.ReadAllLines(shortcut.FullPath).Select(l => l.Replace(expectedFolder, "<out>"));
-            var actual = File.ReadAllLines(Path.Combine(_out, "same.bat")).Select(l => l.Replace(_out, "<out>"));
+            var actual = File.ReadAllLines(Path.Combine(_out, "same" + ShortcutFile.Extension)).Select(l => l.Replace(_out, "<out>"));
             Assert.Equal(expected, actual);
         }
 

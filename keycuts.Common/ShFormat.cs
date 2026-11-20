@@ -117,6 +117,12 @@ namespace keycuts.Common
             return FirstValue(lines, HeaderDescription) ?? "";
         }
 
+        /// <summary>The first line is the shebang and the second keycuts' own (<c># keycuts 2.0.0</c>); the shims' second line isn't.</summary>
+        public bool IsKeycut(string[] lines)
+        {
+            return lines.Length >= 2 && lines[0] == Shebang && lines[1].StartsWith($"# {Runner.AppName} ", StringComparison.Ordinal);
+        }
+
         public bool IsLaunchLine(string line)
         {
             return !line.TrimStart().StartsWith("#", StringComparison.Ordinal) && TryReadLaunchLine(line, out _, out _, out _);

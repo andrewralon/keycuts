@@ -66,7 +66,7 @@ namespace keycuts.Tests
 
         #region A line that is there
 
-        [Fact]
+        [WindowsFact]
         public async Task ChangesOnlyTheDescriptionLine_AndTheDate()
         {
             var path = Emit("gmail", ShortcutType.Url, "https://mail.google.com", "Old words");
@@ -85,7 +85,7 @@ namespace keycuts.Tests
         }
 
         // The point of one-line edits: nothing the file holds can be lost, whether or not the Edit form would take it
-        [Fact]
+        [WindowsFact]
         public async Task ALaunchLineEditedByHand_SurvivesAndStaysUneditableInTheForm()
         {
             var path = Path.Combine(_folder, "kp.bat");
@@ -126,7 +126,7 @@ namespace keycuts.Tests
             Assert.Equal("ran", RunScript(path).Trim());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task APercentTilde_IsDoubledOnTheLine()
         {
             var path = Emit("pct", ShortcutType.Url, "https://example.com");
@@ -137,7 +137,7 @@ namespace keycuts.Tests
         }
 
         // One line: a pasted newline becomes a space, as in the Creator
-        [Fact]
+        [WindowsFact]
         public async Task ANewlineInTheText_BecomesASpace()
         {
             var path = Emit("lines", ShortcutType.Url, "https://example.com");
@@ -150,7 +150,7 @@ namespace keycuts.Tests
             Assert.Contains("REM <description>first  second third</description>", File.ReadAllLines(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AnEmptyDescription_LeavesTheEmptyLineTheEmitterWrites()
         {
             var path = Emit("clear", ShortcutType.Url, "https://example.com", "Something");
@@ -161,7 +161,7 @@ namespace keycuts.Tests
             Assert.Contains("REM <description></description>", File.ReadAllLines(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task TheSameDescription_LeavesTheFileAlone_BytesAndDate()
         {
             var path = Emit("same", ShortcutType.Url, "https://example.com", "Kept");
@@ -180,7 +180,7 @@ namespace keycuts.Tests
 
         #region Keeping the file's own bytes
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("\r\n")]
         [InlineData("\n")]
         public async Task TheFilesLineBreaksStay(string lineBreak)
@@ -208,7 +208,7 @@ namespace keycuts.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AUtf8ByteOrderMark_AndNonAsciiText_AreKept()
         {
             var path = WriteBytes("bom", string.Join("\r\n", new[]
@@ -250,7 +250,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "marked.bat" }, Everything());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileThatIsNotUtf8_IsRefused_AndNotTouched()
         {
             var lines = new[]
@@ -274,7 +274,7 @@ namespace keycuts.Tests
         #region A line that isn't there
 
         // keycuts 1.0 wrote no description line: it goes where the emitter puts it, just before the launch line
-        [Fact]
+        [WindowsFact]
         public async Task AKeycutFromBeforeDescriptions_GetsALineBeforeTheLaunchLine()
         {
             var path = WriteBytes("v10", string.Join("\r\n", new[]
@@ -299,7 +299,7 @@ namespace keycuts.Tests
         }
 
         // The 0.1.x format, with the type as a tag name, and a launcher written by hand with no REM lines at all
-        [Theory]
+        [WindowsTheory]
         [InlineData("REM keycuts 0.1.1.5\r\nREM <url>C:\\Shortcuts\\old.bat</url>\r\nSTART https://mail.google.com/mail/u/0/#inbox\r\nEXIT\r\n")]
         [InlineData("@echo OFF\r\nSTART \"\" /D \"C:\\Program Files\\Google\\Chrome\\Application\" chrome.exe --profile-directory=\"Default\"\r\nexit")]
         [InlineData("@ECHO OFF\r\n\"%SystemRoot%\\explorer.exe\" \"C:\\Users\"\r\nEXIT\r\n")]
@@ -318,7 +318,7 @@ namespace keycuts.Tests
             Assert.Equal(before.Take(launch).Concat(new[] { "REM <description>Added later</description>" }).Concat(before.Skip(launch)), after);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task NothingToSay_AddsNoLine_AndLeavesTheFileAlone()
         {
             var path = WriteBytes("v10", "@ECHO OFF\r\nREM keycuts 1.0.0.0\r\nREM <type>url</type>\r\nREM <destination>https://example.com</destination>\r\nSTART https://example.com\r\nEXIT\r\n");
@@ -336,7 +336,7 @@ namespace keycuts.Tests
 
         #region Refusals
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileChangedSinceItLoaded_IsRefused_RatherThanOverwritingTheNewDescription()
         {
             var path = Emit("moved", ShortcutType.Url, "https://example.com", "original");
@@ -352,7 +352,7 @@ namespace keycuts.Tests
             Assert.Equal(bytes, File.ReadAllBytes(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AFileThatIsGone_SaysNotFound()
         {
             var path = Emit("gone", ShortcutType.Url, "https://example.com");

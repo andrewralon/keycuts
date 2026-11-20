@@ -193,7 +193,7 @@ namespace keycuts.Tests
 
         // In one folder Win+R runs keycuts.bat before keycuts.cmd (#209), so a keycut with the name would take the command over:
         // that is why the names stay refused and an existing one is renamed at startup
-        [Fact]
+        [WindowsFact]
         public void AKeycutNamedLikeAShim_WouldWinOverIt_SoTheNamesStayRefused()
         {
             var shim = Path.Combine(_folder, "keycuts.cmd");

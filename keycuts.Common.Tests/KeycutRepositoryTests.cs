@@ -76,7 +76,7 @@ namespace keycuts.Tests
             Assert.False(Directory.Exists(missing));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_MixOfKinds_ParsesEachOne()
         {
             var targetFile = Path.Combine(_root, "notes.txt");
@@ -103,7 +103,7 @@ namespace keycuts.Tests
             Assert.All(all.Values, k => Assert.Equal(TargetStatus.Unknown, k.TargetStatus));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_SetsModifiedFromTheFilesLastWriteTime()
         {
             var older = WriteUrl("older");
@@ -135,7 +135,7 @@ namespace keycuts.Tests
             Assert.True((await Repo().LoadAllAsync()).Single().Modified > old);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_ReadsTheTargetTag_AndTheOlderDestinationTag()
         {
             // #195: a keycut made now carries REM <target>, one made before carries REM <destination>, and both load the
@@ -151,7 +151,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutKind.Url, all["older"].Kind);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_OldFormatFile_HasNoQuotes()
         {
             WriteBat("npp", "@ECHO OFF", "START \"\" /B \"C:\\Program Files\\npp.exe\"", "EXIT");
@@ -159,7 +159,7 @@ namespace keycuts.Tests
             Assert.Equal(@"C:\Program Files\npp.exe", (await Repo().LoadAllAsync()).Single().Target);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("START \"\" /B \"cmd.exe\" /k echo hi", "\"cmd.exe\" /k echo hi")]
         [InlineData("START tool.exe -Command \"& 'x.ps1'\"", "tool.exe -Command \"& 'x.ps1'\"")]
         public async Task LoadAll_QuotesThatBelongToTheCommand_AreKept(string launchLine, string expected)
@@ -169,7 +169,7 @@ namespace keycuts.Tests
             Assert.Equal(expected, (await Repo().LoadAllAsync()).Single().Target);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_UnparseableFile_IsSkipped()
         {
             WriteUrl("good");
@@ -201,7 +201,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutRepositoryError.InvalidPath, ex.Error);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Description_Present_IsTrimmed()
         {
             WriteUrl("a", descriptionLine: "REM <description>  Work portal  </description>");
@@ -209,7 +209,7 @@ namespace keycuts.Tests
             Assert.Equal("Work portal", (await Repo().LoadAllAsync()).Single().Description);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Description_CaseInsensitive()
         {
             WriteUrl("a", descriptionLine: "rem <DESCRIPTION>Hello</Description>");
@@ -217,7 +217,7 @@ namespace keycuts.Tests
             Assert.Equal("Hello", (await Repo().LoadAllAsync()).Single().Description);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Description_Empty_IsEmpty()
         {
             WriteUrl("a", descriptionLine: "REM <description></description>");
@@ -225,7 +225,7 @@ namespace keycuts.Tests
             Assert.Equal("", (await Repo().LoadAllAsync()).Single().Description);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Description_Absent_IsEmpty()
         {
             WriteUrl("a");
@@ -233,7 +233,7 @@ namespace keycuts.Tests
             Assert.Equal("", (await Repo().LoadAllAsync()).Single().Description);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("REM <description>no closing tag")]
         [InlineData("REM <description>")]
         [InlineData("REM description text")]
@@ -264,7 +264,7 @@ namespace keycuts.Tests
             Assert.True(File.Exists(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task RunnerCreatedFile_HasEmptyDescriptionPlaceholderByDefault()
         {
             var path = CreateWithRunner("p", "https://example.com");
@@ -287,7 +287,7 @@ namespace keycuts.Tests
             Assert.Equal("", ShortcutFile.ParseDescription(Array.Empty<string>()));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Delete_RemovesFile()
         {
             var path = WriteUrl("gone");
@@ -298,7 +298,7 @@ namespace keycuts.Tests
             Assert.False(File.Exists(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Delete_AlreadyGone_ThrowsNotFound()
         {
             var path = WriteUrl("gone");
@@ -310,7 +310,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutRepositoryError.NotFound, ex.Error);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Delete_LockedFile_ThrowsTypedFailure()
         {
             var path = WriteUrl("locked");
@@ -378,7 +378,7 @@ namespace keycuts.Tests
             Assert.True(deleted.Recycled);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Delete_GoesThroughTheRecycler_AndSaysWhenThereIsNoBin()
         {
             var path = WriteUrl("viabin");
@@ -392,7 +392,7 @@ namespace keycuts.Tests
             Assert.False(deleted.Recycled);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Delete_ARecyclerThatFails_LeavesTheFileAndThrowsATypedError()
         {
             var path = WriteUrl("stays");
@@ -442,7 +442,7 @@ namespace keycuts.Tests
             Assert.Equal(before.Modified, after.Modified);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Restore_ANameTakenAgain_IsRefused_AndTheNewFileIsKeptByteForByte()
         {
             var path = WriteUrl("taken", "https://example.com/original");
@@ -460,7 +460,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { path }, Directory.GetFileSystemEntries(_folder));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Restore_ANameTakenInADifferentCase_IsRefusedToo()
         {
             WriteUrl("Mixed");
@@ -476,7 +476,7 @@ namespace keycuts.Tests
             Assert.Single(Directory.GetFileSystemEntries(_folder));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Restore_AFolderThatIsGone_ThrowsNotFound()
         {
             var path = WriteUrl("lost");
@@ -515,7 +515,7 @@ namespace keycuts.Tests
 
         #endregion Recycle and restore (#179)
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_MovesTheFile_AndRewritesOnlyTheShortcutLine()
         {
             var oldPath = Path.Combine(_folder, "kp.bat");
@@ -562,7 +562,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { newPath }, Directory.GetFiles(_folder));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_KeepsAUtf8ByteOrderMark()
         {
             var oldPath = Path.Combine(_folder, "a.bat");
@@ -576,7 +576,7 @@ namespace keycuts.Tests
             Assert.Contains($"<shortcut>{newPath}</shortcut>", File.ReadAllText(newPath));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_LegacyFileWithoutAShortcutLine_IsJustMoved()
         {
             var oldPath = WriteBat("gm", "@ECHO OFF", @"REM keycuts 0.1.1.5", @"REM <url>C:\Shortcuts\gm.bat</url>", "START https://mail.google.com", "EXIT");
@@ -588,7 +588,7 @@ namespace keycuts.Tests
             Assert.Equal(before, File.ReadAllBytes(newPath));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_NonUtf8File_IsMovedWithItsBytesUntouched()
         {
             var oldPath = Path.Combine(_folder, "old.bat");
@@ -601,7 +601,7 @@ namespace keycuts.Tests
             Assert.Equal(before, File.ReadAllBytes(newPath));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_ToATakenName_IsRefused_AndChangesNothing()
         {
             var a = WriteUrl("a");
@@ -615,7 +615,7 @@ namespace keycuts.Tests
             Assert.Contains("https://b.example", File.ReadAllText(b));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_ChangingOnlyTheCase_IsAllowed()
         {
             WriteUrl("npp");
@@ -627,7 +627,7 @@ namespace keycuts.Tests
             Assert.Equal(Path.Combine(_folder, "NPP.bat"), newPath);
         }
 
-        [Theory]
+        [WindowsTheory]
         [InlineData("")]
         [InlineData("a/b")]
         [InlineData("con")]
@@ -643,7 +643,7 @@ namespace keycuts.Tests
             Assert.True(File.Exists(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_FileAlreadyGone_ThrowsNotFound()
         {
             var path = WriteUrl("a");
@@ -655,7 +655,7 @@ namespace keycuts.Tests
             Assert.Equal(KeycutRepositoryError.NotFound, ex.Error);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Rename_SameName_IsANoOp()
         {
             var path = WriteUrl("a");
@@ -665,7 +665,7 @@ namespace keycuts.Tests
             Assert.True(File.Exists(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Exists_IsCaseInsensitive()
         {
             WriteUrl("MyKeycut");
@@ -684,7 +684,7 @@ namespace keycuts.Tests
             Assert.False(new KeycutRepository(Path.Combine(_root, "nope")).Exists("x"));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Count_MatchesLoadedKeycuts()
         {
             WriteUrl("a");
@@ -694,7 +694,7 @@ namespace keycuts.Tests
             Assert.Equal(2, await Repo().CountAsync());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task CheckTargets_MarksMissingAndOk_AndSkipsUrlsAndCommands()
         {
             var existing = Path.Combine(_root, "here.txt");
@@ -746,7 +746,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, k.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_HundredFiles_LoadsQuickly()
         {
             for (var i = 0; i < 100; i++)

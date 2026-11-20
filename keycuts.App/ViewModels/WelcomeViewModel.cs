@@ -18,7 +18,7 @@ namespace keycuts.GUI.ViewModels
         public const string CreateHint = "Click the rocket button to create it";
 
         /// <summary>The line after a create. It never names the keycut: the Name field does.</summary>
-        public const string CreatedHint = "Created. Now try it out! Press Win+R, type its name, and press Enter to open it.";
+        public static readonly string CreatedHint = PlatformText.WelcomeCreatedHint;
 
         private readonly Func<bool> isDismissed;
 
@@ -132,7 +132,7 @@ namespace keycuts.GUI.ViewModels
 
                 if (needsPath)
                 {
-                    return "Created, but Win+R can’t find it yet: the keycuts folder isn’t on your PATH.";
+                    return PlatformText.WelcomeNotOnPath;
                 }
 
                 if (created)

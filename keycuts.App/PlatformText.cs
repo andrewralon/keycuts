@@ -1,3 +1,5 @@
+using keycuts.Common;
+
 namespace keycuts.GUI
 {
     /// <summary>
@@ -34,6 +36,23 @@ namespace keycuts.GUI
         public static readonly string VariablesHelp = PlatformKeys.IsMac
             ? "Saves /Users/you/Desktop as $HOME/Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut."
             : "Saves C:\\Users\\you\\Desktop as %USERPROFILE%\\Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut.";
+
+        /// <summary>
+        /// The welcome panel (Phase 5.5): how to run a keycut. On macOS that's the Run box, from its shortcut, or the name in
+        /// Terminal; never Spotlight, which can't run them.
+        /// </summary>
+        public static readonly string WelcomeIntro = PlatformKeys.IsMac
+            ? "keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press ⇧⌘Space and type the name, or type it in Terminal."
+            : "keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it.";
+
+        public static readonly string WelcomeCreatedHint = PlatformKeys.IsMac
+            ? "Created. Now try it out! Press ⇧⌘Space, type its name, and press Return to open it."
+            : "Created. Now try it out! Press Win+R, type its name, and press Enter to open it.";
+
+        /// <summary>After a create, when the folder isn't on PATH: only Terminal needs it on macOS (the Run box finds keycuts itself).</summary>
+        public static readonly string WelcomeNotOnPath = "Created, but " + PlatformWords.Launcher + " can’t find it yet: the keycuts folder isn’t on your PATH.";
+
+        public static readonly string AddToPathHelp = "Adds the keycuts folder to PATH, so " + PlatformWords.Launcher + " can find your keycuts";
 
         /// <summary>The transparent icon background is Windows only: the Dock has no tile behind the icon.</summary>
         public static readonly bool ShowsTransparentIcon = !PlatformKeys.IsMac;

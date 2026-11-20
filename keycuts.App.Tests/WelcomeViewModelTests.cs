@@ -111,6 +111,16 @@ namespace keycuts.Tests
             Assert.True(TargetResolver.Resolve(examples[0].Target).IsValid);
         }
 
+        // Phase 5.5: kc opens the app; on macOS that's the .app, since open on the executable inside would start Terminal
+        [Theory]
+        [InlineData("/Applications/keycuts.app/Contents/MacOS/keycuts.GUI", "/Applications/keycuts.app")]
+        [InlineData("/Users/me/dev/keycuts.App/bin/Debug/net10.0/keycuts.GUI", "/Users/me/dev/keycuts.App/bin/Debug/net10.0/keycuts.GUI")]
+        [InlineData(@"C:\Program Files\keycuts\keycuts.GUI.exe", @"C:\Program Files\keycuts\keycuts.GUI.exe")]
+        public void TheAppExample_OpensTheBundle_OnMacOS(string processPath, string expected)
+        {
+            Assert.Equal(expected, WelcomeExample.AppToOpen(processPath));
+        }
+
         [Fact]
         public void Example_NamesItselfForAScreenReader()
         {
@@ -290,7 +300,7 @@ namespace keycuts.Tests
             Assert.True(welcome.IsSuccess);
             Assert.False(welcome.HelperIsError);
             Assert.False(welcome.ShowRocket);
-            Assert.Equal("Created. Now try it out! Press Win+R, type its name, and press Enter to open it.", welcome.HelperText);
+            Assert.Equal(WelcomeViewModel.CreatedHint, welcome.HelperText);
             Assert.Equal(1, fakes.MarkCount);
             Assert.True(welcome.IsVisible);
 
@@ -549,7 +559,7 @@ namespace keycuts.Tests
 
             Assert.True(creator.IsSuccess);
             Assert.Equal("https://www.google.com", creator.Target);
-            Assert.Equal("Created. Now try it out! Press Win+R, type its name, and press Enter to open it.", welcome.HelperText);
+            Assert.Equal(WelcomeViewModel.CreatedHint, welcome.HelperText);
 
             welcome.Dismiss();
 

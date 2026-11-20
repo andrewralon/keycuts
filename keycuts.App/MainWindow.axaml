@@ -17,6 +17,9 @@
     <DataTemplate DataType="vm:CreatorViewModel">
       <views:CreatorView />
     </DataTemplate>
+    <DataTemplate DataType="vm:ManagerViewModel">
+      <views:ManagerView />
+    </DataTemplate>
   </Window.DataTemplates>
   <!-- The torn bottom-right corner (docs/mockups/torn-corner-v2, B2): the window is transparent, the page (Frame) is clipped to the
        torn shape in MainWindow, and TornCorner draws the frayed edge and threads over it. High contrast keeps the plain rectangle. -->

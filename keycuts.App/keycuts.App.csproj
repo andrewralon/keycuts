@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
     <!-- The base theme under keycuts' own control themes (Themes/Controls.axaml), as WPF has Aero under Controls.xaml -->
     <PackageReference Include="Avalonia.Themes.Fluent" />
   </ItemGroup>

@@ -100,6 +100,9 @@ namespace keycuts.Tests
             new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "16", "drop area glow while dragging: RadiusLg + 4"),
             new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "8", "the create row's one-line drop area glow: RadiusSm + 3"),
             new("Views/CreatorForm.axaml", "Setter", "CornerRadius", "9", "the create row's one-line drop area glow while dragging: RadiusSm + 4"),
+            new("Views/ManagerView.axaml", "Border", "CornerRadius", "11", "count pill, 22 high"),
+            new("Views/ManagerView.axaml", "Setter", "Margin", "-5,0,0,0", "sort header, its label lined up with its column's values past the frame's 1 + 4"),
+            new("Views/ManagerView.axaml", "Border", "Padding", "4,2", "sort header's focus frame, close to its 12px label"),
 
             // The Avalonia app's control themes (keycuts.App, Phase 3.2) keep the WPF ones' exceptions, for the same reasons
             new("Themes/Controls.axaml", "ControlTheme", "FontSize", "{StaticResource FontSizeSubheading}", "the tab names, the size of keycuts beside them, not headings"),

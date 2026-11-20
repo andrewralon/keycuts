@@ -56,6 +56,24 @@ namespace keycuts.GUI
             }
         }
 
+        /// <summary>A dialog's height capped to the screen so its footer stays reachable, and the dialog kept on it.</summary>
+        public static void FitToWorkArea(Window window)
+        {
+            var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
+            if (screen == null)
+            {
+                return;
+            }
+
+            var scale = screen.Scaling;
+            var area = screen.WorkingArea;
+            var workArea = new Avalonia.Rect(area.X / scale, area.Y / scale, area.Width / scale, area.Height / scale);
+            window.MaxHeight = workArea.Height;
+            var bounds = WindowLayout.ClampToWorkArea(
+                new Avalonia.Rect(window.Position.X / scale, window.Position.Y / scale, window.Bounds.Width, window.Bounds.Height), workArea);
+            window.Position = new Avalonia.PixelPoint((int)Math.Round(bounds.Left * scale), (int)Math.Round(bounds.Top * scale));
+        }
+
         /// <summary>The system's default sound, as WPF's <c>SystemSounds.Beep</c>. Nothing off Windows for now.</summary>
         public static void Beep()
         {

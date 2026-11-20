@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:keycuts.GUI.Controls"
+             xmlns:themes="using:keycuts.GUI.Themes"
+             xmlns:vm="using:keycuts.GUI.ViewModels"
+             x:Class="keycuts.GUI.Views.CreateRowView"
+             x:DataType="vm:CreatorViewModel"
+             DragDrop.AllowDrop="{Binding IsInputEnabled}">
+  <!-- The Manager's create row (WPF's Views/CreateRowView; docs/styleguide.md, The Manager's create row): the Creator's fields in
+       one row, Target, Name and Description, then Create. CreatorInput does what the Creator's form does. -->
+  <UserControl.Styles>
+    <StyleInclude Source="/Views/CreatorForm.axaml" />
+  </UserControl.Styles>
+
+  <Border Padding="{StaticResource PanelPadding}" CornerRadius="{StaticResource RadiusLg}" BorderThickness="1"
+          Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}">
+    <!-- The fields share the row 2 : 1.25 : 1.25, 12 apart: a long target has the most room -->
+    <Grid ColumnDefinitions="2*,1.25*,1.25*,Auto" RowDefinitions="Auto,Auto,Auto">
+      <!-- Target: the Creator's drop area squeezed to one text box's height, the type icon at its left, then Browse. Each field is
+           in a StarCell, so a long target or description never takes a pixel from the next box (#252). -->
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Target" Theme="{StaticResource FieldLabel}" />
+      <controls:StarCell Grid.Row="1" Grid.Column="0">
+        <Grid ColumnDefinitions="*,Auto">
+          <Grid x:Name="DropArea" Height="{StaticResource InputHeight}" Classes="row"
+                Classes.error="{Binding ShowTargetError}" Classes.hover="{Binding ShowDragHover}">
+            <Border Classes="DropGlow" />
+            <Border Classes="DropFill" />
+            <Rectangle Classes="DropStroke" />
+            <Grid Margin="12,0" ColumnDefinitions="Auto,*">
+              <controls:Icon Kind="{Binding TargetIcon}" Size="16" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
+              <!-- One line: a long target scrolls in the box, and its tooltip shows all of it -->
+              <TextBox x:Name="TextboxTarget" Grid.Column="1" Theme="{StaticResource InlineTextBox}" Margin="8,0,0,0"
+                       Text="{Binding TargetText}" TextWrapping="NoWrap"
+                       PlaceholderText="Drop or paste a file, folder, or URL"
+                       IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
+                       AutomationProperties.HelpText="{Binding TargetHelpText}" />
+            </Grid>
+          </Grid>
+          <controls:MenuButton x:Name="BtnBrowse" Grid.Column="1" Theme="{StaticResource SquareButton}" Margin="8,0,0,0"
+                               IsEnabled="{Binding IsInputEnabled}" ToolTip.Tip="Browse" AutomationProperties.Name="Browse">
+            <controls:Icon Kind="Folder" Size="20" VerticalAlignment="Center" />
+            <controls:MenuButton.ContextMenu>
+              <ContextMenu x:Name="BrowseMenu" Width="190">
+                <MenuItem Theme="{StaticResource AppMenuItem}" Classes="BrowseMenuItem" AutomationProperties.Name="File…" Command="{Binding BrowseFileCommand}">
+                  <MenuItem.Icon>
+                    <controls:Icon Kind="File" Size="16" Foreground="{DynamicResource AccentBrush}" />
+                  </MenuItem.Icon>
+                  <MenuItem.Header>
+                    <StackPanel>
+                      <TextBlock Text="File…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
+                      <TextBlock Text="Choose a single file" FontSize="{StaticResource FontSizeCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+                <MenuItem Theme="{StaticResource AppMenuItem}" Classes="BrowseMenuItem" AutomationProperties.Name="Folder…" Command="{Binding BrowseFolderCommand}">
+                  <MenuItem.Icon>
+                    <controls:Icon Kind="Folder" Size="16" Foreground="{DynamicResource AccentBrush}" />
+                  </MenuItem.Icon>
+                  <MenuItem.Header>
+                    <StackPanel>
+                      <TextBlock Text="Folder…" FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}" />
+                      <TextBlock Text="Choose a directory" FontSize="{StaticResource FontSizeCaption}"
+                                 Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                  </MenuItem.Header>
+                </MenuItem>
+              </ContextMenu>
+            </controls:MenuButton.ContextMenu>
+          </controls:MenuButton>
+        </Grid>
+      </controls:StarCell>
+
+      <!-- Name, with "Saving…" and then "Created" at the right of its label, as on the Creator -->
+      <Grid Grid.Row="0" Grid.Column="1" Margin="12,0,0,0" ColumnDefinitions="Auto,*">
+        <TextBlock Text="Name" Theme="{StaticResource FieldLabel}" />
+        <controls:HelperText x:Name="NameStatusTextBlock" Grid.Column="1" Classes="NameStatus" Margin="12,0,0,8"
+                             HorizontalAlignment="Right" VerticalAlignment="Center"
+                             Text="{Binding NameStatusText}" Classes.success="{Binding IsSuccess}" />
+      </Grid>
+      <controls:StarCell Grid.Row="1" Grid.Column="1">
+        <TextBox x:Name="TextboxShortcut" Margin="12,0,0,0" Text="{Binding ShortcutName}" PlaceholderText="e.g. art"
+                 themes:TextBoxChrome.HasError="{Binding IsNameError}"
+                 themes:TextBoxChrome.HasWarning="{Binding IsNameWarning}"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
+                 AutomationProperties.HelpText="{Binding NameHelpText}" />
+      </controls:StarCell>
+
+      <!-- Description: always shown here, so there is no Add a description link -->
+      <TextBlock Grid.Row="0" Grid.Column="2" Margin="12,0,0,8" Text="Description" Theme="{StaticResource FieldLabel}" />
+      <controls:StarCell Grid.Row="1" Grid.Column="2">
+        <TextBox x:Name="TextboxDescription" Margin="12,0,0,0" Text="{Binding Description}"
+                 PlaceholderText="e.g. my paintings (optional)"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
+      </controls:StarCell>
+
+      <!-- Create ends the row: the Creator's rocket, which gives way to the spinner while the keycut is written -->
+      <Button x:Name="BtnCreateShortcut" Grid.Row="1" Grid.Column="3" Theme="{StaticResource PrimarySquareButton}" Margin="8,0,0,0"
+              Command="{Binding CreateCommand}" ToolTip.Tip="{Binding CreateButtonName}" ToolTip.ShowOnDisabled="True"
+              AutomationProperties.Name="{Binding CreateButtonName}">
+        <Panel>
+          <controls:Icon Kind="Rocket" Size="20" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !IsSaving}" />
+          <TemplatedControl Theme="{StaticResource Spinner}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Foreground="{Binding $parent[Button].Foreground}" IsVisible="{Binding IsSaving}" />
+        </Panel>
+      </Button>
+
+      <!-- Name warnings and errors, and target errors, under the whole row; takes no room while there is nothing to say -->
+      <controls:HelperText x:Name="HelperTextBlock" Grid.Row="2" Grid.ColumnSpan="4" Classes="NameHelper"
+                           Text="{Binding HelperText}" Classes.warning="{Binding HelperIsWarning}"
+                           Classes.error="{Binding HelperIsError}" Classes.silent="{Binding !ShowHelperLine}" />
+    </Grid>
+  </Border>
+</UserControl>

@@ -6,6 +6,8 @@
   <ItemGroup>
     <!-- The Avalonia app (keycuts.App, docs/macos-port.md Phase 3) and its headless tests: one version for all of them -->
     <PackageVersion Include="Avalonia" Version="12.1.6" />
+    <!-- The Manager's table: MIT, versioned on its own (docs/macos-port.md, Phase 0.7) -->
+    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.6" />
     <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.6" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.6" />

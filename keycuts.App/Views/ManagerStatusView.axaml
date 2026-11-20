@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:keycuts.GUI.ViewModels"
+             x:Class="keycuts.GUI.Views.ManagerStatusView"
+             x:DataType="vm:ManagerViewModel">
+  <!-- #205 (WPF's Views/ManagerStatusView): Undo and the manager's status message (Deleted, Renamed, errors), in the search row
+       between the search box and the count. It is at most 300 wide: the message trims with an ellipsis, and its tooltip is the whole
+       text. The message is a live line, so it stays in the tree while empty and takes no room then (the margin goes with it). -->
+  <UserControl.Styles>
+    <!-- Small accent link for the status line (undo). Smaller than 24, it passes WCAG 2.5.8 by spacing. -->
+    <Style Selector="Button.StatusLink">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="{StaticResource RadiusSm}">
+            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="Button.StatusLink:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    </Style>
+    <Style Selector="TextBlock#StatusMessageText.error">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid x:Name="Root" MaxWidth="300" ColumnDefinitions="*,Auto">
+    <!-- #179, #205: Undo comes after the message, against the count, so it is always in the same place -->
+    <Button x:Name="UndoButton" Grid.Column="1" Classes="StatusLink" Margin="8,0,0,0" VerticalAlignment="Center" Content="undo"
+            Command="{Binding UndoDeleteCommand}" ToolTip.Tip="Undo the delete (Ctrl+Z)" AutomationProperties.Name="undo delete"
+            IsVisible="{Binding CanUndoDelete}" />
+    <TextBlock x:Name="StatusMessageText" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+               FontSize="{StaticResource FontSizeCaption}" Text="{Binding StatusMessage}" ToolTip.Tip="{Binding StatusMessage}"
+               Foreground="{DynamicResource TextSecondaryBrush}" Classes.error="{Binding StatusIsError}"
+               AutomationProperties.LiveSetting="Polite" />
+  </Grid>
+</UserControl>

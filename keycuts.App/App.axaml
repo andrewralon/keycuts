@@ -23,6 +23,8 @@
     <!-- The base for every control keycuts has no theme of its own for (Window, ScrollViewer, ListBox…); its ControlThemes
          lose to the ones in Themes/Controls.axaml, which are application resources -->
     <FluentTheme />
+    <!-- The DataGrid's base theme, under the Manager's own row, cell and header themes -->
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
     <!-- Every window, derived ones included, starts from the palette and the app's font (WPF's ThemeManager.ApplyWindowChrome) -->
     <Style Selector=":is(Window)">
       <Setter Property="Background" Value="{DynamicResource CanvasBrush}" />

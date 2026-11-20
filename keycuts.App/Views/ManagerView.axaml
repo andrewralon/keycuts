@@ -1,0 +1,447 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:keycuts.GUI.Controls"
+             xmlns:views="using:keycuts.GUI.Views"
+             xmlns:vm="using:keycuts.GUI.ViewModels"
+             x:Class="keycuts.GUI.Views.ManagerView"
+             x:DataType="vm:ManagerViewModel"
+             Background="{DynamicResource SurfaceBrush}">
+  <!-- WPF's Views/ManagerView. The column headers sit in the grid's tree, so they bind to the Manager directly (no BindingProxy). -->
+  <UserControl.Resources>
+    <!-- Sortable column header: label plus a chevron that shows on hover and for the active column. Smaller than 24, it passes
+         WCAG 2.5.8 by spacing: it sits alone in a 36 high header. -->
+    <ControlTheme x:Key="SortHeader" TargetType="controls:SortHeaderButton">
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <!-- Pulled left by the frame's 1 border and 4 padding, so the label starts where its column's values do (12 in) -->
+      <Setter Property="Margin" Value="-5,0,0,0" />
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <!-- The frame shows keyboard focus; 2 above and below keep it close to the 12px label (an optical offset) -->
+          <Border Name="Frame" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                  CornerRadius="{StaticResource RadiusSm}" Padding="4,2">
+            <StackPanel Orientation="Horizontal">
+              <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+              <controls:Icon Name="Chevron" Kind="Chevron" Size="12" Margin="4,0,0,0" Opacity="0" VerticalAlignment="Center">
+                <controls:Icon.RenderTransform>
+                  <RotateTransform Angle="90" />
+                </controls:Icon.RenderTransform>
+              </controls:Icon>
+            </StackPanel>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Style Selector="^ /template/ controls|Icon#Chevron">
+          <Setter Property="Opacity" Value="1" />
+        </Style>
+      </Style>
+      <Style Selector="^:focus-visible">
+        <Style Selector="^ /template/ Border#Frame">
+          <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        </Style>
+        <Style Selector="^ /template/ controls|Icon#Chevron">
+          <Setter Property="Opacity" Value="1" />
+        </Style>
+      </Style>
+      <Style Selector="^[State=Ascending]">
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+        <Style Selector="^ /template/ controls|Icon#Chevron">
+          <Setter Property="Opacity" Value="1" />
+          <Setter Property="RenderTransform">
+            <RotateTransform Angle="-90" />
+          </Setter>
+        </Style>
+      </Style>
+      <Style Selector="^[State=Descending]">
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+        <Style Selector="^ /template/ controls|Icon#Chevron">
+          <Setter Property="Opacity" Value="1" />
+        </Style>
+      </Style>
+    </ControlTheme>
+
+    <!-- 12 at the left, like the cells; 4 at the right, which the label's sort chevron may run into. The dividers between headers
+         are dragged (#202); the grid finds them at the header's edges. -->
+    <ControlTheme x:Key="ManagerHeader" TargetType="DataGridColumnHeader">
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Padding" Value="12,0,4,0" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              VerticalAlignment="Center" HorizontalAlignment="Left" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
+    <!-- Rows take no keyboard focus: Up and Down move the selection while focus stays in the search box. The bar keeps the
+         selection visible in high contrast, where the tint disappears. -->
+    <ControlTheme x:Key="ManagerRow" TargetType="DataGridRow">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Panel>
+              <DataGridCellsPresenter Name="PART_CellsPresenter" />
+              <Rectangle Name="SelectionBar" Width="3" HorizontalAlignment="Left" IsVisible="False" Fill="{DynamicResource AccentBrush}" />
+            </Panel>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+      </Style>
+      <Style Selector="^.menuopen">
+        <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+      </Style>
+      <Style Selector="^:selected">
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        <Style Selector="^ /template/ Rectangle#SelectionBar">
+          <Setter Property="IsVisible" Value="True" />
+        </Style>
+      </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="ManagerCell" TargetType="DataGridCell">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}" VerticalAlignment="Center" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+
+    <!-- A type badge has its own border and fill, so 4 at its right is enough -->
+    <ControlTheme x:Key="ManagerBadgeCell" TargetType="DataGridCell" BasedOn="{StaticResource ManagerCell}">
+      <Setter Property="Padding" Value="12,0,4,0" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="ManagerTable" TargetType="DataGrid">
+      <Setter Property="AutoGenerateColumns" Value="False" />
+      <Setter Property="IsReadOnly" Value="True" />
+      <Setter Property="CanUserResizeColumns" Value="True" />
+      <Setter Property="CanUserReorderColumns" Value="False" />
+      <Setter Property="CanUserSortColumns" Value="False" />
+      <Setter Property="ClipboardCopyMode" Value="None" />
+      <Setter Property="HeadersVisibility" Value="Column" />
+      <Setter Property="GridLinesVisibility" Value="None" />
+      <Setter Property="SelectionMode" Value="Single" />
+      <Setter Property="RowHeight" Value="36" />
+      <Setter Property="ColumnHeaderHeight" Value="36" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+      <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+      <Setter Property="ColumnHeaderTheme" Value="{StaticResource ManagerHeader}" />
+      <Setter Property="RowTheme" Value="{StaticResource ManagerRow}" />
+      <Setter Property="CellTheme" Value="{StaticResource ManagerCell}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto">
+              <Border Grid.ColumnSpan="2" Background="{DynamicResource SurfaceSubtleBrush}"
+                      BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" />
+              <DataGridColumnHeadersPresenter Name="PART_ColumnHeadersPresenter" />
+              <DataGridRowsPresenter Name="PART_RowsPresenter" Grid.Row="1" />
+              <ScrollBar Name="PART_VerticalScrollbar" Grid.Row="1" Grid.Column="1" Orientation="Vertical" />
+              <ScrollBar Name="PART_HorizontalScrollbar" Grid.Row="2" Orientation="Horizontal" IsVisible="False" />
+            </Grid>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <!-- Single-line table text: trims with an ellipsis and shows the full value in a tooltip -->
+    <Style Selector="TextBlock.CellText">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="TextWrapping" Value="NoWrap" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- A row's actions: each row gets its own copy of the menu (a setter's control is made once per row), so the menu's bindings
+         follow that row. 250 wide for the key names beside the items. A screen reader names it after its keycut. -->
+    <Style Selector="DataGrid#Table DataGridRow" x:DataType="vm:KeycutRowViewModel">
+      <Setter Property="ContextMenu">
+        <ContextMenu Width="250" AutomationProperties.Name="{Binding ActionsLabel}">
+          <MenuItem Header="Open keycut" InputGesture="Enter" Command="{Binding OpenCommand}" Classes="Safe">
+            <MenuItem.Icon>
+              <controls:Icon Kind="Play" Size="16" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <!-- #202: greyed out for a keycut the form can't save, and the tooltip (shown on the disabled item) says why -->
+          <MenuItem Header="Edit…" InputGesture="Ctrl+E" Command="{Binding EditCommand}" Classes="Safe"
+                    ToolTip.Tip="{Binding EditTooltip}" ToolTip.ShowOnDisabled="True" ToolTip.IsEnabled="{Binding !CanEditInForm}">
+            <MenuItem.Icon>
+              <controls:Icon Kind="File" Size="16" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Edit in Notepad" InputGesture="Ctrl+Shift+E" Command="{Binding EditInNotepadCommand}" Classes="Safe">
+            <MenuItem.Icon>
+              <controls:Icon Kind="External" Size="16" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Open file location" InputGesture="Ctrl+Shift+O" Command="{Binding OpenFileLocationCommand}" Classes="Safe">
+            <MenuItem.Icon>
+              <controls:Icon Kind="Folder" Size="16" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Copy target" InputGesture="Ctrl+C" Command="{Binding CopyTargetCommand}" Classes="Safe">
+            <MenuItem.Icon>
+              <controls:Icon Kind="Copy" Size="16" />
+            </MenuItem.Icon>
+          </MenuItem>
+          <!-- Not Safe: the focus goes to the name or description box -->
+          <MenuItem Header="Rename" InputGesture="F2" Command="{Binding RenameCommand}" />
+          <MenuItem Header="Edit description" InputGesture="Shift+F2" Command="{Binding EditDescriptionCommand}" />
+          <Separator />
+          <MenuItem Header="Delete" InputGesture="Delete" Theme="{StaticResource DangerMenuItem}" Command="{Binding DeleteCommand}">
+            <MenuItem.Icon>
+              <controls:Icon Kind="Delete" Size="16" Foreground="{DynamicResource DangerBrush}" />
+            </MenuItem.Icon>
+          </MenuItem>
+        </ContextMenu>
+      </Setter>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*,Auto">
+    <StackPanel Grid.Row="0" Margin="24,16,24,12">
+      <!-- The Creator's fields in one row (docs/styleguide.md, The Manager's create row), 16 above the search box. Its keys are its
+           own. A Manager without one (tests) builds nothing here. -->
+      <ContentControl x:Name="CreateRowHost" Margin="0,0,0,16" Content="{Binding CreateRow}" Focusable="False" IsTabStop="False"
+                      IsVisible="{Binding HasCreateRow}">
+        <ContentControl.DataTemplates>
+          <DataTemplate DataType="vm:CreatorViewModel">
+            <views:CreateRowView />
+          </DataTemplate>
+        </ContentControl.DataTemplates>
+      </ContentControl>
+
+      <!-- The search box, then the Manager's message (Undo, Deleted, errors) while there is one, then the count -->
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <Panel>
+          <TextBox x:Name="SearchBox" Padding="36,0,12,0" Text="{Binding SearchText}" IsEnabled="{Binding CanSearch}"
+                   PlaceholderText="Search names, types, descriptions, or targets" AutomationProperties.Name="Search keycuts" />
+          <controls:Icon Kind="Search" Size="16" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"
+                         IsHitTestVisible="False" Foreground="{DynamicResource TextTertiaryBrush}" />
+        </Panel>
+        <views:ManagerStatusView Grid.Column="1" VerticalAlignment="Center" />
+        <!-- The count: "355 keycuts", or "4 of 355 keycuts" while a search hides some. Fully round: the radius is half its height. -->
+        <Border x:Name="CountPill" Grid.Column="2" Margin="12,0,0,0" Height="22" Padding="8,0" CornerRadius="11"
+                Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                VerticalAlignment="Center">
+          <TextBlock x:Name="CountText" Text="{Binding CountText}" FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
+                     AutomationProperties.LiveSetting="Polite" />
+        </Border>
+      </Grid>
+    </StackPanel>
+
+    <!-- 24 at the bottom, like every page. The table is a whole number of rows tall (FitTableToRows), so no row shows cut off at
+         its bottom; what is left over goes under it. -->
+    <Grid x:Name="TableArea" Grid.Row="1" Margin="24,0,24,24">
+      <Border x:Name="TableHost" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" VerticalAlignment="Top"
+              CornerRadius="{StaticResource RadiusMd}" ClipToBounds="True" IsVisible="{Binding IsTableVisible}">
+        <DataGrid x:Name="Table" Theme="{StaticResource ManagerTable}" ItemsSource="{Binding Rows}"
+                  SelectedItem="{Binding SelectedRow, Mode=TwoWay}" AutomationProperties.Name="keycuts">
+          <DataGrid.Columns>
+            <!-- A click on the name or description cell of the selected row edits it in place (#202) -->
+            <DataGridTemplateColumn Width="1.2*" MinWidth="120">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Shortcut" Content="Name" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Classes="CellText" Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                               ToolTip.Tip="{Binding Name}" IsVisible="{Binding !IsRenaming}" />
+                    <!-- Rename in place (F2, Rename, or a click on the selected row): Enter saves, Escape cancels, clicking or tabbing away saves -->
+                    <TextBox Classes="RenameBox" Text="{Binding EditName}" Height="30" MinHeight="30"
+                             IsVisible="{Binding IsRenaming}" AutomationProperties.Name="{Binding RenameLabel}" />
+                    <StackPanel Orientation="Horizontal" ToolTip.Tip="{Binding MissingTooltip}" IsVisible="{Binding ShowMissingIndicator}">
+                      <controls:Icon Kind="Close" Size="12" VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" />
+                      <TextBlock Text="Missing" Margin="4,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource DangerBrush}" />
+                    </StackPanel>
+                    <!-- #203: starts, but something it names is wrong (a start-in folder that doesn't exist) -->
+                    <StackPanel Orientation="Horizontal" ToolTip.Tip="{Binding WarningTooltip}" IsVisible="{Binding ShowWarningIndicator}">
+                      <controls:Icon Kind="Warning" Size="12" VerticalAlignment="Center" Foreground="{DynamicResource WarningBrush}" />
+                      <TextBlock Text="Warning" Margin="4,0,0,0" FontSize="{StaticResource FontSizeCaption}"
+                                 VerticalAlignment="Center" Foreground="{DynamicResource WarningBrush}" />
+                    </StackPanel>
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- Type, Modified, Runs and Last run are fixed -->
+            <DataGridTemplateColumn Width="104" MinWidth="104" CanUserResize="False" CellTheme="{StaticResource ManagerBadgeCell}">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Type" Content="Type" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <controls:TypeBadge Kind="{Binding Kind}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Width="*" MinWidth="100">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Description" Content="Description" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <Panel VerticalAlignment="Center">
+                    <TextBlock Classes="CellText" Text="{Binding Description}" ToolTip.Tip="{Binding Description}"
+                               IsVisible="{Binding !IsEditingDescription}" />
+                    <!-- Edit in place (Shift+F2, Edit description, or a click on the selected row) -->
+                    <TextBox Classes="DescriptionBox" Text="{Binding EditDescription}" Height="30" MinHeight="30"
+                             PlaceholderText="Add a description" IsVisible="{Binding IsEditingDescription}"
+                             AutomationProperties.Name="{Binding DescriptionLabel}" />
+                  </Panel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- Target is resizable, and the columns to its left give way to it -->
+            <DataGridTemplateColumn Width="3.4*" MinWidth="160">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Target" Content="Target" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <!-- The cell shows the program; the tooltip adds its arguments (#203) and a script's variables (#212) -->
+                  <TextBlock Classes="CellText" Text="{Binding DisplayTarget}" ToolTip.Tip="{Binding TargetTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- #187: how often each keycut runs and when it last did. Their headers say when counting started (#235). -->
+            <DataGridTemplateColumn Width="64" MinWidth="64" CanUserResize="False">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Runs" Content="Runs" Note="{Binding CountingSinceText}" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <TextBlock Classes="CellText" Text="{Binding RunsText}" ToolTip.Tip="{Binding RunsTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Width="112" MinWidth="112" CanUserResize="False">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="LastRun" Content="Last run" Note="{Binding CountingSinceText}" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <TextBlock Classes="CellText" Text="{Binding LastRunText}" ToolTip.Tip="{Binding RunsTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <!-- #167: the last column, hidden while the table is too narrow for it -->
+            <DataGridTemplateColumn Width="112" MinWidth="112" CanUserResize="False">
+              <DataGridTemplateColumn.Header>
+                <controls:SortHeaderButton Column="Modified" Content="Modified" Theme="{StaticResource SortHeader}"
+                                           ActiveColumn="{Binding SortColumn}" IsDescending="{Binding SortDescending}"
+                                           Command="{Binding SortCommand}" CommandParameter="{Binding $self.Column}" />
+              </DataGridTemplateColumn.Header>
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:KeycutRowViewModel">
+                  <!-- The text is how long ago; the tooltip is the exact date and time -->
+                  <TextBlock Classes="CellText" Text="{Binding ModifiedText}" ToolTip.Tip="{Binding ModifiedTooltip}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+
+      <!-- Loading -->
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal" IsVisible="{Binding IsLoading}">
+        <TemplatedControl Theme="{StaticResource Spinner}" VerticalAlignment="Center" />
+        <TextBlock Text="Loading keycuts…" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+      </StackPanel>
+
+      <!-- Empty -->
+      <Panel IsVisible="{Binding IsEmpty}">
+        <Rectangle RadiusX="{StaticResource RadiusMdValue}" RadiusY="{StaticResource RadiusMdValue}"
+                   Stroke="{DynamicResource BorderStrongBrush}" StrokeThickness="1" StrokeDashArray="4,3" />
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Panel Width="56" Height="56" HorizontalAlignment="Center" Margin="0,0,0,12">
+            <Border CornerRadius="{StaticResource RadiusXl}" Background="{DynamicResource AccentSoftBrush}" />
+            <controls:Icon Kind="File" Size="32" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}" />
+            <controls:Icon Kind="Spark" Size="16" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0"
+                           Foreground="{DynamicResource AccentBrush}" />
+          </Panel>
+          <TextBlock Text="No keycuts yet" HorizontalAlignment="Center" Theme="{StaticResource Subheading}" />
+          <TextBlock Text="Create your first keycut and it will show up here." HorizontalAlignment="Center"
+                     Margin="0,0,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
+          <Button x:Name="EmptyCreateButton" Theme="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Padding="16,0"
+                  Command="{Binding ShowCreatorCommand}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="create a keycut" />
+              <controls:Icon Kind="Arrow" Size="16" Margin="8,0,0,0" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Panel>
+
+      <!-- No search results -->
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsNoResults}">
+        <TextBlock Text="{Binding NoResultsMessage}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   TextWrapping="NoWrap" MaxWidth="560" Theme="{StaticResource Subheading}" />
+        <Button Theme="{StaticResource SecondaryButton}" Content="clear search" HorizontalAlignment="Center"
+                Margin="0,12,0,0" Command="{Binding ClearSearchCommand}" />
+      </StackPanel>
+
+      <!-- Load error -->
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" IsVisible="{Binding HasError}">
+        <TextBlock Text="Can’t load your keycuts" HorizontalAlignment="Center" Theme="{StaticResource Subheading}"
+                   AutomationProperties.LiveSetting="Assertive" Foreground="{DynamicResource DangerBrush}" />
+        <TextBlock Text="{Binding ErrorMessage}" HorizontalAlignment="Center" TextAlignment="Center"
+                   TextWrapping="Wrap" Margin="0,0,0,16" Foreground="{DynamicResource TextSecondaryBrush}" />
+        <Button Theme="{StaticResource SecondaryButton}" Content="open settings" HorizontalAlignment="Center"
+                Command="{Binding OpenSettingsCommand}" />
+      </StackPanel>
+    </Grid>
+
+    <!-- #205: the footer the screens share, shown only while a newer version is out -->
+    <views:FooterView Grid.Row="2" />
+  </Grid>
+</UserControl>

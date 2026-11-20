@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:keycuts.GUI.Controls"
+        xmlns:themes="using:keycuts.GUI.Themes"
+        xmlns:vm="using:keycuts.GUI.ViewModels"
+        x:Class="keycuts.GUI.EditWindow"
+        x:DataType="vm:EditKeycutViewModel"
+        Title="{Binding Title}" Width="{StaticResource EditWidth}" SizeToContent="Height" CanResize="False" CanMaximize="False"
+        CanMinimize="False" ShowInTaskbar="False" WindowStartupLocation="CenterOwner" UseLayoutRounding="True"
+        Background="{DynamicResource SurfaceBrush}" FontSize="{StaticResource FontSizeBody}">
+  <!-- WPF's EditWindow, the modal Edit form (#180). The body scrolls when the window is capped to the screen; the footer always
+       stays visible. The error lines are live lines: with nothing to say they stay in the tree and take no room. -->
+  <Window.Styles>
+    <Style Selector="TextBlock.silent">
+      <Setter Property="MaxHeight" Value="0" />
+      <Setter Property="Margin" Value="0" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False"
+                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="{StaticResource PagePadding}">
+        <TextBlock Text="{Binding Title}" Theme="{StaticResource Heading}" />
+
+        <TextBlock Text="Target" Theme="{StaticResource FieldLabel}" />
+        <TextBox x:Name="TextboxTarget" Text="{Binding Target}" PlaceholderText="A file, folder, or URL"
+                 themes:TextBoxChrome.HasError="{Binding HasTargetError}"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Target"
+                 AutomationProperties.HelpText="{Binding TargetError}" ToolTip.Tip="{Binding $self.Text}" />
+        <TextBlock x:Name="TargetErrorText" Text="{Binding TargetError}" Theme="{StaticResource ErrorText}"
+                   Classes.silent="{Binding !HasTargetError}" AutomationProperties.LiveSetting="Assertive" />
+
+        <TextBlock Text="Name" Theme="{StaticResource FieldLabel}" Margin="0,16,0,8" />
+        <TextBox x:Name="TextboxName" Text="{Binding Name}" PlaceholderText="e.g. art"
+                 themes:TextBoxChrome.HasError="{Binding HasNameError}"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="keycut name"
+                 AutomationProperties.HelpText="{Binding NameError}" />
+        <TextBlock x:Name="NameErrorText" Text="{Binding NameError}" Theme="{StaticResource ErrorText}"
+                   Classes.silent="{Binding !HasNameError}" AutomationProperties.LiveSetting="Assertive" />
+
+        <TextBlock Text="Description" Theme="{StaticResource FieldLabel}" Margin="0,16,0,8" />
+        <TextBox x:Name="TextboxDescription" Text="{Binding Description}" PlaceholderText="e.g. my paintings (optional)"
+                 IsEnabled="{Binding IsInputEnabled}" AutomationProperties.Name="Description" />
+
+        <TextBlock x:Name="SaveErrorText" Text="{Binding SaveError}" Theme="{StaticResource ErrorText}" Margin="0,16,0,0"
+                   Classes.silent="{Binding !HasSaveError}" AutomationProperties.LiveSetting="Assertive" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Footer, as in Settings and the confirmation: Escape and Cancel leave things as they are; Enter saves -->
+    <Border Grid.Row="1" Theme="{StaticResource DialogFooter}">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="BtnCancel" Content="cancel" Theme="{StaticResource SecondaryButton}" IsCancel="True"
+                IsEnabled="{Binding IsInputEnabled}" Click="Cancel_Click" />
+        <Button x:Name="BtnSave" Theme="{StaticResource PrimaryButton}" IsDefault="True" Margin="8,0,0,0"
+                Command="{Binding SaveCommand}" AutomationProperties.Name="save">
+          <StackPanel Orientation="Horizontal">
+            <controls:Icon Kind="Check" Size="16" VerticalAlignment="Center" />
+            <TextBlock Text="save" Margin="8,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

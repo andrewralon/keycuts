@@ -8,7 +8,7 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Rendering;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// The shape of the window's torn bottom-right corner (docs/mockups/torn-corner-v2, B2: "Ripped, smallest"; WPF's

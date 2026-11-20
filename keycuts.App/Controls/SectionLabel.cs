@@ -5,7 +5,7 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls.Primitives;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// A section label (docs/styleguide.md, Type): the small accent eyebrow over a group of settings or rows (WPF's

@@ -18,11 +18,10 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using keycuts.App.Themes;
-using keycuts.Tests;
+using keycuts.GUI.Themes;
 using Xunit;
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>
     /// The shared control themes (Themes/Controls.axaml), headless on the real <see cref="App"/>: each looks and reacts as its WPF

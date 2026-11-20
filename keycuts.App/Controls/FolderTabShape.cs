@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// The outline of a folder tab (#218; WPF's Controls/FolderTabShape, ported): a square left side with a small cut corner at the

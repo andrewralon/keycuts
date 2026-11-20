@@ -2,7 +2,7 @@
      takes (SystemColor.Name) and ThemeManager fills it in from GetSysColor when high contrast is on (docs/styleguide.md, In Avalonia). -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:themes="using:keycuts.App.Themes">
+                    xmlns:themes="using:keycuts.GUI.Themes">
     <SolidColorBrush x:Key="AccentBrush" themes:SystemColor.Name="HotTrack" />
     <SolidColorBrush x:Key="AccentHoverBrush" themes:SystemColor.Name="HotTrack" />
     <SolidColorBrush x:Key="AccentPressedBrush" themes:SystemColor.Name="HotTrack" />

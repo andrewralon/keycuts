@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// The tab bar's list of tabs (#218; WPF's Controls/RailTabControl, ported). A <see cref="TabControl"/> gives screen readers a

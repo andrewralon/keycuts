@@ -4,10 +4,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
-using keycuts.App.Themes;
+using keycuts.GUI.Themes;
 using Xunit;
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>The real <see cref="App"/>, headless: what its tokens and palettes resolve to, and that windows follow a palette change.</summary>
     public class ThemeResourceTests

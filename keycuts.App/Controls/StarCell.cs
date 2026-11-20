@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 
-namespace keycuts.App.Controls
+namespace keycuts.GUI.Controls
 {
     /// <summary>
     /// A cell of a Grid whose star columns share the width by their ratio alone (#252; WPF's Controls/StarCell, ported): what the

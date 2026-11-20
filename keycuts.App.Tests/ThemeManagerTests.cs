@@ -1,10 +1,10 @@
 using Avalonia.Platform;
 using Avalonia.Styling;
-using keycuts.App.Themes;
 using keycuts.Common;
+using keycuts.GUI.Themes;
 using Xunit;
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>Which palette the app shows (WPF's ThemeTests.Resolve_*, ported): high contrast, then the user's choice, then the platform.</summary>
     public class ThemeManagerTests

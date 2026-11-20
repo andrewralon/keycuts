@@ -3,10 +3,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using keycuts.App.Themes;
 using keycuts.Common;
+using keycuts.GUI.Themes;
 
-namespace keycuts.App
+namespace keycuts.GUI
 {
     public partial class App : Application
     {

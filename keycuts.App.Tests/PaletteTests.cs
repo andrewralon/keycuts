@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using keycuts.App.Themes;
-using keycuts.Tests;
+using keycuts.GUI.Themes;
 using Xunit;
 
-namespace keycuts.App.Tests
+namespace keycuts.Tests
 {
     /// <summary>
     /// The Avalonia app's tokens, palettes and icons, read from their files (WPF's ThemeTests, ported). Until cutover they also

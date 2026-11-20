@@ -139,9 +139,15 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
         delay 3
         set bounds of front window to {20, 60, 700, 420}
       end tell' >/dev/null 2>&1
-      sleep 2
-      drag 318 86
-      check "Safari drop: the address bar URL" "$(wait_target "https://example.com/")" "https://example.com/"
+      sleep 4
+      # Safari's drag is timing-sensitive (its lift animation): up to three tries
+      got=""
+      for _ in 1 2 3; do
+        drag 318 86
+        got="$(wait_target "https://example.com/")"
+        [ "$got" = "https://example.com/" ] && break
+      done
+      check "Safari drop: the address bar URL" "$got" "https://example.com/"
       osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1
       ;;
     browse)

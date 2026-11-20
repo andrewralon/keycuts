@@ -149,6 +149,16 @@
                           AutomationProperties.Name="{x:Static gui:PlatformText.VariablesName}"
                           AutomationProperties.HelpText="{x:Static gui:PlatformText.VariablesHelp}" />
           </Grid>
+          <!-- macOS (Phase 6.5): under Behavior, where the left column has room; the right one is full with the version row -->
+          <Grid x:Name="OpenAtLoginRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsOpenAtLoginOffered}">
+            <StackPanel>
+              <TextBlock Text="Open at login" Classes="SettingName" />
+              <TextBlock Text="{Binding OpenAtLoginText}" Classes="SettingNote" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleOpenAtLogin" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding OpenAtLogin}" AutomationProperties.Name="Open at login"
+                          AutomationProperties.HelpText="{Binding OpenAtLoginText}" />
+          </Grid>
         </StackPanel>
 
         <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />

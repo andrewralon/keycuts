@@ -92,6 +92,15 @@ namespace keycuts.GUI
             }
         }
 
+        /// <summary>No Dock icon: a start at login, with no window.</summary>
+        public static void HideFromDock()
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                ShowInDock(false);
+            }
+        }
+
         /// <summary>The Dock icon while a window is open: <c>setActivationPolicy:</c> regular (0) or accessory (1), at runtime (Phase 0.2).</summary>
         [SupportedOSPlatform("macos")]
         private static void ShowInDock(bool show)

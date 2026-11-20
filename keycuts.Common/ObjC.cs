@@ -66,6 +66,22 @@ namespace keycuts.Common
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern long SendLong(IntPtr receiver, IntPtr selector);
 
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool SendBool(IntPtr receiver, IntPtr selector, out IntPtr error);
+
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        public static extern IntPtr Send(IntPtr receiver, IntPtr selector, uint arg);
+
+        [DllImport("/usr/lib/libSystem.dylib", EntryPoint = "dlopen")]
+        private static extern IntPtr DlOpen(string path, int mode);
+
+        /// <summary>Loads a system framework, so its classes are known to <see cref="GetClass"/> (1: RTLD_LAZY).</summary>
+        public static void LoadFramework(string name)
+        {
+            DlOpen("/System/Library/Frameworks/" + name + ".framework/" + name, 1);
+        }
+
         /// <summary>A method that returns an <c>NSPoint</c>: two doubles, in registers on both architectures.</summary>
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern CGPoint SendPoint(IntPtr receiver, IntPtr selector);

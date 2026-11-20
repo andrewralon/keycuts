@@ -79,7 +79,16 @@ namespace keycuts.GUI
 
             // Before Show, so the taskbar never shows the exe's own icon first
             AppIconManager.ApplyTo(mainWindow);
-            mainWindow.Show();
+
+            // Phase 6.5: started by the login, keycuts waits in the menu bar with no window and no Dock icon
+            if (OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin())
+            {
+                MacMenuBar.HideFromDock();
+            }
+            else
+            {
+                mainWindow.Show();
+            }
             _ = LoadPathVariablesAsync(shell);
         }
 
@@ -139,7 +148,8 @@ namespace keycuts.GUI
                 // The Debug folder override never writes PATH, so it has no PATH switch either
                 shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
             {
-                RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null
+                RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null,
+                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null
             };
 
             var shell = new ShellViewModel(

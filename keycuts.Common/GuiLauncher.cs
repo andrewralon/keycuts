@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace keycuts.Common
@@ -9,7 +10,28 @@ namespace keycuts.Common
     /// </summary>
     public static class GuiLauncher
     {
-        public const string FileName = "keycuts.GUI.exe";
+        /// <summary>The GUI's executable beside the CLI: <c>keycuts.GUI.exe</c>, or <c>keycuts.GUI</c> in the bundle's <c>Contents/MacOS</c>.</summary>
+        public static readonly string FileName = OperatingSystem.IsMacOS() ? "keycuts.GUI" : "keycuts.GUI.exe";
+
+        /// <summary>The app's bundle identifier (its Info.plist, Phase 8).</summary>
+        public const string BundleId = "com.teamralon.keycuts";
+
+        /// <summary>
+        /// How the GUI at <paramref name="path"/> is started: shell-executed on Windows; on macOS <c>open -b</c> with the bundle id,
+        /// so Launch Services starts the app (or brings a running one forward) by identity, not any app named keycuts (correction 7).
+        /// </summary>
+        public static ProcessStartInfo StartInfo(string path)
+        {
+            if (!OperatingSystem.IsMacOS())
+            {
+                return new ProcessStartInfo(path) { UseShellExecute = true };
+            }
+
+            var start = new ProcessStartInfo("/usr/bin/open") { UseShellExecute = false };
+            start.ArgumentList.Add("-b");
+            start.ArgumentList.Add(BundleId);
+            return start;
+        }
 
         /// <summary>
         /// Starts the GUI when there are no arguments. Returns null when <paramref name="args"/> isn't empty (the caller

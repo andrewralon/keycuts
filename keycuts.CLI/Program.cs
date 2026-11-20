@@ -33,7 +33,7 @@ namespace keycuts.CLI
 
         private static void StartGui(string path)
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+            System.Diagnostics.Process.Start(GuiLauncher.StartInfo(path))?.Dispose();
         }
 
         public static ExitCode Run(string[] args)

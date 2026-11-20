@@ -594,5 +594,68 @@ namespace keycuts.Tests
         }
 
         #endregion Adding the lines to older keycuts
+
+        #region Counting on macOS (Phase 4.5)
+
+        [MacFact]
+        public void TheShFolder_IsTheFolderTheAppReads()
+        {
+            Assert.Equal(Path.Combine(Environment.GetEnvironmentVariable("HOME"), "Library", "Application Support", "keycuts", "usage"), UsageLog.DefaultFolder);
+        }
+
+        /// <summary>Runs the keycut as the Run box will, with an <c>open</c> stub first on PATH and a temp HOME: nothing opens, and the real usage folder is never touched.</summary>
+        private int RunSh(string path, string home, int openStatus)
+        {
+            var stubs = Path.Combine(_root, "stubs");
+            Directory.CreateDirectory(stubs);
+            File.WriteAllText(Path.Combine(stubs, "open"), "#!/bin/sh\nexit $OPEN_STATUS\n");
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(Path.Combine(stubs, "open"), (UnixFileMode)0b111_101_101);
+            }
+
+            var start = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
+            start.ArgumentList.Add(path);
+            start.Environment["HOME"] = home;
+            start.Environment["PATH"] = stubs + ":/usr/bin:/bin";
+            start.Environment["OPEN_STATUS"] = openStatus.ToString();
+
+            using var process = Process.Start(start);
+            process.WaitForExit();
+            return process.ExitCode;
+        }
+
+        [MacFact]
+        public void ARun_IsCountedUnderTheScriptsOwnName_AndTheLaunchStatusIsKept()
+        {
+            var home = Path.Combine(_root, "home");
+            Directory.CreateDirectory(home);
+            var path = Create("mail");
+            var usage = new UsageLog(Path.Combine(home, "Library", "Application Support", "keycuts", "usage"));
+
+            Assert.Equal(0, RunSh(path, home, 0));
+            Assert.Equal(0, RunSh(path, home, 0));
+            Assert.Equal(3, RunSh(path, home, 3));
+
+            // Renamed in Finder, it counts under its new name with no rewrite
+            var renamed = Path.Combine(_folder, "gmail");
+            File.Move(path, renamed);
+            Assert.Equal(0, RunSh(renamed, home, 0));
+
+            Assert.Equal(3, usage.Read("mail").Runs);
+            Assert.Equal(1, usage.Read("gmail").Runs);
+        }
+
+        [MacFact]
+        public void AUsageFolderThatCantBeWritten_OnlyMeansTheRunIsntCounted()
+        {
+            var home = Path.Combine(_root, "home");
+            Directory.CreateDirectory(Path.Combine(home, "Library"));
+            File.WriteAllText(Path.Combine(home, "Library", "Application Support"), "a file where the folder should be");
+
+            Assert.Equal(0, RunSh(Create("mail"), home, 0));
+        }
+
+        #endregion Counting on macOS (Phase 4.5)
     }
 }

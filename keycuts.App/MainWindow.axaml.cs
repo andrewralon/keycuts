@@ -191,6 +191,7 @@ namespace keycuts.GUI
         private void ApplyMode(ShellMode previous, ShellMode mode)
         {
             var wasLarge = IsLarge(previous);
+            var visibleBefore = VisibleFrame.TopLeft(this);
 
             if (!IsLarge(mode))
             {
@@ -199,6 +200,20 @@ namespace keycuts.GUI
             else if (!wasLarge)
             {
                 ShowLargeSize();
+            }
+
+            // Windows gives a resizable window invisible resize borders (7 px a side at 100 %), outside what it draws, and keeps
+            // the window's position: the window as seen would move 7 right going to the Manager and back on the Creator. Once the
+            // new size has taken, it's moved back to where it was seen.
+            if (visibleBefore is { } before && wasLarge != IsLarge(mode))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (VisibleFrame.TopLeft(this) is { } after && after != before)
+                    {
+                        Position = new PixelPoint(Position.X + before.X - after.X, Position.Y + before.Y - after.Y);
+                    }
+                }, Avalonia.Threading.DispatcherPriority.Background);
             }
         }
 

@@ -2,7 +2,7 @@
 
 Written 2026-11-19 against `develop` at `3ebd431` (version 1.6.2). This is the plan for Phase 4 of `gameplan.md`: one Avalonia app for Windows and macOS, and keycuts that run on a Mac the way they run from Win+R. Work through the phases in order. Each step says what "done" means and where it has to be checked (this Windows machine, the Mac, or CI).
 
-The rules in `CLAUDE.md` and `gameplan.md` still hold: **never move two variables in one commit**, characterization snapshots must change only in a reviewed diff, the build has 0 warnings, and tests never touch the real folder, registry, PATH, network or Trash.
+The rules in `CLAUDE.md` and `gameplan.md` still hold: **don't mix a behavior change with a refactor or port step**, characterization snapshots must change only in a reviewed diff, the build has 0 warnings, and tests never touch the real folder, registry, PATH, network or Trash.
 
 ## Decisions (2026-11-19, the owner)
 
@@ -99,7 +99,7 @@ exit $s
 
 Who checks each step: **W** = this Windows machine, **M** = the Mac, **CI** = GitHub Actions.
 
-**How the rest is done (the owner, 2026-11-20).** From Phase 3.5 on, the port is a plain refactor: each WPF view and its code-behind is translated to Avalonia directly, with the WPF tests that cover it, and each step is recorded here in a line or two. No new test machinery, prototypes or long notes. Three PRs are left, one change per commit inside each:
+**How the rest is done (the owner, 2026-11-20).** From Phase 3.5 on, the port is a plain refactor: each WPF view and its code-behind is translated to Avalonia directly, with the WPF tests that cover it, and each step is recorded here in a line or two. No new test machinery, prototypes or long notes. Three PRs are left:
 
 1. **Phase 3.5–3.12**: the whole Avalonia app on Windows, through cutover and 2.0.0 (*merged as #280; the owner's release steps are left, see 3.12*)
 2. **Phases 4–6**: keycuts on macOS (the core, the app, the Run box). *Phases 4 and 5 merged as #282 (the owner asked for them early); the rest of Phase 6 follows in its own PR.* **Next.** One PR, two machines: first on Windows, the steps marked **W** (4.1, 4.2, 4.4, 4.6, 4.7, 4.9, 6.3; the `[MacFact]` tests run in CI's `macos` job), stopping when only **M** work is left. Then the same PR continues on the Mac: 4.3, 4.5, 4.8, the Phase 4 milestone, the **M** halves of the **W** + **M** steps, Phase 5 (mockups approved first) and the rest of Phase 6

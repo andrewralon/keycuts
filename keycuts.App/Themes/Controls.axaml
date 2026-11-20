@@ -3,8 +3,6 @@
     is a ControlTheme with the same key, set with Theme="{StaticResource …}"; an implicit one is a ControlTheme keyed by its
     type, which wins over the Fluent base theme's. WPF triggers are nested styles on pseudo-classes, in the same order, so the
     later one wins as it did. All colors are DynamicResource, so the palette follows the theme.
-
-    The folder tabs' themes come with their controls in Phase 3.3.
 -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -952,6 +950,107 @@
                 <Setter Property="IsVisible" Value="True" />
             </Style>
         </Style>
+    </ControlTheme>
+
+    <!-- The tab bar that replaces the title bar (issue 218; docs/styleguide.md, Tabbed window) -->
+
+    <!-- Keyboard focus on a tab: inside it, since the tab stands on the bar's bottom edge and a ring around it would be cut -->
+    <FocusAdornerTemplate x:Key="TabFocusVisual">
+        <Rectangle Margin="4,4,16,4" StrokeThickness="2" RadiusX="{StaticResource RadiusSmValue}" RadiusY="{StaticResource RadiusSmValue}"
+                   Stroke="{DynamicResource AccentBrush}" />
+    </FocusAdornerTemplate>
+
+    <!-- A folder tab: TabHeight high, a cut corner at the left, a slanted right side, standing on the bar's bottom edge. The selected tab
+         is the page color and runs into the page; only its shadow falls to the right. Inactive tabs are shaded and textured. -->
+    <ControlTheme x:Key="RailTabItem" TargetType="TabItem">
+        <Setter Property="FocusAdorner" Value="{StaticResource TabFocusVisual}" />
+        <Setter Property="Height" Value="{StaticResource TabHeight}" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <!-- The name at 16, the size of keycuts beside the icon, lifted 2 by the 4 at the bottom so both sit on one line, 26 from
+             the bar's top (docs/mockups/creator-polish-v1) -->
+        <Setter Property="Padding" Value="12,0,24,4" />
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSubheading}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TabTextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel Name="Root" Background="Transparent">
+                    <!-- The selected tab's shadow, to the right only (Direction 0): a shape of its own under the tab. Its opacity is
+                         ShadowOpacity; high contrast sets it to 0. -->
+                    <controls:FolderTabShape Name="Shadow" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
+                                             Fill="{DynamicResource SurfaceBrush}" StrokeThickness="0" IsVisible="False"
+                                             IsHitTestVisible="False">
+                        <controls:FolderTabShape.Effect>
+                            <DropShadowDirectionEffect Direction="0" ShadowDepth="3" BlurRadius="4"
+                                                       Opacity="{DynamicResource ShadowOpacity}" Color="{DynamicResource ShadowColor}" />
+                        </controls:FolderTabShape.Effect>
+                    </controls:FolderTabShape>
+                    <controls:FolderTabShape Name="Body" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
+                                             Fill="{DynamicResource TabBrush}" Stroke="{DynamicResource TabBorderBrush}"
+                                             StrokeThickness="1" />
+                    <controls:FolderTabShape Name="Texture" Cut="{StaticResource TabCut}" Slant="{StaticResource TabSlant}"
+                                             Fill="{DynamicResource TabTextureBrush}" StrokeThickness="1" IsHitTestVisible="False" />
+                    <!-- High contrast only: an inactive tab closes its outline at the base, so the selected one, whose outline
+                         runs into the page, is the one to tell apart. Transparent in the other palettes. -->
+                    <Rectangle Name="Base" Height="1" VerticalAlignment="Bottom" Fill="{DynamicResource TabBaseBrush}"
+                               IsHitTestVisible="False" />
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Header}"
+                                      ContentTemplate="{TemplateBinding HeaderTemplate}" Margin="{TemplateBinding Padding}"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="ZIndex" Value="5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Cursor" Value="Arrow" />
+            <Style Selector="^ /template/ controls|FolderTabShape#Body">
+                <Setter Property="Fill" Value="{DynamicResource SurfaceBrush}" />
+                <Setter Property="Stroke" Value="{DynamicResource TabSelectedBorderBrush}" />
+            </Style>
+            <Style Selector="^ /template/ controls|FolderTabShape#Texture">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ /template/ Rectangle#Base">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ /template/ controls|FolderTabShape#Shadow">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+    </ControlTheme>
+
+    <!-- Only the row of tabs: the screen under it is chosen by the shell, not hosted here. One Tab stop; the arrow keys move between
+         tabs, wrapping at the ends. -->
+    <ControlTheme x:Key="RailTabControl" TargetType="controls:RailTabControl">
+        <Setter Property="ItemContainerTheme" Value="{StaticResource RailTabItem}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
+        <Setter Property="WrapSelection" Value="True" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+            </ControlTemplate>
+        </Setter>
     </ControlTheme>
 
     <!-- Minimize, maximize or restore, and close: CaptionButtonWidth by RailHeight, a 10px glyph in the text color. They are not

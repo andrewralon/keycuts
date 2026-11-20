@@ -91,6 +91,7 @@ namespace keycuts.Tests
             new("Themes/Controls.xaml", "Setter", "Padding", "11", "selected card"),
 
             // The Avalonia app's control themes (keycuts.App, Phase 3.2) keep the WPF ones' exceptions, for the same reasons
+            new("Themes/Controls.axaml", "ControlTheme", "FontSize", "{StaticResource FontSizeSubheading}", "the tab names, the size of keycuts beside them, not headings"),
             new("Themes/Controls.axaml", "Rectangle", "RadiusX", "7", "focus ring: RadiusSm + 2"),
             new("Themes/Controls.axaml", "Rectangle", "RadiusY", "7", "focus ring: RadiusSm + 2"),
             new("Themes/Controls.axaml", "Border", "Margin", "-3", "text box glow, 3 outside the box"),

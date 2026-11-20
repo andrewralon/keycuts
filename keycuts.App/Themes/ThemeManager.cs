@@ -34,9 +34,20 @@ namespace keycuts.GUI.Themes
 
         public static ThemePreference Preference { get; private set; }
 
-        /// <summary>Reads a Windows system color for the high-contrast palette. Tests replace it.</summary>
+        /// <summary>Reads a system color for the high-contrast palette: Windows', or macOS's fixed ones. Tests replace it.</summary>
         public static Func<SystemColorName, Color> ReadSystemColor { get; set; } =
-            OperatingSystem.IsWindows() ? SystemColor.ReadWindows : _ => Colors.Black;
+            OperatingSystem.IsWindows() ? SystemColor.ReadWindows : name => SystemColor.ReadMac(name, IsDarkAppearance());
+
+        /// <summary>macOS's high contrast follows the theme choice, or the system's appearance with System.</summary>
+        private static bool IsDarkAppearance()
+        {
+            return Preference switch
+            {
+                ThemePreference.Light => false,
+                ThemePreference.Dark => true,
+                _ => application?.PlatformSettings?.GetColorValues().ThemeVariant == PlatformThemeVariant.Dark
+            };
+        }
 
         /// <summary>
         /// Raised after a palette is applied: a new theme, a Settings preview, or a change in the platform's colors (high
@@ -64,12 +75,12 @@ namespace keycuts.GUI.Themes
         }
 
         /// <summary>
-        /// Whether the platform asks for keycuts' high-contrast palette: Windows high contrast. macOS's "Increase contrast"
-        /// doesn't replace the app's colors; what it does to keycuts is Phase 5's to decide.
+        /// Whether the platform asks for keycuts' high-contrast palette: Windows high contrast, or macOS's Increase contrast
+        /// (Phase 5.4), on a platform whose setting keycuts follows.
         /// </summary>
-        public static bool IsHighContrast(PlatformColorValues? values, bool isWindows)
+        public static bool IsHighContrast(PlatformColorValues? values, bool followsPlatformContrast)
         {
-            return isWindows && values?.ContrastPreference == ColorContrastPreference.High;
+            return followsPlatformContrast && values?.ContrastPreference == ColorContrastPreference.High;
         }
 
         public static ThemeVariant GetThemeVariant(Palette palette)
@@ -98,7 +109,7 @@ namespace keycuts.GUI.Themes
         public static Palette DetectPalette()
         {
             var values = application?.PlatformSettings?.GetColorValues();
-            return Resolve(values?.ThemeVariant, IsHighContrast(values, OperatingSystem.IsWindows()), Preference);
+            return Resolve(values?.ThemeVariant, IsHighContrast(values, OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()), Preference);
         }
 
         /// <summary>Re-themes every open window now. Saving the choice is the caller's job.</summary>
@@ -106,8 +117,9 @@ namespace keycuts.GUI.Themes
         {
             Preference = preference;
 
+            // High contrast on macOS takes its colors from the theme choice, so a new choice fills them again
             var palette = DetectPalette();
-            if (palette != Current)
+            if (palette != Current || palette == Palette.HighContrast)
             {
                 Apply(palette);
             }

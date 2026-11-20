@@ -125,27 +125,34 @@ namespace keycuts.GUI.Views
 
             // The create row's keys are its own: Enter creates there, and Delete, the arrows, Home and End edit its text. Only
             // Ctrl+F still goes to the search.
-            if (CreateRowHost.IsKeyboardFocusWithin && !(e.Key == Key.F && e.KeyModifiers == KeyModifiers.Control))
+            if (CreateRowHost.IsKeyboardFocusWithin && !(e.Key == Key.F && e.KeyModifiers == PlatformKeys.Command))
             {
                 return;
             }
 
             // Ctrl+Z undoes a delete while the status bar offers it, even from the search box
-            if (e.Key == Key.Z && e.KeyModifiers == KeyModifiers.Control && ViewModel.CanUndoDelete)
+            if (e.Key == Key.Z && e.KeyModifiers == PlatformKeys.Command && ViewModel.CanUndoDelete)
             {
                 e.Handled = true;
                 _ = ViewModel.UndoDeleteAsync();
                 return;
             }
 
+            // Ctrl on Windows, ⌘ on macOS
+            if (e.KeyModifiers == PlatformKeys.Command)
+            {
+                HandleControlKey(e);
+                return;
+            }
+
+            if (e.KeyModifiers == (PlatformKeys.Command | KeyModifiers.Shift))
+            {
+                HandleControlShiftKey(e);
+                return;
+            }
+
             switch (e.KeyModifiers)
             {
-                case KeyModifiers.Control:
-                    HandleControlKey(e);
-                    break;
-                case KeyModifiers.Control | KeyModifiers.Shift:
-                    HandleControlShiftKey(e);
-                    break;
                 case KeyModifiers.Shift:
                     // Shift+F2 edits the description, as F2 edits the name
                     if (e.Key == Key.F2 && ActionRow() is { } describing)
@@ -201,6 +208,17 @@ namespace keycuts.GUI.Views
                 case Key.E when ActionRow() is { } edit:
                     e.Handled = true;
                     _ = ViewModel!.EditKeycutAsync(edit);
+                    break;
+                // macOS: ⌘⌫ moves to the Trash, as in Finder; ⌘↑ and ⌘↓ go to the first and last row
+                case Key.Back when PlatformKeys.IsMac && !SearchBoxHasText(e) && ActionRow() is { } trashed:
+                    e.Handled = true;
+                    _ = ViewModel!.DeleteKeycutAsync(trashed);
+                    break;
+                case Key.Up when PlatformKeys.IsMac:
+                    MoveSelection(e, model => model.SelectFirst());
+                    break;
+                case Key.Down when PlatformKeys.IsMac:
+                    MoveSelection(e, model => model.SelectLast());
                     break;
             }
         }

@@ -16,7 +16,7 @@ namespace keycuts.Tests
             var result = GuiLauncher.TryLaunch(new string[0], Folder, _ => true, path => started = path);
 
             Assert.Equal(ExitCode.Success, result);
-            Assert.Equal(Path.Combine(Folder, "keycuts.GUI.exe"), started);
+            Assert.Equal(Path.Combine(Folder, GuiLauncher.FileName), started);
         }
 
         [Theory]
@@ -42,6 +42,24 @@ namespace keycuts.Tests
 
             Assert.Equal(ExitCode.CannotFindFile, result);
             Assert.False(started);
+        }
+
+        [WindowsFact]
+        public void OnWindows_TheGuiIsShellExecuted()
+        {
+            var start = GuiLauncher.StartInfo(@"C:\fake\keycuts\keycuts.GUI.exe");
+
+            Assert.Equal((@"C:\fake\keycuts\keycuts.GUI.exe", true), (start.FileName, start.UseShellExecute));
+        }
+
+        [MacFact]
+        public void OnTheMac_TheGuiBesideTheCli_IsOpenedByItsBundleId()
+        {
+            var start = GuiLauncher.StartInfo("/Applications/keycuts.app/Contents/MacOS/keycuts.GUI");
+
+            Assert.Equal("keycuts.GUI", GuiLauncher.FileName);
+            Assert.Equal("/usr/bin/open", start.FileName);
+            Assert.Equal(new[] { "-b", "com.teamralon.keycuts" }, start.ArgumentList);
         }
     }
 }

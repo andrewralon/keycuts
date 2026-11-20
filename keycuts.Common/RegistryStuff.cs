@@ -133,7 +133,13 @@ namespace keycuts.Common
         /// <summary>Whether the verbs are really there, which is what the Settings checkbox should show.</summary>
         public static bool GetRightClickContextMenu()
         {
-            // Explorer verbs exist only on Windows
+            // The Explorer verbs on Windows. On macOS the Finder Quick Action (Phase 7 installs it): until then, the stored choice,
+            // on unless turned off, as a new install has it
+            if (OperatingSystem.IsMacOS())
+            {
+                return ReadValue(RightClickContextMenuKeyName) is not int raw || raw != 0;
+            }
+
             return OperatingSystem.IsWindows() && new ContextMenuRegistrar().IsRegistered();
         }
 
@@ -295,6 +301,12 @@ namespace keycuts.Common
         /// <summary>Where the MSI installed keycuts (<c>InstallFolder</c>, with a trailing backslash); null for a copy that wasn't installed.</summary>
         public static string GetInstallFolder()
         {
+            // macOS has no installer value: the app records the folder it runs from (CommandShims.RecordInstallFolder)
+            if (OperatingSystem.IsMacOS())
+            {
+                return CommandShims.ReadInstallFolder(CommandShims.InstallFolderPointer);
+            }
+
             return ReadValue("InstallFolder") as string;
         }
 
@@ -307,7 +319,7 @@ namespace keycuts.Common
         /// <summary>Stored with a trailing backslash: the MSI reads it as a folder property to remove the shims on uninstall.</summary>
         public static void SetCommandShimFolder(string folder)
         {
-            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + "\\";
+            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
             Backend.WriteString(CommandShimFolderKeyName, value);
         }
 
@@ -379,6 +391,13 @@ namespace keycuts.Common
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>
         public static bool SetRightClickContextMenu(bool rightClickContextMenu)
         {
+            if (OperatingSystem.IsMacOS())
+            {
+                // Phase 7 installs and removes the Quick Action here; until then only the choice is stored
+                Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
+                return true;
+            }
+
             if (!OperatingSystem.IsWindows())
             {
                 return false;

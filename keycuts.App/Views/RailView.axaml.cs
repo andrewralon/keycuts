@@ -21,6 +21,39 @@ namespace keycuts.GUI.Views
             ManagerItem = this.FindControl<TabItem>("ManagerTab")!;
             SettingsItem = this.FindControl<TabItem>("SettingsTab")!;
             UpdateAppIcon();
+
+            if (OperatingSystem.IsMacOS())
+            {
+                UseMacLayout();
+            }
+        }
+
+        /// <summary>Where the macOS traffic lights end, 20 + 3 × 12 + 2 × 8, plus the 16 before the keycap (docs/styleguide.md, Tabbed window).</summary>
+        public const double MacBrandLeft = 72 + 16;
+
+        /// <summary>
+        /// macOS (Phase 5.1): its traffic lights take the caption buttons' place at the left, so the keycap starts after them and
+        /// there are no caption buttons. The empty bar moves the window, as a title bar does.
+        /// </summary>
+        private void UseMacLayout()
+        {
+            var brand = this.FindControl<StackPanel>("Brand")!;
+            brand.Margin = new Avalonia.Thickness(MacBrandLeft, brand.Margin.Top, brand.Margin.Right, brand.Margin.Bottom);
+            this.FindControl<StackPanel>("CaptionButtons")!.IsVisible = false;
+
+            // ⌘1, ⌘2, ⌘3 in the tooltips and as the accelerators a screen reader reads
+            foreach (var (tab, name, key) in new[] { (CreatorItem, "creator", "1"), (ManagerItem, "manager", "2"), (SettingsItem, "settings", "3") })
+            {
+                ToolTip.SetTip(tab, PlatformKeys.Tip(name, key));
+                Avalonia.Automation.AutomationProperties.SetAcceleratorKey(tab, PlatformKeys.Name(key));
+            }
+            this.FindControl<Border>("DragArea")!.PointerPressed += (sender, e) =>
+            {
+                if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.ClickCount == 1 && TopLevel.GetTopLevel(this) is Window window)
+                {
+                    window.BeginMoveDrag(e);
+                }
+            };
         }
 
         public TabControl Tabs { get; }

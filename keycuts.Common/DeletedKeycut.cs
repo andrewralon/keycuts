@@ -28,6 +28,9 @@ namespace keycuts.Common
         /// <summary>True if the file went to the Recycle Bin; false if it was deleted for good (a drive without one).</summary>
         public bool Recycled { get; }
 
+        /// <summary>Where the file is in the Trash (macOS), which a restore moves it back from while it's still there unchanged; null if unknown.</summary>
+        public string BinPath { get; init; }
+
         /// <summary>Its run count (#187) as it was, which a restore puts back; null if it had none.</summary>
         public UsageFile Usage { get; init; }
     }

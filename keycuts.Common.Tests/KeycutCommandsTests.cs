@@ -72,7 +72,16 @@ namespace keycuts.Tests
             Assert.Equal("Deleted mail.", _output.ToString().Trim());
         }
 
-        [Theory]
+        [Fact]
+        public void Rm_FindsTheNameInAnyCase()
+        {
+            var path = Create("mail");
+
+            Assert.Equal(ExitCode.Success, KeycutCommands.Remove(Context(), "MAIL"));
+            Assert.False(File.Exists(path));
+        }
+
+        [WindowsTheory]
         [InlineData("MAIL")]
         [InlineData("mail.bat")]
         public void Rm_FindsTheNameInAnyCase_WithOrWithoutDotBat(string typed)
@@ -96,7 +105,7 @@ namespace keycuts.Tests
             CommandShims.Ensure(_folder);
 
             Assert.Equal(ExitCode.CannotFindFile, KeycutCommands.Remove(Context(), "keycuts"));
-            Assert.True(File.Exists(Path.Combine(_folder, "keycuts.cmd")));
+            Assert.True(File.Exists(Path.Combine(_folder, "keycuts" + CommandShims.Extension)));
         }
 
         #endregion
@@ -111,8 +120,8 @@ namespace keycuts.Tests
 
             Assert.Equal(ExitCode.Success, KeycutCommands.Rename(Context(), "mail", "gmail", false));
 
-            Assert.True(File.Exists(Path.Combine(_folder, "gmail.bat")));
-            Assert.False(File.Exists(Path.Combine(_folder, "mail.bat")));
+            Assert.True(File.Exists(Path.Combine(_folder, "gmail" + ShortcutFile.Extension)));
+            Assert.False(File.Exists(Path.Combine(_folder, "mail" + ShortcutFile.Extension)));
             Assert.Equal(2, _usage.Read("gmail").Runs);
             Assert.Equal("Renamed mail to gmail.", _output.ToString().Trim());
         }
@@ -124,7 +133,7 @@ namespace keycuts.Tests
             Create("gmail");
 
             Assert.Equal(ExitCode.FileAlreadyExists, KeycutCommands.Rename(Context(), "mail", "gmail", true));
-            Assert.True(File.Exists(Path.Combine(_folder, "mail.bat")));
+            Assert.True(File.Exists(Path.Combine(_folder, "mail" + ShortcutFile.Extension)));
         }
 
         [Theory]
@@ -137,7 +146,7 @@ namespace keycuts.Tests
             Create("mail");
 
             Assert.Equal(ExitCode.BadArguments, KeycutCommands.Rename(Context(), "mail", newName, true));
-            Assert.True(File.Exists(Path.Combine(_folder, "mail.bat")));
+            Assert.True(File.Exists(Path.Combine(_folder, "mail" + ShortcutFile.Extension)));
         }
 
         [Fact]
@@ -147,7 +156,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ExitCode.ConfirmationNeeded, KeycutCommands.Rename(Context(Conflicting), "mail", "notepad", false));
 
-            Assert.True(File.Exists(Path.Combine(_folder, "mail.bat")));
+            Assert.True(File.Exists(Path.Combine(_folder, "mail" + ShortcutFile.Extension)));
             Assert.Contains("already opens C:\\Windows\\notepad.exe", _output.ToString());
             Assert.Contains(KeycutCommands.RetryRenameWithForceMessage, _output.ToString());
         }
@@ -161,7 +170,7 @@ namespace keycuts.Tests
 
             Assert.Equal(ExitCode.Success, KeycutCommands.Rename(Context(Conflicting, redirected: false, answer: answer), "mail", "notepad", false));
 
-            Assert.Equal(renamed, File.Exists(Path.Combine(_folder, "notepad.bat")));
+            Assert.Equal(renamed, File.Exists(Path.Combine(_folder, "notepad" + ShortcutFile.Extension)));
             Assert.Contains("Rename it anyway? (y / n)", _output.ToString());
         }
 
@@ -174,7 +183,7 @@ namespace keycuts.Tests
             Assert.Equal(ExitCode.Success, KeycutCommands.Rename(Context(name => { asked = true; return Conflicting(name); }), "mail", "notepad", true));
 
             Assert.False(asked);
-            Assert.True(File.Exists(Path.Combine(_folder, "notepad.bat")));
+            Assert.True(File.Exists(Path.Combine(_folder, "notepad" + ShortcutFile.Extension)));
         }
 
         [Fact]
@@ -183,7 +192,7 @@ namespace keycuts.Tests
             Create("mail");
 
             Assert.Equal(ExitCode.Success, KeycutCommands.Rename(Context(name => throw new InvalidOperationException("not checked")), "mail", "Mail", false));
-            Assert.Equal("Mail.bat", Path.GetFileName(Directory.GetFiles(_folder).Single()));
+            Assert.Equal("Mail" + ShortcutFile.Extension, Path.GetFileName(Directory.GetFiles(_folder).Single()));
         }
 
         #endregion

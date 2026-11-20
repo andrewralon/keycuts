@@ -37,6 +37,7 @@ namespace keycuts.Tests
         [AvaloniaFact]
         public void TheBar_IsTheCaption_ExceptTheTabsAndTheCaptionButtons()
         {
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows' frame; macOS has its own (OnTheMac_TheFrameIsMacOS)");
             WithWindow((window, shell) =>
             {
                 Assert.Equal(WindowDecorations.BorderOnly, window.WindowDecorations);
@@ -130,8 +131,8 @@ namespace keycuts.Tests
                     Assert.Equal(AutomationControlType.TabItem, ControlAutomationPeer.CreatePeerForElement(tab).GetAutomationControlType());
                     Assert.Equal(name, AutomationProperties.GetName(tab));
                     // The key that picks it, in the tooltip after the name and as the accelerator a screen reader reads
-                    Assert.Equal(name + " (Ctrl+" + (i + 1) + ")", ToolTip.GetTip(tab));
-                    Assert.Equal("Ctrl+" + (i + 1), AutomationProperties.GetAcceleratorKey(tab));
+                    Assert.Equal(PlatformKeys.Tip(name, (i + 1).ToString()), ToolTip.GetTip(tab));
+                    Assert.Equal(PlatformKeys.Name((i + 1).ToString()), AutomationProperties.GetAcceleratorKey(tab));
                 }
 
                 // The gear is the tab, with no text of its own; the other two are text only
@@ -163,25 +164,6 @@ namespace keycuts.Tests
             });
         }
 
-        // macOS until Phase 4: no keycuts folder, but the Settings tab still opens its screen
-        [AvaloniaFact]
-        public void WithoutAKeycutsFolder_TheSettingsTabStillOpensSettings()
-        {
-            ThemeManager.Apply(Palette.Light);
-            MainWindow? window = null;
-            var shell = App.CreateShellWithoutKeycutsFolder(new MemorySettingsStore(), () => window);
-            window = new MainWindow(shell);
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            Named<RailTabControl>(window, "TabStrip").SelectedItem = Named<TabItem>(window, "SettingsTab");
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal(ShellMode.Settings, shell.Mode);
-            Assert.Single(window.GetVisualDescendants().OfType<SettingsView>());
-            window.Close();
-        }
-
         [AvaloniaFact]
         public void TheSettingsTab_WithoutASettingsScreen_KeepsTheScreensTab()
         {
@@ -209,14 +191,14 @@ namespace keycuts.Tests
                     (Key.NumPad2, ShellMode.Manager, "ManagerTab")
                 })
                 {
-                    Press(window, key, RawInputModifiers.Control);
+                    Press(window, key, PlatformKeys.RawCommand);
                     Assert.Equal(mode, shell.Mode);
                     Assert.Same(Named<TabItem>(window, tab), rail.SelectedItem);
                 }
 
                 // Not without Ctrl, nor with Ctrl+Shift
                 Press(window, Key.D1, RawInputModifiers.None);
-                Press(window, Key.D1, RawInputModifiers.Control | RawInputModifiers.Shift);
+                Press(window, Key.D1, PlatformKeys.RawCommand | RawInputModifiers.Shift);
                 Assert.Equal(ShellMode.Manager, shell.Mode);
 
                 // While the icon picker has the tabs off, the keys don't switch either
@@ -225,7 +207,7 @@ namespace keycuts.Tests
                 Dispatcher.UIThread.RunJobs();
                 Assert.False(rail.IsEnabled);
                 Assert.True(Named<Button>(window, "BtnClose").IsEnabled);
-                Press(window, Key.D1, RawInputModifiers.Control);
+                Press(window, Key.D1, PlatformKeys.RawCommand);
                 Assert.Equal(ShellMode.Settings, shell.Mode);
                 shell.Settings.IsIconPickerOpen = false;
             }, withSettings: true);
@@ -257,6 +239,7 @@ namespace keycuts.Tests
         [AvaloniaFact]
         public void TheCaptionButtons_HaveNamesAndTooltips_AndAreNotTabStops()
         {
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows' frame; macOS has its own (OnTheMac_TheFrameIsMacOS)");
             WithWindow((window, shell) =>
             {
                 foreach (var (name, expected) in new[] { ("BtnMinimize", "Minimize"), ("BtnMaximize", "Maximize"), ("BtnClose", "Close") })
@@ -305,6 +288,24 @@ namespace keycuts.Tests
         }
 
         // The keycap alone at 36, in no socket (docs/mockups/icon-size-v2, R3)
+        // macOS: ⌘, opens Settings, as in every Mac app, and ⌘W closes the window
+        [AvaloniaFact]
+        public void OnTheMac_CommandCommaOpensSettings_AndCommandWCloses()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS keys");
+            WithWindow((window, shell) =>
+            {
+                Press(window, Key.OemComma, RawInputModifiers.Meta);
+                Assert.Equal(ShellMode.Settings, shell.Mode);
+                var closed = false;
+                window.Closed += (sender, e) => closed = true;
+                // Closed on the press, so there is no window to release the key on
+                window.KeyPress(Key.W, RawInputModifiers.Meta, PhysicalKey.None, null);
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(closed);
+            }, withSettings: true);
+        }
+
         [AvaloniaFact]
         public void TheAppIcon_InTheBar_IsTheOneFromSettings_WithoutItsBackground_At36()
         {
@@ -314,7 +315,25 @@ namespace keycuts.Tests
                 Assert.Same(AppIcons.GetPreview(AppIcons.GetTransparent(AppIconManager.Current)), icon.Source);
                 Assert.Equal(36, icon.Bounds.Width);
                 Assert.Equal(36, icon.Bounds.Height);
-                Assert.Equal(8, ((StackPanel)icon.Parent!).Margin.Left);
+                Assert.Equal(OperatingSystem.IsMacOS() ? RailView.MacBrandLeft : 8, ((StackPanel)icon.Parent!).Margin.Left);
+            });
+        }
+
+        // Phase 5.1 (mockup macos-window-v1): macOS's own frame and traffic lights, zoom off, no caption buttons, no torn corner
+        [AvaloniaFact]
+        public void OnTheMac_TheFrameIsMacOS()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
+            WithWindow((window, shell) =>
+            {
+                Assert.Equal(WindowDecorations.Full, window.WindowDecorations);
+                Assert.True(window.ExtendClientAreaToDecorationsHint);
+                Assert.Equal(48, window.ExtendClientAreaTitleBarHeightHint);
+                Assert.False(window.CanMaximize);
+                Assert.False(Named<StackPanel>(window, "CaptionButtons").IsVisible);
+                Assert.False(Named<Border>(window, "PageBorder").IsVisible);
+                Assert.False(Named<TornCorner>(window, "Tear").IsVisible);
+                Assert.Equal(88, RailView.MacBrandLeft);
             });
         }
 

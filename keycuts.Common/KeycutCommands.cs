@@ -54,7 +54,7 @@ namespace keycuts.Common
             try
             {
                 var deleted = context.Repository.DeleteAsync(keycut).GetAwaiter().GetResult();
-                context.Output.WriteLine(deleted.Recycled ? $"Deleted {keycut.Name}. It's in the Recycle Bin." : $"Deleted {keycut.Name}.");
+                context.Output.WriteLine(deleted.Recycled ? $"Deleted {keycut.Name}. It's in the {PlatformWords.Bin}." : $"Deleted {keycut.Name}.");
                 return ExitCode.Success;
             }
             catch (KeycutRepositoryException ex)
@@ -94,8 +94,8 @@ namespace keycuts.Common
                     foreach (var conflict in check.Conflicts)
                     {
                         context.Output.WriteLine(conflict.Effect == NameConflictEffect.Hidden
-                            ? $"\"{newName}\" already opens {conflict.Path}, so Win+R would never run the keycut under that name."
-                            : $"\"{newName}\" already opens {conflict.Path}. The keycut would replace it in Win+R.");
+                            ? $"\"{newName}\" already opens {conflict.Path}, so {PlatformWords.Launcher} would never run the keycut under that name."
+                            : $"\"{newName}\" already opens {conflict.Path}. The keycut would replace it in {PlatformWords.Launcher}.");
                     }
 
                     if (context.IsInputRedirected)

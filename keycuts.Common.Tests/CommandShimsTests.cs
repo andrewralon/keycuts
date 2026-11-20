@@ -7,7 +7,7 @@ using Xunit;
 
 namespace keycuts.Tests
 {
-    /// <summary>#248: keycuts.cmd and keypaste.cmd in the keycuts folder. Temp folders only.</summary>
+    /// <summary>#248: keycuts.cmd and keypaste.cmd in the keycuts folder (keycuts and keypaste, sh, on macOS). Temp folders only.</summary>
     public class CommandShimsTests : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "keycuts-tests-" + Guid.NewGuid().ToString("N"));
@@ -32,9 +32,9 @@ namespace keycuts.Tests
         {
             var written = CommandShims.Ensure(_folder);
 
-            Assert.Equal(new[] { "keycuts.cmd", "keypaste.cmd" }, written.Select(Path.GetFileName));
-            Assert.Equal(CommandShims.Bytes("keycuts"), File.ReadAllBytes(Path.Combine(_folder, "keycuts.cmd")));
-            Assert.Equal(CommandShims.Bytes("keypaste"), File.ReadAllBytes(Path.Combine(_folder, "keypaste.cmd")));
+            Assert.Equal(new[] { "keycuts" + CommandShims.Extension, "keypaste" + CommandShims.Extension }, written.Select(Path.GetFileName));
+            Assert.Equal(CommandShims.Bytes("keycuts"), File.ReadAllBytes(Path.Combine(_folder, "keycuts" + CommandShims.Extension)));
+            Assert.Equal(CommandShims.Bytes("keypaste"), File.ReadAllBytes(Path.Combine(_folder, "keypaste" + CommandShims.Extension)));
 
             Assert.Empty(CommandShims.Ensure(_folder));
             Assert.Empty(Directory.GetFiles(_folder, "*.tmp"));
@@ -44,7 +44,7 @@ namespace keycuts.Tests
         public void Ensure_PutsBackAShimThatWasChanged_OrMadeReadOnly()
         {
             CommandShims.Ensure(_folder);
-            var path = Path.Combine(_folder, "keycuts.cmd");
+            var path = Path.Combine(_folder, "keycuts" + CommandShims.Extension);
             File.WriteAllText(path, "@ECHO broken");
             File.SetAttributes(path, FileAttributes.ReadOnly);
 
@@ -63,12 +63,12 @@ namespace keycuts.Tests
         public void RemoveFrom_DeletesOnlyFilesThatAreExactlyTheShims()
         {
             CommandShims.Ensure(_other);
-            File.WriteAllText(Path.Combine(_other, "keypaste.cmd"), "@ECHO the user's own keypaste");
+            File.WriteAllText(Path.Combine(_other, "keypaste" + CommandShims.Extension), "@ECHO the user's own keypaste");
 
             var removed = CommandShims.RemoveFrom(_other);
 
-            Assert.Equal(new[] { Path.Combine(_other, "keycuts.cmd") }, removed);
-            Assert.True(File.Exists(Path.Combine(_other, "keypaste.cmd")));
+            Assert.Equal(new[] { Path.Combine(_other, "keycuts" + CommandShims.Extension) }, removed);
+            Assert.True(File.Exists(Path.Combine(_other, "keypaste" + CommandShims.Extension)));
         }
 
         [Fact]
@@ -78,8 +78,8 @@ namespace keycuts.Tests
 
             CommandShims.Move(_other, _folder);
 
-            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
-            Assert.Empty(Directory.GetFiles(_other, "*.cmd"));
+            Assert.Equal(2, Directory.GetFiles(_folder, "*" + CommandShims.Extension).Length);
+            Assert.Empty(Directory.GetFiles(_other, "*" + CommandShims.Extension));
         }
 
         [WindowsFact]
@@ -87,7 +87,7 @@ namespace keycuts.Tests
         {
             CommandShims.Move(_folder, _folder + @"\");
 
-            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
+            Assert.Equal(2, Directory.GetFiles(_folder, "*" + CommandShims.Extension).Length);
         }
 
         // A folder changed while the app was closed (the CLI's -o): the next start finds the old one in the record and cleans it
@@ -99,8 +99,8 @@ namespace keycuts.Tests
 
             CommandShims.Keep(_other, _folder, recorded.Add);
 
-            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
-            Assert.Empty(Directory.GetFiles(_other, "*.cmd"));
+            Assert.Equal(2, Directory.GetFiles(_folder, "*" + CommandShims.Extension).Length);
+            Assert.Empty(Directory.GetFiles(_other, "*" + CommandShims.Extension));
             Assert.Equal(new[] { _folder }, recorded);
 
             CommandShims.Keep(_folder, _folder, recorded.Add);   // nothing new to record
@@ -117,8 +117,8 @@ namespace keycuts.Tests
 
             CommandShims.Keep(null, _folder, recorded.Add, previousFolder: _other);
 
-            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
-            Assert.Empty(Directory.GetFiles(_other, "*.cmd"));
+            Assert.Equal(2, Directory.GetFiles(_folder, "*" + CommandShims.Extension).Length);
+            Assert.Empty(Directory.GetFiles(_other, "*" + CommandShims.Extension));
             Assert.Equal(new[] { _folder }, recorded);
         }
 
@@ -132,8 +132,8 @@ namespace keycuts.Tests
 
             CommandShims.Keep(recordedFolder, _folder, null, previousFolder: _other);
 
-            Assert.Empty(Directory.GetFiles(recordedFolder, "*.cmd"));
-            Assert.Equal(2, Directory.GetFiles(_other, "*.cmd").Length);   // not ours to clean: the record says where they were
+            Assert.Empty(Directory.GetFiles(recordedFolder, "*" + CommandShims.Extension));
+            Assert.Equal(2, Directory.GetFiles(_other, "*" + CommandShims.Extension).Length);   // not ours to clean: the record says where they were
         }
 
         [Fact]
@@ -143,7 +143,7 @@ namespace keycuts.Tests
 
             CommandShims.Keep(null, _folder, recorded.Add);
 
-            Assert.Equal(2, Directory.GetFiles(_folder, "*.cmd").Length);
+            Assert.Equal(2, Directory.GetFiles(_folder, "*" + CommandShims.Extension).Length);
             Assert.Equal(new[] { _folder }, recorded);
         }
 
@@ -155,7 +155,7 @@ namespace keycuts.Tests
 
             CommandShims.Keep(_other, Path.Combine(_root, "missing"), recorded.Add);
 
-            Assert.Equal(2, Directory.GetFiles(_other, "*.cmd").Length);
+            Assert.Equal(2, Directory.GetFiles(_other, "*" + CommandShims.Extension).Length);
             Assert.Empty(recorded);
         }
 
@@ -174,7 +174,7 @@ namespace keycuts.Tests
         public async Task TheRepository_RefusesToDeleteAShim()
         {
             CommandShims.Ensure(_folder);
-            var path = Path.Combine(_folder, "keycuts.cmd");
+            var path = Path.Combine(_folder, "keycuts" + CommandShims.Extension);
             var repository = new KeycutRepository(_folder, new PermanentDeleter());
 
             var error = await Assert.ThrowsAsync<KeycutRepositoryException>(() => repository.DeleteAsync(new Keycut { Name = "keycuts", FilePath = path }));
@@ -191,12 +191,86 @@ namespace keycuts.Tests
             Assert.Empty(await new KeycutRepository(_folder, new PermanentDeleter()).LoadAllAsync());
         }
 
+        #region macOS
+
+        [MacFact]
+        [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+        public void OnTheMac_TheShimsAreExecutableShScripts_ThatArentKeycuts()
+        {
+            CommandShims.Ensure(_folder);
+            var path = Path.Combine(_folder, "keycuts");
+
+            Assert.Equal("755", Convert.ToString((int)File.GetUnixFileMode(path), 8));
+            Assert.Equal(ShFormat.Shebang, File.ReadLines(path).First());
+            Assert.False(new ShFormat().IsKeycut(File.ReadAllLines(path)));
+            Assert.DoesNotContain("\r", File.ReadAllText(path));
+        }
+
+        /// <summary>The shim as Terminal runs it, with a temp HOME and a fake keycuts that prints its arguments.</summary>
+        private (int Code, string Output, string Error) RunShim(string command, string home, params string[] args)
+        {
+            var start = new System.Diagnostics.ProcessStartInfo("/bin/sh") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+            start.ArgumentList.Add(Path.Combine(_folder, command));
+            foreach (var arg in args)
+            {
+                start.ArgumentList.Add(arg);
+            }
+
+            start.Environment["HOME"] = home;
+            using var process = System.Diagnostics.Process.Start(start);
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            return (process.ExitCode, output, error);
+        }
+
+        [MacFact]
+        [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+        public void OnTheMac_TheShimsRunTheRecordedKeycuts_WithTheirArguments()
+        {
+            CommandShims.Ensure(_folder);
+            var home = Path.Combine(_root, "home");
+            var install = Path.Combine(_root, "keycuts.app", "Contents", "MacOS");
+            Directory.CreateDirectory(install);
+            File.WriteAllText(Path.Combine(install, "keycuts"), "#!/bin/sh\nprintf '%s|' \"$@\"\n");
+            File.SetUnixFileMode(Path.Combine(install, "keycuts"), (UnixFileMode)0b111_101_101);
+            var pointer = Path.Combine(home, "Library", "Application Support", "keycuts", "install-folder");
+
+            Assert.Equal(2, RunShim("keycuts", home, "list").Code);   // no pointer yet
+            Assert.Contains("isn't installed", RunShim("keycuts", home).Error);
+
+            Assert.True(CommandShims.RecordInstallFolder(pointer, install + "/", File.Exists));
+
+            Assert.Equal((0, "list|a b|"), (RunShim("keycuts", home, "list", "a b").Code, RunShim("keycuts", home, "list", "a b").Output));
+            Assert.Equal("paste|db|", RunShim("keypaste", home, "db").Output);
+        }
+
+        [Fact]
+        public void TheInstallFolder_IsRecordedOnlyForACopyWithTheCliBesideIt_AndOnlyWhenItChanges()
+        {
+            var pointer = Path.Combine(_root, "support", "install-folder");
+
+            Assert.False(CommandShims.RecordInstallFolder(pointer, "/Apps/build/", _ => false));
+            Assert.False(File.Exists(pointer));
+
+            Assert.True(CommandShims.RecordInstallFolder(pointer, "/Applications/keycuts.app/Contents/MacOS/", _ => true));
+            Assert.Equal("/Applications/keycuts.app/Contents/MacOS", CommandShims.ReadInstallFolder(pointer));
+            var written = File.GetLastWriteTimeUtc(pointer);
+            File.SetLastWriteTimeUtc(pointer, written.AddHours(-1));
+
+            Assert.True(CommandShims.RecordInstallFolder(pointer, "/Applications/keycuts.app/Contents/MacOS", _ => true));
+            Assert.Equal(written.AddHours(-1), File.GetLastWriteTimeUtc(pointer));
+            Assert.Null(CommandShims.ReadInstallFolder(Path.Combine(_root, "none")));
+        }
+
+        #endregion macOS
+
         // In one folder Win+R runs keycuts.bat before keycuts.cmd (#209), so a keycut with the name would take the command over:
         // that is why the names stay refused and an existing one is renamed at startup
-        [Fact]
+        [WindowsFact]
         public void AKeycutNamedLikeAShim_WouldWinOverIt_SoTheNamesStayRefused()
         {
-            var shim = Path.Combine(_folder, "keycuts.cmd");
+            var shim = Path.Combine(_folder, "keycuts" + CommandShims.Extension);
             var environment = new NameConflictEnvironment
             {
                 WindowsFolder = @"C:\Windows",

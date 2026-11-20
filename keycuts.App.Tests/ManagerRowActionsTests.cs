@@ -1122,7 +1122,7 @@ namespace keycuts.Tests
 
             Assert.Equal(0, shown);
             Assert.True(manager.StatusIsError);
-            Assert.Equal("This keycut can\u2019t be edited here. Edit it in Notepad.", manager.StatusMessage);
+            Assert.Equal(EditKeycutViewModel.NotEditableMessage, manager.StatusMessage);
             Assert.Empty(actions.Edited);
         }
 
@@ -1596,7 +1596,7 @@ namespace keycuts.Tests
         [Theory]
         [InlineData(KeycutRepositoryError.NotFound, "This keycut no longer exists")]
         [InlineData(KeycutRepositoryError.Changed, "\u201Ca\u201D changed on disk, so its description wasn\u2019t changed. It\u2019s reloaded.")]
-        [InlineData(KeycutRepositoryError.NotEditable, "Couldn\u2019t change the description of \u201Ca\u201D: its file isn\u2019t valid UTF-8. Edit it in Notepad.")]
+        [InlineData(KeycutRepositoryError.NotEditable, "Couldn\u2019t change the description of \u201Ca\u201D: its file isn\u2019t valid UTF-8. Edit it in {editor}.")]
         public async Task EditDescription_AFileTheRepositoryRefuses_SaysWhy_AndEndsTheEdit(KeycutRepositoryError error, string message)
         {
             var actions = new FakeActions { DescribeError = new KeycutRepositoryException(error, "refused") };
@@ -1608,7 +1608,7 @@ namespace keycuts.Tests
 
             Assert.False(manager.IsEditingDescription);
             Assert.True(manager.StatusIsError);
-            Assert.Equal(message, manager.StatusMessage);
+            Assert.Equal(message.Replace("in {editor}", keycuts.GUI.PlatformText.InEditor), manager.StatusMessage);
             Assert.Equal(string.Empty, manager.Rows[0].Description);
         }
 
@@ -1830,10 +1830,11 @@ namespace keycuts.Tests
         }
 
         [Theory]
-        [InlineData(true, " It\u2019s still in the Recycle Bin.")]
+        [InlineData(true, " It\u2019s still in the {0}.")]
         [InlineData(false, "")]
         public async Task Undo_AnotherFailure_SaysWhy_AndPointsToTheRecycleBinWhenItIsThere(bool recycled, string hint)
         {
+            hint = string.Format(hint, PlatformWords.Bin);
             var actions = new FakeActions { Recycled = recycled };
             var manager = await LoadedAsync(actions, "a", "b");
             await manager.DeleteKeycutAsync(manager.Rows[1]);
@@ -2001,7 +2002,7 @@ namespace keycuts.Tests
 
             await manager.DeleteKeycutAsync(manager.Rows[1]);
 
-            Assert.Equal("Deleted \u201Cb\u201D (this drive has no Recycle Bin)", manager.StatusMessage);
+            Assert.Equal("Deleted \u201Cb\u201D (this drive has no " + PlatformWords.Bin + ")", manager.StatusMessage);
             Assert.True(manager.CanUndoDelete);
         }
 

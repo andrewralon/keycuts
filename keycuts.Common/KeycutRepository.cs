@@ -95,10 +95,21 @@ namespace keycuts.Common
         /// <summary>The run counts this repository reads and keeps in step; null if it has none.</summary>
         public UsageLog Usage => _usage;
 
-        /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179).</summary>
+        /// <summary>Production repository for the configured output folder; its deletes go to the Recycle Bin (#179) or the Trash.</summary>
         public static KeycutRepository CreateDefault()
         {
-            return new KeycutRepository(new Runner().GetOutputFolder(), OperatingSystem.IsWindows() ? new RecycleBinRecycler() : throw new PlatformNotSupportedException("No Recycle Bin on this platform yet."), null, UsageLog.CreateDefault());
+            return new KeycutRepository(new Runner().GetOutputFolder(), DefaultRecycler(), null, UsageLog.CreateDefault());
+        }
+
+        /// <summary>The Recycle Bin on Windows, the Trash on macOS.</summary>
+        public static IFileRecycler DefaultRecycler()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return new RecycleBinRecycler();
+            }
+
+            return OperatingSystem.IsMacOS() ? new TrashRecycler() : throw new PlatformNotSupportedException("No Recycle Bin on this platform.");
         }
 
         /// <summary>
@@ -154,14 +165,15 @@ namespace keycuts.Common
                 var file = Directory.EnumerateFiles(_outputFolder, "*" + ShortcutFile.Extension)
                     .FirstOrDefault(f => string.Equals(Path.GetFileName(f), fileName, StringComparison.OrdinalIgnoreCase));
 
-                if (file == null)
+                // Another script in a folder of extensionless keycuts (macOS) isn't one, and is left alone
+                if (file == null || !ScriptFormats.IsKeycutFile(file))
                 {
                     return null;
                 }
 
                 return TryParse(file) ?? new Keycut
                 {
-                    Name = Path.GetFileNameWithoutExtension(file),
+                    Name = ScriptFormats.NameOf(file),
                     Kind = KeycutKind.File,
                     RawType = ShortcutType.Unknown,
                     Target = "",
@@ -321,29 +333,35 @@ namespace keycuts.Common
                 .SequenceEqual(emitted.Where(line => !UsageLog.IsUsageLine(line)).Select(NormalizeForComparison), StringComparer.Ordinal);
         }
 
+        // The header lines are comments of the format: REM in a .bat, # in a sh script ("A keycut on macOS")
+        private static readonly string Rem = ScriptFormats.Current.CommentPrefix;
+
+        // The prefix as a pattern, then the space after it: REM needs one, # can do without (as the sh parser reads it)
+        private static readonly string RemPattern = System.Text.RegularExpressions.Regex.Escape(Rem) + (char.IsLetter(Rem[Rem.Length - 1]) ? @"\s+" : @"\s*");
+
         private static readonly System.Text.RegularExpressions.Regex DescriptionRemLine = new System.Text.RegularExpressions.Regex(
-            @"^\s*REM\s+<description>.*</description>\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            @"^\s*" + RemPattern + @"<description>.*</description>\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex HeaderRemLine = new System.Text.RegularExpressions.Regex(
-            @"^REM keycuts(\s.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            "^" + System.Text.RegularExpressions.Regex.Escape(Rem) + @" keycuts(\s.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex ShortcutRemPath = new System.Text.RegularExpressions.Regex(
-            @"^REM <shortcut>.*</shortcut>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            "^" + System.Text.RegularExpressions.Regex.Escape(Rem) + " <shortcut>.*</shortcut>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly System.Text.RegularExpressions.Regex DestinationRemTag = new System.Text.RegularExpressions.Regex(
-            @"^REM <destination>(.*)</destination>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+            "^" + System.Text.RegularExpressions.Regex.Escape(Rem) + " <destination>(.*)</destination>$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         /// <summary>A line with what <see cref="CanEditInForm(string, string[])"/> ignores taken out.</summary>
         private static string NormalizeForComparison(string line)
         {
             if (HeaderRemLine.IsMatch(line))
             {
-                return "REM keycuts";
+                return Rem + " keycuts";
             }
 
             if (ShortcutRemPath.IsMatch(line))
             {
-                return "REM <shortcut></shortcut>";
+                return Rem + " <shortcut></shortcut>";
             }
 
             // Folder and CLSID keycuts written before #160 call explorer.exe without START. They run the same, so they stay
@@ -355,7 +373,7 @@ namespace keycuts.Common
                 return "START \"\" /B " + line;
             }
 
-            return DestinationRemTag.Replace(line, "REM <target>$1</target>");
+            return DestinationRemTag.Replace(line, Rem + " <target>$1</target>");
         }
 
         /// <summary>
@@ -429,9 +447,10 @@ namespace keycuts.Common
                 {
                     // The file's own spelling, so a "KeyPaste.bat" is reported as it's named
                     var path = Directory.EnumerateFiles(_outputFolder, command + ShortcutFile.Extension)
-                        .FirstOrDefault(f => string.Equals(Path.GetFileNameWithoutExtension(f), command, StringComparison.OrdinalIgnoreCase));
+                        .FirstOrDefault(f => string.Equals(ScriptFormats.NameOf(f), command, StringComparison.OrdinalIgnoreCase));
 
-                    if (path == null)
+                    // On macOS the keycuts and keypaste shims have exactly these names
+                    if (path == null || !ScriptFormats.IsKeycutFile(path))
                     {
                         continue;
                     }
@@ -444,7 +463,7 @@ namespace keycuts.Common
                     }
 
                     Rename(path, newName);
-                    renamed.Add(new RenamedKeycut(Path.GetFileNameWithoutExtension(path), newName));
+                    renamed.Add(new RenamedKeycut(ScriptFormats.NameOf(path), newName));
                 }
                 catch (Exception ex) when (ex is KeycutRepositoryException || ex is IOException || ex is UnauthorizedAccessException)
                 {
@@ -685,6 +704,12 @@ namespace keycuts.Common
                     strict = false;
                 }
 
+                // On macOS any file in the folder is read: only one with keycuts' header is a keycut (not the shims, not other scripts)
+                if (!ScriptFormats.Current.IsKeycut(lines))
+                {
+                    return null;
+                }
+
                 var shortcut = ScriptFormats.Current.Parse(file, lines);
 
                 if (string.IsNullOrEmpty(shortcut.Shortcut) ||
@@ -772,12 +797,12 @@ namespace keycuts.Common
                 var modified = File.GetLastWriteTime(path);
                 var recycled = _recycler.UsesRecycleBin(path);
 
-                _recycler.Remove(path);
+                var binPath = _recycler.Remove(path);
 
                 // Its run count goes too, so a new keycut with the name starts from nothing; Undo puts it back
-                var usage = _usage?.Remove(Path.GetFileNameWithoutExtension(path));
+                var usage = _usage?.Remove(ScriptFormats.NameOf(path));
 
-                return new DeletedKeycut(keycut, contents, modified, recycled) { Usage = usage };
+                return new DeletedKeycut(keycut, contents, modified, recycled) { Usage = usage, BinPath = binPath };
             }
             catch (KeycutRepositoryException)
             {
@@ -855,7 +880,7 @@ namespace keycuts.Common
                         if (!string.Equals(newPath, oldPath, StringComparison.Ordinal))
                         {
                             File.Move(oldPath, newPath);
-                            _usage?.Move(Path.GetFileNameWithoutExtension(oldPath), name);
+                            _usage?.Move(ScriptFormats.NameOf(oldPath), name);
                         }
                     }
                     else
@@ -876,7 +901,7 @@ namespace keycuts.Common
                             throw;
                         }
 
-                        _usage?.Move(Path.GetFileNameWithoutExtension(oldPath), name);
+                        _usage?.Move(ScriptFormats.NameOf(oldPath), name);
                     }
                 }
                 finally
@@ -964,7 +989,7 @@ namespace keycuts.Common
         private void Restore(DeletedKeycut deleted)
         {
             var path = deleted.Keycut.FilePath;
-            var name = Path.GetFileNameWithoutExtension(path);
+            var name = ScriptFormats.NameOf(path);
 
             try
             {
@@ -972,6 +997,13 @@ namespace keycuts.Common
                 if (File.Exists(path))
                 {
                     throw new KeycutRepositoryException(KeycutRepositoryError.AlreadyExists, $"\"{name}\" already exists.");
+                }
+
+                // Out of the Trash, as Finder's Put Back would, when it's still there as it was; otherwise from the kept bytes
+                if (TryMoveBackFromBin(deleted, path))
+                {
+                    _usage?.Restore(name, deleted.Usage);
+                    return;
                 }
 
                 var temp = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
@@ -1011,8 +1043,36 @@ namespace keycuts.Common
             }
         }
 
+        /// <summary>
+        /// Moves the deleted file back from <see cref="DeletedKeycut.BinPath"/> if it's there with the same bytes. Never over a
+        /// file: a name taken since throws, as the restore's own check does. False when it can't, and the bytes are written instead.
+        /// </summary>
+        private static bool TryMoveBackFromBin(DeletedKeycut deleted, string path)
+        {
+            var bin = deleted.BinPath;
+
+            try
+            {
+                if (string.IsNullOrEmpty(bin) || !File.Exists(bin) || !File.ReadAllBytes(bin).AsSpan().SequenceEqual(deleted.Contents))
+                {
+                    return false;
+                }
+
+                File.Move(bin, path);
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+            catch (IOException) when (!File.Exists(path))
+            {
+                return false;
+            }
+        }
+
         private static readonly System.Text.RegularExpressions.Regex ShortcutRemLine = new System.Text.RegularExpressions.Regex(
-            @"^(\s*REM\s+<shortcut>).*?(</shortcut>)",
+            @"^(\s*" + RemPattern + @"<shortcut>).*?(</shortcut>)",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
 
         private string Rename(string path, string newName)
@@ -1044,7 +1104,7 @@ namespace keycuts.Common
 
                 File.Move(path, newPath);
                 TryRewriteShortcutLine(newPath);
-                _usage?.Move(Path.GetFileNameWithoutExtension(path), newName);
+                _usage?.Move(ScriptFormats.NameOf(path), newName);
 
                 return newPath;
             }
@@ -1113,7 +1173,7 @@ namespace keycuts.Common
         }
 
         private static readonly System.Text.RegularExpressions.Regex DescriptionLineParts = new System.Text.RegularExpressions.Regex(
-            @"^(?<pre>\s*REM\s+<description>)(?<text>.*)(?<post></description>\s*)$",
+            @"^(?<pre>\s*" + RemPattern + @"<description>)(?<text>.*)(?<post></description>\s*)$",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         private static readonly char[] LineBreaks = { '\r', '\n' };
@@ -1174,18 +1234,18 @@ namespace keycuts.Common
 
                 // The keycut was loaded some time ago. If its description has been changed since (Notepad, another window),
                 // saving would quietly put the old one back over it
-                if (!string.Equals(ShortcutFile.ParseDescription(lines), keycut.Description ?? string.Empty, StringComparison.Ordinal))
+                if (!string.Equals(ScriptFormats.Current.ParseDescription(lines), keycut.Description ?? string.Empty, StringComparison.Ordinal))
                 {
                     throw new KeycutRepositoryException(KeycutRepositoryError.Changed, $"\"{path}\" changed since it was loaded.");
                 }
 
-                // As the Creator writes it (one line, every % doubled, #162), and as reading it back gives it
-                var sanitized = Runner.SanitizeDescription(description);
-                var wanted = ShortcutFile.ParseDescription(new[] { $"REM <description>{sanitized}</description>" });
+                // As the Creator writes it (one line, every % doubled in a .bat, #162), and as reading it back gives it
+                var sanitized = ScriptFormats.Current.SanitizeDescription(description);
+                var wanted = ScriptFormats.Current.ParseDescription(new[] { $"{Rem} <description>{sanitized}</description>" });
                 var existing = Array.FindIndex(lines, line => DescriptionLineParts.IsMatch(line));
 
                 // Nothing to change: the file keeps its bytes and its date. No line and nothing to say needs no line.
-                if (existing >= 0 ? string.Equals(ShortcutFile.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
+                if (existing >= 0 ? string.Equals(ScriptFormats.Current.ParseDescription(lines), wanted, StringComparison.Ordinal) : wanted.Length == 0)
                 {
                     return WithUsage(TryParse(path)) ?? UnreadableKeycut(keycut);
                 }
@@ -1203,7 +1263,7 @@ namespace keycuts.Common
                 {
                     // A keycut from before descriptions (1.0) or a hand-written launcher has no line: add one where the
                     // emitter puts it, just before the launch line, with the file's own line breaks
-                    var launch = Array.FindIndex(lines, ShortcutFile.IsLaunchLine);
+                    var launch = Array.FindIndex(lines, ScriptFormats.Current.IsLaunchLine);
 
                     if (launch < 0)
                     {
@@ -1211,8 +1271,8 @@ namespace keycuts.Common
                     }
 
                     var firstBreak = text.IndexOfAny(LineBreaks);
-                    var lineBreak = firstBreak < 0 ? "\r\n" : text[firstBreak] == '\r' && firstBreak + 1 < text.Length && text[firstBreak + 1] == '\n' ? "\r\n" : text[firstBreak].ToString();
-                    updated = text.Insert(spans[launch].Start, $"REM <description>{sanitized}</description>" + lineBreak);
+                    var lineBreak = firstBreak < 0 ? Environment.NewLine : text[firstBreak] == '\r' && firstBreak + 1 < text.Length && text[firstBreak + 1] == '\n' ? "\r\n" : text[firstBreak].ToString();
+                    updated = text.Insert(spans[launch].Start, $"{Rem} <description>{sanitized}</description>" + lineBreak);
                 }
 
                 var body = strict.GetBytes(updated);
@@ -1235,7 +1295,7 @@ namespace keycuts.Common
         {
             return new Keycut
             {
-                Name = Path.GetFileNameWithoutExtension(keycut.FilePath),
+                Name = ScriptFormats.NameOf(keycut.FilePath),
                 Kind = KeycutKind.File,
                 RawType = ShortcutType.Unknown,
                 Target = "",

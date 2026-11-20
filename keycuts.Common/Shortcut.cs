@@ -63,7 +63,7 @@ namespace keycuts.Common
         {
             return shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
                 shortcut :
-                Path.GetFileNameWithoutExtension(shortcut);
+                ScriptFormats.NameOf(shortcut);
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace keycuts.Common
         public static Shortcut FromParts(ShortcutType type, string target, string fullPath, string openWithAppPath = null)
         {
             var folder = Path.GetDirectoryName(fullPath);
-            var filename = Path.GetFileNameWithoutExtension(fullPath);
+            var filename = ScriptFormats.NameOf(fullPath);
 
             return new Shortcut
             {

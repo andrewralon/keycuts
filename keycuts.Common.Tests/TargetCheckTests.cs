@@ -81,8 +81,9 @@ namespace keycuts.Tests
         [MacFact]
         public async Task OnMacOS_AHomeFolderTarget_IsChecked_Expanded()
         {
-            File.WriteAllLines(Path.Combine(_folder, "home.bat"), new[] { "REM <type>folder</type>", "REM <target>$HOME</target>", "START x" });
-            File.WriteAllLines(Path.Combine(_folder, "gone.bat"), new[] { "REM <type>folder</type>", "REM <target>$HOME/keycuts-missing-" + Guid.NewGuid().ToString("N") + "</target>", "START x" });
+            var missing = "$HOME/keycuts-missing-" + Guid.NewGuid().ToString("N");
+            File.WriteAllLines(Path.Combine(_folder, "home"), new[] { ShFormat.Shebang, "# keycuts 2.0.0", "# <type>folder</type>", "# <target>$HOME</target>", "open \"$HOME\"" });
+            File.WriteAllLines(Path.Combine(_folder, "gone"), new[] { ShFormat.Shebang, "# keycuts 2.0.0", "# <type>folder</type>", $"# <target>{missing}</target>", $"open \"{missing}\"" });
 
             var home = await LoadAndCheck("home");
             var gone = await LoadAndCheck("gone");
@@ -123,7 +124,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task QuotedProgramAndArgument_WithTheProgramGone_IsMissing()
         {
             var argument = Program("data.ini");
@@ -135,7 +136,7 @@ namespace keycuts.Tests
         }
 
         // Only the supplied folders are searched: the output folder counts when it is on PATH, and not when it isn't
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_ABatchFileInTheOutputFolderOnThePath_IsFound()
         {
             File.WriteAllText(Path.Combine(_folder, "tool.bat"), "@ECHO OFF\r\nSTART https://example.com\r\n");
@@ -146,7 +147,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_InTheOutputFolderWhenItIsNotOnThePath_IsNotFound()
         {
             File.WriteAllText(Path.Combine(_folder, "tool.exe"), "x");
@@ -157,7 +158,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task AQuestionMarkWildcard_IsNotMarked_ButAnExtendedPathPrefixIsNotOne()
         {
             WriteLaunch("wild", "START \"\" /B \"C:\\Tools\\app?.exe\"");
@@ -172,7 +173,7 @@ namespace keycuts.Tests
         }
 
         // The program exists and the argument doesn't: an argument is the program's business, not a path we promise
-        [Fact]
+        [WindowsFact]
         public async Task QuotedArgument_ThatDoesNotExist_DoesNotMakeTheKeycutMissing()
         {
             Program("tool.exe");
@@ -200,7 +201,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task UnquotedProgramAndArgument_WithTheProgramGone_IsMissing()
         {
             WriteLaunch("chrome", $"START \"\" /D \"{_programs}\" tool.exe --profile-directory=\"Profile 2\"");
@@ -239,7 +240,7 @@ namespace keycuts.Tests
 
         // Checked with a throwaway program: a program that START finds by name stops at a missing folder even when App Paths
         // has it too, so that launcher doesn't start
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderGone_ProgramOnThePathAndInAppPaths_IsMissing()
         {
             var tool = Program("tool.exe");
@@ -252,7 +253,7 @@ namespace keycuts.Tests
         }
 
         // With the folder there, App Paths alone is simply Ok
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderThere_ProgramOnlyInAppPaths_HasNoWarning()
         {
             var chrome = Program("chrome.exe");
@@ -275,7 +276,7 @@ namespace keycuts.Tests
         }
 
         // Found by name on PATH, but START stops at the missing folder before it gets to launch it
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderGone_ProgramOnlyOnThePath_IsMissing()
         {
             Program("tool.exe");
@@ -288,7 +289,7 @@ namespace keycuts.Tests
         }
 
         // The case that already passed: the program is in the start-in folder, on neither PATH nor App Paths
-        [Fact]
+        [WindowsFact]
         public async Task ProgramInTheStartInFolder_IsOk()
         {
             Program("tool.exe");
@@ -299,7 +300,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task ProgramInTheStartInFolder_WithoutItsExtension_IsOk()
         {
             Program("tool.exe");
@@ -309,7 +310,7 @@ namespace keycuts.Tests
         }
 
         // An existing folder that doesn't hold the program: it is found by name, as without a folder
-        [Fact]
+        [WindowsFact]
         public async Task StartInFolderThere_ProgramOnThePathOrInAppPaths_IsOk()
         {
             var elsewhere = Program("tool.exe");
@@ -335,7 +336,7 @@ namespace keycuts.Tests
         }
 
         // /D "" has no folder to be wrong
-        [Fact]
+        [WindowsFact]
         public async Task NoStartInFolder_ProgramFoundNowhere_SaysItSearchedByName()
         {
             WriteLaunch("h", "START \"\" /D \"\" nothere.exe");
@@ -363,7 +364,7 @@ namespace keycuts.Tests
         }
 
         // START "" /B "<full path>" has no folder and no search either
-        [Fact]
+        [WindowsFact]
         public async Task AFullPathWithNoStartInFolder_IsAPlainExistsCheck()
         {
             WriteLaunch("gone", $"START \"\" /B \"{Path.Combine(_root, "missing", "tool.exe")}\"");
@@ -390,7 +391,7 @@ namespace keycuts.Tests
         }
 
         // The last row of the issue's table: no folder, so Windows finds the program, File.Exists doesn't
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_OnThePath_IsOk()
         {
             Program("tool.exe");
@@ -403,7 +404,7 @@ namespace keycuts.Tests
         }
 
         // PATHEXT supplies the extension, as it does for Win+R
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_WithoutAnExtension_IsFoundThroughPathExt()
         {
             Program("tool.exe");
@@ -414,7 +415,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_InTheSystemFolder_IsOk()
         {
             var system = Path.Combine(_root, "system32");
@@ -427,7 +428,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_InAppPaths_IsOk()
         {
             var registered = Program("registered.exe");
@@ -438,7 +439,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Ok, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_FoundNowhere_IsMissing()
         {
             // It exists, but not in a folder Windows looks in
@@ -450,7 +451,7 @@ namespace keycuts.Tests
             Assert.Equal(TargetStatus.Missing, keycut.TargetStatus);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_WithArguments_IsLookedUpWithoutThem()
         {
             Program("tool.exe");
@@ -463,7 +464,7 @@ namespace keycuts.Tests
         }
 
         // Only a keycut with a bare name needs the PATH and registry, so the others never read them
-        [Fact]
+        [WindowsFact]
         public async Task TheLookupEnvironment_IsOnlyReadForABareName()
         {
             var tool = Program("tool.exe");
@@ -477,7 +478,7 @@ namespace keycuts.Tests
         }
 
         // If the environment can't be read, nothing is claimed
-        [Fact]
+        [WindowsFact]
         public async Task BareProgramName_WithAnUnreadableEnvironment_IsNotMarked()
         {
             WriteLaunch("bare", "START \"\" /D \"\" \"tool.exe\"");
@@ -490,7 +491,7 @@ namespace keycuts.Tests
         }
 
         // Step 4: don't claim what wasn't checked
-        [Theory]
+        [WindowsTheory]
         // A quoted program and a quoted argument under /B: the parser holds them in one string and can't say where the program ends
         [InlineData("START \"\" /B \"C:\\a b\\app.exe\" \"C:\\c d\\file.txt\"")]
         // A START switch before the program: not read as a program, and its target has quotes in it
@@ -508,7 +509,7 @@ namespace keycuts.Tests
         }
 
         // readme.txt is searched for as typed only if PATHEXT lists .txt, so coming up empty says nothing about it
-        [Fact]
+        [WindowsFact]
         public async Task BareName_WithAnExtensionPathExtDoesNotList_IsNotMarked()
         {
             Program("readme.txt");
@@ -532,7 +533,7 @@ namespace keycuts.Tests
             Assert.Equal(Path.Combine(systemRoot, "no-such-program-for-keycuts-tests.exe"), keycut.CheckedPath);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Missing_ForABareName_RemembersTheName()
         {
             WriteLaunch("gone", "START \"\" /D \"\" \"no-such-program.exe\"");
@@ -543,7 +544,7 @@ namespace keycuts.Tests
             Assert.Equal("no-such-program.exe", keycut.CheckedPath);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task Ok_RemembersThePathItFound()
         {
             var tool = Program("tool.exe");
@@ -554,7 +555,7 @@ namespace keycuts.Tests
             Assert.Equal(tool, keycut.CheckedPath);
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task PlainFile_HasItsTargetAsItsProgram()
         {
             var tool = Program("plain.exe");

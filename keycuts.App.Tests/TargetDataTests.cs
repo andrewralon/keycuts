@@ -29,6 +29,19 @@ namespace keycuts.Tests
             return TargetData.Pick(contents, _ => shellName);
         }
 
+        // Phase 5.3: Finder hands over a folder with a trailing slash; a drop gives what typing it gives
+        [Theory]
+        [InlineData("/Users/me/Downloads/", "/Users/me/Downloads")]
+        [InlineData("/Applications/Safari.app/", "/Applications/Safari.app")]
+        [InlineData("/Users/me/notes.txt", "/Users/me/notes.txt")]
+        [InlineData("/", "/")]
+        [InlineData(@"C:\Users\me\", @"C:\Users\me\")]
+        [InlineData(null, null)]
+        public void AFolderFromFinder_LosesItsTrailingSlash(string? path, string? expected)
+        {
+            Assert.Equal(expected, TargetData.TrimFolderSlash(path));
+        }
+
         [Fact]
         public void Files_WinOverEverything()
         {

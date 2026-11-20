@@ -65,6 +65,25 @@ namespace keycuts.GUI.Themes
             return Color.FromRgb((byte)(colorRef & 0xFF), (byte)((colorRef >> 8) & 0xFF), (byte)((colorRef >> 16) & 0xFF));
         }
 
+        /// <summary>
+        /// macOS has no system color table, so its high contrast (Increase contrast) takes fixed colors (docs/styleguide.md, In
+        /// Avalonia): black on white with the light appearance, white on black with the dark one, and the accent for links and
+        /// the selection, at 4.5:1 or better on its background.
+        /// </summary>
+        public static Color ReadMac(SystemColorName name, bool dark)
+        {
+            var accent = dark ? Color.Parse("#6a9eff") : Color.Parse("#2563eb");
+            return name switch
+            {
+                SystemColorName.Window or SystemColorName.Control => dark ? Colors.Black : Colors.White,
+                SystemColorName.WindowText => dark ? Colors.White : Colors.Black,
+                SystemColorName.GrayText => dark ? Color.Parse("#a0a0a0") : Color.Parse("#5e5e5e"),
+                SystemColorName.HotTrack or SystemColorName.Highlight => accent,
+                SystemColorName.HighlightText => dark ? Colors.Black : Colors.White,
+                _ => dark ? Colors.White : Colors.Black
+            };
+        }
+
         /// <summary>GetSysColor's index for each name: the ones WPF's <c>SystemColors</c> read.</summary>
         public static int Index(SystemColorName name)
         {

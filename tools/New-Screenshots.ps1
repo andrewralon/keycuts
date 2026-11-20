@@ -9,6 +9,9 @@
     animated GIF (walkthrough-light.gif, walkthrough-dark.gif): the real creator taken through its states, then a card
     for the Win+R step. It is rendered, not a screen recording.
 
+    On a Mac it writes the macOS pictures instead (creator-light-mac.png and so on, no walkthrough), with the traffic
+    lights drawn where macOS puts them, and leaves the Windows ones alone.
+
     The views are rendered at twice their size, without the window frame, so the result doesn't depend on your theme,
     display or what is open, and it never touches your keycuts folder, the registry or PATH. Settings is shown without
     its version row (the version and Check now), so a new version doesn't make its picture stale.

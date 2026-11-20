@@ -48,11 +48,32 @@ namespace keycuts.Tests
         [InlineData(ColorContrastPreference.High, true, true)]
         [InlineData(ColorContrastPreference.NoPreference, true, false)]
         [InlineData(ColorContrastPreference.High, false, false)]
-        public void IsHighContrast_IsWindowsHighContrastOnly(ColorContrastPreference contrast, bool isWindows, bool expected)
+        public void IsHighContrast_IsThePlatformsHighContrast_WhereKeycutsFollowsIt(ColorContrastPreference contrast, bool follows, bool expected)
         {
             var values = new PlatformColorValues { ThemeVariant = PlatformThemeVariant.Light, ContrastPreference = contrast };
-            Assert.Equal(expected, ThemeManager.IsHighContrast(values, isWindows));
-            Assert.False(ThemeManager.IsHighContrast(null, isWindows));
+            Assert.Equal(expected, ThemeManager.IsHighContrast(values, follows));
+            Assert.False(ThemeManager.IsHighContrast(null, follows));
+        }
+
+        // macOS's Increase contrast (Phase 5.4): fixed colors, each text color 4.5:1 or better on the background it sits on
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OnTheMac_HighContrastColors_AreFixed_AndReadable(bool dark)
+        {
+            string Hex(SystemColorName name)
+            {
+                var c = SystemColor.ReadMac(name, dark);
+                return $"#{c.R:x2}{c.G:x2}{c.B:x2}";
+            }
+
+            Assert.Equal(dark ? "#000000" : "#ffffff", Hex(SystemColorName.Window));
+            foreach (var text in new[] { SystemColorName.WindowText, SystemColorName.GrayText, SystemColorName.HotTrack, SystemColorName.Highlight })
+            {
+                Assert.True(ColorContrast.Ratio(Hex(text), Hex(SystemColorName.Window)) >= 4.5, text.ToString());
+            }
+
+            Assert.True(ColorContrast.Ratio(Hex(SystemColorName.HighlightText), Hex(SystemColorName.Highlight)) >= 4.5);
         }
 
         [Fact]

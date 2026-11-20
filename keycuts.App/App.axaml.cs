@@ -54,12 +54,11 @@ namespace keycuts.GUI
         private static void ShowMainWindow(IClassicDesktopStyleApplicationLifetime desktop)
         {
             MainWindow? mainWindow = null;
-            var shell = OperatingSystem.IsWindows()
-                ? CreateWindowsShell(() => mainWindow)
-                : CreateShellWithoutKeycutsFolder(new RunnerSettingsStore(), () => mainWindow);
+            var shell = CreateShell(() => mainWindow);
 
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
+            MacMenus.Attach(Current!, mainWindow);
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a
             // field error, not a crash.
@@ -77,27 +76,18 @@ namespace keycuts.GUI
             _ = LoadPathVariablesAsync(shell);
         }
 
-        /// <summary>
-        /// The screens where the keycuts folder isn't supported yet (macOS until Phase 4): no keycuts, but Settings opens. Its
-        /// changes apply; storing them fails with a message on the screen until macOS has a settings file (Phase 4.2).
-        /// </summary>
-        public static ShellViewModel CreateShellWithoutKeycutsFolder(ISettingsStore store, Func<Window?> mainWindow)
+        /// <summary>The window's screens and what they work on, on Windows and macOS alike; the differences are marked.</summary>
+        private static ShellViewModel CreateShell(Func<Window?> mainWindow)
         {
-            return new ShellViewModel(
-                () => Task.FromResult(0),
-                settingsFactory: () => new SettingsViewModel(
-                    store,
-                    current => SettingsView.PickFolder(mainWindow(), current),
-                    SettingsView.OpenFolder,
-                    applyTheme: ThemeManager.SetPreference,
-                    confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults())));
-        }
-
-        [SupportedOSPlatform("windows")]
-        private static ShellViewModel CreateWindowsShell(Func<Window?> mainWindow)
-        {
-            // After the theme, which the icon options that follow it read
-            AppIconManager.Initialize(RegistryStuff.GetAppIcon(), RegistryStuff.GetAppIconTransparent(), UpdateShortcutIcons);
+            // After the theme, which the icon options that follow it read. Only Windows has shortcuts to repoint.
+            if (OperatingSystem.IsWindows())
+            {
+                AppIconManager.Initialize(RegistryStuff.GetAppIcon(), RegistryStuff.GetAppIconTransparent(), UpdateShortcutIcons);
+            }
+            else
+            {
+                AppIconManager.Initialize(RegistryStuff.GetAppIcon(), RegistryStuff.GetAppIconTransparent());
+            }
 
             // GUI creates never change PATH, so a portable copy needs the welcome to check it. The Debug folder override must never
             // write PATH, so it skips the check (null means "on PATH").
@@ -106,19 +96,26 @@ namespace keycuts.GUI
             // so the manager and the welcome already see the new names.
             var moveAside = Task.Run(() =>
             {
+                // macOS: what the installer does on Windows, done here (correction 3)
+                if (OperatingSystem.IsMacOS())
+                {
+                    RecordMacInstall();
+                }
+
                 var renamed = MoveAsideCommandNames();
-                // #196, #207: older keycuts to the current format, once per folder, with a backup
-                var migration = MigrateFolder();
+                // #196, #207: older keycuts to the current format, once per folder, with a backup (.bat files only)
+                var migration = OperatingSystem.IsWindows() ? MigrateFolder() : new MigrationResult();
                 AddRunCounting();
                 // #248: the keycuts and keypaste commands beside the keycuts
                 KeepCommandShims();
                 return (Renamed: renamed, Migration: migration);
             });
+            var (isOnPath, addToPath) = usesDebugFolder ? (null, null) : PathChecks();
             var welcome = new WelcomeViewModel(
                 RegistryStuff.GetWelcomeDismissed,
                 RegistryStuff.SetWelcomeDismissed,
-                usesDebugFolder ? null : folder => UserPathUpdater.IsOnPath(folder ?? new Runner().GetOutputFolder()),
-                usesDebugFolder ? null : folder => new UserPathUpdater().AddToOrReplace(null, folder ?? new Runner().GetOutputFolder()));
+                isOnPath,
+                addToPath);
 
             // #171: the GUI only; the CLI never checks
             var updateNotice = new UpdateNoticeViewModel(UpdateChecker.CreateDefault());
@@ -131,7 +128,9 @@ namespace keycuts.GUI
                 updates: updateNotice.Checker,
                 appIcon: new AppIconService(),
                 applyTheme: ThemeManager.SetPreference,
-                confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults()));
+                confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults()),
+                // The Debug folder override never writes PATH, so it has no PATH switch either
+                shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null);
 
             var shell = new ShellViewModel(
                 async () =>
@@ -158,7 +157,7 @@ namespace keycuts.GUI
             {
                 var migration = await Task.Run(() =>
                 {
-                    var result = MigrateFolder();
+                    var result = OperatingSystem.IsWindows() ? MigrateFolder() : new MigrationResult();
                     AddRunCounting();
                     KeepCommandShims();
                     return result;
@@ -262,10 +261,57 @@ namespace keycuts.GUI
         }
 
         /// <summary>
-        /// Puts keycuts.cmd and keypaste.cmd in the keycuts folder (#248). Only the installed copy does it, never under the Debug
-        /// folder override. Runs on a worker thread. Never fails.
+        /// The welcome panel's PATH check and "add to PATH" (GUI creates never change PATH): the user PATH on Windows; on macOS the
+        /// shell profile's block (Phase 4.9), where a folder already in the profile counts, since a new Terminal window finds it.
         /// </summary>
+        private static (Func<string?, bool>? IsOnPath, Func<string?, bool>? AddToPath) PathChecks()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return WindowsPathChecks();
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                var shell = MacShellPath.CreateDefault();
+                return (folder => shell.Status(folder ?? new Runner().GetOutputFolder()) != ShellPathStatus.NotOnPath,
+                    folder => shell.Add(folder ?? new Runner().GetOutputFolder()));
+            }
+
+            return (null, null);
+        }
+
         [SupportedOSPlatform("windows")]
+        private static (Func<string?, bool>? IsOnPath, Func<string?, bool>? AddToPath) WindowsPathChecks()
+        {
+            return (folder => UserPathUpdater.IsOnPath(folder ?? new Runner().GetOutputFolder()),
+                folder => new UserPathUpdater().AddToOrReplace(null, folder ?? new Runner().GetOutputFolder()));
+        }
+
+        /// <summary>
+        /// What the installer does on Windows, done by the app's own start on macOS (correction 3): an installed copy (the
+        /// <c>keycuts</c> CLI beside it) records its folder for the shims and makes the keycuts folder. Never fails.
+        /// </summary>
+        private static void RecordMacInstall()
+        {
+            try
+            {
+                if (DebugOverrides.GetOutputFolder() == null &&
+                    CommandShims.RecordInstallFolder(CommandShims.InstallFolderPointer, AppContext.BaseDirectory, System.IO.File.Exists))
+                {
+                    System.IO.Directory.CreateDirectory(new Runner().GetOutputFolder());
+                }
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't make the keycuts folder: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Puts keycuts.cmd and keypaste.cmd in the keycuts folder (#248; keycuts and keypaste on macOS). Only the installed copy
+        /// does it, never under the Debug folder override. Runs on a worker thread. Never fails.
+        /// </summary>
         private static void KeepCommandShims()
         {
             try
@@ -304,7 +350,6 @@ namespace keycuts.GUI
         /// Renames keycuts named keycuts or keypaste, which clash with those commands in the keycuts folder (#209). Runs on a worker
         /// thread. Never fails.
         /// </summary>
-        [SupportedOSPlatform("windows")]
         private static IReadOnlyList<RenamedKeycut> MoveAsideCommandNames()
         {
             try
@@ -319,7 +364,6 @@ namespace keycuts.GUI
         }
 
         /// <summary>Gives the keycuts in the folder the lines that count their runs (#187), once per folder. Never fails.</summary>
-        [SupportedOSPlatform("windows")]
         private static void AddRunCounting()
         {
             try

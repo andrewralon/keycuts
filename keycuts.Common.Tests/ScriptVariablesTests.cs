@@ -41,7 +41,7 @@ namespace keycuts.Tests
 
         #region The corpus shapes
 
-        [Fact]
+        [WindowsFact]
         public void G_IsTheNoArgumentsUrl_WithTheSearchBranchSkipped()
         {
             var keycut = Load("g");
@@ -53,7 +53,7 @@ namespace keycuts.Tests
             Assert.Equal("%BASE%%QUERY%", keycut.Target.Trim());   // the target is still what the file says
         }
 
-        [Fact]
+        [WindowsFact]
         public void Ghpr_UndoublesItsPercents()
         {
             var keycut = Load("ghpr");
@@ -62,13 +62,13 @@ namespace keycuts.Tests
             Assert.False(keycut.ResolvedTarget.AssumesNoArguments);
         }
 
-        [Fact]
+        [WindowsFact]
         public void Gg_TakesTheDefault_WhenItsOneLineIfWouldNeedAnArgument()
         {
             Assert.Equal("https://www.google.com/", Load("gg").ResolvedTarget.Text);
         }
 
-        [Fact]
+        [WindowsFact]
         public void AVariableSetInAnotherIf_StaysUnknown()
         {
             var keycut = Load("unknown-if");
@@ -77,7 +77,7 @@ namespace keycuts.Tests
             Assert.Null(keycut.ResolvedTarget);
         }
 
-        [Fact]
+        [WindowsFact]
         public void SetP_StaysUnknown_AndOnlyTheKnownPartIsFilledIn()
         {
             var resolved = Load("set-p").ResolvedTarget;
@@ -281,7 +281,7 @@ namespace keycuts.Tests
 
         #endregion
 
-        [Fact]
+        [WindowsFact]
         public void TheResolvedTarget_NeverReachesTheTarget_OrTheEditCheck()
         {
             var keycut = Load("g");

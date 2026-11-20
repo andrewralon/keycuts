@@ -49,6 +49,11 @@ namespace keycuts.GUI
             FrameAnchor.Attach(this);
             KeyDown += Main_KeyDown;
 
+            if (OperatingSystem.IsMacOS())
+            {
+                UseMacFrame();
+            }
+
             // The torn corner follows the page's size and the theme (high contrast keeps the rectangle)
             Frame.SizeChanged += (sender, e) => UpdateTear();
             ThemeManager.Applied += ThemeManager_Applied;
@@ -134,8 +139,10 @@ namespace keycuts.GUI
                 return;
             }
 
-            // Ctrl+1, Ctrl+2 and Ctrl+3 pick the tabs left to right, as in a browser; nothing while the tabs are off (the icon picker)
-            if (e.KeyModifiers == KeyModifiers.Control && TabNumber(e.Key) is int tab)
+            // Ctrl+1, Ctrl+2 and Ctrl+3 (⌘ on macOS) pick the tabs left to right, as in a browser; nothing while the tabs are off
+            // (the icon picker). On macOS ⌘, is Settings too, as in every Mac app.
+            var settingsKey = PlatformKeys.IsMac && e.Key == Key.OemComma;
+            if (e.KeyModifiers == PlatformKeys.Command && (settingsKey ? 3 : TabNumber(e.Key)) is int tab)
             {
                 e.Handled = true;
                 if (shell.AreTabsEnabled)
@@ -143,6 +150,14 @@ namespace keycuts.GUI
                     ShowTab(tab);
                 }
 
+                return;
+            }
+
+            // ⌘W closes the window on macOS; keycuts stays in the menu bar (Phase 6.1)
+            if (PlatformKeys.IsMac && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.W)
+            {
+                e.Handled = true;
+                Close();
                 return;
             }
 
@@ -167,6 +182,15 @@ namespace keycuts.GUI
                 Key.D3 or Key.NumPad3 => 3,
                 _ => null
             };
+        }
+
+        /// <summary>Picks a tab by number (1 creator, 2 manager, 3 settings), as Ctrl+1 to 3 do: nothing while the tabs are off.</summary>
+        public void PickTab(int tab)
+        {
+            if (shell.AreTabsEnabled)
+            {
+                ShowTab(tab);
+            }
         }
 
         private void ShowTab(int tab)
@@ -204,6 +228,21 @@ namespace keycuts.GUI
             }
         }
 
+        /// <summary>
+        /// Phase 5.1 (mockup macos-window-v1): macOS draws the frame, its rounded corners and shadow, and its own traffic lights,
+        /// which sit in the tab bar, centered in its height. Zoom stays off (<c>CanMaximize</c>). The page is opaque, with no
+        /// border of its own and no torn corner.
+        /// </summary>
+        private void UseMacFrame()
+        {
+            WindowDecorations = WindowDecorations.Full;
+            ExtendClientAreaTitleBarHeightHint = (double)this.FindResource("RailHeight")!;
+            MacTrafficLights.Attach(this, (double)this.FindResource("RailHeight")!);
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
+            Bind(BackgroundProperty, this.GetResourceObservable("CanvasBrush"));
+            PageBorder.IsVisible = false;
+        }
+
         /// <summary>Whether the window shows its torn corner: always, except in high contrast, which keeps the plain rectangle.</summary>
         public static bool ShowsTear(Palette palette)
         {
@@ -218,7 +257,7 @@ namespace keycuts.GUI
         // The page is clipped to the torn shape, so the desktop shows through the tear; the tear's own drawing sits on top
         private void UpdateTear()
         {
-            var torn = ShowsTear(ThemeManager.Current);
+            var torn = ShowsTear(ThemeManager.Current) && !OperatingSystem.IsMacOS();
             Frame.Clip = torn ? TornCornerShape.Default.GetWindowClip(Frame.Bounds.Size) : null;
             Tear.IsVisible = torn;
         }

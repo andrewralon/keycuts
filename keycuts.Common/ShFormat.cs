@@ -44,7 +44,7 @@ namespace keycuts.Common
                 $"# <shortcut>{shortcut.FullPath}</shortcut>",
                 $"# <type>{shortcut.Type.ToString().ToLower()}</type>",
                 $"# <target>{shortcut.Target}</target>",
-                $"# <description>{SanitizeDescription(description)}</description>",
+                $"# <description>{Sanitize(description)}</description>",
                 BuildCommand(shortcut),
             };
 
@@ -80,7 +80,7 @@ namespace keycuts.Common
                 Path = file,
                 Shortcut = System.IO.Path.GetFileName(file),
                 Type = ShortcutType.Unknown,
-                Description = FirstValue(lines, HeaderDescription) ?? "",
+                Description = ParseDescription(lines),
             };
 
             foreach (var line in lines)
@@ -110,6 +110,22 @@ namespace keycuts.Common
             }
 
             return parsed;
+        }
+
+        public string ParseDescription(string[] lines)
+        {
+            return FirstValue(lines, HeaderDescription) ?? "";
+        }
+
+        /// <summary>The first line is the shebang and the second keycuts' own (<c># keycuts 2.0.0</c>); the shims' second line isn't.</summary>
+        public bool IsKeycut(string[] lines)
+        {
+            return lines.Length >= 2 && lines[0] == Shebang && lines[1].StartsWith($"# {Runner.AppName} ", StringComparison.Ordinal);
+        }
+
+        public bool IsLaunchLine(string line)
+        {
+            return !line.TrimStart().StartsWith("#", StringComparison.Ordinal) && TryReadLaunchLine(line, out _, out _, out _);
         }
 
         /// <summary>
@@ -174,7 +190,12 @@ namespace keycuts.Common
         #region Quoting
 
         /// <summary>A description on its comment line: on one line, trimmed. Nothing in a sh comment is special.</summary>
-        internal static string SanitizeDescription(string description)
+        public string SanitizeDescription(string description)
+        {
+            return Sanitize(description);
+        }
+
+        internal static string Sanitize(string description)
         {
             return (description ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
         }

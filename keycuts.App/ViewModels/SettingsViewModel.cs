@@ -130,6 +130,7 @@ namespace keycuts.GUI.ViewModels
         /// <param name="appIcon">Reads and applies the app icon; a pick applies at once. Null keeps it in memory, as tests want.</param>
         /// <param name="applyTheme">Shows a theme on every window (the app's is <c>ThemeManager.SetPreference</c>). Null does nothing, as tests want.</param>
         /// <param name="confirmRestoreDefaults">Asks before restore defaults; true goes ahead. Null always goes ahead.</param>
+        /// <param name="shellPath">macOS: the shell profile "Run keycuts in Terminal" edits. Null hides the row; tests pass a temp home.</param>
         public SettingsViewModel(
             ISettingsStore store,
             Func<string, string?>? pickFolder = null,
@@ -140,8 +141,10 @@ namespace keycuts.GUI.ViewModels
             Action<string>? openUrl = null,
             IAppIconService? appIcon = null,
             Action<ThemePreference>? applyTheme = null,
-            Func<bool>? confirmRestoreDefaults = null)
+            Func<bool>? confirmRestoreDefaults = null,
+            MacShellPath? shellPath = null)
         {
+            this.shellPath = shellPath;
             this.appIcon = appIcon ?? new InMemoryAppIconService();
             selectedIcon = AppIcons.Get(this.appIcon.Choice);
             transparentIcon = this.appIcon.Transparent;
@@ -548,6 +551,7 @@ namespace keycuts.GUI.ViewModels
 
             committedFolder = folder;
             OnPropertyChanged(nameof(HasUncommittedFolder));
+            RaiseTerminalPath();
             Stored?.Invoke(this, EventArgs.Empty);
             OutputFolderChanged?.Invoke(this, EventArgs.Empty);
             return true;

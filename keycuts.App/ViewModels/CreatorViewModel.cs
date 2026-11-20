@@ -75,16 +75,16 @@ namespace keycuts.GUI.ViewModels
         public const string ReplaceUnknownMessage = "\u201c{0}\u201d already exists.";
 
         /// <summary>Something found before the keycut, so it would never run from Win+R.</summary>
-        public const string HiddenMessage = "\u201c{0}\u201d already opens {1}, so Win+R would never run this keycut.";
+        public static readonly string HiddenMessage = "\u201c{0}\u201d already opens {1}, so " + PlatformWords.Launcher + " would never run this keycut.";
 
         /// <summary>A program found after the keycut, which Win+R would no longer open by this name.</summary>
-        public const string ShadowsMessage = "\u201c{0}\u201d already opens {1}. This keycut would replace it in Win+R.";
+        public static readonly string ShadowsMessage = "\u201c{0}\u201d already opens {1}. This keycut would replace it in " + PlatformWords.Launcher + ".";
 
         /// <summary>A keycut in another keycuts folder on PATH, found first: {1} is its folder, {2} what it opens.</summary>
         public const string KeycutHiddenMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}, so this keycut would be ignored.";
 
         /// <summary>A keycut in another keycuts folder on PATH, found after this one.</summary>
-        public const string KeycutShadowsMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}. This one would replace it in Win+R.";
+        public static readonly string KeycutShadowsMessage = "\u201c{0}\u201d is already a keycut in {1} that opens {2}. This one would replace it in " + PlatformWords.Launcher + ".";
 
         /// <summary>A keycut in another keycuts folder on PATH that opens the very target being created.</summary>
         public const string KeycutSameMessage = "\u201c{0}\u201d already exists in {1} and opens this target.";

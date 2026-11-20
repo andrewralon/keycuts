@@ -53,8 +53,9 @@ namespace keycuts.GUI.ViewModels
         /// </summary>
         public static IReadOnlyList<WelcomeExample> CreateDefaults()
         {
-            // The app opens itself; ProcessPath is null only in unusual hosts
-            var appPath = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "keycuts.GUI.exe");
+            // The app opens itself; ProcessPath is null only in unusual hosts. On macOS, the .app around it: open on the executable
+            // inside would start Terminal
+            var appPath = AppToOpen(Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "keycuts.GUI.exe"));
 
             return new[]
             {
@@ -62,6 +63,13 @@ namespace keycuts.GUI.ViewModels
                 new WelcomeExample("dl", KeycutKind.Folder, "Downloads", GetDownloadsFolder()),
                 new WelcomeExample("kc", KeycutKind.File, "keycuts", appPath)
             };
+        }
+
+        /// <summary>The app as a keycut opens it: the bundle for an executable in a macOS <c>.app</c>, otherwise the executable.</summary>
+        public static string AppToOpen(string processPath)
+        {
+            var bundle = processPath.IndexOf(".app/Contents/MacOS/", StringComparison.Ordinal);
+            return bundle > 0 ? processPath.Substring(0, bundle + ".app".Length) : processPath;
         }
 
         /// <summary>The user's Downloads folder, wherever it was moved to; the profile's Downloads if Windows can't say.</summary>

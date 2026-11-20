@@ -81,7 +81,7 @@ namespace keycuts.Tests
             Assert.True(KeycutCreator.IsValidName(name));
         }
 
-        [Fact]
+        [WindowsFact]
         public void Both_are_renamed_with_the_previous_suffix_and_still_work()
         {
             WriteKeycut("keycuts", @"C:\Apps\keycuts.GUI.exe");
@@ -100,7 +100,7 @@ namespace keycuts.Tests
             Assert.Contains("START \"\" /B \"C:\\Old\\keypaste.exe\" %*", lines);
         }
 
-        [Fact]
+        [WindowsFact]
         public void A_taken_previous_name_gets_a_number()
         {
             WriteKeycut("keypaste");
@@ -113,7 +113,7 @@ namespace keycuts.Tests
             Assert.Equal(new[] { "keypaste_previous", "keypaste_previous2", "keypaste_previous3" }, BatNames());
         }
 
-        [Fact]
+        [WindowsFact]
         public void The_old_name_is_reported_as_the_file_spells_it()
         {
             WriteKeycut("KeyPaste");

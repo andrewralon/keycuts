@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.Versioning;
 using keycuts.Common;
 using Microsoft.Win32;
@@ -104,6 +105,71 @@ namespace keycuts.Tests
             Assert.True(File.Exists(Path.Combine(_root, "sample-run.bat")));
             Assert.Equal(registryBefore, ReadRegistryOutputFolder());
             Assert.Equal(pathBefore, Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User));
+        }
+    }
+
+    // The macOS twin (Phase 4.3): the override is the folder, and the settings file and the shell profiles are left alone
+    [SupportedOSPlatform("macos")]
+    [Collection("OutputFolderOverride")]
+    public class MacOutputFolderOverrideTests : IDisposable
+    {
+        private readonly string _root;
+        private readonly string _previous;
+
+        public MacOutputFolderOverrideTests()
+        {
+            _root = Path.Combine(Path.GetTempPath(), "keycuts-override-tests-" + Guid.NewGuid().ToString("N"));
+            _previous = Environment.GetEnvironmentVariable(DebugOverrides.OutputFolderVariable);
+            Environment.SetEnvironmentVariable(DebugOverrides.OutputFolderVariable, _root);
+        }
+
+        public void Dispose()
+        {
+            Environment.SetEnvironmentVariable(DebugOverrides.OutputFolderVariable, _previous);
+
+            if (Directory.Exists(_root))
+            {
+                Directory.Delete(_root, true);
+            }
+        }
+
+        // Read only, to see that nothing was written
+        private static string Snapshot()
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return string.Join("|", new[] { JsonSettingsBackend.DefaultPath, Path.Combine(home, ".zprofile"), Path.Combine(home, ".bash_profile") }
+                .Select(file => File.Exists(file) ? File.GetLastWriteTimeUtc(file).Ticks + ":" + new FileInfo(file).Length : "none"));
+        }
+
+        [MacFact]
+        public void TheDefault_IsShortcutsInTheHomeFolder_AndTheOverrideReplacesIt()
+        {
+            Assert.Equal(Path.Combine(Environment.GetEnvironmentVariable("HOME"), "Shortcuts"), Runner.DefaultOutputFolder);
+            Assert.Equal(_root, new Runner().GetOutputFolder());
+        }
+
+        [MacFact]
+        public void SetOutputFolder_DoesNotWriteTheSettingsFile()
+        {
+            var before = Snapshot();
+
+            Assert.Equal(Path.Combine(_root, "other"), new Runner().SetOutputFolder(Path.Combine(_root, "other")));
+            Assert.Equal(before, Snapshot());
+        }
+
+        [MacFact]
+        public void Run_CreatesAnExecutableKeycutInTheOverrideFolder_WithoutTouchingSettingsOrProfiles()
+        {
+            var before = Snapshot();
+            var target = Path.Combine(_root, "target");
+            Directory.CreateDirectory(target);
+
+            Assert.Equal(ExitCode.Success, new Runner().Run(target, "sample-run", ""));
+
+            var file = Path.Combine(_root, "sample-run");
+            Assert.Equal(ShFormat.Shebang, File.ReadLines(file).First());
+            Assert.Equal("755", Convert.ToString((int)File.GetUnixFileMode(file), 8));
+            Assert.Equal(before, Snapshot());
         }
     }
 #endif

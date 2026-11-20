@@ -82,7 +82,7 @@ namespace keycuts.Tests
         [Fact]
         public void TheEmitter_WritesTheUsageLines_AfterTheLaunchLine_AndBeforeExit()
         {
-            var shortcut = new Shortcut("https://example.com", "mail.bat", @"C:\Shortcuts");
+            var shortcut = new Shortcut("https://example.com", "mail" + ShortcutFile.Extension, @"C:\Shortcuts");
 
             var lines = Runner.BuildShortcutLines(shortcut);
 
@@ -118,19 +118,19 @@ namespace keycuts.Tests
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AKeycutFromBeforeCounting_CanStillBeEditedInTheForm()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             File.WriteAllLines(path, OldLines(path));
 
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task SavingTheEditForm_GivesAnOldKeycutTheLines()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             File.WriteAllLines(path, OldLines(path));
             var keycut = (await Repo().LoadAllAsync()).Single();
 
@@ -164,7 +164,7 @@ namespace keycuts.Tests
         [WindowsFact]
         public void RunningAKeycutByName_InAnotherCase_CountsUnderItsOwnName()
         {
-            var path = Path.Combine(_folder, "gm.bat");
+            var path = Path.Combine(_folder, "gm" + ShortcutFile.Extension);
             File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, "rem", path)));
 
             // Found on PATH, as a terminal finds a keycut
@@ -176,7 +176,7 @@ namespace keycuts.Tests
         [WindowsFact]
         public void AUsageFileThatCantBeWritten_StillLaunches_AndSaysNothing()
         {
-            var path = Path.Combine(_folder, "blocked.bat");
+            var path = Path.Combine(_folder, "blocked" + ShortcutFile.Extension);
             var marker = Path.Combine(_root, "launched.txt");
             // The launch line writes a marker, so the test can see it ran
             File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, $"echo x> \"{marker}\"", path)));
@@ -198,7 +198,7 @@ namespace keycuts.Tests
         [InlineData("unwritable")]
         public void AKeycut_ExitsWithTheLaunchsCode(string usageState)
         {
-            var path = Path.Combine(_folder, "seven.bat");
+            var path = Path.Combine(_folder, "seven" + ShortcutFile.Extension);
             File.WriteAllLines(path, Runner.BuildShortcutLines(Shortcut.FromParts(ShortcutType.Command, "rem", path))
                 .Select(line => line.StartsWith("START", StringComparison.Ordinal) ? "CMD /C EXIT 7" : line));
             var localAppData = Path.Combine(_root, "localappdata");
@@ -290,12 +290,12 @@ namespace keycuts.Tests
             Assert.Null(_usage.CountingSince());
         }
 
-        [Fact]
+        [WindowsFact]
         public async Task LoadAll_GivesEachKeycutItsRuns_ZeroWhenItCountsAndHasntRun_AndNoneWhenItDoesntCount()
         {
             Create("used");
             Create("unused");
-            var oldPath = Path.Combine(_folder, "old.bat");
+            var oldPath = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             File.WriteAllLines(oldPath, OldLines(oldPath));
             var lastRun = DateTime.Now.AddDays(-3);
             SetRuns("used", 5, lastRun);
@@ -402,11 +402,11 @@ namespace keycuts.Tests
             var runner = new Runner(_folder, new NoOpPathUpdater()) { Usage = _usage };
 
             // A keycut named mail was deleted outside keycuts, and its record stayed
-            runner.CreateShortcutFile(new Shortcut("https://example.com", "mail.bat", _folder));
+            runner.CreateShortcutFile(new Shortcut("https://example.com", "mail" + ShortcutFile.Extension, _folder));
             Assert.Null(_usage.Read("mail"));
 
             SetRuns("mail", 4, DateTime.Now);
-            runner.CreateShortcutFile(new Shortcut("https://example.org", "mail.bat", _folder), overwrite: true);
+            runner.CreateShortcutFile(new Shortcut("https://example.org", "mail" + ShortcutFile.Extension, _folder), overwrite: true);
             Assert.Equal(4, _usage.Read("mail").Runs);
         }
 
@@ -414,10 +414,10 @@ namespace keycuts.Tests
 
         #region Adding the lines to older keycuts
 
-        [Fact]
+        [WindowsFact]
         public void AddRunCounting_PutsTheLinesBeforeExit_AndChangesNothingElse()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             var old = OldLines(path);
             File.WriteAllLines(path, old);
             var modified = new DateTime(2024, 5, 6, 7, 8, 9);
@@ -431,10 +431,10 @@ namespace keycuts.Tests
             Assert.True(KeycutRepository.CanEditInForm(path));
         }
 
-        [Fact]
+        [WindowsFact]
         public void AddRunCounting_KeepsTheBytes_ABomLineFeedsAndAnAnsiByte()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             // UTF-8 BOM, LF line breaks, and a description with an ANSI é (0xE9), which isn't valid UTF-8
             var head = "@ECHO OFF\nREM <type>url</type>\nREM <target>https://example.com</target>\nREM <description>caf\u00e9</description>\nSTART https://example.com\n";
             var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.Latin1.GetBytes(head + "EXIT\n")).ToArray();
@@ -450,7 +450,7 @@ namespace keycuts.Tests
         [Fact]
         public void AddRunCounting_IsOnlyDoneOnce()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             File.WriteAllLines(path, OldLines(path));
             Repo().AddRunCounting();
             var once = File.ReadAllBytes(path);
@@ -462,9 +462,9 @@ namespace keycuts.Tests
         [Fact]
         public void AddRunCounting_LeavesAloneAFileThatDoesntEndWithExit_OrIsntAKeycut()
         {
-            var noExit = Path.Combine(_folder, "noexit.bat");
+            var noExit = Path.Combine(_folder, "noexit" + ShortcutFile.Extension);
             File.WriteAllLines(noExit, OldLines(noExit).Take(7));
-            var notAKeycut = Path.Combine(_folder, "script.bat");
+            var notAKeycut = Path.Combine(_folder, "script" + ShortcutFile.Extension);
             File.WriteAllLines(notAKeycut, new[] { "@ECHO OFF", "echo hello", "EXIT" });
             var before = new[] { File.ReadAllBytes(noExit), File.ReadAllBytes(notAKeycut) };
 
@@ -477,10 +477,10 @@ namespace keycuts.Tests
         [WindowsFact]
         public void AddRunCounting_SkipsAReadOnlyFile_AndCarriesOn()
         {
-            var locked = Path.Combine(_folder, "a.bat");
+            var locked = Path.Combine(_folder, "a" + ShortcutFile.Extension);
             File.WriteAllLines(locked, OldLines(locked));
             File.SetAttributes(locked, FileAttributes.ReadOnly);
-            var other = Path.Combine(_folder, "b.bat");
+            var other = Path.Combine(_folder, "b" + ShortcutFile.Extension);
             File.WriteAllLines(other, OldLines(other));
 
             try
@@ -495,10 +495,10 @@ namespace keycuts.Tests
             }
         }
 
-        [Fact]
+        [WindowsFact]
         public void AddRunCountingOnce_AddsTheLines_AndRecordsTheFolder_ThenLeavesItAlone()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             File.WriteAllLines(path, OldLines(path));
             var done = new List<string>();
 
@@ -525,10 +525,10 @@ namespace keycuts.Tests
             Assert.Empty(done);
         }
 
-        [Fact]
+        [WindowsFact]
         public void AddRunCountingOnce_WithoutARecord_RunsEveryTime()
         {
-            var path = Path.Combine(_folder, "old.bat");
+            var path = Path.Combine(_folder, "old" + ShortcutFile.Extension);
             File.WriteAllLines(path, OldLines(path));
             Assert.True(Repo().AddRunCountingOnce(null, null));
 
@@ -594,5 +594,68 @@ namespace keycuts.Tests
         }
 
         #endregion Adding the lines to older keycuts
+
+        #region Counting on macOS (Phase 4.5)
+
+        [MacFact]
+        public void TheShFolder_IsTheFolderTheAppReads()
+        {
+            Assert.Equal(Path.Combine(Environment.GetEnvironmentVariable("HOME"), "Library", "Application Support", "keycuts", "usage"), UsageLog.DefaultFolder);
+        }
+
+        /// <summary>Runs the keycut as the Run box will, with an <c>open</c> stub first on PATH and a temp HOME: nothing opens, and the real usage folder is never touched.</summary>
+        private int RunSh(string path, string home, int openStatus)
+        {
+            var stubs = Path.Combine(_root, "stubs");
+            Directory.CreateDirectory(stubs);
+            File.WriteAllText(Path.Combine(stubs, "open"), "#!/bin/sh\nexit $OPEN_STATUS\n");
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(Path.Combine(stubs, "open"), (UnixFileMode)0b111_101_101);
+            }
+
+            var start = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
+            start.ArgumentList.Add(path);
+            start.Environment["HOME"] = home;
+            start.Environment["PATH"] = stubs + ":/usr/bin:/bin";
+            start.Environment["OPEN_STATUS"] = openStatus.ToString();
+
+            using var process = Process.Start(start);
+            process.WaitForExit();
+            return process.ExitCode;
+        }
+
+        [MacFact]
+        public void ARun_IsCountedUnderTheScriptsOwnName_AndTheLaunchStatusIsKept()
+        {
+            var home = Path.Combine(_root, "home");
+            Directory.CreateDirectory(home);
+            var path = Create("mail");
+            var usage = new UsageLog(Path.Combine(home, "Library", "Application Support", "keycuts", "usage"));
+
+            Assert.Equal(0, RunSh(path, home, 0));
+            Assert.Equal(0, RunSh(path, home, 0));
+            Assert.Equal(3, RunSh(path, home, 3));
+
+            // Renamed in Finder, it counts under its new name with no rewrite
+            var renamed = Path.Combine(_folder, "gmail");
+            File.Move(path, renamed);
+            Assert.Equal(0, RunSh(renamed, home, 0));
+
+            Assert.Equal(3, usage.Read("mail").Runs);
+            Assert.Equal(1, usage.Read("gmail").Runs);
+        }
+
+        [MacFact]
+        public void AUsageFolderThatCantBeWritten_OnlyMeansTheRunIsntCounted()
+        {
+            var home = Path.Combine(_root, "home");
+            Directory.CreateDirectory(Path.Combine(home, "Library"));
+            File.WriteAllText(Path.Combine(home, "Library", "Application Support"), "a file where the folder should be");
+
+            Assert.Equal(0, RunSh(Create("mail"), home, 0));
+        }
+
+        #endregion Counting on macOS (Phase 4.5)
     }
 }

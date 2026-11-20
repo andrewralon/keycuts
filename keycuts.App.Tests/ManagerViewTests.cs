@@ -11,6 +11,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using keycuts.Common;
+using keycuts.GUI;
 using keycuts.GUI.Mvvm;
 using keycuts.GUI.Themes;
 using keycuts.GUI.ViewModels;
@@ -232,7 +233,7 @@ namespace keycuts.Tests
                 manager.SearchText = "br";
                 Dispatcher.UIThread.RunJobs();
                 search.SelectionStart = search.SelectionEnd = 0;
-                Press(window, Key.F, RawInputModifiers.Control);
+                Press(window, Key.F, PlatformKeys.RawCommand);
                 Assert.Same(search, Focused(window));
                 Assert.Equal("br", search.SelectedText);
             });
@@ -261,7 +262,7 @@ namespace keycuts.Tests
                 var undo = MainWindowTests.Named<Button>(window, "UndoButton");
                 Assert.True(undo.IsVisible);
                 Assert.Equal("undo delete", AutomationProperties.GetName(undo));
-                Press(window, Key.Z, RawInputModifiers.Control);
+                Press(window, Key.Z, PlatformKeys.RawCommand);
                 Assert.Single(actions.Restored);
             });
         }
@@ -273,7 +274,7 @@ namespace keycuts.Tests
             {
                 Press(window, Key.Down);
                 Press(window, Key.Delete, RawInputModifiers.Shift);
-                Press(window, Key.Delete, RawInputModifiers.Control);
+                Press(window, Key.Delete, PlatformKeys.RawCommand);
                 Assert.Empty(actions.Deleted);
 
                 Type(window, "a");
@@ -284,22 +285,41 @@ namespace keycuts.Tests
             });
         }
 
+        // macOS (docs/styleguide.md, Keys): ⌘⌫ moves to the Trash, as Finder does; a plain ⌫ never deletes; ⌘↑ and ⌘↓ jump
+        [AvaloniaFact]
+        public void OnTheMac_CommandBackspaceDeletes_ABackspaceDoesnt_AndCommandArrowsJump()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS keys");
+            WithManager(new[] { "alpha", "bravo", "charlie" }, (window, manager, actions, search) =>
+            {
+                Press(window, Key.Down, RawInputModifiers.Meta);
+                Assert.Equal("charlie", manager.SelectedRow!.Name);
+                Press(window, Key.Up, RawInputModifiers.Meta);
+                Assert.Equal("alpha", manager.SelectedRow!.Name);
+
+                Press(window, Key.Back);
+                Assert.Empty(actions.Deleted);
+                Press(window, Key.Back, RawInputModifiers.Meta);
+                Assert.Equal(new[] { "bravo", "charlie" }, manager.Rows.Select(r => r.Name));
+            });
+        }
+
         [AvaloniaFact]
         public void CtrlC_CopiesTheTarget_UnlessTheSearchBoxHasSelectedText()
         {
             WithManager(new[] { "alpha", "bravo" }, (window, manager, actions, search) =>
             {
-                Press(window, Key.C, RawInputModifiers.Control);
+                Press(window, Key.C, PlatformKeys.RawCommand);
                 Assert.Empty(actions.Copied);
 
                 Press(window, Key.Down);
-                Press(window, Key.C, RawInputModifiers.Control);
+                Press(window, Key.C, PlatformKeys.RawCommand);
                 Assert.Equal(new[] { @"C:\temp\alpha.txt" }, actions.Copied);
                 Assert.Equal("Copied", manager.StatusMessage);
 
                 Type(window, "al");
                 search.SelectAll();
-                Press(window, Key.C, RawInputModifiers.Control);
+                Press(window, Key.C, PlatformKeys.RawCommand);
                 Assert.Single(actions.Copied);
             });
         }
@@ -316,17 +336,17 @@ namespace keycuts.Tests
                     return false;
                 };
 
-                Press(window, Key.E, RawInputModifiers.Control);
+                Press(window, Key.E, PlatformKeys.RawCommand);
                 Assert.Empty(shown);
 
                 Press(window, Key.Down);
                 Press(window, Key.Down);
-                Press(window, Key.E, RawInputModifiers.Control);
+                Press(window, Key.E, PlatformKeys.RawCommand);
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(new[] { "bravo" }, shown);
 
-                Press(window, Key.E, RawInputModifiers.Control | RawInputModifiers.Shift);
-                Press(window, Key.O, RawInputModifiers.Control | RawInputModifiers.Shift);
+                Press(window, Key.E, PlatformKeys.RawCommand | RawInputModifiers.Shift);
+                Press(window, Key.O, PlatformKeys.RawCommand | RawInputModifiers.Shift);
                 Assert.Equal(new[] { @"C:\fixture\bravo.bat" }, actions.Edited);
                 Assert.Equal(new[] { @"C:\fixture\bravo.bat" }, actions.Located);
             });
@@ -346,7 +366,7 @@ namespace keycuts.Tests
                 };
 
                 Press(window, Key.Down);
-                Press(window, Key.E, RawInputModifiers.Control);
+                Press(window, Key.E, PlatformKeys.RawCommand);
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.Equal(0, shown);
@@ -458,10 +478,14 @@ namespace keycuts.Tests
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(manager.Rows[0].ActionsLabel, AutomationProperties.GetName(menu));
                 menu.Close();
+                // ⌘ on macOS, where the words are a text editor and Finder, and ⌘⌫ deletes
+                var mac = OperatingSystem.IsMacOS();
+                var command = mac ? "Cmd+" : "Ctrl+";
                 var expected = new[]
                 {
-                    ("Open keycut", "Enter"), ("Edit…", "Ctrl+E"), ("Edit in Notepad", "Ctrl+Shift+E"), ("Open file location", "Ctrl+Shift+O"),
-                    ("Copy target", "Ctrl+C"), ("Rename", "F2"), ("Edit description", "Shift+F2"), ("Delete", "Delete")
+                    ("Open keycut", "Enter"), ("Edit…", command + "E"), (mac ? "Edit in text editor" : "Edit in Notepad", command + "Shift+E"),
+                    (mac ? "Show in Finder" : "Open file location", command + "Shift+O"),
+                    ("Copy target", command + "C"), ("Rename", "F2"), ("Edit description", "Shift+F2"), ("Delete", mac ? "Cmd+Back" : "Delete")
                 };
                 Assert.Equal(expected.Select(e => (e.Item1, KeyGesture.Parse(e.Item2))), menu.Items.OfType<MenuItem>().Select(i => ((string)i.Header!, i.InputGesture!)));
             });
@@ -517,7 +541,7 @@ namespace keycuts.Tests
                 Assert.Equal(0, status.Bounds.Width, 0.5);
 
                 Press(window, Key.Down);
-                Press(window, Key.C, RawInputModifiers.Control);
+                Press(window, Key.C, PlatformKeys.RawCommand);
                 Dispatcher.UIThread.RunJobs();
                 Assert.True(status.Bounds.Width > 0);
             });

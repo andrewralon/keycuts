@@ -1,13 +1,17 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Runtime.Versioning;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace keycuts.Common
 {
     /// <summary>
     /// Where <see cref="RegistryStuff"/>'s settings live, as named values of three kinds: a string, a DWORD and a multi-string.
-    /// Only the registry backend exists so far; macOS gets a JSON file with the same value names (docs/macos-port.md, Phase 4.2).
+    /// The registry on Windows (<see cref="RegistrySettingsBackend"/>), a JSON file with the same value names on macOS (<see cref="JsonSettingsBackend"/>).
     /// </summary>
     public interface ISettingsBackend
     {
@@ -57,6 +61,126 @@ namespace keycuts.Common
         private static PlatformNotSupportedException NotStored()
         {
             return new PlatformNotSupportedException("Settings can't be saved on this platform yet.");
+        }
+    }
+
+    /// <summary>
+    /// The macOS backend: one JSON object in <see cref="DefaultPath"/>, named as the registry values are. A string is a JSON
+    /// string, a DWORD a number and a multi-string an array of strings. Values it doesn't know are kept on a write. A missing
+    /// or unreadable file reads as empty, and every write goes to a temp file first and is then moved over the old one, so
+    /// a crash never leaves half a file.
+    /// </summary>
+    public class JsonSettingsBackend : ISettingsBackend
+    {
+        public static readonly string DefaultPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "keycuts", "settings.json");
+
+        public JsonSettingsBackend(string path)
+        {
+            Path = path ?? throw new ArgumentNullException(nameof(path));
+        }
+
+        public string Path { get; }
+
+        public object Read(string name)
+        {
+            var node = Load()[name];
+
+            if (node is JsonArray array)
+            {
+                return array.All(item => item is JsonValue value && value.GetValueKind() == JsonValueKind.String)
+                    ? array.Select(item => item.GetValue<string>()).ToArray()
+                    : null;
+            }
+
+            if (node is JsonValue scalar)
+            {
+                if (scalar.GetValueKind() == JsonValueKind.String)
+                {
+                    return scalar.GetValue<string>();
+                }
+
+                if (scalar.GetValueKind() == JsonValueKind.Number && scalar.TryGetValue(out int number))
+                {
+                    return number;
+                }
+            }
+
+            return null;
+        }
+
+        public void WriteString(string name, string value)
+        {
+            Write(name, JsonValue.Create(value));
+        }
+
+        public void WriteDword(string name, int value)
+        {
+            Write(name, JsonValue.Create(value));
+        }
+
+        public void WriteMultiString(string name, string[] value)
+        {
+            Write(name, new JsonArray(value.Select(item => (JsonNode)JsonValue.Create(item)).ToArray()));
+        }
+
+        public void DeleteValues(IEnumerable<string> names)
+        {
+            try
+            {
+                var settings = Load();
+                var removed = false;
+
+                foreach (var name in names)
+                {
+                    removed |= settings.Remove(name);
+                }
+
+                if (removed)
+                {
+                    Save(settings);
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // Left for the next call
+            }
+        }
+
+        private void Write(string name, JsonNode value)
+        {
+            var settings = Load();
+            settings[name] = value;
+            Save(settings);
+        }
+
+        private JsonObject Load()
+        {
+            try
+            {
+                return File.Exists(Path) && JsonNode.Parse(File.ReadAllText(Path)) is JsonObject settings ? settings : new JsonObject();
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is JsonException)
+            {
+                return new JsonObject();
+            }
+        }
+
+        private void Save(JsonObject settings)
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
+
+            var temp = Path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+            try
+            {
+                File.WriteAllText(temp, settings.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(temp, Path, true);
+            }
+            finally
+            {
+                File.Delete(temp);
+            }
         }
     }
 

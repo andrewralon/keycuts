@@ -764,5 +764,69 @@ namespace keycuts.Tests
         }
 
         #endregion
+
+        #region Run keycuts in Terminal (Phase 5.4)
+
+        /// <summary>A shell profile under the temp root: nothing touches the real ~/.zprofile or PATH.</summary>
+        private (SettingsViewModel Settings, MacShellPath Shell, string Folder) WithShell(string shell = "zsh", bool onPathAlready = false)
+        {
+            var home = Path.Combine(root, "home");
+            Directory.CreateDirectory(home);
+            var folder = Path.Combine(home, "Shortcuts");
+            var path = new MacShellPath(home, shell, onPathAlready ? "/usr/bin:" + folder : "/usr/bin:/bin", Array.Empty<string>());
+            var store = new FakeStore();
+            store.Stored.OutputFolder = folder;
+            return (new SettingsViewModel(store, shellPath: path), path, folder);
+        }
+
+        [Fact]
+        public void RunInTerminal_IsOnlyOffered_WithAShellProfile()
+        {
+            Assert.False(NewViewModel(new FakeStore()).IsTerminalPathOffered);
+            Assert.True(WithShell().Settings.IsTerminalPathOffered);
+        }
+
+        [Fact]
+        public void RunInTerminal_AddsTheBlock_SaysToOpenANewWindow_AndTakesItOutAgain()
+        {
+            var (settings, shell, folder) = WithShell();
+            Assert.False(settings.RunInTerminal);
+            Assert.True(settings.CanChangeTerminalPath);
+            Assert.Equal("Adds the folder to PATH in ~/.zprofile.", settings.TerminalPathNote);
+
+            settings.RunInTerminal = true;
+            Assert.True(settings.RunInTerminal);
+            Assert.Equal(folder, shell.ReadBlockFolder());
+            Assert.Equal(SettingsViewModel.TerminalPathAddedNote, settings.TerminalPathNote);
+            Assert.Null(settings.SaveError);
+
+            settings.RunInTerminal = false;
+            Assert.False(settings.RunInTerminal);
+            Assert.Null(shell.ReadBlockFolder());
+        }
+
+        [Fact]
+        public void RunInTerminal_IsOnAndLocked_WhenSomethingElsePutTheFolderOnPath()
+        {
+            var (settings, shell, _) = WithShell(onPathAlready: true);
+
+            Assert.True(settings.RunInTerminal);
+            Assert.False(settings.CanChangeTerminalPath);
+            Assert.Equal(SettingsViewModel.TerminalPathOnElsewhereNote, settings.TerminalPathNote);
+
+            settings.RunInTerminal = false;
+            Assert.True(settings.RunInTerminal);
+        }
+
+        [Fact]
+        public void RunInTerminal_ForFish_ExplainsWhatToAdd_AndCantBeChanged()
+        {
+            var (settings, _, folder) = WithShell("fish");
+
+            Assert.False(settings.CanChangeTerminalPath);
+            Assert.Equal("Run: fish_add_path '" + folder + "'", settings.TerminalPathNote);
+        }
+
+        #endregion
     }
 }

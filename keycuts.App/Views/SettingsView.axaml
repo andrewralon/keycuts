@@ -103,6 +103,17 @@
           </Grid>
           <controls:HelperText x:Name="OutputFolderMessage" Classes="folder" Classes.error="{Binding HasOutputFolderError}"
                                Text="{Binding OutputFolderMessage}" />
+          <!-- macOS (Phase 5.4): the folder on PATH in the shell profile, as keycuts path add and remove do -->
+          <Grid x:Name="TerminalPathRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsTerminalPathOffered}">
+            <StackPanel>
+              <TextBlock Text="{x:Static vm:SettingsViewModel.RunInTerminalName}" Classes="SettingName" />
+              <TextBlock x:Name="TerminalPathNoteText" Text="{Binding TerminalPathNote}" Classes="SettingNote" AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleRunInTerminal" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding RunInTerminal}" IsEnabled="{Binding CanChangeTerminalPath}"
+                          AutomationProperties.Name="{x:Static vm:SettingsViewModel.RunInTerminalName}"
+                          AutomationProperties.HelpText="{Binding TerminalPathNote}" />
+          </Grid>
 
           <!-- Behavior -->
           <controls:SectionLabel Text="Behavior" Classes="LaterSection" />

@@ -128,7 +128,9 @@ namespace keycuts.GUI
                 updates: updateNotice.Checker,
                 appIcon: new AppIconService(),
                 applyTheme: ThemeManager.SetPreference,
-                confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults()));
+                confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults()),
+                // The Debug folder override never writes PATH, so it has no PATH switch either
+                shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null);
 
             var shell = new ShellViewModel(
                 async () =>

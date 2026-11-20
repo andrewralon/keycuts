@@ -306,7 +306,7 @@ namespace keycuts.Common
             }
         }
 
-        private static bool IsSameFolder(string left, string right)
+        public static bool IsSameFolder(string left, string right)
         {
             return !string.IsNullOrWhiteSpace(left) && !string.IsNullOrWhiteSpace(right) &&
                 string.Equals(left.Trim().TrimEnd('/'), right.Trim().TrimEnd('/'), StringComparison.OrdinalIgnoreCase);

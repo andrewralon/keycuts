@@ -1,0 +1,264 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: macOS window, keys and menus (v1)</title>
+<style>
+/* Phase 5.1-5.2 and 6.1 of docs/macos-port.md. A picture of the idea, drawn to docs/styleguide.md's tokens at 1:1, not a screenshot. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:#172033;width:1560px}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:15px;margin:0 0 8px;color:#172033}
+.lead{font-size:13px;color:#465064;margin:0 0 20px;max-width:1200px;line-height:1.5}
+.row{display:flex;gap:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px}
+.note{font-size:12.5px;color:#465064;line-height:1.5;max-width:560px}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:3px 0}
+.panel{background:#f4f6f9;border:1px solid #cfd5df;border-radius:10px;padding:16px 18px}
+.sp{height:28px}
+
+/* palettes: Themes/Light.axaml and Dark.axaml */
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--glow:rgba(37,99,235,.22);
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --zoomOff:#d6d8dc;--zoomOffRing:#bfc2c7;--uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentSoft:#182a4d;--onAccent:#06090f;--glow:rgba(79,140,255,.3);
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --zoomOff:#4b4e55;--zoomOffRing:#5b5f66;--uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a}
+
+/* window: macOS draws the frame, its shadow and rounded corners */
+.win{background:var(--surface);color:var(--text);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column}
+.w-main{width:600px}
+.w-large{width:768px;height:470px}
+
+/* tab bar: RailHeight 48 */
+.rail{height:48px;display:flex;align-items:flex-end;position:relative;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+/* the traffic lights: macOS's own, 12 across, 8 apart, 20 from the edge, centered in the bar */
+.lights{display:flex;gap:8px;align-self:center;padding:0 0 0 20px;flex:none}
+.lights i{width:12px;height:12px;border-radius:50%;display:block;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}
+.lights .r{background:#ff5f57}.lights .y{background:#febc2e}
+.lights .g{background:var(--zoomOff);box-shadow:inset 0 0 0 .5px var(--zoomOffRing)}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:4px 24px 0 16px;align-self:stretch;font-weight:600;font-size:16px;color:var(--text)}
+.brand img{width:36px;height:36px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 2px 12px;display:flex;align-items:center;
+  font-size:16px;font-weight:600;color:var(--tabText);background:var(--tabBorder);
+  clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;
+  clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface);z-index:0}
+.drag{flex:1;align-self:stretch;margin:8px;border-radius:4px;
+  background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.tip{position:absolute;top:50px;left:262px;z-index:9;background:#2b2f36;color:#fff;font-size:12px;padding:4px 8px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+
+/* page */
+.body{padding:16px 24px 24px;flex:1;display:flex;flex-direction:column}
+.drop{border:1.5px dashed var(--accent);border-radius:12px;background:var(--subtle);padding:16px;display:flex;gap:16px;align-items:center;margin-bottom:16px}
+.tile{width:40px;height:40px;border-radius:12px;background:var(--accentSoft);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.tl{font-size:13px;font-weight:600}
+.tv{font-size:13px;color:var(--text2);margin-top:4px}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.sq.primary{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+.frow{display:flex;gap:8px;align-items:center}
+.frow+.frow{margin-top:16px}
+.flabel{width:96px;font-size:13px;font-weight:600;flex:none}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;background:var(--surface)}
+.field.ph{color:var(--text3)}
+.srch{flex:1;height:36px;border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--text3);font-size:14px}
+.tbl{margin-top:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table.g{width:100%;border-collapse:collapse;font-size:13px}
+table.g th{height:36px;text-align:left;color:var(--text2);padding:0 12px;background:var(--subtle);border-bottom:1px solid var(--border);font-size:12px;font-weight:600}
+table.g td{height:36px;padding:0 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+table.g tr:last-child td{border-bottom:none}
+table.g tr.sel td{background:var(--accentSoft)}
+table.g td.n{font-weight:600;color:var(--text)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+
+/* keys table */
+.keys{border-collapse:collapse;font-size:12.5px;width:100%}
+.keys th,.keys td{padding:5px 8px;border-bottom:1px solid #d6dbe3;text-align:left;vertical-align:top}
+.keys th{color:#465064;font-weight:600}
+.keys td.mac{font-weight:600;white-space:nowrap}
+.keys tr.new td{background:#eef4ff}
+.kbd{font-family:-apple-system,"SF Pro Text",sans-serif}
+
+/* macOS menus */
+.menubar{height:26px;background:rgba(246,246,246,.92);border-bottom:1px solid #d0d0d0;display:flex;align-items:center;gap:18px;padding:0 12px;font-size:13px;color:#1d1d1f;border-radius:8px 8px 0 0}
+.menubar b{font-weight:700}
+.menubar .on{background:#2f6fe4;color:#fff;border-radius:4px;padding:1px 7px;margin:0 -7px}
+.menubar .right{margin-left:auto;display:flex;gap:14px;align-items:center}
+.menu{background:rgba(250,250,250,.97);border:.5px solid rgba(0,0,0,.18);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22);padding:5px;font-size:13px;color:#1d1d1f;width:250px}
+.menu .it{display:flex;justify-content:space-between;align-items:center;height:22px;padding:0 10px;border-radius:5px}
+.menu .it.hl{background:#2f6fe4;color:#fff}
+.menu .it .sc{color:#8a8a8e}
+.menu .it.hl .sc{color:#e6eeff}
+.menu .sep{height:1px;background:rgba(0,0,0,.1);margin:5px 10px}
+.menu .dim{color:#a8a8ad}
+.extra{width:18px;height:16px;display:inline-flex;align-items:center;justify-content:center}
+.wrap{position:relative}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></symbol>
+  <symbol id="i-keycap" viewBox="0 0 18 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3 2.5h12l1.5 9.5a1.5 1.5 0 0 1-1.5 1.5H3a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M5 4.5h8l.8 5.5H4.2z"/></g></symbol>
+ </defs>
+</svg>
+
+<h1>keycuts on macOS: the window, ⌘ keys and menus (v1)</h1>
+<p class="lead">Phase 5.1, 5.2 and 6.1 of the macOS plan. The window keeps the folder-tab bar; macOS's traffic lights take the place of the Windows caption buttons, at the left. Everything else on the screens is unchanged. Drawn at 1:1 in the style guide's sizes with the system font (San Francisco), which <code>AppFontFamily</code> already picks on macOS.</p>
+
+<div class="row">
+ <div class="col">
+  <h2>1. Creator, light (600 wide, fixed)</h2>
+  <div class="wrap">
+  <div class="win w-main light">
+   <div class="rail">
+    <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+    <div class="brand"><img src="../../assets/icons/key-charcoal/key-charcoal-96.png" alt="">keycuts</div>
+    <div class="tabs">
+     <div class="tw on"><div class="tab"><span>creator</span></div></div>
+     <div class="tw"><div class="tab"><span>manager</span></div></div>
+     <div class="tw"><div class="tab"><svg width="20" height="20"><use href="#i-gear"/></svg></div></div>
+    </div>
+    <div class="drag"></div>
+   </div>
+   <div class="body">
+    <div class="drop"><div class="tile"><svg width="20" height="20"><use href="#i-link"/></svg></div>
+     <div style="flex:1"><div class="tl">Target</div><div class="tv">https://mail.google.com/mail/u/0/#inbox</div></div>
+     <div class="sq"><svg width="20" height="20"><use href="#i-folder"/></svg></div></div>
+    <div class="frow"><div class="flabel">Name</div><div class="field">gmail</div><div class="sq primary"><svg width="20" height="20"><use href="#i-rocket"/></svg></div></div>
+    <div class="frow"><div class="flabel">Description</div><div class="field ph">e.g. my paintings (optional)</div><div style="width:36px"></div></div>
+   </div>
+  </div>
+  <div class="tip" style="left:300px">manager (⌘2)</div>
+  </div>
+  <div class="note">
+   <ul>
+    <li><b>Traffic lights</b> are macOS's own (extended client area, Phase 0.7), 20 from the left edge and centered in the 48 bar. <b>Zoom is always off</b> (gray), on every screen: no zoom, no full screen, as "never maximized" on Windows. Close and minimize work as usual.</li>
+    <li><b>Then the keycap and keycuts</b>, 16 after the lights, then 24 to the first tab, as on Windows. The bar keeps the same <code>MainWidth</code>: the lights at the left take about what the caption buttons took at the right, so the empty, draggable bar now runs to the right edge.</li>
+    <li>No Windows caption buttons, no window menu. Dragging the bar moves the window; double-clicking it does what the system setting says, except zoom.</li>
+    <li>Tooltips and accelerators read <b>⌘1, ⌘2, ⌘3</b>: "manager (⌘2)".</li>
+   </ul>
+  </div>
+ </div>
+
+ <div class="col">
+  <h2>2. Manager, dark (768 × 470, resizable, the shared large size)</h2>
+  <div class="win w-large dark">
+   <div class="rail">
+    <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+    <div class="brand"><img src="../../assets/icons/key-white/key-white-96.png" alt="">keycuts</div>
+    <div class="tabs">
+     <div class="tw"><div class="tab"><span>creator</span></div></div>
+     <div class="tw on"><div class="tab"><span>manager</span></div></div>
+     <div class="tw"><div class="tab"><svg width="20" height="20"><use href="#i-gear"/></svg></div></div>
+    </div>
+    <div class="drag"></div>
+   </div>
+   <div class="body">
+    <div class="frow"><div class="srch"><svg width="18" height="18"><use href="#i-search"/></svg>Search names, types, descriptions, or targets</div></div>
+    <div class="tbl"><table class="g">
+     <tr><th>Name</th><th>Type</th><th>Target</th><th>Description</th></tr>
+     <tr class="sel"><td class="n">gmail</td><td><span class="badge u">URL</span></td><td>https://mail.google.com</td><td>Inbox</td></tr>
+     <tr><td class="n">dl</td><td><span class="badge f">Folder</span></td><td>$HOME/Downloads</td><td></td></tr>
+     <tr><td class="n">notes</td><td><span class="badge fi">File</span></td><td>$HOME/Documents/notes.txt</td><td>Scratch</td></tr>
+     <tr><td class="n">safari</td><td><span class="badge fi">File</span></td><td>/Applications/Safari.app</td><td></td></tr>
+     <tr><td class="n">kc</td><td><span class="badge fi">File</span></td><td>/Applications/keycuts.app</td><td>keycuts itself</td></tr>
+    </table></div>
+   </div>
+  </div>
+  <div class="note"><ul>
+   <li>Resized from its edges as on Windows; the same two sizes (Creator at <code>MainWidth</code> × its content, Manager and Settings at 768 × 470 shared), top-left corner kept.</li>
+   <li>Targets under the home folder read <code>$HOME/…</code> when saved with variables (4.6).</li>
+  </ul></div>
+ </div>
+</div>
+
+<div class="sp"></div>
+
+<div class="row">
+ <div class="col" style="width:760px">
+  <h2>3. Keys: ⌘ where Windows uses Ctrl</h2>
+  <div class="panel">
+  <table class="keys">
+   <tr><th style="width:150px">Windows</th><th style="width:150px">macOS</th><th>What</th></tr>
+   <tr><td>Ctrl+1, 2, 3</td><td class="mac">⌘1, ⌘2, ⌘3</td><td>creator, manager, settings (not while the icon picker has the tabs off)</td></tr>
+   <tr class="new"><td>—</td><td class="mac">⌘,</td><td>Settings, the macOS convention (the same as ⌘3)</td></tr>
+   <tr><td>Ctrl+F</td><td class="mac">⌘F</td><td>Search the Manager</td></tr>
+   <tr><td>Ctrl+C</td><td class="mac">⌘C</td><td>Copy the target (in a text box: copy the text)</td></tr>
+   <tr><td>Ctrl+E</td><td class="mac">⌘E</td><td>Edit… (the Edit form)</td></tr>
+   <tr><td>Ctrl+Shift+E</td><td class="mac">⇧⌘E</td><td>Edit in TextEdit (the default text editor, <code>open -t</code>); the menu item says "Edit in text editor"</td></tr>
+   <tr><td>Ctrl+Shift+O</td><td class="mac">⇧⌘O</td><td>Show in Finder (was "Open file location")</td></tr>
+   <tr><td>Ctrl+Z</td><td class="mac">⌘Z</td><td>Undo the delete</td></tr>
+   <tr><td>Enter</td><td class="mac">Return</td><td><b>Runs the keycut</b>, as Enter does on Windows and Return does in the Run box. Finder renames on Return; keycuts doesn't, so the main action keeps one key on both platforms. <i>Owner's call.</i></td></tr>
+   <tr><td>F2, Shift+F2</td><td class="mac">F2, ⇧F2</td><td>Rename, change the description (kept; fn-F2 on a Mac keyboard)</td></tr>
+   <tr><td>Delete</td><td class="mac">⌘⌫, ⌦</td><td>Move to Trash: ⌘Delete as in Finder, or forward delete (fn-Delete). A plain Delete (⌫) does nothing in the table, so a stray key never deletes.</td></tr>
+   <tr><td>Home, End, Page Up/Down</td><td class="mac">fn-← → ↑ ↓, ⌘↑, ⌘↓</td><td>The same keys (fn on a Mac keyboard); ⌘↑ and ⌘↓ also go to the first and last row</td></tr>
+   <tr><td>Shift+F10, Menu key</td><td class="mac">⌃-click</td><td>The row menu by right-click or Control-click; VoiceOver opens it with VO-⇧M</td></tr>
+   <tr><td>Escape</td><td class="mac">Esc</td><td>Unchanged</td></tr>
+   <tr class="new"><td>Alt+F4</td><td class="mac">⌘W</td><td>Close the window. keycuts stays in the menu bar (6.1)</td></tr>
+   <tr class="new"><td>—</td><td class="mac">⌘Q, ⌘H, ⌘M</td><td>Quit, hide, minimize: from the app menu, as every Mac app</td></tr>
+  </table>
+  </div>
+  <div class="note">The style guide's "Keys" section gets a macOS line: key names as macOS writes them, with the symbols ⌃ ⌥ ⇧ ⌘ in that order and no plus signs (⇧⌘E). Tooltips put the key in parentheses as on Windows.</div>
+ </div>
+
+ <div class="col" style="width:720px">
+  <h2>4. Menus</h2>
+  <div class="panel" style="padding:0;overflow:visible">
+   <div class="menubar"><span style="font-size:15px"></span><b class="on">keycuts</b><span>Edit</span><span>View</span><span>Window</span><span>Help</span>
+    <span class="right"><span class="extra"><svg width="18" height="16"><use href="#i-keycap"/></svg></span><span>Fri 9:41</span></span></div>
+   <div style="display:flex;gap:24px;padding:4px 16px 18px;align-items:flex-start">
+    <div class="menu" style="margin-left:18px;width:230px">
+     <div class="it">About keycuts</div>
+     <div class="sep"></div>
+     <div class="it hl">Settings…<span class="sc">⌘,</span></div>
+     <div class="sep"></div>
+     <div class="it">Hide keycuts<span class="sc">⌘H</span></div>
+     <div class="it">Hide Others<span class="sc">⌥⌘H</span></div>
+     <div class="it dim">Show All</div>
+     <div class="sep"></div>
+     <div class="it">Quit keycuts<span class="sc">⌘Q</span></div>
+    </div>
+    <div class="col" style="gap:10px">
+     <div class="menu" style="width:200px">
+      <div class="it">Creator<span class="sc">⌘1</span></div>
+      <div class="it">Manager<span class="sc">⌘2</span></div>
+      <div class="it">Settings<span class="sc">⌘3</span></div>
+     </div>
+     <div class="note" style="font-size:12px">View. Edit is the standard one (Undo, Cut, Copy, Paste, Select All), so text boxes get ⌘X/C/V/A. Window has Minimize ⌘M and Close ⌘W; Help opens the README.</div>
+    </div>
+    <div class="menu" style="width:232px;margin-left:auto">
+     <div class="it hl">Run…<span class="sc">⇧⌘Space</span></div>
+     <div class="it">New keycut…</div>
+     <div class="it">Manager</div>
+     <div class="it">Settings…</div>
+     <div class="sep"></div>
+     <div class="it">Quit keycuts</div>
+    </div>
+   </div>
+  </div>
+  <div class="note"><ul>
+   <li><b>The app menu</b> (left) holds About, Settings and Quit, as the plan says, plus the standard Hide items macOS expects. Menu items are in Title Case where macOS puts its own (About, Hide Others, Quit) and in keycuts' sentence case elsewhere ("New keycut…").</li>
+   <li><b>The menu bar icon</b> (right, the keycap outline) is a template image, so it follows the menu bar's color. Its menu: <b>Run…</b> opens the Run box and shows the hotkey; <b>New keycut…</b> opens the Creator, empty; <b>Manager</b>; <b>Settings…</b>; <b>Quit keycuts</b>.</li>
+   <li><b>Lifetime (6.1)</b>: closing the window (red light, ⌘W) leaves keycuts in the menu bar; the Dock icon shows only while a window is open. Quit is in both menus.</li>
+  </ul></div>
+ </div>
+</div>
+</body></html>

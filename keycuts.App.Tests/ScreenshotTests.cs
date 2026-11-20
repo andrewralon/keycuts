@@ -38,6 +38,21 @@ namespace keycuts.Tests
         {
             var now = DateTime.Now;
 
+            // Phase 5.6: a Mac's keycuts, the same rows in its own paths (no CLSID keycuts there)
+            if (OperatingSystem.IsMacOS())
+            {
+                return new List<Keycut>
+                {
+                    Sample("code", KeycutKind.File, ShortcutType.File, "Visual Studio Code", "/Applications/Visual Studio Code.app", now.AddDays(-3)) with { Runs = 86, LastRun = now.AddHours(-2) },
+                    Sample("gmail", KeycutKind.Url, ShortcutType.Url, "Work email", "https://mail.google.com/mail/u/0/#inbox", now.AddHours(-5)) with { Runs = 412, LastRun = now.AddMinutes(-20) },
+                    Sample("db", KeycutKind.Folder, ShortcutType.Folder, "Dropbox folder", "$HOME/Dropbox", now.AddDays(-40)) with { Runs = 9, LastRun = now.AddDays(-4) },
+                    Sample("ss", KeycutKind.Folder, ShortcutType.Folder, "Screenshots", "$HOME/Pictures/Screenshots", now.AddDays(-200)) with { Runs = 0 },
+                    Sample("timesheet", KeycutKind.Url, ShortcutType.Url, "This week's timesheet", "https://timesheet.example.com/week", now.AddMinutes(-12)) with { Runs = 31, LastRun = now.AddDays(-1.2) },
+                    Sample("dl", KeycutKind.Folder, ShortcutType.Folder, "Downloads", "$HOME/Downloads", now.AddDays(-90)) with { Runs = 3, LastRun = now.AddDays(-62) },
+                    Sample("old-report", KeycutKind.File, ShortcutType.File, "Quarterly report", "/Volumes/Archive/Reports/2019-q3.xlsx", now.AddDays(-1.5), TargetStatus.Missing),
+                };
+            }
+
             return new List<Keycut>
             {
                 Sample("npp", KeycutKind.File, ShortcutType.File, "Notepad++", @"C:\Program Files\Notepad++\notepad++.exe", now.AddDays(-3)) with { Runs = 86, LastRun = now.AddHours(-2) },
@@ -51,6 +66,8 @@ namespace keycuts.Tests
             };
         }
 
+        static readonly string SampleFolder = OperatingSystem.IsMacOS() ? "/Users/sample/Shortcuts" : @"C:\Users\sample\Shortcuts";
+
         static Keycut Sample(string name, KeycutKind kind, ShortcutType type, string description, string target, DateTime modified, TargetStatus status = TargetStatus.Ok)
         {
             return new Keycut
@@ -60,7 +77,7 @@ namespace keycuts.Tests
                 RawType = type,
                 Description = description,
                 Target = target,
-                FilePath = @"C:\Users\sample\Shortcuts\" + name + ".bat",
+                FilePath = Path.Combine(SampleFolder, name + ShortcutFile.Extension),
                 Modified = modified,
                 TargetStatus = status
             };
@@ -73,7 +90,7 @@ namespace keycuts.Tests
             {
                 return new Settings
                 {
-                    OutputFolder = @"C:\Users\sample\Shortcuts",
+                    OutputFolder = SampleFolder,
                     AskBeforeReplacing = true,
                     RightClickContextMenus = true,
                     UseEnvironmentVariables = true,
@@ -102,8 +119,18 @@ namespace keycuts.Tests
                 {
                     ThemeManager.Apply(palette);
                     AppIconManager.Initialize(Settings.DefaultAppIcon, false);
-                    RenderScreens(folder, suffix);
-                    RenderWalkthrough(folder, suffix);
+
+                    // Phase 5.6: on macOS its own pictures (creator-light-mac.png…), so the Windows ones stay as they are. No
+                    // walkthrough there: its last card is the Win+R step.
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        RenderScreens(folder, suffix + "-mac");
+                    }
+                    else
+                    {
+                        RenderScreens(folder, suffix);
+                        RenderWalkthrough(folder, suffix);
+                    }
                 }
             }
             finally
@@ -334,7 +361,28 @@ namespace keycuts.Tests
         {
             Settle(window);
             using var bitmap = Render((Control)window.Content!, window.Bounds.Size);
+            if (OperatingSystem.IsMacOS())
+            {
+                DrawTrafficLights(bitmap);
+            }
+
             bitmap.Save(Path.Combine(folder, name + ".png"), PngBitmapEncoderOptions.Default);
+        }
+
+        /// <summary>
+        /// The picture has no window frame, and on macOS the traffic lights are the frame's: drawn where macOS puts them
+        /// (docs/styleguide.md, Tabbed window), close and minimize in their colors and zoom off, so the bar reads as it does on screen.
+        /// </summary>
+        static void DrawTrafficLights(RenderTargetBitmap bitmap)
+        {
+            var zoomOff = ThemeManager.Current == Palette.Dark ? Color.Parse("#4b4e55") : Color.Parse("#d6d8dc");
+            // The bitmap's DPI already scales the drawing to its pixels
+            using var context = bitmap.CreateDrawingContext(false);
+            foreach (var (index, color) in new[] { (0, Color.Parse("#ff5f57")), (1, Color.Parse("#febc2e")), (2, zoomOff) })
+            {
+                var center = new Point(MacTrafficLights.Left + 6 + index * 20, 24);
+                context.DrawEllipse(new SolidColorBrush(color), new Pen(new SolidColorBrush(Color.FromArgb(46, 0, 0, 0)), 0.5), center, 6, 6);
+            }
         }
 
         sealed record PixelBuffer(int Width, int Height, byte[] Bgra);

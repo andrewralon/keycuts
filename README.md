@@ -38,6 +38,28 @@ Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
   <img src="docs/images/settings-light.png" alt="Settings, in two columns." width="830">
 </picture>
 
+**On macOS** the same window has the Mac's own buttons, ⌘ keys, `$HOME` paths, and a switch that puts the keycuts folder on your Terminal PATH:
+
+<details>
+<summary>The creator, the manager and Settings on macOS</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/creator-dark-mac.png">
+  <img src="docs/images/creator-light-mac.png" alt="The creator on macOS." width="580">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/manager-dark-mac.png">
+  <img src="docs/images/manager-light-mac.png" alt="The manager on macOS." width="830">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark-mac.png">
+  <img src="docs/images/settings-light-mac.png" alt="Settings on macOS, with Run keycuts in Terminal." width="830">
+</picture>
+
+</details>
+
 The app checks GitHub for updates at most once a day. No telemetry: run counts are files in `%LOCALAPPDATA%\keycuts\usage` that never leave your PC.
 
 **Keycuts from older versions:** the first time the app opens a keycuts folder, it brings keycuts written by older versions to the current format. It renames their `<destination>` line to `<target>`, and folder keycuts get `START "" /B` in front of their Explorer line, so their console window closes sooner. Nothing else in the files changes, and their date modified stays the same. The originals are copied to a hidden `.keycuts-backup\<date-time>` folder inside the keycuts folder first, and a message says where.

@@ -62,6 +62,9 @@ namespace keycuts.GUI
             MacMenuBar.Attach(Current!, desktop, mainWindow);
             if (OperatingSystem.IsMacOS())
             {
+                // Avalonia doesn't report Increase contrast, so the theme reads it
+                ThemeManager.FollowMacIncreaseContrast(MacAccessibility.IncreaseContrast);
+
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);

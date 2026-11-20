@@ -109,7 +109,42 @@ namespace keycuts.GUI.Themes
         public static Palette DetectPalette()
         {
             var values = application?.PlatformSettings?.GetColorValues();
-            return Resolve(values?.ThemeVariant, IsHighContrast(values, OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()), Preference);
+            var highContrast = IsHighContrast(values, OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()) || ReadMacIncreaseContrast();
+            return Resolve(values?.ThemeVariant, highContrast, Preference);
+        }
+
+        /// <summary>
+        /// macOS's Increase contrast, which Avalonia doesn't report (<see cref="MacAccessibility"/>). Off until the app starts
+        /// following it, so tests never read the machine's setting.
+        /// </summary>
+        public static Func<bool> ReadMacIncreaseContrast { get; set; } = () => false;
+
+        /// <summary>
+        /// Follows Increase contrast on macOS: reads it now and again every two seconds (no event reaches the app), and applies
+        /// the palette when it changes.
+        /// </summary>
+        public static void FollowMacIncreaseContrast(Func<bool> read)
+        {
+            ReadMacIncreaseContrast = read;
+            var last = read();
+
+            if (last)
+            {
+                Apply(DetectPalette());
+            }
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            timer.Tick += (_, _) =>
+            {
+                var now = ReadMacIncreaseContrast();
+
+                if (now != last)
+                {
+                    last = now;
+                    Apply(DetectPalette());
+                }
+            };
+            timer.Start();
         }
 
         /// <summary>Re-themes every open window now. Saving the choice is the caller's job.</summary>

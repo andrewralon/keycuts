@@ -143,7 +143,7 @@ namespace keycuts.Tests
             Assert.False(Directory.Exists(missing));
         }
 
-        [Fact]
+        [WindowsFact]
         public void A_locked_keycut_is_left_and_the_other_is_still_renamed()
         {
             var keycuts = WriteKeycut("keycuts");

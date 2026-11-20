@@ -3,7 +3,8 @@
        (Phase 3.12) they take keycuts.Tests' place. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <!-- Annotations without the warnings, as in keycuts.Tests (nullable off): the view model tests are its files, linked -->
+    <Nullable>annotations</Nullable>
     <RootNamespace>keycuts.Tests</RootNamespace>
     <AssemblyName>keycuts.App.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
@@ -26,6 +27,24 @@
     <ProjectReference Include="..\keycuts.App\keycuts.App.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\keycuts.Common.Tests\PlatformFacts.cs" Link="Shared\PlatformFacts.cs" />
     <Compile Include="..\keycuts.Common.Tests\RepoFiles.cs" Link="Shared\RepoFiles.cs" />
+    <Compile Include="..\keycuts.Common.Tests\TestNameChecks.cs" Link="Shared\TestNameChecks.cs" />
+    <Compile Include="..\keycuts.Common.Tests\UpdateFakes.cs" Link="Shared\UpdateFakes.cs" />
+  </ItemGroup>
+  <!-- The view model tests, run against the view models both apps share (docs/macos-port.md, correction 15): the same files
+       keycuts.Tests runs against the WPF build. -->
+  <ItemGroup>
+    <Compile Include="..\keycuts.Tests\CommandNameTests.cs" Link="Shared\ViewModels\CommandNameTests.cs" />
+    <Compile Include="..\keycuts.Tests\CreatorSubmitTests.cs" Link="Shared\ViewModels\CreatorSubmitTests.cs" />
+    <Compile Include="..\keycuts.Tests\CreatorViewModelTests.cs" Link="Shared\ViewModels\CreatorViewModelTests.cs" />
+    <Compile Include="..\keycuts.Tests\EditKeycutViewModelTests.cs" Link="Shared\ViewModels\EditKeycutViewModelTests.cs" />
+    <Compile Include="..\keycuts.Tests\KeycutMigrationTests.cs" Link="Shared\ViewModels\KeycutMigrationTests.cs" />
+    <Compile Include="..\keycuts.Tests\ManagerRowActionsTests.cs" Link="Shared\ViewModels\ManagerRowActionsTests.cs" />
+    <Compile Include="..\keycuts.Tests\ManagerSearchSortTests.cs" Link="Shared\ViewModels\ManagerSearchSortTests.cs" />
+    <Compile Include="..\keycuts.Tests\ManagerViewModelTests.cs" Link="Shared\ViewModels\ManagerViewModelTests.cs" />
+    <Compile Include="..\keycuts.Tests\NameWarningMessageTests.cs" Link="Shared\ViewModels\NameWarningMessageTests.cs" />
+    <Compile Include="..\keycuts.Tests\UpdateNoticeViewModelTests.cs" Link="Shared\ViewModels\UpdateNoticeViewModelTests.cs" />
+    <Compile Include="..\keycuts.Tests\WelcomeViewModelTests.cs" Link="Shared\ViewModels\WelcomeViewModelTests.cs" />
   </ItemGroup>
 </Project>

@@ -1,10 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Security;
 using System.Threading.Tasks;
-using System.Windows.Data;
 using keycuts.Common;
 using keycuts.GUI.Mvvm;
 using keycuts.GUI.Themes;
@@ -51,7 +51,7 @@ namespace keycuts.GUI.ViewModels
     /// icon at once, the output folder when it is committed (Enter, leaving the box, or a pick from the folder button) and only
     /// after it passes validation. Nothing waits for a Save button, so leaving the screen never loses or undoes anything.
     /// </summary>
-    public class SettingsViewModel : ObservableObject
+    public partial class SettingsViewModel : ObservableObject
     {
         public const string DefaultHelperText = "New keycuts are saved here.";
 
@@ -145,9 +145,7 @@ namespace keycuts.GUI.ViewModels
             this.appIcon = appIcon ?? new InMemoryAppIconService();
             selectedIcon = AppIcons.Get(this.appIcon.Choice);
             transparentIcon = this.appIcon.Transparent;
-            var view = new ListCollectionView(new List<AppIconOption>(AppIcons.Options));
-            view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AppIconOption.Group)));
-            IconOptionsView = view;
+            IconOptionsView = CreateIconOptionsView();
             OpenIconPickerCommand = new RelayCommand(() => IsIconPickerOpen = true);
             CloseIconPickerCommand = new RelayCommand(() => IsIconPickerOpen = false);
 
@@ -341,8 +339,12 @@ namespace keycuts.GUI.ViewModels
         /// <summary>
         /// The picker's list, every choice in order, grouped by <see cref="AppIconOption.Group"/>. A view of this window's own, because the default
         /// view of the shared list would collect a group description per window.
+        /// Each app groups it its own way (<see cref="CreateIconOptionsView"/>).
         /// </summary>
-        public ICollectionView IconOptionsView { get; }
+        public IEnumerable IconOptionsView { get; }
+
+        /// <summary>The picker's list as each app's view groups it: a WPF ListCollectionView, or Avalonia's own (ViewModels/Wpf, keycuts.App).</summary>
+        private static partial IEnumerable CreateIconOptionsView();
 
         /// <summary>The icon. Setting it applies and saves it at once, as every setting is; closing the picker keeps it.</summary>
         public AppIconOption SelectedIcon

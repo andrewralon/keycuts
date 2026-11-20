@@ -18,4 +18,12 @@
   <ItemGroup>
     <ProjectReference Include="..\keycuts.Common\keycuts.Common.csproj" />
   </ItemGroup>
+  <!-- The view models and the house Mvvm, one copy for both apps until cutover (docs/macos-port.md, correction 15). Each app
+       supplies the few types they name that differ between WPF and Avalonia. -->
+  <ItemGroup>
+    <Compile Include="..\keycuts.GUI\Mvvm\*.cs" Link="Mvvm\%(Filename)%(Extension)" />
+    <Compile Include="..\keycuts.GUI\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
+    <Compile Include="..\keycuts.GUI\Settings.cs" Link="Settings.cs" />
+    <Compile Include="..\keycuts.GUI\Themes\AppIcons.cs" Link="Themes\AppIcons.cs" />
+  </ItemGroup>
 </Project>

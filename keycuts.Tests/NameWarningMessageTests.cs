@@ -134,7 +134,7 @@ namespace keycuts.Tests
                 CreatorViewModel.GetConflictMessage("g", check.MainConflict!, "https://x.com/Path"));
         }
 
-        [Fact]
+        [WindowsFact]
         public void IsSame_ExpandsEnvironmentVariables()
         {
             var profile = Environment.GetEnvironmentVariable("USERPROFILE")!;

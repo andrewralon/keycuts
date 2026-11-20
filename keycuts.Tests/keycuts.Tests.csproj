@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Helpers shared with keycuts.Common.Tests, which holds the tests that don't need the GUI. -->
+    <Compile Include="..\keycuts.Common.Tests\PlatformFacts.cs" Link="Shared\PlatformFacts.cs" />
     <Compile Include="..\keycuts.Common.Tests\RepoFiles.cs" Link="Shared\RepoFiles.cs" />
     <Compile Include="..\keycuts.Common.Tests\TestNameChecks.cs" Link="Shared\TestNameChecks.cs" />
     <Compile Include="..\keycuts.Common.Tests\UpdateFakes.cs" Link="Shared\UpdateFakes.cs" />

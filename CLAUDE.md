@@ -15,6 +15,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
+- macOS UI checks: `tools/mac/check-app.sh [menus|drops|browse|contrast|dock]` drives a throwaway bundle of the real app (Finder and Safari drags, the file panel, Increase contrast, the Dock). It hides your other apps and flips Increase contrast while it runs; read `tools/mac/README.md` first.
 - macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` and `keycuts.App.Tests` run there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`; an `[AvaloniaFact]` measured in Segoe UI starts with `Assert.SkipUnless(OperatingSystem.IsWindows(), …)`.
 
 ## Gotchas

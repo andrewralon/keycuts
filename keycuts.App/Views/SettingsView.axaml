@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:common="using:keycuts.Common"
              xmlns:controls="using:keycuts.GUI.Controls"
+             xmlns:gui="using:keycuts.GUI"
              xmlns:themes="using:keycuts.GUI.Themes"
              xmlns:views="using:keycuts.GUI.Views"
              xmlns:vm="using:keycuts.GUI.ViewModels"
@@ -31,6 +32,13 @@
     <!-- A section after the first: 24 above its label -->
     <Style Selector="controls|SectionLabel.LaterSection">
       <Setter Property="Margin" Value="0,24,0,8" />
+    </Style>
+    <!-- macOS has more rows (the PATH switch, the Run box), so rows are 12 apart and sections 20 there, to fit 470 high -->
+    <Style Selector="Grid.mac Grid.SettingRow">
+      <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+    <Style Selector="Grid.mac controls|SectionLabel.LaterSection">
+      <Setter Property="Margin" Value="0,20,0,8" />
     </Style>
     <Style Selector="controls|HelperText.folder.error">
       <Setter Property="State" Value="Error" />
@@ -71,7 +79,7 @@
     <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False" IsEnabled="{Binding IsBodyEnabled}"
                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <!-- Two columns at every width: Output and Behavior on the left, the rest on the right, with a rule 24 from each -->
-      <Grid x:Name="Columns" Margin="{StaticResource PagePadding}" ColumnDefinitions="*,Auto,*">
+      <Grid x:Name="Columns" Margin="{StaticResource PagePadding}" ColumnDefinitions="*,Auto,*" Classes.mac="{x:Static gui:PlatformKeys.IsMac}">
         <StackPanel x:Name="LeftColumn" Grid.Column="0">
           <!-- Output -->
           <controls:SectionLabel Text="Output" />
@@ -108,25 +116,24 @@
           </Grid>
           <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Right-click context menus" Classes="SettingName" />
-              <TextBlock Text="Add “keycut this!” to File Explorer menus." Classes="SettingNote" />
+              <TextBlock Text="{x:Static gui:PlatformText.RightClickName}" Classes="SettingName" />
+              <TextBlock Text="{x:Static gui:PlatformText.RightClickNote}" Classes="SettingNote" />
             </StackPanel>
             <ToggleButton x:Name="ToggleRightClick" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
                           VerticalAlignment="Center" IsChecked="{Binding RightClickContextMenus}"
-                          AutomationProperties.Name="Right-click context menus"
-                          AutomationProperties.HelpText="Add “keycut this!” to File Explorer menus." />
+                          AutomationProperties.Name="{x:Static gui:PlatformText.RightClickName}"
+                          AutomationProperties.HelpText="{x:Static gui:PlatformText.RightClickNote}" />
           </Grid>
           <!-- #31: save new file and folder keycuts as %USERPROFILE%\... and the like; Shift flips it while creating -->
           <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Use environment variables in paths" Classes="SettingName" />
-              <TextBlock Text="Save paths as %USERPROFILE%\… or similar. Hold Shift to preview or create a keycut like this, even when disabled."
-                         Classes="SettingNote" />
+              <TextBlock Text="{x:Static gui:PlatformText.VariablesName}" Classes="SettingName" />
+              <TextBlock Text="{x:Static gui:PlatformText.VariablesNote}" Classes="SettingNote" />
             </StackPanel>
             <ToggleButton x:Name="ToggleEnvironmentVariables" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
                           VerticalAlignment="Center" IsChecked="{Binding UseEnvironmentVariables}"
-                          AutomationProperties.Name="Use environment variables in paths"
-                          AutomationProperties.HelpText="Saves C:\Users\you\Desktop as %USERPROFILE%\Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut." />
+                          AutomationProperties.Name="{x:Static gui:PlatformText.VariablesName}"
+                          AutomationProperties.HelpText="{x:Static gui:PlatformText.VariablesHelp}" />
           </Grid>
         </StackPanel>
 
@@ -162,7 +169,7 @@
           </Grid>
 
           <!-- The icon without its background everywhere but the tab bar, which always shows it so -->
-          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{x:Static gui:PlatformText.ShowsTransparentIcon}">
             <StackPanel>
               <TextBlock Text="Transparent icon background" Classes="SettingName" />
               <TextBlock Text="Affects the taskbar, Alt+Tab, and shortcuts." Classes="SettingNote" />

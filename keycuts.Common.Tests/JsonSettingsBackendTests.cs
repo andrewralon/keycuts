@@ -20,6 +20,14 @@ namespace keycuts.Tests
             }
         }
 
+        // Only looked at, never written: that would be this user's real settings
+        [MacFact]
+        public void OnMacOS_SettingsAreStoredInTheFile_InApplicationSupport()
+        {
+            var backend = Assert.IsType<JsonSettingsBackend>(RegistryStuff.Backend);
+            Assert.Equal(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "keycuts", "settings.json"), backend.Path);
+        }
+
         [Fact]
         public void EachKind_ReadsBackAsTheRegistryWouldGiveIt()
         {

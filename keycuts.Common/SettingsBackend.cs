@@ -29,7 +29,7 @@ namespace keycuts.Common
     }
 
     /// <summary>
-    /// The backend until macOS gets its own (Phase 4.2): nothing is stored, so every setting reads as its default, and a write
+    /// The backend where there is none (Linux, which keycuts doesn't ship for): nothing is stored, so every setting reads as its default, and a write
     /// throws rather than pretend to save.
     /// </summary>
     public class UnavailableSettingsBackend : ISettingsBackend

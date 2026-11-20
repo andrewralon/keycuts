@@ -23,7 +23,7 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
-  # A change that only touches docs/ skips build, format, macos and installer: no test reads those files and no project
+  # A change that only touches docs/ or the root docs (README.md, CLAUDE.md, gameplan.md) skips build, format, macos and installer: no test reads those files and no project
   # builds from them. A job skipped by its `if` counts as passed for a required status check; a workflow-level
   # `paths-ignore` would leave the checks pending and block the merge. If this job fails, everything still runs.
   changes:
@@ -37,16 +37,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Look for changes outside docs/
+      - name: Look for changes outside the docs
         id: filter
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           code=true
           if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            if ! git diff --name-only "$BASE" HEAD | grep -qv '^docs/'; then
+            if ! git diff --name-only "$BASE" HEAD | grep -qvE '^(docs/|README\.md$|CLAUDE\.md$|gameplan\.md$)'; then
               code=false
-              echo "Only docs/ changed, so build, format, macos and installer are skipped." >> "$GITHUB_STEP_SUMMARY"
+              echo "Only documentation changed, so build, format, macos and installer are skipped." >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"

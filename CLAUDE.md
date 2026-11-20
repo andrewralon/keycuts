@@ -29,7 +29,7 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Fakes of `IKeycutActions` (`FakeActions`, `RecordingActions`) must implement every member.
 - **Line endings:** `* text=auto`; mixed CRLF/LF is normal, don't convert. Byte-sensitive: `*.cmd` shims (CRLF) and `tests/corpus/**/*.bat`. Never rewrite those through anything that normalizes newlines.
 - Debug builds honor `KEYCUTS_OUTPUT_FOLDER`; `tools/New-SampleKeycuts.ps1` makes fixture folders.
-- CI (`.github/workflows/ci.yml`): `build` (Windows) and `format` (Linux) are required on `develop`/`main`; PRs into `main` also build both MSIs. Failed runs upload `test-results` (TRX + `.received.txt`). Actions pinned to SHAs.
+- CI (`.github/workflows/ci.yml`): `build` (Windows) and `format` (Linux) are required on `develop`/`main`, `macos` on `develop`; PRs into `main` also build both MSIs. Failed runs upload `test-results` (TRX + `.received.txt`). Actions pinned to SHAs.
 
 ## Versioning and releases
 

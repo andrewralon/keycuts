@@ -54,7 +54,9 @@ namespace keycuts.GUI
         private static void ShowMainWindow(IClassicDesktopStyleApplicationLifetime desktop)
         {
             MainWindow? mainWindow = null;
-            var shell = OperatingSystem.IsWindows() ? CreateWindowsShell(() => mainWindow) : new ShellViewModel(() => Task.FromResult(0));
+            var shell = OperatingSystem.IsWindows()
+                ? CreateWindowsShell(() => mainWindow)
+                : CreateShellWithoutKeycutsFolder(new RunnerSettingsStore(), () => mainWindow);
 
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
@@ -73,6 +75,22 @@ namespace keycuts.GUI
             AppIconManager.ApplyTo(mainWindow);
             mainWindow.Show();
             _ = LoadPathVariablesAsync(shell);
+        }
+
+        /// <summary>
+        /// The screens where the keycuts folder isn't supported yet (macOS until Phase 4): no keycuts, but Settings opens. Its
+        /// changes apply; storing them fails with a message on the screen until macOS has a settings file (Phase 4.2).
+        /// </summary>
+        public static ShellViewModel CreateShellWithoutKeycutsFolder(ISettingsStore store, Func<Window?> mainWindow)
+        {
+            return new ShellViewModel(
+                () => Task.FromResult(0),
+                settingsFactory: () => new SettingsViewModel(
+                    store,
+                    current => SettingsView.PickFolder(mainWindow(), current),
+                    SettingsView.OpenFolder,
+                    applyTheme: ThemeManager.SetPreference,
+                    confirmRestoreDefaults: () => ConfirmWindow.Ask(mainWindow(), ConfirmViewModel.ForRestoreDefaults())));
         }
 
         [SupportedOSPlatform("windows")]

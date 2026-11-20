@@ -94,7 +94,7 @@ namespace keycuts.GUI
 
                 return runner.SetRightClickContextMenu(RightClickContextMenus) ? null : ContextMenuFailedMessage;
             }
-            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException || e is PlatformNotSupportedException)
             {
                 return SaveFailedPrefix + e.Message;
             }
@@ -115,7 +115,7 @@ namespace keycuts.GUI
             {
                 return new FolderSaveResult(true, runner.ChangeOutputFolder(OutputFolder) ? null : PathUpdateFailedMessage);
             }
-            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException || e is PlatformNotSupportedException)
             {
                 // The folder is written before PATH, so a failure may come after it was stored: ask the registry
                 return new FolderSaveResult(IsStored(OutputFolder), SaveFailedPrefix + e.Message);
@@ -131,7 +131,7 @@ namespace keycuts.GUI
             {
                 return string.Equals(runner.GetOutputFolder(), folder, StringComparison.OrdinalIgnoreCase);
             }
-            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException)
+            catch (Exception e) when (e is UnauthorizedAccessException || e is SecurityException || e is IOException || e is PlatformNotSupportedException)
             {
                 return false;
             }

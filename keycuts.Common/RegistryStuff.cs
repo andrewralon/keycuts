@@ -1,14 +1,19 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 
 namespace keycuts.Common
 {
+    /// <summary>The typed settings: value names, defaults and stored forms. Where they're stored is <see cref="Backend"/>'s business.</summary>
     public class RegistryStuff
     {
-        public static readonly RegistryKey CurrentUserContext = Registry.CurrentUser;
+        /// <summary>Every read and write goes through it: the registry on Windows, the settings file on macOS. Elsewhere every setting reads as its default.</summary>
+        public static readonly ISettingsBackend Backend = OperatingSystem.IsWindows()
+            ? new RegistrySettingsBackend()
+            : OperatingSystem.IsMacOS()
+                ? new JsonSettingsBackend(JsonSettingsBackend.DefaultPath)
+                : new UnavailableSettingsBackend();
 
         public static readonly string StartPath = $@"Software\TeamRalon\{Runner.AppName}";
 
@@ -39,6 +44,9 @@ namespace keycuts.Common
 
         /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
         public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
+
+        /// <summary>macOS: the Run box shortcut (Phase 6.2) as <see cref="RunBoxHotkey.Stored"/>; unset is the default, empty is none.</summary>
+        public static readonly string RunBoxHotkeyKeyName = "RunBoxHotkey";
 
         /// <summary>When the last update check read a release, as a round-trip UTC timestamp.</summary>
         public static readonly string LastUpdateCheckKeyName = "LastUpdateCheck";
@@ -85,16 +93,7 @@ namespace keycuts.Common
         /// <summary>Reads never write: a missing or unreadable value just yields the default.</summary>
         private static object ReadValue(string keyName)
         {
-            try
-            {
-                using var appNameKey = CurrentUserContext.OpenSubKey(StartPath);
-
-                return appNameKey?.GetValue(keyName);
-            }
-            catch (Exception e) when (ContextMenuRegistrar.IsRegistryFailure(e))
-            {
-                return null;
-            }
+            return Backend.Read(keyName);
         }
 
         public static string GetOutputFolder(string path)
@@ -137,7 +136,14 @@ namespace keycuts.Common
         /// <summary>Whether the verbs are really there, which is what the Settings checkbox should show.</summary>
         public static bool GetRightClickContextMenu()
         {
-            return new ContextMenuRegistrar().IsRegistered();
+            // The Explorer verbs on Windows. On macOS the Finder Quick Action (Phase 7 installs it): until then, the stored choice,
+            // on unless turned off, as a new install has it
+            if (OperatingSystem.IsMacOS())
+            {
+                return ReadValue(RightClickContextMenuKeyName) is not int raw || raw != 0;
+            }
+
+            return OperatingSystem.IsWindows() && new ContextMenuRegistrar().IsRegistered();
         }
 
         public static bool GetUseEnvironmentVariables()
@@ -147,7 +153,7 @@ namespace keycuts.Common
 
         public static void SetUseEnvironmentVariables(bool useEnvironmentVariables)
         {
-            SetRegistryValue(UseEnvironmentVariablesKeyName, useEnvironmentVariables, RegistryValueKind.DWord);
+            Backend.WriteDword(UseEnvironmentVariablesKeyName, useEnvironmentVariables ? 1 : 0);
         }
 
         public static ThemePreference GetThemePreference()
@@ -237,42 +243,34 @@ namespace keycuts.Common
 
         #region Set Methods
 
-        public static void SetRegistryValue(string keyName, object keyValue,
-            RegistryValueKind registryValueKind = RegistryValueKind.String)
-        {
-            using var appNameKey = CurrentUserContext.CreateSubKey(StartPath, true);
-
-            appNameKey.SetValue(keyName, keyValue, registryValueKind);
-        }
-
         public static void SetOutputFolder(string path)
         {
-            SetRegistryValue(OutputFolderKeyName, path, RegistryValueKind.String);
+            Backend.WriteString(OutputFolderKeyName, path);
         }
 
         public static void SetAskBeforeReplacing(bool askBeforeReplacing)
         {
-            SetRegistryValue(AskBeforeReplacingKeyName, askBeforeReplacing ? 1 : 0, RegistryValueKind.DWord);
+            Backend.WriteDword(AskBeforeReplacingKeyName, askBeforeReplacing ? 1 : 0);
         }
 
         public static void SetThemePreference(ThemePreference preference)
         {
-            SetRegistryValue(ThemeKeyName, preference.ToString(), RegistryValueKind.String);
+            Backend.WriteString(ThemeKeyName, preference.ToString());
         }
 
         public static void SetAppIcon(AppIconChoice choice)
         {
-            SetRegistryValue(AppIconKeyName, choice.ToString(), RegistryValueKind.String);
+            Backend.WriteString(AppIconKeyName, choice.ToString());
         }
 
         public static void SetAppIconTransparent(bool transparent)
         {
-            SetRegistryValue(AppIconTransparentKeyName, transparent ? 1 : 0, RegistryValueKind.DWord);
+            Backend.WriteDword(AppIconTransparentKeyName, transparent ? 1 : 0);
         }
 
         public static void SetWelcomeDismissed()
         {
-            SetRegistryValue(WelcomeDismissedKeyName, 1, RegistryValueKind.DWord);
+            Backend.WriteDword(WelcomeDismissedKeyName, 1);
         }
 
         /// <summary>Whether <paramref name="folder"/> was given the run-counting lines: see <see cref="RunCountingFoldersKeyName"/>.</summary>
@@ -299,13 +297,31 @@ namespace keycuts.Common
 
             if (folders != null)
             {
-                SetRegistryValue(RunCountingFoldersKeyName, folders, RegistryValueKind.MultiString);
+                Backend.WriteMultiString(RunCountingFoldersKeyName, folders);
             }
         }
 
         /// <summary>Where the MSI installed keycuts (<c>InstallFolder</c>, with a trailing backslash); null for a copy that wasn't installed.</summary>
+        /// <summary>The Run box shortcut: the default until one is chosen, null after "none" (or text that can't be read).</summary>
+        public static RunBoxHotkey GetRunBoxHotkey()
+        {
+            return ReadValue(RunBoxHotkeyKeyName) is string text ? RunBoxHotkey.Parse(text) : RunBoxHotkey.Default;
+        }
+
+        /// <summary>Stores the Run box shortcut; null stores "none".</summary>
+        public static void SetRunBoxHotkey(RunBoxHotkey hotkey)
+        {
+            Backend.WriteString(RunBoxHotkeyKeyName, hotkey?.Stored ?? "");
+        }
+
         public static string GetInstallFolder()
         {
+            // macOS has no installer value: the app records the folder it runs from (CommandShims.RecordInstallFolder)
+            if (OperatingSystem.IsMacOS())
+            {
+                return CommandShims.ReadInstallFolder(CommandShims.InstallFolderPointer);
+            }
+
             return ReadValue("InstallFolder") as string;
         }
 
@@ -318,8 +334,8 @@ namespace keycuts.Common
         /// <summary>Stored with a trailing backslash: the MSI reads it as a folder property to remove the shims on uninstall.</summary>
         public static void SetCommandShimFolder(string folder)
         {
-            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + "\\";
-            SetRegistryValue(CommandShimFolderKeyName, value, RegistryValueKind.String);
+            var value = string.IsNullOrWhiteSpace(folder) ? "" : folder.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            Backend.WriteString(CommandShimFolderKeyName, value);
         }
 
         /// <summary>Whether <paramref name="folder"/> is in <see cref="MigratedFoldersKeyName"/>.</summary>
@@ -335,7 +351,7 @@ namespace keycuts.Common
 
             if (folders != null)
             {
-                SetRegistryValue(MigratedFoldersKeyName, folders, RegistryValueKind.MultiString);
+                Backend.WriteMultiString(MigratedFoldersKeyName, folders);
             }
         }
 
@@ -360,59 +376,54 @@ namespace keycuts.Common
 
         public static void SetCheckForUpdates(bool checkForUpdates)
         {
-            SetRegistryValue(CheckForUpdatesKeyName, checkForUpdates ? 1 : 0, RegistryValueKind.DWord);
+            Backend.WriteDword(CheckForUpdatesKeyName, checkForUpdates ? 1 : 0);
         }
 
         public static void SetLastUpdateCheck(DateTimeOffset value)
         {
-            SetRegistryValue(LastUpdateCheckKeyName, FormatUpdateCheckTime(value), RegistryValueKind.String);
+            Backend.WriteString(LastUpdateCheckKeyName, FormatUpdateCheckTime(value));
         }
 
         /// <summary>One <c>SetValue</c>, so the version and URL are stored together or not at all. Removes the pre-#191 values afterwards.</summary>
         public static void SetLatestReleaseSeen(string version, string url)
         {
-            SetRegistryValue(LatestReleaseSeenKeyName, FormatLatestReleaseSeen(version, url), RegistryValueKind.MultiString);
+            Backend.WriteMultiString(LatestReleaseSeenKeyName, FormatLatestReleaseSeen(version, url));
             RemoveLegacyUpdateValues();
         }
 
         public static void SetDismissedRelease(string version)
         {
-            SetRegistryValue(DismissedReleaseKeyName, version ?? string.Empty, RegistryValueKind.String);
+            Backend.WriteString(DismissedReleaseKeyName, version ?? string.Empty);
             RemoveLegacyUpdateValues();
         }
 
         // Best effort and idempotent: it runs after the new value is stored, so a failure here leaves harmless leftovers, and the next write tries again
         private static void RemoveLegacyUpdateValues()
         {
-            try
-            {
-                using var appNameKey = CurrentUserContext.OpenSubKey(StartPath, true);
-
-                if (appNameKey == null)
-                {
-                    return;
-                }
-
-                foreach (var name in LegacyUpdateKeyNames)
-                {
-                    appNameKey.DeleteValue(name, false);
-                }
-            }
-            catch (Exception e) when (ContextMenuRegistrar.IsRegistryFailure(e))
-            {
-                // Left for the next write
-            }
+            Backend.DeleteValues(LegacyUpdateKeyNames);
         }
 
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>
         public static bool SetRightClickContextMenu(bool rightClickContextMenu)
         {
+            if (OperatingSystem.IsMacOS())
+            {
+                // Phase 7 installs and removes the Quick Action here; until then only the choice is stored
+                Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
+                return true;
+            }
+
+            if (!OperatingSystem.IsWindows())
+            {
+                return false;
+            }
+
             var registrar = new ContextMenuRegistrar();
             var changed = rightClickContextMenu ? registrar.Register() : registrar.Unregister();
 
             if (changed)
             {
-                SetRegistryValue(RightClickContextMenuKeyName, rightClickContextMenu, RegistryValueKind.DWord);
+                Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
             }
 
             return changed;

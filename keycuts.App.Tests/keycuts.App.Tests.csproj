@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The app's tests (docs/macos-port.md Phase 3): headless on Avalonia.Headless and Skia, so they run on Windows, macOS and
+       Linux. The view model tests came from the WPF app's keycuts.Tests at the cutover (Phase 3.12). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Annotations without the warnings: the view model tests were written with nullable off -->
+    <Nullable>annotations</Nullable>
+    <RootNamespace>keycuts.Tests</RootNamespace>
+    <AssemblyName>keycuts.App.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- xUnit v3 test projects are executables; VSTest still runs them through xunit.runner.visualstudio. -->
+    <OutputType>Exe</OutputType>
+    <!-- The tests use their own tokens -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+    <!-- Reading a rendered frame's pixels -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="GitHubActionsTestLogger" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\keycuts.App\keycuts.App.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\keycuts.Common.Tests\PlatformFacts.cs" Link="Shared\PlatformFacts.cs" />
+    <Compile Include="..\keycuts.Common.Tests\RepoFiles.cs" Link="Shared\RepoFiles.cs" />
+    <Compile Include="..\keycuts.Common.Tests\TestNameChecks.cs" Link="Shared\TestNameChecks.cs" />
+    <Compile Include="..\keycuts.Common.Tests\UpdateFakes.cs" Link="Shared\UpdateFakes.cs" />
+  </ItemGroup>
+</Project>

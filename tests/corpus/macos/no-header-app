@@ -1,0 +1,3 @@
+#!/bin/sh
+# keycuts 2.0.0
+open -a '/Applications/Safari.app' "$HOME/page.html"

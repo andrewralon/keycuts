@@ -1,0 +1,95 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AccentBrush" Color="#2563eb" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#1d4ed8" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#1e40af" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#eaf1ff" />
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#2563eb" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#eef1f5" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#f9fafb" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="SurfaceSubtleBrush" Color="#f6f8fb" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#eef3fb" />
+    <SolidColorBrush x:Key="TextBrush" Color="#172033" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#5d687b" />
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#646e80" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#d9dee8" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#bdc5d2" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#818b9d" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="DangerSoftBrush" Color="#fff0ee" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="#16794b" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#8a5700" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#ffffff" />
+    <SolidColorBrush x:Key="BadgeUrlForegroundBrush" Color="#6d43b8" />
+    <SolidColorBrush x:Key="BadgeUrlBackgroundBrush" Color="#f3edff" />
+    <SolidColorBrush x:Key="BadgeUrlBorderBrush" Color="#dfd2f7" />
+    <SolidColorBrush x:Key="BadgeFileForegroundBrush" Color="#1c619d" />
+    <SolidColorBrush x:Key="BadgeFileBackgroundBrush" Color="#e9f4ff" />
+    <SolidColorBrush x:Key="BadgeFileBorderBrush" Color="#cfe6fa" />
+    <SolidColorBrush x:Key="BadgeFolderForegroundBrush" Color="#8a5700" />
+    <SolidColorBrush x:Key="BadgeFolderBackgroundBrush" Color="#fff5dc" />
+    <SolidColorBrush x:Key="BadgeFolderBorderBrush" Color="#f1dfae" />
+    <SolidColorBrush x:Key="BadgeCommandForegroundBrush" Color="#14734a" />
+    <SolidColorBrush x:Key="BadgeCommandBackgroundBrush" Color="#e8f7ef" />
+    <SolidColorBrush x:Key="BadgeCommandBorderBrush" Color="#c8ead8" />
+    <SolidColorBrush x:Key="ScrimBrush" Color="#6B0F172A" />
+    <Color x:Key="ShadowColor">#0F172A</Color>
+    <x:Double x:Key="ShadowOpacity">0.3</x:Double>
+    <!-- The torn corner (B2, Controls/TornCorner): the bottom bar's padding, whose right side clears the rip. The pages keep no
+         room for it, so it cuts into them. High contrast keeps the plain rectangle. -->
+    <Thickness x:Key="FooterBarPadding">24,0,120,0</Thickness>
+
+    <!-- Tab bar (#218): the bar, its tabs, the app icon's socket and the caption buttons. Gradients and textures live here, not in the views. -->
+    <LinearGradientBrush x:Key="RailBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#eef1f5" Offset="0" />
+        <GradientStop Color="#d3d9e3" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Fine horizontal lines over the bar: 1 px in every 3 -->
+    <DrawingBrush x:Key="RailTextureBrush" TileMode="Tile" DestinationRect="0,0,4,3" SourceRect="0,0,4,3">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing Brush="#73ffffff"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,4,1" /></GeometryDrawing.Geometry></GeometryDrawing>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <!-- The faint dot grid in the empty, draggable part of the bar -->
+    <DrawingBrush x:Key="RailGripBrush" TileMode="Tile" DestinationRect="0,0,6,6" SourceRect="0,0,6,6">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing Brush="#29172033"><GeometryDrawing.Geometry><RectangleGeometry Rect="2.5,2.5,1,1" /></GeometryDrawing.Geometry></GeometryDrawing>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <LinearGradientBrush x:Key="TabBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#dde2ea" Offset="0" />
+        <GradientStop Color="#c4ccd8" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Fine diagonal lines over an inactive tab: 1 px in every 4 -->
+    <DrawingBrush x:Key="TabTextureBrush" TileMode="Tile" DestinationRect="0,0,4,4" SourceRect="0,0,4,4">
+        <DrawingBrush.Drawing>
+            <GeometryDrawing>
+                <GeometryDrawing.Pen><Pen Brush="#61ffffff" Thickness="1" /></GeometryDrawing.Pen>
+                <GeometryDrawing.Geometry>
+                    <GeometryGroup>
+                        <LineGeometry StartPoint="0,4" EndPoint="4,0" />
+                        <LineGeometry StartPoint="-1,1" EndPoint="1,-1" />
+                        <LineGeometry StartPoint="3,5" EndPoint="5,3" />
+                    </GeometryGroup>
+                </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <SolidColorBrush x:Key="TabBorderBrush" Color="#aab3c2" />
+    <SolidColorBrush x:Key="TabSelectedBorderBrush" Color="#bdc5d2" />
+    <SolidColorBrush x:Key="TabTextBrush" Color="#465064" />
+    <SolidColorBrush x:Key="TabBaseBrush" Color="Transparent" />
+    <LinearGradientBrush x:Key="SocketBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#e2e7ee" Offset="0" />
+        <GradientStop Color="#f9fafb" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="SocketBorderBrush" Color="#bdc5d2" />
+    <SolidColorBrush x:Key="CaptionHoverBrush" Color="#14172033" />
+    <SolidColorBrush x:Key="CaptionPressedBrush" Color="#24172033" />
+    <SolidColorBrush x:Key="CaptionHoverGlyphBrush" Color="#172033" />
+    <!-- The one fixed color: Windows' close button is this red with a white glyph in every theme -->
+    <SolidColorBrush x:Key="CaptionCloseBrush" Color="#c42b1c" />
+    <SolidColorBrush x:Key="CaptionCloseGlyphBrush" Color="#ffffff" />
+</ResourceDictionary>

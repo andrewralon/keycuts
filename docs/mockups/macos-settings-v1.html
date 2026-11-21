@@ -1,0 +1,259 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: macOS Settings, hotkey and Run box (v1)</title>
+<style>
+/* Phase 5.4, 6.2, 6.4 and 6.5 of docs/macos-port.md, and plan correction 2 (the default hotkey). A picture of the idea, not a screenshot. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:#172033;width:1640px}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:15px;margin:0 0 8px}
+.lead{font-size:13px;color:#465064;margin:0 0 20px;max-width:1240px;line-height:1.5}
+.row{display:flex;gap:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px}
+.note{font-size:12.5px;color:#465064;line-height:1.5}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:3px 0}
+.panel{background:#f4f6f9;border:1px solid #cfd5df;border-radius:10px;padding:16px 18px}
+.sp{height:28px}
+code{font-family:"SF Mono",Menlo,monospace;font-size:11.5px}
+
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--glow:rgba(37,99,235,.22);--warn:#9a5b00;--warnSoft:#fff5dc;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --zoomOff:#d6d8dc;--zoomOffRing:#bfc2c7;--uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentText:#6a9eff;--accentSoft:#182a4d;--onAccent:#06090f;--glow:rgba(79,140,255,.3);--warn:#f0c365;--warnSoft:#41351e;
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --zoomOff:#4b4e55;--zoomOffRing:#5b5f66;--uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a}
+
+.win{background:var(--surface);color:var(--text);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column}
+.rail{height:48px;display:flex;align-items:flex-end;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.lights{display:flex;gap:8px;align-self:center;padding:0 0 0 20px;flex:none}
+.lights i{width:12px;height:12px;border-radius:50%;display:block;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}
+.lights .r{background:#ff5f57}.lights .y{background:#febc2e}.lights .g{background:var(--zoomOff);box-shadow:inset 0 0 0 .5px var(--zoomOffRing)}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:4px 24px 0 16px;align-self:stretch;font-weight:600;font-size:16px}
+.brand img{width:36px;height:36px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 2px 12px;display:flex;align-items:center;
+  font-size:16px;font-weight:600;color:var(--tabText);background:var(--tabBorder);clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface)}
+.drag{flex:1;align-self:stretch;margin:8px;background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+
+/* settings: two columns with a rule, PagePadding 16 top */
+.set-page{display:flex;padding:16px 24px 24px;flex:1;gap:0}
+.scol{flex:1;min-width:0}
+.rule{width:1px;background:var(--border);margin:0 24px}
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:20px 0 8px}
+.sec.first{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:14px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.35}
+.set .n.warn{color:var(--warn)}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface)}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.frow{display:flex;gap:8px;align-items:center}
+.flabel{font-size:13px;font-weight:600;margin-bottom:6px}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+.radio{display:flex;gap:14px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:6px}
+.dot{width:16px;height:16px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconpick{width:52px;height:52px;border:1px solid var(--ctl);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.iconpick img{width:40px;height:40px}
+.btn{height:36px;padding:0 14px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:inline-flex;align-items:center;font-size:13px;font-weight:600}
+.endrow{display:flex;justify-content:space-between;margin-top:20px}
+.keyrec{height:30px;min-width:118px;border:1px solid var(--ctl);border-radius:5px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;padding:0 10px;background:var(--subtle)}
+.keyrec.rec{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);color:var(--text3);font-weight:400}
+.keyrec.bad{border-color:var(--warn);background:var(--warnSoft)}
+.newmark{outline:2px dashed #2563eb;outline-offset:4px;border-radius:4px}
+.legend{display:inline-block;width:14px;height:10px;outline:2px dashed #2563eb;border-radius:2px;margin-right:6px;vertical-align:0}
+
+/* hotkey table */
+.hk{border-collapse:collapse;font-size:12.5px;width:100%}
+.hk th,.hk td{padding:5px 8px;border-bottom:1px solid #d6dbe3;text-align:left;vertical-align:top}
+.hk th{color:#465064}
+.hk td.k{font-weight:700;white-space:nowrap;font-size:13px}
+.hk tr.pick td{background:#e6f4ea}
+.no{color:#b42318;font-weight:600}.ok{color:#127a3b;font-weight:600}.meh{color:#8a5700;font-weight:600}
+
+/* run box */
+.desk{width:760px;height:400px;border-radius:12px;position:relative;overflow:hidden;background:linear-gradient(135deg,#5a7bb5,#9a7fc2 55%,#d99a8a)}
+.desk.dk{background:linear-gradient(135deg,#1b2333,#30264a 55%,#4a2e3a)}
+.mb{height:24px;background:rgba(255,255,255,.55);display:flex;align-items:center;gap:16px;padding:0 12px;font-size:12.5px;color:#1d1d1f}
+.desk.dk .mb{background:rgba(30,30,34,.6);color:#eee}
+.mb .r{margin-left:auto;display:flex;gap:12px}
+.runbox{position:absolute;left:80px;top:78px;width:600px;border-radius:14px;overflow:hidden;background:var(--surface);color:var(--text);
+  box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 20px 50px rgba(0,0,0,.35)}
+.rb-in{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--border);font-size:20px}
+.rb-in img{width:28px;height:28px}
+.rb-in .caret{display:inline-block;width:1.5px;height:22px;background:var(--accent);margin-left:1px;vertical-align:-4px}
+.rb-in .ghost{color:var(--text3)}
+.rb-list{padding:6px}
+.rb-row{height:40px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px;font-size:13px}
+.rb-row.sel{background:var(--accent);color:var(--onAccent)}
+.rb-row .nm{font-weight:600;width:110px;flex:none}
+.rb-row .tg{color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-row.sel .tg{color:var(--onAccent);opacity:.85}
+.rb-row .rn{font-size:12px;color:var(--text3)}
+.rb-row.sel .rn{color:var(--onAccent);opacity:.8}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid;flex:none;width:58px;justify-content:center}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+.rb-row.sel .badge{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:var(--onAccent)}
+.rb-foot{height:32px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;gap:16px;padding:0 16px;font-size:12px;color:var(--text2)}
+.rb-foot b{color:var(--text);font-weight:600}
+.plus{width:58px;display:flex;justify-content:center;flex:none}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+ <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+ <symbol id="i-launch" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<h1>keycuts on macOS: Settings, the Run box hotkey and the Run box (v1)</h1>
+<p class="lead">Phase 5.4 (Settings), 6.2 (hotkey picker and its "can't register" message), 6.4 (the box) and 6.5 (open at login), and the default hotkey (correction 2). <span class="legend"></span>marks what is new or different from Windows. Settings keeps the two columns at the shared 768 × 470 size, with no scrolling.</p>
+
+<div class="row">
+ <div class="col">
+  <h2>1. Settings, light (768 × 470)</h2>
+  <div class="win light" style="width:768px;height:470px">
+   <div class="rail"><div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+    <div class="brand"><img src="../../assets/icons/key-charcoal/key-charcoal-96.png" alt="">keycuts</div>
+    <div class="tabs"><div class="tw"><div class="tab"><span>creator</span></div></div><div class="tw"><div class="tab"><span>manager</span></div></div>
+     <div class="tw on"><div class="tab"><svg width="20" height="20"><use href="#i-gear"/></svg></div></div></div><div class="drag"></div></div>
+   <div class="set-page">
+    <div class="scol">
+     <div class="sec first">Output</div>
+     <div class="flabel">Output folder</div>
+     <div class="frow"><div class="field">/Users/sample/Shortcuts</div><div class="sq"><svg width="20" height="20"><use href="#i-folder"/></svg></div><div class="sq"><svg width="20" height="20"><use href="#i-launch"/></svg></div></div>
+     <div class="help">New keycuts are saved here.</div>
+     <div class="set newmark" style="margin-top:14px"><div><div class="t">Run keycuts in Terminal</div><div class="n">Adds the folder to PATH in ~/.zprofile.</div></div><div class="tog"></div></div>
+     <div class="sec">Behavior</div>
+     <div class="set"><div class="t">Ask before replacing a keycut</div><div class="tog"></div></div>
+     <div class="set newmark"><div><div class="t">Finder Quick Action</div><div class="n">Add “keycut this!” to Finder’s Quick Actions.</div></div><div class="tog"></div></div>
+     <div class="set newmark"><div><div class="t">Use $HOME in paths</div><div class="n">Save paths in your home folder as $HOME/…. Hold Shift to preview or create a keycut like this, even when off.</div></div><div class="tog off"></div></div>
+    </div>
+    <div class="rule"></div>
+    <div class="scol">
+     <div class="sec first newmark" style="display:inline-block">Run box</div>
+     <div class="set newmark"><div><div class="t">Shortcut</div><div class="n">Opens the Run box from any app.</div></div><div class="keyrec">⇧⌘Space</div></div>
+     <div class="set newmark"><div><div class="t">Open at login</div><div class="n">keycuts waits in the menu bar (about 90 MB).</div></div><div class="tog"></div></div>
+     <div class="sec">Appearance</div>
+     <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>
+     <div class="set newmark"><div><div class="t">Icon <span class="v">· Black &amp; White</span></div><div class="n">In the Dock while keycuts runs.</div></div><div class="iconpick"><img src="../../assets/icons/key-charcoal/key-charcoal-96.png" alt=""></div></div>
+     <div class="sec">Updates</div>
+     <div class="set"><div class="t">Check for updates daily</div><div class="tog"></div></div>
+     <div class="endrow"><span class="btn">show welcome</span><span class="btn">restore defaults</span></div>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div class="col" style="width:420px">
+  <h2>What changes from Windows</h2>
+  <div class="note"><ul>
+   <li><b>Run keycuts in Terminal</b> (5.4, the PATH row) replaces nothing; on Windows PATH is offered only in the welcome panel. On: the marked block in <code>~/.zprofile</code> (or <code>~/.bash_profile</code>), as <code>keycuts path add</code>; off removes it, leaving the rest of the file byte for byte. Its note follows the state:
+    <ul><li>"Adds the folder to PATH in ~/.zprofile." (off, or on and in place)</li>
+     <li>"It’s already on PATH, so there’s nothing to add." (on, and set by something else: the switch is on and disabled)</li>
+     <li>"fish doesn’t read ~/.zprofile. Add the folder to PATH in its own settings." (fish, nushell: disabled)</li>
+     <li>"Open a new Terminal window to use it." for 6 s after turning it on.</li></ul></li>
+   <li><b>Finder Quick Action</b> replaces "Right-click context menus" (Phase 7 installs it; until then the row is there and the switch does nothing but save). It shows the actual state, as the Windows row does.</li>
+   <li><b>Use $HOME in paths</b>: the same setting as "Use environment variables in paths"; macOS has only <code>$HOME</code>, so it says so.</li>
+   <li><b>Run box</b> (new section, 6.2 and 6.5). <b>Shortcut</b> is a key recorder: click it, press the keys, Esc cancels, Delete clears (no hotkey). A shortcut must include ⌘ or ⌃ (macOS 15). <b>Open at login</b> is <code>SMAppService</code>'s state (notFound reads as off); its note says keycuts stays in the menu bar and roughly what that costs (correction 5).</li>
+   <li><b>Icon</b>: the Dock icon while keycuts runs. Finder and Launchpad keep the bundle's own icon, which can't change without breaking the signature. <b>Transparent icon background</b> is gone on macOS: the Dock has no tile behind the icon, so there is nothing to turn off.</li>
+   <li><b>Theme</b>: System follows macOS, Increase Contrast included (high contrast, Phase 5.4).</li>
+  </ul></div>
+ </div>
+</div>
+
+<div class="sp"></div>
+
+<div class="row">
+ <div class="col" style="width:560px">
+  <h2>2. The shortcut row's other states (dark)</h2>
+  <div class="win dark" style="width:360px;padding:16px 20px">
+   <div class="set"><div><div class="t">Shortcut</div><div class="n">Press the keys. Esc cancels.</div></div><div class="keyrec rec">⌘ …</div></div>
+   <div style="height:16px"></div>
+   <div class="set"><div><div class="t">Shortcut</div><div class="n warn">Couldn’t use ⇧⌘Space: another app has it. Choose another.</div></div><div class="keyrec bad">⇧⌘Space</div></div>
+   <div style="height:16px"></div>
+   <div class="set"><div><div class="t">Shortcut</div><div class="n warn">Add ⌘ or ⌃: macOS doesn’t allow ⌥ or ⇧ alone.</div></div><div class="keyrec bad">⌥Space</div></div>
+   <div style="height:16px"></div>
+   <div class="set"><div><div class="t">Shortcut</div><div class="n">None. Open the Run box from the menu bar.</div></div><div class="keyrec">none</div></div>
+  </div>
+  <div class="note">Recording (top), refused by macOS at startup or when picked (<code>RegisterEventHotKey</code> fails: another app registered it), a combination macOS 15 won't take, and cleared. The warning line uses the style guide's warning color and is a live line (announced). A shortcut that fails at startup is kept, so it works again once the other app lets go; the menu bar's Run… still opens the box.</div>
+ </div>
+
+ <div class="col" style="width:1000px">
+  <h2>3. The default shortcut (correction 2): <span style="color:#127a3b">⇧⌘Space</span> proposed</h2>
+  <div class="panel">
+   <table class="hk">
+    <tr><th style="width:110px">Shortcut</th><th style="width:90px"></th><th>Why</th></tr>
+    <tr><td class="k">⌘Space</td><td class="no">taken</td><td>Spotlight</td></tr>
+    <tr><td class="k">⌥⌘Space</td><td class="no">taken</td><td>Finder search window</td></tr>
+    <tr><td class="k">⌃⌘Space</td><td class="no">taken</td><td>Character Viewer (emoji), in every app's Edit menu</td></tr>
+    <tr><td class="k">⌃Space, ⌃⌥Space</td><td class="no">taken</td><td>Previous and next input source, on by default once a second input source is added (Phase 0.2)</td></tr>
+    <tr><td class="k">⌥Space</td><td class="no">refused</td><td>macOS 15 and later refuse a hotkey without ⌘ or ⌃; it also types a non-breaking space</td></tr>
+    <tr><td class="k">any ⌃⌥ key</td><td class="no">no</td><td>⌃⌥ is VoiceOver's own modifier (VO), so ⌃⌥K and the like would take a VoiceOver command away</td></tr>
+    <tr class="pick"><td class="k">⇧⌘Space</td><td class="ok">proposed</td><td>Not in Apple's shortcut lists, one key from Spotlight's ⌘Space, easy with one hand. Few apps use it (no common app menu has it); one that does loses it while keycuts runs, and the picker can change it.</td></tr>
+    <tr><td class="k">⌃⇧Space</td><td class="meh">fallback</td><td>Also not a macOS default, but IDEs use it (VS Code's parameter hints, JetBrains' smart completion), and a global hotkey takes it from them</td></tr>
+   </table>
+  </div>
+  <div class="note">Checked against Apple's "Mac keyboard shortcuts" and "Spotlight keyboard shortcuts" pages and this Mac's System Settings (macOS 26.6). The default is set once, at first start; Settings changes it.</div>
+ </div>
+</div>
+
+<div class="sp"></div>
+
+<div class="row">
+ <div class="col">
+  <h2>4. The Run box (6.4), light: “gm” typed</h2>
+  <div class="desk light">
+   <div class="mb"><b></b><b>Safari</b><span>File</span><span>Edit</span><span>View</span><span class="r"><span>⌨</span><span>Fri 9:41</span></span></div>
+   <div class="runbox">
+    <div class="rb-in"><img src="../../assets/icons/key-charcoal/key-charcoal-96.png" alt=""><span>gm<span class="caret"></span><span class="ghost">ail</span></span></div>
+    <div class="rb-list">
+     <div class="rb-row sel"><span class="nm">gmail</span><span class="badge u">URL</span><span class="tg">https://mail.google.com</span><span class="rn">42 runs</span></div>
+     <div class="rb-row"><span class="nm">gmaps</span><span class="badge u">URL</span><span class="tg">https://maps.google.com</span><span class="rn">7 runs</span></div>
+     <div class="rb-row"><span class="nm">programs</span><span class="badge f">Folder</span><span class="tg">/Applications</span><span class="rn">3 runs</span></div>
+    </div>
+    <div class="rb-foot"><span><b>Return</b> run</span><span><b>Tab</b> complete</span><span><b>↑ ↓</b> choose</span><span><b>Esc</b> close</span></div>
+   </div>
+  </div>
+ </div>
+ <div class="col">
+  <h2>5. Dark: a name that isn't a keycut</h2>
+  <div class="desk dk dark">
+   <div class="mb"><b></b><b>Terminal</b><span>Shell</span><span>Edit</span><span>View</span><span class="r"><span>⌨</span><span>Fri 9:41</span></span></div>
+   <div class="runbox">
+    <div class="rb-in"><img src="../../assets/icons/key-white/key-white-96.png" alt=""><span>gmial<span class="caret"></span></span></div>
+    <div class="rb-list">
+     <div class="rb-row sel"><span class="nm">Create “gmial”…</span><span class="plus"><svg width="18" height="18"><use href="#i-plus"/></svg></span><span class="tg">Opens the creator with the name filled in</span></div>
+    </div>
+    <div class="rb-foot"><span><b>Return</b> create</span><span><b>Esc</b> close</span></div>
+   </div>
+  </div>
+ </div>
+</div>
+<div class="note" style="max-width:1560px;margin-top:12px"><ul>
+ <li><b>The box</b>: a borderless window, 600 wide, a third of the way down the active screen, above every window (also over full-screen apps). One text box (20, the keycap at 28 beside it) and up to 6 rows from <code>RunBoxMatcher</code>: exact name, then prefix, then the rest by runs and last run. Each row: name (SemiBold), type badge, target, runs. Nothing typed shows nothing (the box is just the text field).</li>
+ <li><b>Keys</b>: <b>Return</b> runs the selected row (<code>/bin/sh</code> through <code>IDesktop</code>, detached) and hides; <b>Tab</b> completes the name to the selected row's (the gray "ail"); <b>↑ ↓</b> move the selection; <b>Esc</b> hides. Hiding hands focus back to the app that was in front. Clicking a row runs it; clicking outside hides the box.</li>
+ <li><b>No match</b>: one row, "Create “name”…", which opens the main window on the creator with the name filled in.</li>
+ <li><b>Accessibility</b>: the text box is named "Run a keycut"; the list is a list box whose selection VoiceOver reads ("gmail, URL, https://mail.google.com, 42 runs"); the hint line is text, not buttons.</li>
+</ul></div>
+</body></html>

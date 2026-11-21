@@ -43,6 +43,18 @@ namespace keycuts.Common
             $"(>>\"{BatFolder}\\%~n0{Extension}\" ECHO 1) 2>NUL"
         };
 
+        /// <summary>
+        /// The macOS keycut's twin of <see cref="BatLines"/>, after its launch line: keep the launch's status, add a line to
+        /// <c>&lt;name&gt;.runs</c> in the same folder as <see cref="DefaultFolder"/> (<c>${0##*/}</c> is the script's own name, so
+        /// a rename in Finder keeps counting), silently, then exit with that status.
+        /// </summary>
+        public static readonly IReadOnlyList<string> ShLines = new[]
+        {
+            "s=$?",
+            "u=\"$HOME/Library/Application Support/keycuts/usage\"; { mkdir -p \"$u\" && echo 1 >>\"$u/${0##*/}" + Extension + "\"; } 2>/dev/null",
+            "exit $s"
+        };
+
         /// <summary>The per-user folder the .bat writes to: <see cref="BatFolder"/> expanded.</summary>
         public static readonly string DefaultFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "keycuts", "usage");
@@ -68,12 +80,12 @@ namespace keycuts.Common
             return lines.Any(IsUsageLine);
         }
 
-        /// <summary>True for a line exactly as <see cref="BatLines"/> writes it (surrounding blanks aside).</summary>
+        /// <summary>True for a line exactly as <see cref="BatLines"/> or <see cref="ShLines"/> writes it (surrounding blanks aside).</summary>
         public static bool IsUsageLine(string line)
         {
             var trimmed = (line ?? "").Trim();
 
-            return BatLines.Any(usage => string.Equals(trimmed, usage, StringComparison.OrdinalIgnoreCase));
+            return BatLines.Concat(ShLines).Any(usage => string.Equals(trimmed, usage, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>The record for the keycut named <paramref name="name"/> (any case), or null if it has none.</summary>

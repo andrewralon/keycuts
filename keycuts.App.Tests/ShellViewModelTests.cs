@@ -1,0 +1,580 @@
+#nullable enable
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
+using keycuts.Common;
+using keycuts.GUI;
+using keycuts.GUI.Mvvm;
+using keycuts.GUI.ViewModels;
+using Xunit;
+
+namespace keycuts.Tests
+{
+    public class ShellViewModelTests
+    {
+        static ShellViewModel CreateShell(Func<Task<int>>? countProvider = null)
+        {
+            return new ShellViewModel(countProvider ?? (() => Task.FromResult(3)));
+        }
+
+        [Fact]
+        public void StartsInCreator_WithCreatorTitle()
+        {
+            var shell = CreateShell();
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.Same(shell.Creator, shell.CurrentView);
+            Assert.Equal("keycuts", shell.Title);
+        }
+
+        [Fact]
+        public void ShowManager_SwapsViewAndTitle_AndRaisesChanges()
+        {
+            var shell = CreateShell();
+            var changed = new System.Collections.Generic.List<string?>();
+            shell.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+
+            shell.ShowManagerCommand.Execute(null);
+
+            Assert.Equal(ShellMode.Manager, shell.Mode);
+            Assert.Same(shell.Manager, shell.CurrentView);
+            Assert.Equal("keycuts", shell.Title);
+            Assert.Contains(nameof(ShellViewModel.CurrentView), changed);
+            Assert.Contains(nameof(ShellViewModel.Mode), changed);
+            Assert.Contains(nameof(ShellViewModel.Title), changed);
+        }
+
+        [Fact]
+        public void ShowCreator_ReturnsToCreator_AndKeepsCreatorInput()
+        {
+            var shell = CreateShell();
+            shell.Creator.Target = @"C:\temp";
+            shell.Creator.ShortcutName = "tmp";
+
+            shell.ShowManager();
+            shell.ShowCreatorCommand.Execute(null);
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.Same(shell.Creator, shell.CurrentView);
+            Assert.Equal(@"C:\temp", shell.Creator.Target);
+            Assert.Equal("tmp", shell.Creator.ShortcutName);
+        }
+
+        [Fact]
+        public void ShowingTheCurrentModeAgain_DoesNothing()
+        {
+            var shell = CreateShell();
+            var raised = 0;
+            shell.PropertyChanged += (sender, e) => raised++;
+
+            shell.ShowCreator();
+            Assert.Equal(0, raised);
+
+            shell.ShowManager();
+            raised = 0;
+            shell.ShowManager();
+            Assert.Equal(0, raised);
+        }
+
+        [Fact]
+        public void ChildCommands_NavigateThroughTheShell()
+        {
+            var shell = CreateShell();
+
+            shell.Creator.ShowManagerCommand.Execute(null);
+            Assert.Equal(ShellMode.Manager, shell.Mode);
+
+            shell.Manager.ShowCreatorCommand.Execute(null);
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+        }
+
+        [Fact]
+        public void ShowManager_ResetsSearchAndMenu()
+        {
+            var shell = CreateShell();
+            shell.Manager.SearchText = "old";
+            shell.Manager.IsMenuOpen = true;
+
+            shell.ShowManager();
+
+            Assert.Equal(string.Empty, shell.Manager.SearchText);
+            Assert.False(shell.Manager.IsMenuOpen);
+        }
+
+        #region Settings as a screen (#218)
+
+        private sealed class SettingsStore : ISettingsStore
+        {
+            public Settings Stored { get; set; } = new Settings { OutputFolder = @"C:\Shortcuts", CheckForUpdates = true };
+
+            public int Saves { get; private set; }
+
+            public Settings Load()
+            {
+                return Stored;
+            }
+
+            public string? SaveOptions(Settings settings)
+            {
+                Saves++;
+                Stored = settings;
+                return null;
+            }
+
+            public FolderSaveResult SaveOutputFolder(string folder)
+            {
+                return new FolderSaveResult(true, null);
+            }
+        }
+
+        static (ShellViewModel Shell, SettingsStore Store, List<SettingsViewModel> Made) CreateShellWithSettings(Func<Task<int>>? countProvider = null)
+        {
+            var store = new SettingsStore();
+            var made = new List<SettingsViewModel>();
+            var shell = new ShellViewModel(countProvider ?? (() => Task.FromResult(3)), settingsFactory: () =>
+            {
+                var screen = new SettingsViewModel(store, checkFolder: _ => null);
+                made.Add(screen);
+                return screen;
+            });
+            return (shell, store, made);
+        }
+
+        [Fact]
+        public void SettingsCommand_ShowsTheSettingsScreen_FromBothViews()
+        {
+            var (shell, _, made) = CreateShellWithSettings();
+
+            shell.Creator.OpenSettingsCommand.Execute(null);
+
+            Assert.Equal(ShellMode.Settings, shell.Mode);
+            Assert.Same(shell.Settings, shell.CurrentView);
+            Assert.Same(made.Single(), shell.Settings);
+            Assert.Equal("keycuts", shell.Title);
+
+            shell.ShowManager();
+            Assert.Null(shell.Settings);
+            shell.Manager.OpenSettingsCommand.Execute(null);
+            Assert.Equal(ShellMode.Settings, shell.Mode);
+        }
+
+        [Fact]
+        public void TheSettingsScreen_IsMadeFreshEachTimeItOpens_AndShowsTheCreatorsFooter()
+        {
+            var (shell, store, made) = CreateShellWithSettings();
+
+            shell.ShowSettings();
+            shell.ShowSettings();
+            Assert.Single(made);
+
+            store.Stored = new Settings { OutputFolder = @"D:\Other" };
+            shell.ShowCreator();
+            shell.ShowSettings();
+
+            Assert.Equal(2, made.Count);
+            Assert.Equal(@"D:\Other", shell.Settings!.OutputFolder);
+            Assert.Same(shell.Creator, shell.Settings.Footer);
+        }
+
+        static async Task WaitUntil(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (!condition() && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(10);
+            }
+        }
+
+        // #238: a folder chosen in Settings gets the run-counting lines before it is counted, not at the next start
+        [WindowsFact]
+        public async Task ANewFolder_IsPrepared_ThenCounted()
+        {
+            var steps = new List<string>();
+            var prepared = new TaskCompletionSource();
+            var (shell, _, _) = CreateShellWithSettings(() =>
+            {
+                steps.Add("count");
+                return Task.FromResult(5);
+            });
+            shell.PrepareOutputFolder = () =>
+            {
+                steps.Add("prepare");
+                return prepared.Task;
+            };
+            shell.ShowSettings();
+            steps.Clear();
+
+            shell.Settings!.OutputFolder = @"D:\New";
+            Assert.True(shell.Settings.CommitOutputFolder());
+            Assert.Equal(new[] { "prepare" }, steps);
+
+            prepared.SetResult();
+            await WaitUntil(() => steps.Count == 2);
+            Assert.Equal(new[] { "prepare", "count" }, steps);
+            Assert.Equal(5, shell.Creator.KeycutCount);
+
+            // The same folder again stores nothing, so nothing is prepared
+            Assert.True(shell.Settings.CommitOutputFolder());
+            Assert.Equal(new[] { "prepare", "count" }, steps);
+        }
+
+        [WindowsFact]
+        public async Task AFolderThatCantBePrepared_IsStillCounted()
+        {
+            var counts = 0;
+            var (shell, _, _) = CreateShellWithSettings(() =>
+            {
+                counts++;
+                return Task.FromResult(2);
+            });
+            shell.PrepareOutputFolder = () => Task.FromException(new InvalidOperationException("offline"));
+            shell.ShowSettings();
+            counts = 0;
+
+            shell.Settings!.OutputFolder = @"D:\New";
+            shell.Settings.CommitOutputFolder();
+            await WaitUntil(() => counts == 1);
+
+            Assert.Equal(1, counts);
+        }
+
+        [Fact]
+        public void WithoutAWayToMakeIt_SettingsCantOpen()
+        {
+            var shell = CreateShell();
+
+            Assert.False(shell.OpenSettingsCommand.CanExecute(null));
+            shell.ShowSettings();
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.Null(shell.Settings);
+        }
+
+        [Fact]
+        public void Escape_OnSettings_ClosesTheIconPickerFirst_ThenReturnsToTheCreator()
+        {
+            var (shell, _, _) = CreateShellWithSettings();
+            shell.ShowSettings();
+            shell.Settings!.IsIconPickerOpen = true;
+
+            Assert.Equal(EscapeResult.ClosedIconPicker, shell.HandleEscape());
+            Assert.Equal(ShellMode.Settings, shell.Mode);
+            Assert.False(shell.Settings.IsIconPickerOpen);
+
+            // Nothing on the screen is unsaved, so leaving it loses nothing
+            Assert.Equal(EscapeResult.ReturnedToCreator, shell.HandleEscape());
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+        }
+
+        [Fact]
+        public void TheTabs_AreOff_OnlyWhileTheIconPickerIsOpen()
+        {
+            var (shell, _, _) = CreateShellWithSettings();
+            var changed = new List<string?>();
+            shell.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
+            Assert.True(shell.AreTabsEnabled);
+
+            shell.ShowSettings();
+            Assert.True(shell.AreTabsEnabled);
+
+            shell.Settings!.IsIconPickerOpen = true;
+            Assert.False(shell.AreTabsEnabled);
+            Assert.Contains(nameof(ShellViewModel.AreTabsEnabled), changed);
+
+            shell.Settings.IsIconPickerOpen = false;
+            Assert.True(shell.AreTabsEnabled);
+        }
+
+        [Fact]
+        public void AStoredChange_ReachesTheCreatorAtOnce()
+        {
+            // What closing the old dialog refreshed now follows each change: the environment-variables preview
+            var (shell, _, _) = CreateShellWithSettings();
+            shell.Creator.UseEnvironmentVariablesSetting = false;
+            shell.ShowSettings();
+
+            shell.Settings!.UseEnvironmentVariables = true;
+            Assert.True(shell.Creator.UseEnvironmentVariablesSetting);
+
+            shell.Settings.UseEnvironmentVariables = false;
+            Assert.False(shell.Creator.UseEnvironmentVariablesSetting);
+        }
+
+        // Reloads overlap (a screen switch, then a new folder); one that started earlier and finishes last must not put back
+        // the old folder's count (PR #225 review)
+        [Fact]
+        public async Task AnOlderReloadThatFinishesLast_DoesntShowItsCount()
+        {
+            var pending = new List<TaskCompletionSource<int>>();
+            var shell = new ShellViewModel(() =>
+            {
+                var answer = new TaskCompletionSource<int>();
+                pending.Add(answer);
+                return answer.Task;
+            });
+
+            var older = shell.ReloadAsync();
+            var newer = shell.ReloadAsync();
+
+            pending[1].SetResult(9);
+            await newer;
+            pending[0].SetResult(3);
+            await older;
+
+            Assert.Equal(9, shell.Creator.KeycutCount);
+            Assert.Equal(9, shell.Manager.KeycutCount);
+        }
+
+        // A Manager load still running when the screen changes and a new folder's count comes in must not fill the table with the
+        // old folder's rows afterwards (PR #227 review)
+        [Fact]
+        public async Task AManagerLoadOvertakenByACountOnlyReload_DoesntPublishItsRows()
+        {
+            var load = new TaskCompletionSource<IReadOnlyList<Keycut>>();
+            var count = 3;
+            var shell = new ShellViewModel(() => Task.FromResult(count), _ => load.Task);
+
+            shell.ShowManager();
+            Assert.True(shell.Manager.IsLoading);
+
+            count = 9;
+            shell.ShowCreator();
+            await shell.ReloadAsync();
+
+            load.SetResult(new[]
+            {
+                new Keycut { Name = "old", Kind = KeycutKind.Url, RawType = ShortcutType.Url, Target = "https://old.example.com", FilePath = @"C:\Old\old.bat" }
+            });
+            await Task.Yield();
+
+            Assert.Empty(shell.Manager.Rows);
+            Assert.Equal(9, shell.Manager.KeycutCount);
+            Assert.Equal(9, shell.Creator.KeycutCount);
+        }
+
+        [Fact]
+        public async Task AnOlderReloadThatFinishesLast_DoesntReachTheWelcomePanel()
+        {
+            var pending = new List<TaskCompletionSource<int>>();
+            // A first run (never dismissed): the panel decides from the first count it is given
+            var welcome = new WelcomeViewModel(() => false, () => { });
+            var shell = new ShellViewModel(() =>
+            {
+                var answer = new TaskCompletionSource<int>();
+                pending.Add(answer);
+                return answer.Task;
+            }, welcome: welcome);
+
+            var older = shell.ReloadAsync();
+            var newer = shell.ReloadAsync();
+            pending[1].SetResult(5);
+            await newer;
+            var shownAfterNewer = welcome.IsVisible;
+            pending[0].SetResult(0);
+            await older;
+
+            Assert.Equal(shownAfterNewer, welcome.IsVisible);
+            Assert.Equal(5, shell.Creator.KeycutCount);
+        }
+
+        [WindowsFact]
+        public async Task ANewOutputFolder_ReloadsTheCount()
+        {
+            var count = 3;
+            var (shell, _, _) = CreateShellWithSettings(() => Task.FromResult(count));
+            shell.ShowSettings();
+            await shell.ReloadAsync();
+            Assert.Equal(3, shell.Creator.KeycutCount);
+
+            count = 9;
+            shell.Settings!.OutputFolder = @"C:\Elsewhere";
+            Assert.True(shell.Settings.CommitOutputFolder());
+            await Task.Yield();
+            await shell.ReloadAsync();
+
+            Assert.Equal(9, shell.Creator.KeycutCount);
+        }
+
+        // Check now can answer after Settings was left; the footer's update line still follows (PR #225 review)
+        [Fact]
+        public async Task ACheckThatEndsAfterLeavingSettings_StillRefreshesTheFooter()
+        {
+            var answer = new TaskCompletionSource<keycuts.Common.LatestRelease>();
+            var source = new FakeReleaseSource { NextAsync = () => answer.Task };
+            var checker = UpdateFakes.Checker(source, new FakeUpdateState(), "1.1.1.0");
+            var notice = new UpdateNoticeViewModel(checker, _ => { });
+            var store = new SettingsStore();
+            var shell = new ShellViewModel(() => Task.FromResult(3), updateNotice: notice,
+                settingsFactory: () => new SettingsViewModel(store, checkFolder: _ => null, updates: checker));
+            notice.Refresh();
+            Assert.False(notice.IsVisible);
+
+            shell.ShowSettings();
+            var check = shell.Settings!.CheckNowCommand.ExecuteAsync();
+            shell.ShowCreator();
+
+            answer.SetResult(FakeReleaseSource.Release("v1.2.0"));
+            await check;
+
+            Assert.True(notice.IsVisible);
+            Assert.Equal("keycuts 1.2.0 is available", notice.Message);
+        }
+
+        [Fact]
+        public void ShowWelcome_OnSettings_GoesBackToTheCreator()
+        {
+            var (shell, _, _) = CreateShellWithSettings();
+            shell.ShowSettings();
+            var screen = shell.Settings!;
+
+            screen.ShowWelcomeCommand.Execute(null);
+
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+            Assert.Null(shell.Settings);
+
+            // The old screen is let go: its events no longer reach the shell
+            screen.UseEnvironmentVariables = !screen.UseEnvironmentVariables;
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+        }
+
+        #endregion
+
+        [Fact]
+        public async Task ReloadAsync_UpdatesCountOnBothViews()
+        {
+            var count = 2;
+            var shell = CreateShell(() => Task.FromResult(count));
+
+            await shell.ReloadAsync();
+            Assert.Equal(2, shell.Creator.KeycutCount);
+            Assert.Equal(2, shell.Manager.KeycutCount);
+
+            count = 5;
+            shell.ShowManager();
+            Assert.Equal(5, shell.Manager.KeycutCount);
+        }
+
+        [Fact]
+        public async Task ReloadAsync_TreatsProviderFailureAsZero()
+        {
+            var shell = CreateShell(() => throw new InvalidOperationException("boom"));
+            shell.Creator.KeycutCount = 4;
+
+            await shell.ReloadAsync();
+
+            Assert.Equal(0, shell.Creator.KeycutCount);
+        }
+
+        [Fact]
+        public void KeycutCreated_ReloadsCount()
+        {
+            var shell = CreateShell(() => Task.FromResult(7));
+
+            shell.Creator.NotifyKeycutCreated();
+
+            Assert.Equal(7, shell.Creator.KeycutCount);
+        }
+
+        #region Escape precedence
+
+        // Each Escape undoes one thing: the menu (the search kept), then the search, then the Manager, then the window
+        [Fact]
+        public void Escape_ClosesTheMenu_ThenClearsTheSearch_ThenLeavesTheManager_ThenClosesTheWindow()
+        {
+            var shell = CreateShell();
+            shell.ShowManager();
+            shell.Manager.SearchText = "abc";
+            shell.Manager.IsMenuOpen = true;
+
+            Assert.Equal(EscapeResult.ClosedMenu, shell.HandleEscape());
+            Assert.False(shell.Manager.IsMenuOpen);
+            Assert.Equal("abc", shell.Manager.SearchText);
+            Assert.Equal(ShellMode.Manager, shell.Mode);
+
+            Assert.Equal(EscapeResult.ClearedSearch, shell.HandleEscape());
+            Assert.Equal(string.Empty, shell.Manager.SearchText);
+            Assert.Equal(ShellMode.Manager, shell.Mode);
+
+            Assert.Equal(EscapeResult.ReturnedToCreator, shell.HandleEscape());
+            Assert.Same(shell.Creator, shell.CurrentView);
+
+            Assert.Equal(EscapeResult.CloseWindow, shell.HandleEscape());
+            Assert.Equal(ShellMode.Creator, shell.Mode);
+        }
+
+        #endregion Escape precedence
+
+        [Theory]
+        [InlineData("", false)]
+        [InlineData("  ", false)]
+        [InlineData(@"C:\temp", true)]
+        public void Creator_FocusesNameFieldOnlyWhenTargetIsSet(string target, bool expected)
+        {
+            var shell = CreateShell();
+            shell.Creator.Target = target;
+
+            Assert.Equal(expected, shell.Creator.FocusNameFieldOnShow);
+        }
+    }
+
+    public class WindowLayoutTests
+    {
+        // bounds and work area as "x,y,w,h": inside stays put, past an edge slides back, too big shrinks, and a second monitor's
+        // offset counts
+        [Theory]
+        [InlineData("100,100,960,700", "0,0,1920,1040", "100,100,960,700")]
+        [InlineData("1700,800,960,700", "0,0,1920,1040", "960,340,960,700")]
+        [InlineData("-50,-20,960,700", "0,0,1920,1040", "0,0,960,700")]
+        [InlineData("0,0,2500,1500", "0,0,1920,1040", "0,0,1920,1040")]
+        [InlineData("-300,500,960,700", "-1280,0,1280,984", "-960,284,960,700")]
+        public void Clamp_KeepsTheWindowInsideTheWorkArea(string bounds, string workArea, string expected)
+        {
+            Assert.Equal(Rect.Parse(expected), WindowLayout.ClampToWorkArea(Rect.Parse(bounds), Rect.Parse(workArea)));
+        }
+    }
+
+    public class RelayCommandTests
+    {
+        [Fact]
+        public void RelayCommand_RunsOnlyWhenCanExecute()
+        {
+            var runs = 0;
+            var allowed = false;
+            var command = new RelayCommand(() => runs++, () => allowed);
+
+            command.Execute(null);
+            Assert.Equal(0, runs);
+
+            allowed = true;
+            command.Execute(null);
+            Assert.Equal(1, runs);
+        }
+
+        [Fact]
+        public async Task AsyncRelayCommand_BlocksReentryWhileRunning_AndRaisesCanExecuteChanged()
+        {
+            var gate = new TaskCompletionSource();
+            var runs = 0;
+            var command = new AsyncRelayCommand(async () =>
+            {
+                runs++;
+                await gate.Task;
+            });
+            var changes = 0;
+            command.CanExecuteChanged += (sender, e) => changes++;
+
+            var first = command.ExecuteAsync();
+            Assert.False(command.CanExecute(null));
+            await command.ExecuteAsync();
+            Assert.Equal(1, runs);
+
+            gate.SetResult();
+            await first;
+
+            Assert.True(command.CanExecute(null));
+            Assert.Equal(2, changes);
+        }
+    }
+}

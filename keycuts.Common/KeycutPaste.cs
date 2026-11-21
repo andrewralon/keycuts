@@ -102,9 +102,14 @@ namespace keycuts.Common
         /// <exception cref="UnauthorizedAccessException">The file can't be read.</exception>
         public static string GetText(string path, Func<string, string[]> readLines, Func<string, string> readText, Func<string, string> expandVariables)
         {
-            if (string.Equals(Path.GetExtension(path), ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase))
+            // A .bat is a keycut; on macOS (no extension) a file is one if its first lines are keycuts' header
+            var keycut = ShortcutFile.Extension.Length > 0
+                ? string.Equals(Path.GetExtension(path), ShortcutFile.Extension, StringComparison.OrdinalIgnoreCase)
+                : ScriptFormats.Current.IsKeycut(readLines(path));
+
+            if (keycut)
             {
-                var file = new ShortcutFile(path, readLines(path));
+                var file = ScriptFormats.Current.Parse(path, readLines(path));
                 var target = file.Target;
 
                 if (string.IsNullOrEmpty(target))

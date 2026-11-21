@@ -1,0 +1,430 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using keycuts.Common;
+using Xunit;
+
+namespace keycuts.Tests
+{
+    /// <summary>#153: what else a keycut's name opens from Win+R. Every input is a fake; nothing reads the registry or disk.</summary>
+    public class NameConflictsTests
+    {
+        const string Windows = @"C:\Windows";
+
+        const string System32 = @"C:\Windows\System32";
+
+        const string Output = @"C:\Users\me\Shortcuts";
+
+        const string Before = @"C:\Tools\Before";
+
+        const string After = @"C:\Tools\After";
+
+        const string Apps = @"C:\Users\me\AppData\Local\Microsoft\WindowsApps";
+
+        static NameConflictEnvironment Environment(IEnumerable<string> files, string userPath = null, string machinePath = null,
+            string pathExt = null, Dictionary<string, string> appPaths = null)
+        {
+            var set = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
+
+            return new NameConflictEnvironment
+            {
+                WindowsFolder = Windows,
+                SystemFolder = System32,
+                MachinePath = machinePath ?? System32 + ";" + Windows + ";" + Before,
+                UserPath = userPath ?? Output + ";" + After + ";" + Apps,
+                PathExt = pathExt,
+                FileExists = set.Contains,
+                ExpandVariables = value => value.Replace("%LOCALAPPDATA%", @"C:\Users\me\AppData\Local"),
+                FindAppPath = name => appPaths != null && appPaths.TryGetValue(name, out var path) ? path : null
+            };
+        }
+
+        static IReadOnlyList<NameConflict> Find(string name, params string[] files)
+        {
+            return NameConflicts.Find(name, Output, Environment(files));
+        }
+
+        [Fact]
+        public void NothingElseWithTheName_IsNoConflict()
+        {
+            Assert.Empty(Find("gmail", Path.Combine(Output, "gmail.bat")));
+        }
+
+        [Fact]
+        public void TheKeycutsOwnBat_IsLeftToTheOverwriteCheck()
+        {
+            Assert.Empty(Find("db", Path.Combine(Output, "db.bat")));
+        }
+
+        [WindowsFact]
+        public void TheWindowsFolder_HidesTheKeycut()
+        {
+            var conflict = Assert.Single(Find("notepad", @"C:\Windows\notepad.exe"));
+
+            Assert.Equal(@"C:\Windows\notepad.exe", conflict.Path);
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+            Assert.Equal(NameConflictSource.WindowsFolder, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void System32_HidesTheKeycut_AndIsFoundOnceThoughItIsAlsoOnPath()
+        {
+            var conflict = Assert.Single(Find("calc", @"C:\Windows\System32\calc.exe"));
+
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+            Assert.Equal(NameConflictSource.SystemFolder, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void WindowsFolderAndSystem32_AreSearchedInThatOrder()
+        {
+            var conflicts = Find("notepad", @"C:\Windows\System32\notepad.exe", @"C:\Windows\notepad.exe");
+
+            Assert.Equal(new[] { NameConflictSource.WindowsFolder, NameConflictSource.SystemFolder }, conflicts.Select(c => c.Source));
+        }
+
+        [WindowsFact]
+        public void APathFolderBeforeTheOutputFolder_HidesTheKeycut()
+        {
+            var conflict = Assert.Single(Find("tool", @"C:\Tools\Before\tool.cmd"));
+
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+            Assert.Equal(NameConflictSource.PathBefore, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void APathFolderAfterTheOutputFolder_IsShadowed()
+        {
+            var conflict = Assert.Single(Find("tool", @"C:\Tools\After\tool.exe"));
+
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+            Assert.Equal(NameConflictSource.PathAfter, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void AnAppExecutionAlias_IsShadowed()
+        {
+            var conflict = Assert.Single(Find("winget", Path.Combine(Apps, "winget.exe")));
+
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+            Assert.Equal(NameConflictSource.PathAfter, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void TheMachinePath_ComesBeforeTheUserPath()
+        {
+            // The output folder is on the user PATH, so everything on the machine PATH is searched first
+            var env = Environment(new[] { @"C:\Tools\Machine\tool.exe" }, machinePath: @"C:\Tools\Machine");
+
+            var conflict = Assert.Single(NameConflicts.Find("tool", Output, env));
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+        }
+
+        [WindowsTheory]
+        [InlineData("tool.com")]
+        [InlineData("tool.exe")]
+        public void InTheOutputFolder_AnExtensionTriedBeforeBat_HidesTheKeycut(string file)
+        {
+            var conflict = Assert.Single(Find("tool", Path.Combine(Output, file), Path.Combine(Output, "tool.bat")));
+
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+            Assert.Equal(NameConflictSource.OutputFolder, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void InTheOutputFolder_AnExtensionTriedAfterBat_IsShadowed()
+        {
+            var conflict = Assert.Single(Find("tool", Path.Combine(Output, "tool.cmd")));
+
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+            Assert.Equal(NameConflictSource.OutputFolder, conflict.Source);
+        }
+
+        // #209, through the real Run dialog: .com, .exe, .bat, .lnk, .cmd in that order, and nothing else (.js, .vbs, .ps1 and
+        // .msc never run from a bare name)
+        [WindowsFact]
+        public void WinR_TriesComExeBatLnkCmd_InThatOrder_AndNothingElse()
+        {
+            var files = new[] { "x.vbs", "x.cmd", "x.js", "x.lnk", "x.exe", "x.ps1", "x.com", "x.msc", "x.bat" }.Select(f => Path.Combine(After, f)).ToArray();
+
+            var conflicts = Find("x", files);
+
+            Assert.Equal(new[] { "x.com", "x.exe", "x.bat", "x.lnk", "x.cmd" }.Select(f => Path.Combine(After, f)), conflicts.Select(c => c.Path));
+        }
+
+        [WindowsFact]
+        public void WinR_IgnoresPathExt()
+        {
+            // A PATHEXT without .BAT still runs the keycut, and one with .PY doesn't make x.py a command
+            var env = Environment(new[] { Path.Combine(Output, "x.py"), Path.Combine(Output, "x.exe"), Path.Combine(Output, "x.cmd") }, pathExt: ".PY;.EXE");
+
+            var conflicts = NameConflicts.Find("x", Output, env);
+
+            Assert.Equal(new[] { (Path.Combine(Output, "x.exe"), NameConflictEffect.Hidden), (Path.Combine(Output, "x.cmd"), NameConflictEffect.Shadows) },
+                conflicts.Select(c => (c.Path, c.Effect)));
+        }
+
+        [WindowsFact]
+        public void InTheOutputFolder_ALnkWithTheName_IsShadowed()
+        {
+            var conflict = Assert.Single(Find("tool", Path.Combine(Output, "tool.lnk")));
+
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+        }
+
+        [WindowsFact]
+        public void AFolderEarlierOnPath_WinsWhateverItsExtension()
+        {
+            // Each folder is searched in full before the next: a .cmd before the output folder hides the keycut's .bat
+            var conflict = Assert.Single(Find("tool", Path.Combine(Before, "tool.cmd"), Path.Combine(Output, "tool.bat")));
+
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+        }
+
+        [WindowsFact]
+        public void Cmd_TriesThePathExtExtensions_InPathExtOrder()
+        {
+            var conflicts = NameConflicts.Find("x", Output, Environment(new[] { @"C:\Tools\After\x.vbs", @"C:\Tools\After\x.com", @"C:\Tools\After\x.msc" }), NameLookup.Cmd);
+
+            Assert.Equal(new[] { @"C:\Tools\After\x.com", @"C:\Tools\After\x.vbs", @"C:\Tools\After\x.msc" }, conflicts.Select(c => c.Path));
+        }
+
+        [WindowsFact]
+        public void Cmd_ACustomPathExt_DecidesTheOrder_AndWhatCounts()
+        {
+            var env = Environment(new[] { Path.Combine(Output, "x.py"), Path.Combine(Output, "x.exe") }, pathExt: ".PY;.BAT");
+
+            var conflict = Assert.Single(NameConflicts.Find("x", Output, env, NameLookup.Cmd));
+            Assert.Equal(Path.Combine(Output, "x.py"), conflict.Path);
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+        }
+
+        [Fact]
+        public void ParsePathExt_AddsMissingDots_AndDropsDuplicatesAndBlanks()
+        {
+            Assert.Equal(new[] { ".COM", ".EXE", ".PY" }, NameConflicts.ParsePathExt(" .com;EXE;;.Com; .py "));
+            Assert.Equal(NameConflicts.ParsePathExt(NameConflicts.DefaultPathExt), NameConflicts.ParsePathExt(null));
+        }
+
+        [WindowsFact]
+        public void AppPaths_IsShadowed_AndReportsTheRegisteredProgram()
+        {
+            const string word = @"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE";
+            var env = Environment(new[] { word }, appPaths: new Dictionary<string, string> { ["winword.exe"] = "\"" + word + "\"" });
+
+            var conflict = Assert.Single(NameConflicts.Find("winword", Output, env));
+
+            Assert.Equal(word, conflict.Path);
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+            Assert.Equal(NameConflictSource.AppPaths, conflict.Source);
+        }
+
+        [WindowsFact]
+        public void AppPaths_ComesLast()
+        {
+            const string word = @"C:\Office\WINWORD.EXE";
+            var env = Environment(new[] { word, @"C:\Tools\After\winword.cmd" }, appPaths: new Dictionary<string, string> { ["winword.exe"] = word });
+
+            Assert.Equal(new[] { NameConflictSource.PathAfter, NameConflictSource.AppPaths }, NameConflicts.Find("winword", Output, env).Select(c => c.Source));
+        }
+
+        [Fact]
+        public void AnAppPathsEntryForAMissingProgram_IsIgnored()
+        {
+            var env = Environment(Array.Empty<string>(), appPaths: new Dictionary<string, string> { ["gone.exe"] = @"C:\Gone\gone.exe" });
+
+            Assert.Empty(NameConflicts.Find("gone", Output, env));
+        }
+
+        [WindowsFact]
+        public void AKeycutInAnotherFolder_StillCounts()
+        {
+            var conflict = Assert.Single(Find("db", @"C:\Tools\Before\db.bat"));
+
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+        }
+
+        [WindowsFact]
+        public void AnOutputFolderThatIsNotOnPath_CountsAsTheLastEntry()
+        {
+            var env = Environment(new[] { @"C:\Tools\After\tool.exe" }, userPath: After);
+
+            var conflict = Assert.Single(NameConflicts.Find("tool", Output, env));
+            Assert.Equal(NameConflictEffect.Hidden, conflict.Effect);
+        }
+
+        [WindowsFact]
+        public void PathEntries_AreExpanded_Unquoted_AndComparedWithoutATrailingSlash()
+        {
+            var env = Environment(new[] { Path.Combine(Apps, "code.exe") },
+                userPath: "\"" + Output + "\\\"; ;relative;%LOCALAPPDATA%\\Microsoft\\WindowsApps");
+
+            var conflict = Assert.Single(NameConflicts.Find("code", Output + @"\", env));
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+        }
+
+        [WindowsFact]
+        public void APathVariableHoldingSeveralFolders_IsExpandedBeforeSplitting()
+        {
+            var env = Environment(new[] { @"C:\Tools\B\tool.exe" }, userPath: Output + ";%TOOLS%");
+            env.ExpandVariables = value => value.Replace("%TOOLS%", @"C:\Tools\A;C:\Tools\B");
+
+            var conflict = Assert.Single(NameConflicts.Find("tool", Output, env));
+            Assert.Equal(@"C:\Tools\B\tool.exe", conflict.Path);
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);
+        }
+
+        [WindowsTheory]
+        [InlineData(@"C:\Users\me\Shortcuts\.")]
+        [InlineData(@"C:\Users\me\Other\..\Shortcuts")]
+        [InlineData(@"c:\users\me\shortcuts\")]
+        public void TheOutputFolder_IsMatchedOnPath_HoweverItIsSpelled(string outputFolder)
+        {
+            var env = Environment(new[] { Path.Combine(Output, "db.bat"), @"C:\Tools\After\db.exe" });
+
+            var conflict = Assert.Single(NameConflicts.Find("db", outputFolder, env));
+            Assert.Equal(NameConflictEffect.Shadows, conflict.Effect);   // not hidden: the output folder is found on PATH
+        }
+
+        [WindowsFact]
+        public void APathFolderListedTwiceInDifferentSpellings_IsSearchedOnce()
+        {
+            var env = Environment(new[] { @"C:\Tools\After\tool.exe" }, userPath: Output + @";C:\Tools\After;C:\Tools\After\.\");
+
+            Assert.Single(NameConflicts.Find("tool", Output, env));
+        }
+
+        [WindowsFact]
+        public void Cmd_WithoutBatInPathExt_TheKeycutNeverRuns_SoEveryMatchHidesIt()
+        {
+            const string word = @"C:\Office\WINWORD.EXE";
+            var env = Environment(new[] { word, @"C:\Tools\After\winword.cmd", Path.Combine(Output, "winword.cmd") },
+                pathExt: ".EXE;.CMD", appPaths: new Dictionary<string, string> { ["winword.exe"] = word });
+
+            var conflicts = NameConflicts.Find("winword", Output, env, NameLookup.Cmd);
+
+            Assert.Equal(3, conflicts.Count);
+            Assert.All(conflicts, c => Assert.Equal(NameConflictEffect.Hidden, c.Effect));
+        }
+
+        [Fact]
+        public void MovingTheOutputFolder_TakesTheOldOneOffTheUserPath_AndAddsTheNewOne()
+        {
+            var env = Environment(new[] { @"C:\Users\me\Shortcuts\foo.bat" }, userPath: Output + ";" + After);
+
+            var moved = env.WithOutputFolderMoved(Output, @"D:\Keycuts");
+
+            Assert.Equal(After + @";D:\Keycuts", moved.UserPath);
+            Assert.Equal(env.MachinePath, moved.MachinePath);
+            Assert.Equal(Output + ";" + After, env.UserPath);   // the original is left alone
+            Assert.Empty(NameConflicts.Find("foo", @"D:\Keycuts", moved));   // the old folder's foo.bat is off PATH
+        }
+
+        [Fact]
+        public void MovingTheOutputFolder_DoesNotAddOneTheMachinePathHas()
+        {
+            var env = Environment(Array.Empty<string>(), userPath: Output, machinePath: @"D:\Keycuts");
+
+            Assert.Equal(string.Empty, env.WithOutputFolderMoved(Output, @"D:\Keycuts").UserPath);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(@"C:\Users\me\Shortcuts\")]
+        public void NotMovingTheOutputFolder_ChangesNothing(string newFolder)
+        {
+            var env = Environment(Array.Empty<string>());
+
+            Assert.Equal(env.UserPath, env.WithOutputFolderMoved(Output, newFolder).UserPath);
+        }
+
+        [Theory]
+        [InlineData(Windows)]
+        [InlineData(System32)]
+        public void TheKeycutsOwnBat_IsSkipped_EvenWhenTheOutputFolderIsSearchedEarly(string outputFolder)
+        {
+            var env = Environment(new[] { Path.Combine(outputFolder, "db.bat") });
+
+            Assert.Empty(NameConflicts.Find("db", outputFolder, env));
+        }
+
+        [WindowsFact]
+        public void ANameThatAlreadyEndsWithAnExtensionTried_IsAlsoTriedAsTyped()
+        {
+            var conflict = Assert.Single(Find("tool.exe", @"C:\Tools\After\tool.exe"));
+
+            Assert.Equal(@"C:\Tools\After\tool.exe", conflict.Path);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("  ")]
+        [InlineData(null)]
+        [InlineData("a/b")]
+        public void AnEmptyOrUnusableName_HasNoConflicts(string name)
+        {
+            Assert.Empty(NameConflicts.Find(name, Output, Environment(new[] { @"C:\Windows\a.exe" })));
+        }
+
+        [Fact]
+        public void GetMain_PrefersTheFirstConflictThatHidesTheKeycut()
+        {
+            var shadows = new NameConflict(@"C:\a.exe", NameConflictEffect.Shadows, NameConflictSource.AppPaths);
+            var hidden = new NameConflict(@"C:\b.exe", NameConflictEffect.Hidden, NameConflictSource.PathBefore);
+
+            Assert.Same(hidden, NameConflicts.GetMain(new[] { shadows, hidden }));
+            Assert.Same(shadows, NameConflicts.GetMain(new[] { shadows }));
+            Assert.Null(NameConflicts.GetMain(Array.Empty<NameConflict>()));
+        }
+
+        #region macOS (Phase 4.7)
+
+        const string MacOutput = "/Users/me/Shortcuts";
+
+        static NameConflictEnvironment MacEnvironment(params string[] files)
+        {
+            var set = new HashSet<string>(files, StringComparer.OrdinalIgnoreCase);
+
+            return new NameConflictEnvironment
+            {
+                IsMacOS = true,
+                WindowsFolder = "/Windows",
+                SystemFolder = "/System32",
+                MachinePath = "/usr/bin:/bin",
+                UserPath = MacOutput + ":/opt/homebrew/bin",
+                FileExists = set.Contains,
+                FindAppPath = _ => "/usr/bin/x"
+            };
+        }
+
+        [Theory]
+        [InlineData("cd")]
+        [InlineData("CD")]
+        [InlineData("r")]
+        [InlineData("which")]
+        public void OnMacOS_AShellBuiltin_HidesTheKeycut(string name)
+        {
+            var conflict = Assert.Single(NameConflicts.Find(name, MacOutput, MacEnvironment()));
+
+            Assert.Equal((name, NameConflictEffect.Hidden, NameConflictSource.ShellBuiltin), (conflict.Path, conflict.Effect, conflict.Source));
+        }
+
+        [MacFact]
+        public void OnMacOS_PathFolders_AreSearchedForTheExactNameInAnyCase()
+        {
+            var found = NameConflicts.Find("gmail", MacOutput, MacEnvironment(
+                "/usr/bin/gmail", MacOutput + "/gmail", "/opt/homebrew/bin/GMAIL", "/bin/gmail.sh", "/bin/gmail.bat"));
+
+            Assert.Equal(new[] { "Hidden PathBefore /usr/bin/gmail", "Shadows PathAfter /opt/homebrew/bin/gmail" }, found.Select(c => c.ToString()));
+        }
+
+        [MacFact]
+        public void OnMacOS_TheWindowsFoldersAndAppPaths_ArentSearched()
+        {
+            Assert.Empty(NameConflicts.Find("x", MacOutput, MacEnvironment("/Windows/x", "/System32/x")));
+        }
+
+        #endregion macOS (Phase 4.7)
+    }
+}

@@ -1,0 +1,2 @@
+import AppKit
+print(NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast)

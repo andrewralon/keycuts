@@ -23,8 +23,38 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
+  # A change that only touches docs/ or the root docs (README.md, CLAUDE.md, gameplan.md) skips build, format, macos and installer: no test reads those files and no project
+  # builds from them. A job skipped by its `if` counts as passed for a required status check; a workflow-level
+  # `paths-ignore` would leave the checks pending and block the merge. If this job fails, everything still runs.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Look for changes outside the docs
+        id: filter
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          code=true
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if ! git diff --name-only "$BASE" HEAD | grep -qvE '^(docs/|README\.md$|CLAUDE\.md$|gameplan\.md$)'; then
+              code=false
+              echo "Only documentation changed, so build, format, macos and installer are skipped." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   # The job id is a required status check on develop and main; keep it named build.
   build:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
@@ -81,7 +111,7 @@ jobs:
           name: test-results
           path: |
             artifacts/test-results/
-            keycuts.Tests/Characterization/Snapshots/*.received.txt
+            keycuts.Common.Tests/Characterization/Snapshots/*.received.txt
           if-no-files-found: ignore
           retention-days: 14
 
@@ -90,7 +120,7 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.test-results.outputs.artifact-url }}
         run: |
-          $received = @(Get-ChildItem keycuts.Tests/Characterization/Snapshots -Filter *.received.txt -ErrorAction SilentlyContinue)
+          $received = @(Get-ChildItem keycuts.Common.Tests/Characterization/Snapshots -Filter *.received.txt -ErrorAction SilentlyContinue)
           if (-not $received) { exit 0 }
           $lines = @(
             '## Snapshot changes'
@@ -116,6 +146,8 @@ jobs:
   # the Windows build instead of after it. EnableWindowsTargeting lets the net10.0-windows projects restore on Linux.
   # The job id is a required status check on develop and main.
   format:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -156,11 +188,63 @@ jobs:
           if ($rows.Count -gt 100) { $lines += '', "_$($rows.Count - 100) more not shown._" }
           $lines | Add-Content $env:GITHUB_STEP_SUMMARY
 
+  # The macOS port (docs/macos-port.md, Phase 2.3): Common and the CLI build for net10.0 on a Mac, and the tests that
+  # don't need the GUI pass there. Windows-only tests show as skipped ([WindowsFact]). The WPF projects stay on Windows;
+  # the Avalonia app (Phase 3) builds and runs its headless tests here too.
+  macos:
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: |
+          dotnet build keycuts.CLI -c Release
+          dotnet build keycuts.Common.Tests -c Release
+          dotnet build keycuts.App.Tests -c Release
+
+      - name: Test
+        run: >-
+          dotnet test keycuts.Common.Tests -c Release --no-build
+          --results-directory artifacts/test-results
+          --logger trx
+          --logger "GitHubActions;summary-include-passed=false"
+          -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Test the Avalonia app
+        if: ${{ !cancelled() }}
+        run: >-
+          dotnet test keycuts.App.Tests -c Release --no-build
+          --results-directory artifacts/test-results
+          --logger trx
+          --logger "GitHubActions;summary-include-passed=false"
+          -- RunConfiguration.CollectSourceInformation=true
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-macos
+          path: |
+            artifacts/test-results/
+            keycuts.Common.Tests/Characterization/Snapshots/*.received.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
   # A PR into main is a release candidate: prove the MSI builds (WiX's ICE validation included) and say whether merging
   # will release. The script publishes everything itself, so this doesn't wait for the build job; it runs beside it.
   # The job id is a required status check on main.
   installer:
-    if: github.base_ref == 'main'
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' && github.base_ref == 'main' }}
     runs-on: windows-latest
     timeout-minutes: 30
     defaults:

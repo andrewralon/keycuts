@@ -4,7 +4,7 @@ using CommandLine;
 namespace keycuts.CLI
 {
     /// <summary><c>keycuts rm &lt;name&gt;</c> (#173): deletes a keycut as the Manager does, to the Recycle Bin.</summary>
-    [Verb("rm", HelpText = "Delete a keycut, to the Recycle Bin, as the manager does.")]
+    [Verb("rm", HelpText = "Delete a keycut, to the Recycle Bin (the Trash on macOS), as the manager does.")]
     public class RemoveOptions
     {
         [Value(0, MetaName = "name", Required = true, HelpText = "The keycut to delete.")]
@@ -26,7 +26,7 @@ namespace keycuts.CLI
     }
 
     /// <summary><c>keycuts open &lt;name&gt; [arguments]</c> (#173): runs a keycut as Win+R would.</summary>
-    [Verb("open", HelpText = "Open a keycut, as Win+R would.")]
+    [Verb("open", HelpText = "Open a keycut, as Win+R (Terminal on macOS) would.")]
     public class OpenOptions
     {
         [Value(0, MetaName = "name", Required = true, HelpText = "The keycut to open.")]

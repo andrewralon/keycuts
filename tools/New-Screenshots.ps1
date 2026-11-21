@@ -3,11 +3,14 @@
     Regenerates the README's screenshots in docs/images.
 
 .DESCRIPTION
-    Runs keycuts.Tests' ScreenshotTests, which shows the app's real views off screen with sample keycuts and writes each
+    Runs keycuts.App.Tests' ScreenshotTests, which draws the app's real window headless with sample keycuts and writes each
     one to a PNG, in the light and the dark palette: the creator, the manager and Settings (creator-light.png,
     creator-dark.png, and so on). It also writes the README's walkthrough, an
     animated GIF (walkthrough-light.gif, walkthrough-dark.gif): the real creator taken through its states, then a card
     for the Win+R step. It is rendered, not a screen recording.
+
+    On a Mac it writes the macOS pictures instead (creator-light-mac.png and so on, no walkthrough), with the traffic
+    lights drawn where macOS puts them, and leaves the Windows ones alone.
 
     The views are rendered at twice their size, without the window frame, so the result doesn't depend on your theme,
     display or what is open, and it never touches your keycuts folder, the registry or PATH. Settings is shown without
@@ -45,7 +48,7 @@ $env:KEYCUTS_SCREENSHOTS_OUT = $output
 
 try
 {
-    & dotnet test (Join-Path $repoRoot 'keycuts.Tests\keycuts.Tests.csproj') -c Release --filter 'FullyQualifiedName~ScreenshotTests'
+    & dotnet test (Join-Path $repoRoot 'keycuts.App.Tests\keycuts.App.Tests.csproj') -c Release --filter 'FullyQualifiedName~ScreenshotTests'
 
     if ($LASTEXITCODE -ne 0)
     {

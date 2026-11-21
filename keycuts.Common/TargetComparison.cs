@@ -63,7 +63,7 @@ namespace keycuts.Common
                 return (string.Empty, false);
             }
 
-            text = Environment.ExpandEnvironmentVariables(text);
+            text = PathVariables.Expand(text);
 
             if (text.Contains("://"))
             {

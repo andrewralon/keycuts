@@ -13,7 +13,7 @@ namespace keycuts.CLI
         [Option('t', "target", Required = false, MetaValue = "<path>", HelpText = "What the keycut opens: a file, folder, URL or shell: path.")]
         public string Target { get; set; }
 
-        [Option('s', "shortcut", Required = false, MetaValue = "<name>", HelpText = "The keycut's name, typed in Win+R (or a full path for the .bat).")]
+        [Option('s', "shortcut", Required = false, MetaValue = "<name>", HelpText = "The keycut's name, typed in Win+R or Terminal (or a full path for the file).")]
         public string Shortcut { get; set; }
 
         [Option('w', "openwithapp", Required = false, MetaValue = "<program>", HelpText = "A program to open the target file with.")]

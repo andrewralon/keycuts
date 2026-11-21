@@ -29,7 +29,7 @@ The reference sheet, [`mockups/styleguide.html`](mockups/styleguide.html) render
 
 ## Tokens
 
-Tokens live in `keycuts.GUI/Themes/Tokens.xaml` (sizes, type) and the three palettes `Light.xaml`, `Dark.xaml` and `HighContrast.xaml` (brushes, with the same keys in each; `ThemeTests` compares them). Shared styles live in `Themes/Controls.xaml`. Sizes are `StaticResource`; brushes are always `DynamicResource`, so the palette can change while the app runs.
+Tokens live in `keycuts.App/Themes/Tokens.axaml` (sizes, type) and the three palettes `Light.axaml`, `Dark.axaml` and `HighContrast.axaml` (brushes, with the same keys in each; `PaletteTests` compares them). Shared control themes live in `Themes/Controls.axaml`. (Until the Avalonia cutover, Phase 3.12 of [the macOS plan](macos-port.md), they were WPF's `keycuts.GUI/Themes/*.xaml`; the history below names those files.) Sizes are `StaticResource`; brushes are always `DynamicResource`, so the palette can change while the app runs.
 
 Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 
@@ -50,6 +50,32 @@ Changes this guide makes to `Tokens.xaml` and the palettes (#219 makes them):
 | `TextTertiaryBrush` (Light) | `#818b9d`, 3.0-3.4:1 | **`#646e80`**, 4.54:1 or better on every light surface | Placeholders are text, and WCAG 1.4.3 covers them ([decision](#decisions)); `ControlBorderBrush` keeps `#818b9d` |
 
 Kept as they are: `RadiusSm/Md/Lg/Xl` (5/8/12/16), `Space1`-`Space8` and `Inset1`-`Inset4`, `IconButtonSize` (32), `AppFontFamily` (Segoe UI Variable, Segoe UI), `FontSizeCaption` (12), `FontSizeBody` (13), `FontSizeInput` (14), `FontSizeSubheading` (16), `FontSizeHeading` (20). Add `Inset6` (24) for the outer padding, and `Thickness` tokens for the composite values used below (`PagePadding` 24,16,24,24, `DialogFooterPadding` 24,12, `PanelPadding` 16).
+
+### In Avalonia
+
+The app is Avalonia since the cutover (Phase 3.12 of [the macOS plan](macos-port.md)), with the tokens WPF had, the same keys and values, so every rule in this guide holds. Its files: `keycuts.App/Themes/Tokens.axaml`, `Light.axaml`, `Dark.axaml`, `HighContrast.axaml`, `Icons.axaml` and `Controls.axaml`. `StyleGuideTests` applies the rules to the `.axaml` files. Avalonia's unit is a device-independent pixel on both platforms (a point on macOS), so the numbers stay as they are.
+
+| WPF resource | Avalonia resource | Tokens |
+|---|---|---|
+| `<CornerRadius>` | `<CornerRadius>` | `RadiusSm`, `RadiusMd`, `RadiusLg`, `RadiusXl` |
+| `<sys:Double>` | `<x:Double>` | `Space*`, `Radius*Value`, `FontSize*`, `MainWidth`, `ConfirmWidth`, `EditWidth`, `ControlHeight`, `InputHeight`, `IconButtonSize`, `TileSize`, `RailHeight`, `TabHeight`, `TabCut`, `TabSlant`, `CaptionButtonWidth`, `ShadowOpacity` |
+| `<Thickness>` | `<Thickness>` | `Inset*`, `PagePadding`, `DialogFooterPadding`, `PanelPadding`, `FooterBarPadding` |
+| `<FontFamily>` | **A platform token**: an `OnPlatform` resource, `Segoe UI Variable, Segoe UI` on Windows and `$Default` (the system font) on macOS | `AppFontFamily` |
+| `<SolidColorBrush>`, `<LinearGradientBrush>`, `<Color>` | The same elements, but a gradient's `StartPoint` and `EndPoint` are percentages (`0%,0%` to `0%,100%`): Avalonia reads `0,1` as pixels, where WPF read it relative to the shape | The palette brushes, `ShadowColor` |
+| `<DrawingBrush>` with `Viewport` and `Viewbox` | `<DrawingBrush>` with `DestinationRect` and `SourceRect` | `RailTextureBrush`, `RailGripBrush`, `TabTextureBrush` |
+
+How the rest carries over:
+
+- **Resources**: sizes are `StaticResource` and brushes `DynamicResource`, as in WPF.
+- **Palettes**: `Light.axaml` and `Dark.axaml` are the theme dictionaries for `ThemeVariant.Light` and `Dark`, so a `DynamicResource` brush follows the theme without code. High contrast is a third, custom `ThemeVariant`, chosen when the platform reports `ContrastPreference.High`. Avalonia has no `SystemColors`. So `ThemeManager` reads the Windows system colors itself (`GetSysColor`), and each key takes the same system color as in `HighContrast.xaml`. In `HighContrast.axaml` a brush names its system color with `themes:SystemColor.Name="WindowText"`, and `ThemeManager` sets those brushes when high contrast comes on or Windows reports a change. On macOS, **Increase contrast** picks the same high-contrast variant; macOS has no `GetSysColor`, so its system colors are fixed: black on white with the light appearance, white on black with the dark one, `#2563eb`/`#6a9eff` for `HotTrack` and `Highlight` (approved with the macOS mockups, 2026-11-20).
+- **Shared styles**: a keyed WPF `Style` (`Style="{StaticResource PrimaryButton}"`) becomes a `ControlTheme` with the same key (`Theme="{StaticResource PrimaryButton}"`). Its variants use `BasedOn`, as `PrimaryButton` does on `BaseButton`. An implicit style (check box, radio, scroll bar, tooltip, menu) becomes a `ControlTheme` keyed by its type. WPF triggers become nested styles on pseudo-classes: `^:pointerover`, `^:pressed`, `^:focus-visible`, `^:disabled`, `^:checked`, `^:selected`. They keep the triggers' order, so the later one still wins. Fluent is the base theme, as Aero is in WPF, for the controls keycuts has no theme of its own for (`Window`, `ScrollViewer`, `ListBox`); keycuts' themes are application resources, so they win over Fluent's. A text box's placeholder is `TextBox.PlaceholderText` (WPF's `TextBoxChrome.Placeholder`), and a validation error is the `:error` pseudo-class (WPF's `Validation.HasError`). `TextBoxChrome.HasError` and `HasWarning` stay.
+- **Focus**: `AppFocusVisual` becomes the `FocusAdorner` template of the shared themes. Like WPF's focus visual, it shows only for keyboard focus. The rule against `FocusVisualStyle="{x:Null}"` applies to `FocusAdorner="{x:Null}"` too.
+- **Headings**: `AutomationProperties.HeadingLevel` is a number in Avalonia: `1` for `Level1`, `2` for `Level2`, and `0` for none.
+- **Section labels**: Avalonia has no text-transform either, so `SectionLabel` stays a control.
+- **Live regions**: in Avalonia, `AutomationProperties.LiveSetting` announces by itself when the element's text changes, so `LiveRegion.Announce` has no counterpart. **A live line is never collapsed.** It stays in the tree with empty text, because a line that comes back from collapsed is never announced ([correction 10](macos-port.md#plan-corrections-found-on-windows)).
+- **Shadows**: WPF's `DropShadowEffect` (`BlurRadius`, `ShadowDepth`, `Direction`) becomes `DropShadowDirectionEffect` with the same values. Avalonia's `DropShadowEffect` takes `OffsetX` and `OffsetY` instead. The sheet's shadow stays on a separate border behind it, so the effect never re-renders the sheet's text.
+- **Same names**: `KeyboardNavigation.TabNavigation="Cycle"`, `IsDefault`, `IsCancel`, `SizeToContent` and `AutomationProperties.AcceleratorKey`. **Renamed**: `ToolTipService.ShowOnDisabled` is `ToolTip.ShowOnDisabled`, and a menu's `InputGestureText` is `MenuItem.InputGesture` (only the text shown; `HotKey` binds the key).
+- **Windows only**: the caption buttons (`CaptionButtonWidth`, the `Caption*` brushes), because macOS keeps its own window buttons beside the tabs ([Tabbed window](#tabbed-window-218)). Key names in text are each platform's ([Keys](#keys)).
 
 ## Spacing
 
@@ -158,7 +184,13 @@ The main window has no Windows title bar. Its top row is the **tab bar** (#218 c
 - **Caption buttons**: `CaptionButtonWidth` (46) by `RailHeight`, with 10px glyphs: the Windows standard sizes, an exception to the grid and the icon sizes. Hover is a light wash (`CaptionHoverBrush`); close turns `#c42b1c` with a white glyph in both themes, as Windows does (`CaptionCloseBrush`, the one fixed color). **Maximize is disabled on every screen**, the resizable Manager included, and the window can't be maximized any other way either: not by double-clicking the bar, Win+Up, dragging to the top of the screen or the window menu ([decision](#decisions)). The Manager is still resized from its edges and snapped to the side of the screen.
 - **Accessibility**: the tabs are a tab list. Their names are `creator`, `manager` and `settings`, with their selected state; Tab and the arrow keys reach them. **Ctrl+1, Ctrl+2 and Ctrl+3** pick them left to right from anywhere in the window (not while the icon picker has them off); each tab's tooltip is its name and key, "creator (Ctrl+1)", and the key is its `AcceleratorKey`. The caption buttons are named `Minimize`, `Maximize` and `Close`, with matching tooltips. Each screen's content is announced with its tab's name.
 - **No screen headings**: the selected tab names the screen, so `keycuts creator`, `keycuts manager` and the creator/manager buttons beside them go, and the Settings screen has no heading. Content starts `PagePadding` (16) below the bar.
+- **On macOS** (mockup [`macos-window-v1`](mockups/macos-window-v1.png)): macOS's own **traffic lights** take the caption buttons' place, at the left: 12 across, 8 apart, 20 from the edge, centered in the bar. **Zoom is always off** (gray) on every screen, so there is no zoom and no full screen, as Maximize is off on Windows. Then the keycap and `keycuts`, 16 after the lights, and the tabs as above. `MainWidth` is unchanged: the lights take at the left about what the caption buttons take at the right, and the empty bar runs to the right edge. No caption buttons and no window menu. Tooltips and accelerators name ⌘: "creator (⌘1)".
 - **The Settings screen** follows the rest of this guide: `SectionLabel`s, setting rows 16 apart with no lines, 36 high buttons and text boxes, the output folder's two icon-only square buttons, and a last row, 24 below the rest, with `show welcome` at the left and `restore defaults` at the right. No note says changes are saved: with no Save button, that goes without saying ([decision](#decisions)). At the large size it has **two columns** with a 1px `BorderBrush` rule between them, 24 (`Space6`) from each: Output and Behavior on the left; Appearance, Updates and the last row on the right. Each column starts with its section label at the top of the page. The columns never stack: at the window's minimum, 720 × 470, they still fit side by side without scrolling ([decision](#decisions)).
+- **Settings on macOS** (mockup [`macos-settings-v1`](mockups/macos-settings-v1.png)), at the same size: Output adds **Run keycuts in Terminal** (the PATH switch, `~/.zprofile`); Behavior has **Finder Quick Action** where Windows has "Right-click context menus", and **Use $HOME in paths** for "Use environment variables in paths"; the right column starts with a **Run box** section (**Shortcut**, a key recorder, and **Open at login**) above Appearance; **Transparent icon background** isn't shown (the Dock has no tile behind the icon), and Icon's note says it's the Dock icon. Rows are 12 apart and sections 20 there (on the 4px grid), so both columns fit 470 high.
+
+### The Run box (macOS)
+
+Mockup [`macos-settings-v1`](mockups/macos-settings-v1.png), parts 4 and 5. A borderless window, 600 wide (the `RunBox*` tokens), centered across and a third of the way down the active screen, with `RadiusXl` corners and a 1px `BorderStrongBrush` outline. One text box, 56 high, the input at 20 with the keycap (28) before it and no border of its own, and a 1px `BorderBrush` line under it. Below, up to 6 rows of 40, inset 8, with `RadiusMd` corners: name (13 SemiBold, 112 wide, on the grid), the type badge, the target in `TextSecondaryBrush` trimmed at the end, and the runs ("42 runs", caption, tertiary). The selected row is filled with `AccentBrush` and its text is `OnAccentBrush`. A 32-high hint line at the bottom on `SurfaceSubtleBrush` names the keys: **Return** run, **Tab** complete, **↑ ↓** choose, **Esc** close. With nothing typed only the text box shows. A name that matches nothing has one row, "Create “name”…", with the rocket (the create button's icon) where the badge goes, and the hint says **Return** create. Tab's completion shows as gray text after the caret. The text box is named "Run a keycut"; the list is a list box.
 
 ### Empty, loading and error states
 
@@ -166,7 +198,7 @@ These are centered in the space the content would take. Top to bottom: an illust
 
 ## Type
 
-Font: `AppFontFamily`, Segoe UI Variable with Segoe UI as the fallback. Set once on each window; views inherit it.
+Font: `AppFontFamily`, Segoe UI Variable with Segoe UI as the fallback. In the Avalonia app it is a platform token: those on Windows, the system font on macOS, at the same sizes ([In Avalonia](#in-avalonia)). Set once on each window; views inherit it.
 
 ### Ramp
 
@@ -331,6 +363,8 @@ Follow the Microsoft Writing Style Guide: plain, short, friendly, second person 
 
 Write key names as Windows does, joined with `+` and no spaces: `Ctrl+Shift+E`, `Shift+F2`, `Win+R`, `Enter`, `Escape`, `Delete`, `Page Up`. In a tooltip, the key goes in parentheses after the action: "Undo the delete (Ctrl+Z)". Menus put it in `InputGestureText`.
 
+On macOS, write them as macOS does: the symbols in the order ⌃ ⌥ ⇧ ⌘ with no plus signs, then the key: `⌘1`, `⇧⌘E`, `⌘⌫`, `⇧F2`, `Return`, `Esc`, `⇧⌘Space`. ⌘ takes Ctrl's place (⌘C, ⌘E, ⌘F, ⌘Z, ⇧⌘E, ⇧⌘O); **Return runs** the selected keycut, as Enter does; F2 and ⇧F2 stay; **⌘⌫ or forward delete** moves to the Trash, and a plain ⌫ does nothing in the table; ⌘↑ and ⌘↓ go to the first and last row; the row menu opens by Control-click; ⌘, opens Settings and ⌘W closes the window (keycuts stays in the menu bar). The words: "Show in Finder" for "Open file location", "Edit in text editor" for "Edit in Notepad", Trash for Recycle Bin, Terminal for Win+R.
+
 ### Ellipsis
 
 Use the single character `…` (U+2026), never three dots, in two cases only:
@@ -413,6 +447,13 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-17 | The Modified column's place | Before Runs and Last run | **The last column**, at the far right while the table is wide enough to show it |
 | 2026-11-17 | Settings at a narrow window | The two columns stacked into one below 840 | **Always two columns**: at the minimum 720 × 470 they fit side by side without scrolling (rendered from the real view; stacked, the page scrolled 231) |
 | 2026-11-17 | Large size at first, smaller | 960 × 544 | **768 × 470**: the smallest height, and just wide enough for the Manager's Runs column. Settings fits in two columns there; the Manager shows the header and 5 rows, and widening brings back Last run, then Modified |
+| 2026-11-20 | The window on macOS (the macOS mockups) | Windows' caption buttons at the right | **macOS's traffic lights at the left**, zoom always off, then the keycap and name and the tabs; the same `MainWidth` and sizes |
+| 2026-11-20 | The Manager's main key on macOS | Finder renames on Return | **Return runs the keycut**, as Enter on Windows and Return in the Run box; F2 renames |
+| 2026-11-20 | Deleting by key on macOS | Delete on Windows | **⌘⌫ (as Finder) or forward delete**; a plain ⌫ does nothing in the table |
+| 2026-11-20 | The Run box shortcut (plan correction 2) | ⌃⌥Space proposed, a macOS default | **⇧⌘Space** by default, changeable in Settings; no ⌃⌥ shortcuts (VoiceOver's modifier) |
+| 2026-11-20 | Menus on macOS | — | The app menu (About, Settings… ⌘,, Hide, Quit ⌘Q), the standard Edit menu, View (⌘1 to ⌘3), Window, Help; a menu bar icon (the app icon’s keycap in full color, the one chosen in Settings) with Run…, New keycut…, Manager, Settings… and Quit keycuts. macOS's own items keep macOS's Title Case |
+| 2026-11-20 | Settings on macOS | The Windows rows | Run keycuts in Terminal, Finder Quick Action, Use $HOME in paths, a Run box section (Shortcut, Open at login); no Transparent icon background |
+| 2026-11-19 | The font on macOS ([the macOS plan](macos-port.md), Phase 3.1) | Segoe UI, the only platform | **A platform token**: Segoe UI Variable and Segoe UI on Windows, the system font on macOS, with the same sizes and weights |
 | 2026-11-13 | Dialog button order | Cancel, then primary at the far right | **Keep it**: primary last, at the far right. A deliberate difference from Fluent's ContentDialog, which puts the primary button first |
 
 Defaults taken from best practice, listed in #211 and not overturned: the 4px grid, one outer padding (24, with 16 at the top since the owner's change), one dialog footer (`24,12`), radii from the tokens only, readable text at 4.5:1, body text at 13 and inputs at 14, no plain Bold, one set of shared text styles, headings marked for assistive tech, colors only from theme brushes, and the writing rules above.

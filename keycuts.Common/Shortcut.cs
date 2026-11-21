@@ -19,7 +19,7 @@ namespace keycuts.Common
             Target = target;
         }
 
-        public string Extension { get; private set; } = ".bat";
+        public string Extension { get; private set; } = ScriptFormats.Current.Extension;
 
         public string Filename { get; private set; }
 
@@ -45,7 +45,7 @@ namespace keycuts.Common
         {
             Type = GetShortcutTypeFromTarget(target, out string newTarget);
             Target = newTarget;
-            Extension = ".bat";
+            Extension = ScriptFormats.Current.Extension;
             Filename = GetFilename(shortcut);
             FilenameWithExtension = $"{Filename}{Extension}";
             Folder = GetFolder(shortcut, defaultFolder);
@@ -63,7 +63,7 @@ namespace keycuts.Common
         {
             return shortcut.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase) ?
                 shortcut :
-                Path.GetFileNameWithoutExtension(shortcut);
+                ScriptFormats.NameOf(shortcut);
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace keycuts.Common
         /// </summary>
         public static string GetFullPath(string shortcut, string defaultFolder)
         {
-            return Path.Combine(GetFolder(shortcut, defaultFolder), GetFilename(shortcut) + ".bat");
+            return Path.Combine(GetFolder(shortcut, defaultFolder), GetFilename(shortcut) + ScriptFormats.Current.Extension);
         }
 
         /// <summary>The folder a shortcut argument is written to: its own if it's a full path, else <paramref name="defaultFolder"/>.</summary>
@@ -100,14 +100,14 @@ namespace keycuts.Common
         public static Shortcut FromParts(ShortcutType type, string target, string fullPath, string openWithAppPath = null)
         {
             var folder = Path.GetDirectoryName(fullPath);
-            var filename = Path.GetFileNameWithoutExtension(fullPath);
+            var filename = ScriptFormats.NameOf(fullPath);
 
             return new Shortcut
             {
                 Type = type,
                 Target = target,
                 Filename = filename,
-                FilenameWithExtension = $"{filename}.bat",
+                FilenameWithExtension = filename + ScriptFormats.Current.Extension,
                 Folder = folder,
                 FullPath = fullPath,
                 OpenWithAppPath = openWithAppPath,
@@ -127,6 +127,14 @@ namespace keycuts.Common
         {
             newTarget = target;
             var type = new ShortcutType();
+
+            // macOS has its own kinds of target (app bundles, .webloc, aliases): one classifier for the CLI and the app
+            if (OperatingSystem.IsMacOS())
+            {
+                var resolved = TargetResolver.Resolve(target);
+                newTarget = resolved.IsValid ? resolved.Target : target;
+                return resolved.IsValid ? resolved.RawType : ShortcutType.Unknown;
+            }
 
             if (IsCLSIDKey(target))
             {
@@ -292,6 +300,12 @@ namespace keycuts.Common
 
                 if (!string.Equals(Path.GetExtension(target), ".lnk", StringComparison.OrdinalIgnoreCase) ||
                     !File.Exists(target))
+                {
+                    return false;
+                }
+
+                // .lnk files and WScript.Shell exist only on Windows
+                if (!OperatingSystem.IsWindows())
                 {
                     return false;
                 }

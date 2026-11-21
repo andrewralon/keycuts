@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Renders a hand-written HTML mockup to a PNG with headless Edge (or Chrome).
+  Renders a hand-written HTML mockup to a PNG with headless Edge or Chrome (Chrome on macOS).
 
 .DESCRIPTION
   For design sketches the owner approves before anything is built (see docs/mockups).
@@ -28,13 +28,20 @@ $candidates = @(
     "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
     "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
     "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
-    "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+    "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+    # macOS: Chrome first; headless Edge there took the shot before the page painted
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
 )
 $browser = $candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
 if (-not $browser) { throw 'Neither Edge nor Chrome was found.' }
 
-$url = ([System.Uri]$htmlPath).AbsoluteUri
-& $browser --headless --disable-gpu --hide-scrollbars "--window-size=$Width,$Height" "--screenshot=$outPath" $url | Out-Null
+$url = [System.Uri]::new($htmlPath).AbsoluteUri
+if ($IsMacOS) {
+    & $browser --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=2000 "--window-size=$Width,$Height" "--screenshot=$outPath" $url 2>$null | Out-Null
+} else {
+    & $browser --headless --disable-gpu --hide-scrollbars "--window-size=$Width,$Height" "--screenshot=$outPath" $url | Out-Null
+}
 
 if (-not (Test-Path -LiteralPath $outPath)) { throw "The browser wrote no image to $outPath." }
 Write-Host "Wrote $outPath"

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 
 namespace keycuts.Common
 {
@@ -26,7 +27,14 @@ namespace keycuts.Common
         RunDialog,
 
         /// <summary>cmd (a keycut's own <c>START</c> line): the PATHEXT extensions, in order. What the target check uses.</summary>
-        Cmd
+        Cmd,
+
+        /// <summary>
+        /// A shell on macOS (Terminal, Phase 4.7): its own commands (<see cref="NameConflicts.ShellBuiltins"/>) first, then each PATH
+        /// folder for the name exactly, with no extensions, in any case (APFS doesn't tell case apart). No Windows folders, no App Paths.
+        /// <see cref="NameConflictEnvironment.IsMacOS"/> makes every lookup this one.
+        /// </summary>
+        Sh
     }
 
     /// <summary>Where the other command was found, in the order <c>ShellExecuteEx</c> searches.</summary>
@@ -37,7 +45,10 @@ namespace keycuts.Common
         PathBefore,
         OutputFolder,
         PathAfter,
-        AppPaths
+        AppPaths,
+
+        /// <summary>A command of the shell itself (<c>cd</c>, <c>r</c>), on macOS. Its <see cref="NameConflict.Path"/> is the name.</summary>
+        ShellBuiltin
     }
 
     /// <summary>A program, script or other file that a keycut's name already resolves to.</summary>
@@ -99,6 +110,9 @@ namespace keycuts.Common
         /// </summary>
         public Func<string, string> FindAppPath { get; set; } = _ => null;
 
+        /// <summary>Search as a macOS shell does (<see cref="NameLookup.Sh"/>): PATH entries split at <c>:</c>, and only PATH.</summary>
+        public bool IsMacOS { get; set; }
+
         private const string EnvironmentKey = "Environment";
 
         /// <summary>
@@ -128,6 +142,11 @@ namespace keycuts.Common
         /// </summary>
         public static NameConflictEnvironment GetDefault()
         {
+            if (OperatingSystem.IsMacOS())
+            {
+                return GetDefaultForMac();
+            }
+
             return new NameConflictEnvironment
             {
                 WindowsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Windows),
@@ -141,8 +160,67 @@ namespace keycuts.Common
             };
         }
 
+        /// <summary>
+        /// This Mac, as a new Terminal sees it: <c>/etc/paths</c> and <c>/etc/paths.d</c> (what <c>path_helper</c> puts first), then this
+        /// process's PATH. Only files with an execute bit count, as in a shell.
+        /// </summary>
+        [SupportedOSPlatform("macos")]
+        private static NameConflictEnvironment GetDefaultForMac()
+        {
+            var system = new List<string>();
+
+            try
+            {
+                system.AddRange(ReadLines("/etc/paths"));
+
+                if (Directory.Exists("/etc/paths.d"))
+                {
+                    foreach (var file in Directory.GetFiles("/etc/paths.d").OrderBy(f => f, StringComparer.Ordinal))
+                    {
+                        system.AddRange(ReadLines(file));
+                    }
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // The process PATH still counts
+            }
+
+            return new NameConflictEnvironment
+            {
+                IsMacOS = true,
+                MachinePath = string.Join(":", system),
+                UserPath = Environment.GetEnvironmentVariable("PATH"),
+                FileExists = IsExecutableFile
+            };
+        }
+
+        private static IEnumerable<string> ReadLines(string path)
+        {
+            return File.Exists(path) ? File.ReadAllLines(path).Select(line => line.Trim()).Where(line => line.Length > 0) : Array.Empty<string>();
+        }
+
+        [SupportedOSPlatform("macos")]
+        private static bool IsExecutableFile(string path)
+        {
+            try
+            {
+                return File.Exists(path) &&
+                    (File.GetUnixFileMode(path) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private static string ReadUserVariable(string name)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return null;
+            }
+
             try
             {
                 using var key = Registry.CurrentUser.OpenSubKey(EnvironmentKey);
@@ -169,6 +247,11 @@ namespace keycuts.Common
 
         private static string FindRegisteredAppPath(string fileName)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                return null;
+            }
+
             foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
             {
                 try
@@ -230,6 +313,24 @@ namespace keycuts.Common
         public static readonly IReadOnlyList<string> RunDialogExtensions = new[] { ".COM", ".EXE", ".BAT", ".LNK", ".CMD" };
 
         /// <summary>
+        /// What zsh (macOS's shell) and bash run themselves, before PATH: their builtins and reserved words that a keycut could be
+        /// named. A fixed list, compared in any case (Phase 4.7).
+        /// </summary>
+        public static readonly IReadOnlySet<string> ShellBuiltins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "alias", "autoload", "bg", "bind", "bindkey", "break", "builtin", "bye", "caller", "case", "cd", "chdir", "command",
+            "compgen", "complete", "compopt", "continue", "coproc", "declare", "dirs", "disable", "disown", "do", "done", "echo",
+            "elif", "else", "emulate", "enable", "end", "esac", "eval", "exec", "exit", "export", "false", "fc", "fg", "fi", "float",
+            "for", "foreach", "function", "functions", "getln", "getopts", "hash", "help", "history", "if", "in", "integer", "jobs",
+            "kill", "let", "limit", "local", "log", "logout", "mapfile", "nocorrect", "noglob", "popd", "print", "printf", "pushd",
+            "pushln", "pwd", "r", "read", "readarray", "readonly", "rehash", "repeat", "return", "sched", "select", "set", "setopt",
+            "shift", "shopt", "source", "suspend", "test", "then", "time", "times", "trap", "true", "ttyctl", "type", "typeset",
+            "ulimit", "umask", "unalias", "unfunction", "unhash", "unlimit", "unset", "unsetopt", "until", "vared", "wait", "whence",
+            "where", "which", "while", "zcompile", "zformat", "zle", "zmodload", "zparseopts", "zprof", "zpty", "zregexparse",
+            "zsocket", "zstyle", "ztcp",
+        };
+
+        /// <summary>
         /// Everything <paramref name="name"/> resolves to from Win+R besides the keycut <paramref name="name"/>.bat in
         /// <paramref name="outputFolder"/>, in search order. An output folder that isn't on PATH is treated as the last
         /// PATH entry, which is where adding it puts it. An empty or unusable name has no conflicts.
@@ -254,10 +355,22 @@ namespace keycuts.Common
                 return Array.Empty<NameConflict>();
             }
 
+            if (environment.IsMacOS)
+            {
+                lookup = NameLookup.Sh;
+            }
+
             var finder = new Finder(name, environment, outputFolder, lookup);
 
-            finder.CheckFolder(environment.WindowsFolder, NameConflictEffect.Hidden, NameConflictSource.WindowsFolder);
-            finder.CheckFolder(environment.SystemFolder, NameConflictEffect.Hidden, NameConflictSource.SystemFolder);
+            if (lookup == NameLookup.Sh)
+            {
+                finder.CheckShellBuiltin();
+            }
+            else
+            {
+                finder.CheckFolder(environment.WindowsFolder, NameConflictEffect.Hidden, NameConflictSource.WindowsFolder);
+                finder.CheckFolder(environment.SystemFolder, NameConflictEffect.Hidden, NameConflictSource.SystemFolder);
+            }
 
             var entries = SplitPath(environment.MachinePath, environment)
                 .Concat(SplitPath(environment.UserPath, environment))
@@ -285,7 +398,10 @@ namespace keycuts.Common
                 finder.CheckOutputFolder(outputFolder);
             }
 
-            finder.CheckAppPaths();
+            if (lookup != NameLookup.Sh)
+            {
+                finder.CheckAppPaths();
+            }
 
             return finder.Results;
         }
@@ -320,7 +436,7 @@ namespace keycuts.Common
         {
             var expanded = environment.ExpandVariables(pathValue ?? string.Empty) ?? string.Empty;
 
-            foreach (var raw in expanded.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var raw in expanded.Split(environment.IsMacOS ? ':' : ';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             {
                 var entry = raw.Trim('"').Trim();
 
@@ -383,13 +499,26 @@ namespace keycuts.Common
             // The keycut's own .bat, skipped wherever it's found (the output folder could even be System32)
             private readonly string _ownBat;
 
+            // A shell tries the name as typed and nothing else (Sh)
+            private readonly bool _exactName;
+
             public Finder(string name, NameConflictEnvironment environment, string outputFolder, NameLookup lookup)
             {
                 _name = name;
                 _environment = environment;
-                _extensions = lookup == NameLookup.RunDialog ? RunDialogExtensions : ParsePathExt(environment.PathExt);
-                _keycutRuns = IndexOf(ShortcutFile.Extension) >= 0;
-                _ownBat = IsUsableFolder(outputFolder) ? NormalizeFolder(Path.Combine(outputFolder, name + ShortcutFile.Extension)) : null;
+                _exactName = lookup == NameLookup.Sh;
+                _extensions = _exactName ? Array.Empty<string>() : lookup == NameLookup.RunDialog ? RunDialogExtensions : ParsePathExt(environment.PathExt);
+                _keycutRuns = _exactName || IndexOf(ShortcutFile.Extension) >= 0;
+                _ownBat = IsUsableFolder(outputFolder) ? NormalizeFolder(Path.Combine(outputFolder, name + (_exactName ? "" : ShortcutFile.Extension))) : null;
+            }
+
+            /// <summary>A shell runs its own command of that name before looking in PATH.</summary>
+            public void CheckShellBuiltin()
+            {
+                if (ShellBuiltins.Contains(_name))
+                {
+                    Results.Add(new NameConflict(_name, NameConflictEffect.Hidden, NameConflictSource.ShellBuiltin));
+                }
             }
 
             public List<NameConflict> Results { get; } = new List<NameConflict>();
@@ -463,6 +592,19 @@ namespace keycuts.Common
             /// </summary>
             private IEnumerable<(string Path, int Index, bool IsAppended)> Candidates(string folder)
             {
+                if (_exactName)
+                {
+                    var exact = Path.Combine(folder, _name);
+
+                    if (_environment.FileExists(exact))
+                    {
+                        // In the output folder this is the keycut itself, which Add skips
+                        yield return (exact, -1, false);
+                    }
+
+                    yield break;
+                }
+
                 var ownIndex = IndexOf(Path.GetExtension(_name));
 
                 if (ownIndex >= 0)

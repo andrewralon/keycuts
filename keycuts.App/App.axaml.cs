@@ -56,6 +56,12 @@ namespace keycuts.GUI
             MainWindow? mainWindow = null;
             var shell = CreateShell(() => mainWindow);
 
+            if (OperatingSystem.IsMacOS())
+            {
+                // Issue #292: read before the window is built, so it opens in the shape the user chose
+                TornCornerSetting.Initialize(RegistryStuff.GetTornCorner());
+            }
+
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
             MacMenus.Attach(Current!, mainWindow);
@@ -68,6 +74,7 @@ namespace keycuts.GUI
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
+                PlatformText.RunBoxShortcut = () => OperatingSystem.IsMacOS() ? MacHotKey.Current?.Display : null;
             }
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a
@@ -156,7 +163,8 @@ namespace keycuts.GUI
                 shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
             {
                 RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null,
-                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null
+                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null,
+                TornCornerOption = OperatingSystem.IsMacOS() ? new TornCornerSetting() : null
             };
 
             var shell = new ShellViewModel(

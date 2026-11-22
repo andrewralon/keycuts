@@ -1,7 +1,7 @@
 #!/bin/bash
 # Drives the real keycuts app on a Mac and checks what the headless tests can't (tools/mac/README.md).
 #
-#   tools/mac/check-app.sh [menus] [drops] [browse] [contrast] [dock]      (no argument: all of them)
+#   tools/mac/check-app.sh [menus] [drops] [browse] [contrast] [dock] [torn]      (no argument: all of them)
 #
 # It builds a throwaway bundle (new-test-bundle.sh), hides your other apps and minimizes your Finder windows while it runs
 # and puts them back (desktop.sh), and flips Increase contrast in System Settings for a few seconds and back.
@@ -12,7 +12,7 @@ set -uo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 checks=("$@")
-[ ${#checks[@]} -eq 0 ] && checks=(menus drops browse contrast dock)
+[ ${#checks[@]} -eq 0 ] && checks=(menus drops browse contrast dock torn)
 
 sandbox="$(mktemp -d "${TMPDIR:-/tmp}/keycuts-ui.XXXXXX")"
 sandbox="$(cd -P "$sandbox" && pwd)"
@@ -46,6 +46,7 @@ cleanup()
   osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1 || true
   # never leave the system's Increase contrast on
   [ "$("$sandbox/contrast")" = "true" ] 2>/dev/null && set_contrast false
+  osascript -e 'tell application "Finder" to close (every window whose name is "drop")' >/dev/null 2>&1 || true
   "$here/desktop.sh" restore "$state"
   [ -n "${banner_pid:-}" ] && kill "$banner_pid" 2>/dev/null
 }
@@ -200,6 +201,21 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
       osascript -e 'tell application "System Events" to key code 53'; sleep 2
       onyx="$(dock_tile onyx)"
       [ "$before" != "$cobalt" ] && [ "$cobalt" != "$onyx" ] && ok "Dock icon follows the picker (changed at each pick)" || bad "Dock icon did not change: $before $cobalt $onyx"
+      ;;
+    torn)
+      # the window's bottom-right corner: the app's own colour with the torn corner off, the desktop's with it on
+      corner() { front; IFS=, read -r x y w h <<<"$(osascript -e "tell application \"System Events\" to tell (first process whose unix id is $pid) to return (position of window 1 as list) & (size of window 1 as list)" | tr -d ' ')"; screencapture -x -R"$((x + w - 22))","$((y + h - 22))",1,1 "$sandbox/corner.png"; md5 -q "$sandbox/corner.png"; }
+      front; osascript -e 'tell application "System Events" to keystroke "3" using command down'; sleep 1
+      # by position (the Settings screen is 768 x 470; the switch sits at 683,801 of its 2x picture): the accessibility tree can be empty
+      IFS=, read -r wx wy _ _ <<<"$(osascript -e "tell application \"System Events\" to tell (first process whose unix id is $pid) to return (position of window 1 as list) & (size of window 1 as list)" | tr -d ' ')"
+      switch="$((wx + 341)),$((wy + 400))"
+      off="$(corner)"
+      cliclick c:"$switch"; sleep 2.5
+      on="$(corner)"
+      cliclick m:"$((wx + 300)),$((wy + 300))"; sleep 1   # a second click on the same spot isn't registered
+      cliclick c:"$switch"; sleep 2.5
+      again="$(corner)"
+      [ "$off" != "$on" ] && [ "$off" = "$again" ] && ok "Torn corner: the window's corner changes with the setting" || bad "Torn corner: corner pixels $off $on $again"
       ;;
     *) say "unknown check: $name" ;;
   esac

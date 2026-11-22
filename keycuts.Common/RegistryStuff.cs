@@ -36,6 +36,9 @@ namespace keycuts.Common
         /// <summary>Show the app icon without its background (the keycap alone) on the windows and the shortcuts. Off unless set to 1.</summary>
         public static readonly string AppIconTransparentKeyName = "AppIconTransparent";
 
+        /// <summary>macOS: the window's torn corner (issue #292); off unless set. Windows always has it.</summary>
+        public static readonly string TornCornerKeyName = "TornCorner";
+
         /// <summary>Save new file and folder keycuts with environment variables (#31). Off unless set.</summary>
         public static readonly string UseEnvironmentVariablesKeyName = "UseEnvironmentVariables";
 
@@ -166,6 +169,11 @@ namespace keycuts.Common
             return AppIconChoices.Parse(ReadValue(AppIconKeyName) as string);
         }
 
+        public static bool GetTornCorner()
+        {
+            return ReadValue(TornCornerKeyName) is int raw && raw != 0;
+        }
+
         public static bool GetAppIconTransparent()
         {
             return ReadValue(AppIconTransparentKeyName) is int raw && raw != 0;
@@ -261,6 +269,11 @@ namespace keycuts.Common
         public static void SetAppIcon(AppIconChoice choice)
         {
             Backend.WriteString(AppIconKeyName, choice.ToString());
+        }
+
+        public static void SetTornCorner(bool on)
+        {
+            Backend.WriteDword(TornCornerKeyName, on ? 1 : 0);
         }
 
         public static void SetAppIconTransparent(bool transparent)

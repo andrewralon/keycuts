@@ -43,7 +43,11 @@ namespace keycuts.GUI
             };
 
             var menu = new NativeMenu();
-            menu.Add(Item("Run…", MacRunBox.Show));
+            // Run… shows the Run box's shortcut, and follows it when Settings changes it
+            var run = Item("Run…", MacRunBox.Show);
+            run.Gesture = RunBoxGesture.From(MacHotKey.Current);
+            MacHotKey.Changed += (sender, e) => run.Gesture = RunBoxGesture.From(MacHotKey.Current);
+            menu.Add(run);
             menu.Add(Item("New keycut…", () => Show(window, 1)));
             menu.Add(Item("Manager", () => Show(window, 2)));
             menu.Add(Item("Settings…", () => Show(window, 3)));

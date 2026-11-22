@@ -159,6 +159,16 @@
                           VerticalAlignment="Center" IsChecked="{Binding OpenAtLogin}" AutomationProperties.Name="Open at login"
                           AutomationProperties.HelpText="{Binding OpenAtLoginText}" />
           </Grid>
+          <!-- macOS (issue #292): the native window is the default; this tears its bottom-right corner, as the Windows window is -->
+          <Grid x:Name="TornCornerRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsTornCornerOffered}">
+            <StackPanel>
+              <TextBlock Text="Torn corner" Classes="SettingName" />
+              <TextBlock Text="Tears the window’s bottom-right corner, as on Windows. Drag it to resize." Classes="SettingNote" />
+            </StackPanel>
+            <ToggleButton x:Name="ToggleTornCorner" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding TornCorner}" AutomationProperties.Name="Torn corner"
+                          AutomationProperties.HelpText="Tears the window’s bottom-right corner" />
+          </Grid>
         </StackPanel>
 
         <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />

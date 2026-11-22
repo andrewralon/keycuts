@@ -1,3 +1,4 @@
+using System;
 using keycuts.Common;
 
 namespace keycuts.GUI
@@ -41,13 +42,35 @@ namespace keycuts.GUI
         /// The welcome panel (Phase 5.5): how to run a keycut. On macOS that's the Run box, from its shortcut, or the name in
         /// Terminal; never Spotlight, which can't run them.
         /// </summary>
-        public static readonly string WelcomeIntro = PlatformKeys.IsMac
-            ? "keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press ⇧⌘Space and type the name, or type it in Terminal."
-            : "keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it.";
+        /// <summary>The Run box's shortcut as macOS writes it (⇧⌘Space), null when none is set. The app points it at the configured one.</summary>
+        public static Func<string?> RunBoxShortcut { get; set; } = () => "⇧⌘Space";
 
-        public static readonly string WelcomeCreatedHint = PlatformKeys.IsMac
-            ? "Created. Now try it out! Press ⇧⌘Space, type its name, and press Return to open it."
-            : "Created. Now try it out! Press Win+R, type its name, and press Enter to open it.";
+        /// <summary>How the welcome text says to open the Run box: its shortcut, or the menu bar when there is none.</summary>
+        private static string RunBoxWay()
+        {
+            var shortcut = RunBoxShortcut();
+            return shortcut == null ? "choose Run… in the menu bar" : "press " + shortcut;
+        }
+
+        public static string WelcomeIntro
+        {
+            get
+            {
+                return PlatformKeys.IsMac
+                    ? "keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then " + RunBoxWay() + " and type the name, or type it in Terminal."
+                    : "keycuts lets you open your apps, files, folders, and websites with short names you choose. Create one here, then press Win+R, type the name, and press Enter to open it.";
+            }
+        }
+
+        public static string WelcomeCreatedHint
+        {
+            get
+            {
+                return PlatformKeys.IsMac
+                    ? "Created. Now try it out! " + char.ToUpperInvariant(RunBoxWay()[0]) + RunBoxWay().Substring(1) + ", type its name, and press Return to open it."
+                    : "Created. Now try it out! Press Win+R, type its name, and press Enter to open it.";
+            }
+        }
 
         /// <summary>After a create, when the folder isn't on PATH: only Terminal needs it on macOS (the Run box finds keycuts itself).</summary>
         public static readonly string WelcomeNotOnPath = "Created, but " + PlatformWords.Launcher + " can’t find it yet: the keycuts folder isn’t on your PATH.";

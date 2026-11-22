@@ -17,5 +17,7 @@
     <!-- The keycuts and keypaste commands (#97, #248): published into a shims folder, which the MSI installs into the keycuts
          folder (on PATH already), so PATH never reaches the self-contained runtime's DLLs next to the exe -->
     <None Update="shims\*.cmd" Link="shims\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The Finder Quick Action for install-shell-integration (Phase 7); macOS builds only, as in keycuts.App -->
+    <Content Condition="$([MSBuild]::IsOSPlatform('OSX')) Or $(RuntimeIdentifier.StartsWith('osx'))" Include="..\installer\macos\keycut this!.workflow\Contents\*" Link="QuickAction\keycut this!.workflow\Contents\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -73,6 +73,7 @@ namespace keycuts.GUI
 
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
+                MacFileOpen.Attach(Current!, shell, mainWindow);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
                 PlatformText.RunBoxShortcut = () => OperatingSystem.IsMacOS() ? MacHotKey.Current?.Display : null;
             }
@@ -325,7 +326,7 @@ namespace keycuts.GUI
 
         /// <summary>
         /// What the installer does on Windows, done by the app's own start on macOS (correction 3): an installed copy (the
-        /// <c>keycuts</c> CLI beside it) records its folder for the shims and makes the keycuts folder. Never fails.
+        /// <c>keycuts</c> CLI beside it) records its folder for the shims and makes the keycuts folder, and puts the Finder Quick Action in place unless Settings turned it off. Never fails.
         /// </summary>
         private static void RecordMacInstall()
         {
@@ -335,6 +336,7 @@ namespace keycuts.GUI
                     CommandShims.RecordInstallFolder(CommandShims.InstallFolderPointer, AppContext.BaseDirectory, System.IO.File.Exists))
                 {
                     System.IO.Directory.CreateDirectory(new Runner().GetOutputFolder());
+                    RegistryStuff.EnsureQuickAction();
                 }
             }
             catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)

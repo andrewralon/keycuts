@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds keycuts.app for real use on this Mac: a self-contained Release publish (no .NET needed) in a bundle that, unlike
-# new-test-bundle.sh, uses your real settings and ~/Shortcuts. Ad-hoc signed, not notarized: for you, not for sharing.
+# new-test-bundle.sh, has the real bundle id (com.teamralon.keycuts, which the Finder Quick Action opens) and uses your real settings and ~/Shortcuts. Ad-hoc signed, not notarized: for you, not for sharing.
 # The proper installer (signing, notarization, .pkg) is Phase 8 of docs/macos-port.md.
 #
 #   tools/mac/new-dev-bundle.sh [output folder]      default ~/Desktop; prints the path of keycuts.app
@@ -39,7 +39,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key><string>com.teamralon.keycuts.dev</string>
+  <key>CFBundleIdentifier</key><string>com.teamralon.keycuts</string>
   <key>CFBundleName</key><string>keycuts</string>
   <key>CFBundleIconFile</key><string>keycuts</string>
   <key>CFBundleExecutable</key><string>keycuts.GUI</string>

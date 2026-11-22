@@ -17,7 +17,7 @@ namespace keycuts.GUI.ViewModels
     /// <summary>"Open at login" (Phase 6.5): keycuts starts in the menu bar, so the Run box is ready after a restart.</summary>
     public partial class SettingsViewModel
     {
-        public const string OpenAtLoginNote = "keycuts waits in the menu bar (about 90 MB).";
+        public const string OpenAtLoginNote = "keycuts waits in the menu bar.";
 
         public const string OpenAtLoginApprovalNote = "Turn keycuts on in System Settings → General → Login Items.";
 

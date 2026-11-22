@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace keycuts.Common
 {
@@ -45,6 +46,26 @@ namespace keycuts.Common
         public bool IsInstalled
         {
             get { return Directory.Exists(InstalledPath); }
+        }
+
+        /// <summary>Installed and the same files as the ones shipped with this app, so an upgrade's new workflow replaces an old copy.</summary>
+        public bool IsUpToDate
+        {
+            get { return IsInstalled && Directory.Exists(_source) && SameFiles(_source, InstalledPath); }
+        }
+
+        /// <summary>The app's start on macOS: installs the action, or brings an older copy up to date. False when it couldn't (or has nothing to install).</summary>
+        public bool EnsureInstalled()
+        {
+            return IsUpToDate || Install();
+        }
+
+        private static bool SameFiles(string a, string b)
+        {
+            var filesA = Directory.GetFiles(a, "*", SearchOption.AllDirectories).Select(f => Path.GetRelativePath(a, f)).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+            var filesB = Directory.GetFiles(b, "*", SearchOption.AllDirectories).Select(f => Path.GetRelativePath(b, f)).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
+            return filesA.SequenceEqual(filesB) && filesA.All(f => File.ReadAllBytes(Path.Combine(a, f)).AsSpan().SequenceEqual(File.ReadAllBytes(Path.Combine(b, f))));
         }
 
         /// <summary>Puts the workflow in place of any copy there; false when this app has no workflow to copy or the copy failed.</summary>

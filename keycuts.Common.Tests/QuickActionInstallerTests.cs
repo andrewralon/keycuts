@@ -72,6 +72,28 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void EnsureInstalled_InstallsOnce_AndAgainWhenTheShippedWorkflowChanges()
+        {
+            var refreshed = 0;
+            var installer = new QuickActionInstaller(Home, Source, () => refreshed++);
+
+            Assert.False(installer.IsUpToDate);
+            Assert.True(installer.EnsureInstalled());
+            Assert.True(installer.IsUpToDate);
+
+            // Already current: nothing is copied and pbs isn't asked again
+            Assert.True(installer.EnsureInstalled());
+            Assert.Equal(1, refreshed);
+
+            // A new version of the app ships a changed workflow
+            File.WriteAllText(Path.Combine(Source, "Contents", "document.wflow"), "newer");
+            Assert.False(installer.IsUpToDate);
+            Assert.True(installer.EnsureInstalled());
+            Assert.Equal("newer", File.ReadAllText(Path.Combine(installer.InstalledPath, "Contents", "document.wflow")));
+            Assert.Equal(2, refreshed);
+        }
+
+        [Fact]
         public void Install_WithNoWorkflowToCopy_Fails_AndChangesNothing()
         {
             var installer = new QuickActionInstaller(Home, Path.Combine(_root, "missing.workflow"));

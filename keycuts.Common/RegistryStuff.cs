@@ -415,6 +415,20 @@ namespace keycuts.Common
             Backend.DeleteValues(LegacyUpdateKeyNames);
         }
 
+        /// <summary>
+        /// macOS, at the app's start (Phase 8: no package postinstall): puts the Finder Quick Action in place, or brings an older copy up
+        /// to date, unless the user turned it off in Settings. Never fails.
+        /// </summary>
+        public static void EnsureQuickAction()
+        {
+            if (!OperatingSystem.IsMacOS() || (ReadValue(RightClickContextMenuKeyName) is int raw && raw == 0))
+            {
+                return;
+            }
+
+            QuickActionInstaller.CreateDefault().EnsureInstalled();
+        }
+
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>
         public static bool SetRightClickContextMenu(bool rightClickContextMenu)
         {

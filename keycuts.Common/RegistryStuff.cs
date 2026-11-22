@@ -139,11 +139,10 @@ namespace keycuts.Common
         /// <summary>Whether the verbs are really there, which is what the Settings checkbox should show.</summary>
         public static bool GetRightClickContextMenu()
         {
-            // The Explorer verbs on Windows. On macOS the Finder Quick Action (Phase 7 installs it): until then, the stored choice,
-            // on unless turned off, as a new install has it
+            // The Explorer verbs on Windows; on macOS the Finder Quick Action in ~/Library/Services (Phase 7)
             if (OperatingSystem.IsMacOS())
             {
-                return ReadValue(RightClickContextMenuKeyName) is not int raw || raw != 0;
+                return QuickActionInstaller.CreateDefault().IsInstalled;
             }
 
             return OperatingSystem.IsWindows() && new ContextMenuRegistrar().IsRegistered();
@@ -421,9 +420,15 @@ namespace keycuts.Common
         {
             if (OperatingSystem.IsMacOS())
             {
-                // Phase 7 installs and removes the Quick Action here; until then only the choice is stored
-                Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
-                return true;
+                var quickAction = QuickActionInstaller.CreateDefault();
+                var done = rightClickContextMenu ? quickAction.Install() : quickAction.Uninstall();
+
+                if (done)
+                {
+                    Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
+                }
+
+                return done;
             }
 
             if (!OperatingSystem.IsWindows())

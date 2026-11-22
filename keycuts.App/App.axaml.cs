@@ -73,6 +73,7 @@ namespace keycuts.GUI
 
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
+                MacFileOpen.Attach(Current!, shell, mainWindow);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
                 PlatformText.RunBoxShortcut = () => OperatingSystem.IsMacOS() ? MacHotKey.Current?.Display : null;
             }

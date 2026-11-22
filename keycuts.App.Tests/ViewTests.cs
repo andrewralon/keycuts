@@ -391,6 +391,16 @@ namespace keycuts.Tests
             Assert.Equal(string.Empty, settings.OutputFolderMessage);
             Assert.Single(Named<Grid>(window, "TornCornerRow").GetVisualDescendants().OfType<TextBlock>(), t => !string.IsNullOrEmpty(t.Text));
             Assert.Equal(SettingsViewModel.OpenAtLoginNote, "keycuts waits in the menu bar.");
+
+            // The empty folder line takes no room: Behavior sits one section gap (20) under the box, not a text line more
+            var message = Named<HelperText>(window, "OutputFolderMessage");
+            Assert.Equal(0, message.Bounds.Height, 0.5);
+            Assert.Equal(new Thickness(0), message.Margin);
+            var box = Named<TextBox>(window, "TextboxOutputFolder");
+            var behavior = window.GetVisualDescendants().OfType<SectionLabel>().First(l => l.Text == "Behavior");
+            var gap = behavior.TranslatePoint(new Point(0, 0), window)!.Value.Y - (box.TranslatePoint(new Point(0, box.Bounds.Height), window)!.Value.Y);
+            Assert.InRange(gap, 19, 21);
+
             window.Close();
         }
 

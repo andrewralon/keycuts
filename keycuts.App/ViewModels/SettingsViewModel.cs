@@ -249,6 +249,7 @@ namespace keycuts.GUI.ViewModels
                 {
                     OnPropertyChanged(nameof(HasOutputFolderError));
                     OnPropertyChanged(nameof(OutputFolderMessage));
+                    OnPropertyChanged(nameof(HasOutputFolderMessage));
                 }
             }
         }
@@ -262,6 +263,12 @@ namespace keycuts.GUI.ViewModels
         public string OutputFolderMessage
         {
             get { return outputFolderError ?? DefaultHelperText; }
+        }
+
+        /// <summary>Whether there is anything under the folder box: an error, or the helper text (none on macOS), so the empty line takes no room.</summary>
+        public bool HasOutputFolderMessage
+        {
+            get { return OutputFolderMessage.Length > 0; }
         }
 
         /// <summary>A problem storing a change, such as PATH not updating. Shown on the page until the next change.</summary>

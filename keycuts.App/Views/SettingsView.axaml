@@ -44,6 +44,11 @@
     <Style Selector="Grid.mac controls|SectionLabel.LaterSection">
       <Setter Property="Margin" Value="0,20,0,8" />
     </Style>
+    <!-- A live line with nothing to say takes no room (the folder's helper text is empty on macOS) -->
+    <Style Selector="controls|HelperText.silent">
+      <Setter Property="MaxHeight" Value="0" />
+      <Setter Property="Margin" Value="0" />
+    </Style>
     <Style Selector="controls|HelperText.folder.error">
       <Setter Property="State" Value="Error" />
     </Style>
@@ -109,6 +114,7 @@
             </Button>
           </Grid>
           <controls:HelperText x:Name="OutputFolderMessage" Classes="folder" Classes.error="{Binding HasOutputFolderError}"
+                               Classes.silent="{Binding !HasOutputFolderMessage}"
                                Text="{Binding OutputFolderMessage}" />
 
           <!-- Behavior -->

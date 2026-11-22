@@ -56,6 +56,12 @@ namespace keycuts.GUI
             MainWindow? mainWindow = null;
             var shell = CreateShell(() => mainWindow);
 
+            if (OperatingSystem.IsMacOS())
+            {
+                // Issue #292: read before the window is built, so it opens in the shape the user chose
+                TornCornerSetting.Initialize(RegistryStuff.GetTornCorner());
+            }
+
             mainWindow = new MainWindow(shell);
             desktop.MainWindow = mainWindow;
             MacMenus.Attach(Current!, mainWindow);
@@ -157,7 +163,8 @@ namespace keycuts.GUI
                 shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
             {
                 RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null,
-                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null
+                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null,
+                TornCornerOption = OperatingSystem.IsMacOS() ? new TornCornerSetting() : null
             };
 
             var shell = new ShellViewModel(

@@ -337,6 +337,39 @@ namespace keycuts.Tests
             });
         }
 
+        // Issue #292: the torn corner on macOS is a setting; the window turns transparent behind the page while it is on
+        [AvaloniaFact]
+        public void OnTheMac_TheTornCorner_FollowsTheSetting()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
+            try
+            {
+                WithWindow((window, shell) =>
+                {
+                    var tear = Named<TornCorner>(window, "Tear");
+                    var frame = Named<Grid>(window, "Frame");
+                    Assert.False(tear.IsVisible);
+                    Assert.Null(frame.Clip);
+
+                    TornCornerSetting.Show(true);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.True(tear.IsVisible);
+                    Assert.NotNull(frame.Clip);
+                    Assert.Equal(new[] { WindowTransparencyLevel.Transparent }, window.TransparencyLevelHint);
+
+                    TornCornerSetting.Show(false);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.False(tear.IsVisible);
+                    Assert.Null(frame.Clip);
+                    Assert.Equal(new[] { WindowTransparencyLevel.None }, window.TransparencyLevelHint);
+                });
+            }
+            finally
+            {
+                TornCornerSetting.Show(false);
+            }
+        }
+
         #endregion The caption buttons and the bar
 
         #region Sizes

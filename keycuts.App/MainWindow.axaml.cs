@@ -231,16 +231,42 @@ namespace keycuts.GUI
         /// <summary>
         /// Phase 5.1 (mockup macos-window-v1): macOS draws the frame, its rounded corners and shadow, and its own traffic lights,
         /// which sit in the tab bar, centered in its height. Zoom stays off (<c>CanMaximize</c>). The page is opaque, with no
-        /// border of its own and no torn corner.
+        /// border of its own, and no torn corner unless the user turns it on (issue #292).
         /// </summary>
         private void UseMacFrame()
         {
             WindowDecorations = WindowDecorations.Full;
             ExtendClientAreaTitleBarHeightHint = (double)this.FindResource("RailHeight")!;
             MacTrafficLights.Attach(this, (double)this.FindResource("RailHeight")!);
-            TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
-            Bind(BackgroundProperty, this.GetResourceObservable("CanvasBrush"));
             PageBorder.IsVisible = false;
+            ApplyMacShape();
+            TornCornerSetting.Changed += TornCornerSetting_Changed;
+            Closed += (sender, e) => TornCornerSetting.Changed -= TornCornerSetting_Changed;
+        }
+
+        private void TornCornerSetting_Changed(object? sender, EventArgs e)
+        {
+            ApplyMacShape();
+            UpdateTear();
+        }
+
+        /// <summary>
+        /// The macOS window is an opaque rectangle in macOS's own frame. With the torn corner on (issue #292) the window is
+        /// transparent behind the page instead, so the desktop shows through the tear; the frame, rounded top corners and traffic
+        /// lights stay macOS's.
+        /// </summary>
+        private void ApplyMacShape()
+        {
+            if (TornCornerSetting.On)
+            {
+                TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
+                Background = Avalonia.Media.Brushes.Transparent;
+            }
+            else
+            {
+                TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
+                Bind(BackgroundProperty, this.GetResourceObservable("CanvasBrush"));
+            }
         }
 
         /// <summary>Whether the window shows its torn corner: always, except in high contrast, which keeps the plain rectangle.</summary>
@@ -257,7 +283,7 @@ namespace keycuts.GUI
         // The page is clipped to the torn shape, so the desktop shows through the tear; the tear's own drawing sits on top
         private void UpdateTear()
         {
-            var torn = ShowsTear(ThemeManager.Current) && !OperatingSystem.IsMacOS();
+            var torn = ShowsTear(ThemeManager.Current) && (!OperatingSystem.IsMacOS() || TornCornerSetting.On);
             Frame.Clip = torn ? TornCornerShape.Default.GetWindowClip(Frame.Bounds.Size) : null;
             Tear.IsVisible = torn;
         }

@@ -60,6 +60,13 @@ Tests never touch the real settings, registry, PATH, `~/Shortcuts`, network or R
 - **The owner may touch the machine while it runs.** The banner (top of the screen) says what is running and has Pause and Stop. A failure seen while
   someone could have been clicking is not evidence: repeat once, or confirm with a non-UI probe, before reporting it as a bug.
 
+- **A login start without logging in (issue #294):** the app's check is "no launch Apple event, registered as a login item, parent process launchd".
+  Quit the installed app, then start it detached from the shell so launchd becomes its parent and nothing sends it an event:
+  `( /Applications/keycuts.app/Contents/MacOS/keycuts.GUI >/dev/null 2>&1 & )`. It should come up in the menu bar with no window and no Dock
+  tile (Open at login must be on, or it isn't registered); `open /Applications/keycuts.app` then shows the window in the same process. Avalonia's
+  lifetime shows `desktop.MainWindow` itself when it starts, which is why the window is assigned only after it first opens in that case: skipping
+  the `Show()` call alone left the window up with the Dock icon hidden.
+
 ## Things this found (so they aren't "fixed" again by accident)
 
 - Avalonia 12.1.6 reports `ContrastPreference.NoPreference` on macOS with Increase contrast on, at startup too (probe in `ThemeManager.DetectPalette`

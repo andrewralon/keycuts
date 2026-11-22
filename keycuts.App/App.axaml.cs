@@ -63,7 +63,19 @@ namespace keycuts.GUI
             }
 
             mainWindow = new MainWindow(shell);
-            desktop.MainWindow = mainWindow;
+
+            // Issue #294: the lifetime shows its MainWindow when it starts, so a start at login (menu bar only) leaves it unset until the
+            // window is first shown, and dialogs still find their owner then
+            var atLogin = OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin();
+            if (atLogin)
+            {
+                mainWindow.Opened += (sender, e) => desktop.MainWindow ??= mainWindow;
+            }
+            else
+            {
+                desktop.MainWindow = mainWindow;
+            }
+
             MacMenus.Attach(Current!, mainWindow);
             MacMenuBar.Attach(Current!, desktop, mainWindow);
             if (OperatingSystem.IsMacOS())
@@ -96,7 +108,7 @@ namespace keycuts.GUI
             }
 
             // Phase 6.5: started by the login, keycuts waits in the menu bar with no window and no Dock icon
-            if (OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin())
+            if (atLogin)
             {
                 MacMenuBar.HideFromDock();
             }

@@ -13,10 +13,13 @@ version="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$repo/Directory.Build.
 work="$(mktemp -d)"   # built and signed here: a synced folder such as the Desktop keeps adding attributes that codesign refuses
 app="$work/keycuts.app"
 
-dotnet publish "$repo/keycuts.App" -c Release -r "$rid" --self-contained -p:EnableWindowsTargeting=true --nologo -v q >&2
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-cp -R "$repo/keycuts.App/bin/Release/net10.0/$rid/publish/." "$app/Contents/MacOS/"
+# The app and the CLI side by side, as in the package: the app only writes the shims, the folder pointer and the Quick Action when the
+# CLI is beside it
+for project in keycuts.App keycuts.CLI; do
+  dotnet publish "$repo/$project/$project.csproj" -c Release -r "$rid" --self-contained -p:EnableWindowsTargeting=true --nologo -v q -o "$app/Contents/MacOS" >&2
+done
 
 # The bundle's own icon (Finder, Desktop, Login Items) is Porcelain and stays fixed; the Dock icon follows Settings at runtime.
 "$repo/tools/mac/make-icns.sh" "$app/Contents/Resources/keycuts.icns"

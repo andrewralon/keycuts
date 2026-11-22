@@ -51,7 +51,7 @@
                     AutomationProperties.Name="got it" AutomationProperties.HelpText="Hides the welcome panel" />
           </Grid>
           <TextBlock TextWrapping="Wrap" Margin="0,4,0,12" Foreground="{DynamicResource TextSecondaryBrush}"
-                     Text="{x:Static gui:PlatformText.WelcomeIntro}" />
+                     Text="{Binding Intro}" />
           <TextBlock Text="Start by creating one of these keycuts" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" />
           <!-- Three bubbles in a row: type badge and what it opens. Each fills the fields below. -->
           <ItemsControl x:Name="WelcomeExamples" ItemsSource="{Binding Examples}" Margin="-4,8,-4,0" IsTabStop="False">

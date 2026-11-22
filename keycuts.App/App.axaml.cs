@@ -68,6 +68,7 @@ namespace keycuts.GUI
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
+                PlatformText.RunBoxShortcut = () => OperatingSystem.IsMacOS() ? MacHotKey.Current?.Display : null;
             }
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a

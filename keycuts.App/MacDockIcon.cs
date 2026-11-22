@@ -21,6 +21,16 @@ namespace keycuts.GUI
             AppIconManager.Changed += (sender, e) => Apply(AppIconManager.Current);
         }
 
+        /// <summary>
+        /// Sets the icon again. The Dock ignores an icon set while the app was hidden from it (a start at login), so this runs each time
+        /// the app comes back to the Dock.
+        /// </summary>
+        [SupportedOSPlatform("macos")]
+        public static void Refresh()
+        {
+            Apply(AppIconManager.Current);
+        }
+
         [SupportedOSPlatform("macos")]
         private static void Apply(AppIconArt art)
         {

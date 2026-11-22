@@ -1,0 +1,60 @@
+#!/bin/bash
+# Opens a pull request in andrewralon/homebrew-tap that sets the keycuts cask to a release (Phase 8; issue #106). The release workflow
+# runs it with GH_TOKEN set to the tap's token. It writes Casks/keycuts.rb from the two .pkg files' hashes.
+#
+#   tools/mac/update-cask.sh <version> <arm64 .pkg> <x64 .pkg>
+set -euo pipefail
+
+version="${1:?version}"
+arm_pkg="${2:?arm64 pkg}"
+x64_pkg="${3:?x64 pkg}"
+tap="andrewralon/homebrew-tap"
+work="$(mktemp -d)"
+arm_sha="$(shasum -a 256 "$arm_pkg" | cut -d' ' -f1)"
+x64_sha="$(shasum -a 256 "$x64_pkg" | cut -d' ' -f1)"
+
+gh repo clone "$tap" "$work/tap" -- --depth 1
+mkdir -p "$work/tap/Casks"
+cat > "$work/tap/Casks/keycuts.rb" <<RUBY
+cask "keycuts" do
+  arch arm: "arm64", intel: "x64"
+
+  version "$version"
+  sha256 arm:   "$arm_sha",
+         intel: "$x64_sha"
+
+  url "https://github.com/andrewralon/keycuts/releases/download/v#{version}/keycuts-setup-#{arch}.pkg"
+  name "keycuts"
+  desc "Open anything by nickname: from Terminal, or from the Run box"
+  homepage "https://github.com/andrewralon/keycuts"
+
+  depends_on macos: ">= :ventura"
+
+  pkg "keycuts-setup-#{arch}.pkg"
+
+  # The CLI (keycuts, and keypaste through its shim) is linked onto PATH
+  binary "#{appdir}/keycuts.app/Contents/MacOS/keycuts"
+
+  uninstall quit:    "com.teamralon.keycuts",
+            pkgutil: "com.teamralon.keycuts"
+
+  zap trash: [
+    "~/Library/Application Support/keycuts",
+    "~/Library/Services/keycut this!.workflow",
+  ]
+end
+RUBY
+
+cd "$work/tap"
+git config user.name "keycuts release"
+git config user.email "actions@users.noreply.github.com"
+branch="keycuts-$version"
+git checkout -b "$branch"
+git add Casks/keycuts.rb
+if git diff --cached --quiet; then
+  echo "The cask is already at $version."
+  exit 0
+fi
+git commit -m "keycuts $version"
+git push origin "$branch"
+gh pr create --repo "$tap" --head "$branch" --title "keycuts $version" --body "Sets the keycuts cask to v$version (written by the keycuts release workflow)."

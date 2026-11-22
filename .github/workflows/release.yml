@@ -17,6 +17,9 @@ concurrency:
 
 jobs:
   release:
+    outputs:
+      released: ${{ steps.create.outputs.released }}
+      tag: ${{ steps.version.outputs.tag }}
     # A manual run from another branch would publish unmerged code and take the tag main needs.
     if: github.ref == 'refs/heads/main'
     runs-on: windows-latest
@@ -74,6 +77,7 @@ jobs:
           Get-Content "$out/SHA256SUMS.txt"
 
       - name: Create release
+        id: create
         if: steps.version.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,3 +99,101 @@ jobs:
             "| $($asset.Name) | $([math]::Round($asset.Length / 1MB, 1)) MB | ``$((Get-FileHash $asset.FullName -Algorithm SHA256).Hash.ToLower())`` |"
           }
           $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+          'released=true' >> $env:GITHUB_OUTPUT
+
+  # The macOS packages (docs/macos-port.md, Phase 8; issue #106): built, signed and notarized on a Mac runner and attached to the
+  # release the job above just created, with SHA256SUMS.txt extended to cover them. It needs the Apple secrets listed in #106; without
+  # them it says so and does nothing, so the Windows release is never held up by it.
+  macos:
+    needs: release
+    if: needs.release.outputs.released == 'true' && github.repository == 'andrewralon/keycuts' && github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check for the Apple secrets
+        id: secrets
+        env:
+          APP_CERT: ${{ secrets.APPLE_DEVID_APP_CERT_P12 }}
+          INSTALLER_CERT: ${{ secrets.APPLE_DEVID_INSTALLER_CERT_P12 }}
+          NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+        run: |
+          if [ -n "$APP_CERT" ] && [ -n "$INSTALLER_CERT" ] && [ -n "$NOTARY_KEY" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::The Apple secrets (#106) aren't set, so the macOS packages were not built."
+            printf '## macOS packages skipped\n\nThe Apple secrets listed in #106 are not set.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.secrets.outputs.have == 'true'
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        if: steps.secrets.outputs.have == 'true'
+        with:
+          global-json-file: global.json
+
+      - name: Import the certificates
+        if: steps.secrets.outputs.have == 'true'
+        env:
+          APP_CERT: ${{ secrets.APPLE_DEVID_APP_CERT_P12 }}
+          INSTALLER_CERT: ${{ secrets.APPLE_DEVID_INSTALLER_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+        run: |
+          keychain="$RUNNER_TEMP/keycuts-build.keychain-db"
+          password="$(uuidgen)"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$APP_CERT" | base64 --decode > "$RUNNER_TEMP/app.p12"
+          echo "$INSTALLER_CERT" | base64 --decode > "$RUNNER_TEMP/installer.p12"
+          security import "$RUNNER_TEMP/app.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security import "$RUNNER_TEMP/installer.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/app.p12" "$RUNNER_TEMP/installer.p12"
+
+          echo "$NOTARY_KEY" | base64 --decode > "$RUNNER_TEMP/notary-key.p8"
+          app_identity="$(security find-identity -v "$keychain" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -1)"
+          installer_identity="$(security find-identity -v "$keychain" | sed -n 's/.*"\(Developer ID Installer:.*\)"/\1/p' | head -1)"
+          [ -n "$app_identity" ] && [ -n "$installer_identity" ] || { echo "::error::The certificates have no Developer ID Application and Installer identities."; exit 1; }
+          {
+            echo "APPLE_APP_IDENTITY=$app_identity"
+            echo "APPLE_INSTALLER_IDENTITY=$installer_identity"
+            echo "APPLE_NOTARY_KEY_PATH=$RUNNER_TEMP/notary-key.p8"
+          } >> "$GITHUB_ENV"
+
+      - name: Build, sign and notarize
+        if: steps.secrets.outputs.have == 'true'
+        env:
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: tools/Build-MacPackage.sh
+
+      - name: Attach to the release
+        if: steps.secrets.outputs.have == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          mkdir -p artifacts/release
+          cp artifacts/installer/osx-arm64/keycuts-setup-arm64.pkg artifacts/installer/osx-x64/keycuts-setup-x64.pkg artifacts/release/
+          # SHA256SUMS.txt covers all six files: the Windows lines as the release has them, then these two
+          gh release download "$TAG" --pattern SHA256SUMS.txt --dir artifacts/release --clobber
+          (cd artifacts/release && for pkg in keycuts-setup-arm64.pkg keycuts-setup-x64.pkg; do shasum -a 256 "$pkg" | sed 's/ \*/  /'; done >> SHA256SUMS.txt && cat SHA256SUMS.txt)
+          gh release upload "$TAG" artifacts/release/keycuts-setup-arm64.pkg artifacts/release/keycuts-setup-x64.pkg artifacts/release/SHA256SUMS.txt --clobber
+
+      - name: Open the Homebrew cask update
+        if: steps.secrets.outputs.have == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::HOMEBREW_TAP_TOKEN isn't set, so the cask in andrewralon/homebrew-tap was not updated."
+            exit 0
+          fi
+          tools/mac/update-cask.sh "${TAG#v}" artifacts/installer/osx-arm64/keycuts-setup-arm64.pkg artifacts/installer/osx-x64/keycuts-setup-x64.pkg

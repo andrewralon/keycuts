@@ -53,7 +53,7 @@ namespace keycuts.GUI.ViewModels
     /// </summary>
     public partial class SettingsViewModel : ObservableObject
     {
-        public const string DefaultHelperText = "New keycuts are saved here.";
+        public static readonly string DefaultHelperText = PlatformKeys.IsMac ? string.Empty : "New keycuts are saved here.";
 
         public const string EmptyFolderMessage = "Choose where keycuts are saved.";
 

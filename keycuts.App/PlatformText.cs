@@ -24,14 +24,14 @@ namespace keycuts.GUI
         public static readonly string RightClickName = PlatformKeys.IsMac ? "Finder Quick Action" : "Right-click context menus";
 
         public static readonly string RightClickNote = PlatformKeys.IsMac
-            ? "Add “keycut this!” to Finder’s Quick Actions. If it’s missing, turn it on in System Settings → Extensions."
+            ? "Add “keycut this!” to Finder’s Quick Actions. Turn it on in System Settings → Extensions."
             : "Add “keycut this!” to File Explorer menus.";
 
         /// <summary>Settings: macOS has one variable, the home folder (Phase 4.6).</summary>
         public static readonly string VariablesName = PlatformKeys.IsMac ? "Use $HOME in paths" : "Use environment variables in paths";
 
         public static readonly string VariablesNote = PlatformKeys.IsMac
-            ? "Save paths in your home folder as $HOME/…. Hold Shift to preview or create a keycut like this, even when off."
+            ? "Save paths in your home folder as $HOME/…. Hold shift to see or create keycuts even when off."
             : "Save paths as %USERPROFILE%\\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.";
 
         public static readonly string VariablesHelp = PlatformKeys.IsMac

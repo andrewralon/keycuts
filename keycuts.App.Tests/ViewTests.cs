@@ -332,6 +332,68 @@ namespace keycuts.Tests
             }
         }
 
+        sealed class StillLoginItem : ILoginItem
+        {
+            public bool IsOn => false;
+
+            public bool NeedsApproval => false;
+
+            public string? Set(bool on) => null;
+        }
+
+        sealed class StillTornCorner : ITornCorner
+        {
+            public bool IsOn => false;
+
+            public string? Set(bool on) => null;
+        }
+
+        sealed class StillShortcut : IRunBoxShortcut
+        {
+            public RunBoxHotkey? Current => RunBoxHotkey.Default;
+
+            public int Status => 0;
+
+            public int Apply(RunBoxHotkey? hotkey) => 0;
+
+            public void Pause(bool paused)
+            {
+            }
+        }
+
+        // Mockup macos-settings-v2: Open at login leads Behavior; Run Box heads the right column, with no section label of its own;
+        // no sentence under the output folder or the torn corner
+        [AvaloniaFact]
+        public void Settings_OnTheMac_FollowsTheV2Mockup()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS rows");
+            var settings = new SettingsViewModel(new FakeStore())
+            {
+                LoginItem = new StillLoginItem(),
+                TornCornerOption = new StillTornCorner(),
+                RunBoxShortcut = new StillShortcut()
+            };
+            var window = Host(new SettingsView(), settings, 768, 470);
+
+            var left = Named<StackPanel>(window, "LeftColumn");
+            var right = Named<StackPanel>(window, "RightColumn");
+            var order = left.Children.Select(c => c.Name).Where(n => n != null).ToList();
+            Assert.True(order.IndexOf("OpenAtLoginRow") < order.IndexOf("AskBeforeReplacingRow"), string.Join(", ", order));
+            Assert.Contains("TornCornerRow", order);
+
+            // Right column: the Run Box row first, then the PATH row, then Appearance; "Run box" is no longer a section label
+            Assert.Same(Named<StackPanel>(window, "RunBoxSection"), right.Children[0]);
+            Assert.Equal("Run Box", window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Run Box").Text);
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<SectionLabel>(), l => l.Text == "Run box");
+            Assert.Same(Named<Grid>(window, "TerminalPathRow"), right.Children[1]);
+
+            // No neutral sentence under the folder, and none under Torn corner
+            Assert.Equal(string.Empty, settings.OutputFolderMessage);
+            Assert.Single(Named<Grid>(window, "TornCornerRow").GetVisualDescendants().OfType<TextBlock>(), t => !string.IsNullOrEmpty(t.Text));
+            Assert.Equal(SettingsViewModel.OpenAtLoginNote, "keycuts waits in the menu bar.");
+            window.Close();
+        }
+
         [AvaloniaFact]
         public void Settings_StoresTheFolderOnEnter_AndEscapeDropsAnEdit()
         {

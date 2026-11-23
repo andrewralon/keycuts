@@ -18,6 +18,8 @@ namespace keycuts.Tests
 
             public int Status { get; set; }
 
+            public bool UsesWindowsKeys { get; set; }
+
             /// <summary>What the next <see cref="Apply"/> reports.</summary>
             public int NextStatus { get; set; }
 
@@ -122,6 +124,60 @@ namespace keycuts.Tests
             Assert.Null(shortcut.Current);
             Assert.Equal("none", settings.ShortcutText);
             Assert.Equal("None. Open the Run box from the menu bar.", settings.ShortcutNote);
+        }
+
+        // Windows (issue #306): Ctrl, Alt, Shift and Win, written the Windows way
+        [Fact]
+        public void OnWindows_TheShortcutIsWrittenWithNames_AndNeedsCtrlAltOrWin()
+        {
+            var (settings, shortcut) = New();
+            shortcut.UsesWindowsKeys = true;
+            shortcut.Current = RunBoxHotkey.WindowsDefault;
+            Assert.Equal("Ctrl+Alt+Space", settings.ShortcutText);
+
+            settings.RecordShortcutCommand!.Execute(null);
+            Assert.Equal("Ctrl …", settings.ShortcutText);
+
+            // Shift alone is refused, with Windows' own words
+            settings.RecordShortcut(new RunBoxHotkey("K", false, false, true, false));
+            Assert.Equal("Shift+K", settings.ShortcutText);
+            Assert.True(settings.ShortcutIsWarning);
+            Assert.Equal("Add Ctrl, Alt or Win: Windows doesn’t allow Shift alone.", settings.ShortcutNote);
+
+            // Alt alone is fine on Windows, where macOS refuses it
+            settings.IsRecordingShortcut = true;
+            settings.RecordShortcut(new RunBoxHotkey("K", false, true, false, false));
+            Assert.Equal("Alt+K", shortcut.Current!.WindowsDisplay);
+            Assert.Equal("Alt+K", settings.ShortcutText);
+            Assert.False(settings.ShortcutIsWarning);
+        }
+
+        [Theory]
+        [InlineData(1409)]
+        [InlineData(-9878)]
+        public void AShortcutAnotherAppHas_SaysSo_OnWindowsToo(int status)
+        {
+            var (settings, shortcut) = New();
+            shortcut.UsesWindowsKeys = true;
+            shortcut.NextStatus = status;
+            settings.IsRecordingShortcut = true;
+
+            settings.RecordShortcut(new RunBoxHotkey("K", true, true, false, false));
+
+            Assert.True(settings.ShortcutIsWarning);
+            Assert.Equal("Couldn’t use Ctrl+Alt+K: another app has it. Choose another.", settings.ShortcutNote);
+        }
+
+        [Fact]
+        public void OnWindows_WithNoShortcut_TheNoteNamesTheTrayIcon()
+        {
+            var (settings, shortcut) = New();
+            shortcut.UsesWindowsKeys = true;
+            settings.IsRecordingShortcut = true;
+
+            settings.ClearShortcut();
+
+            Assert.Equal("None. Open the Run box from the tray icon.", settings.ShortcutNote);
         }
 
         [Theory]

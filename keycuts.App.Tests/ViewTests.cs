@@ -392,10 +392,33 @@ namespace keycuts.Tests
         }
 
         [AvaloniaFact]
+        public void Settings_OnWindows_FollowTheV2Mockup()
+        {
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows rows");
+            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()) { LoginItem = new StillLoginItem(), RunBoxShortcut = new StillShortcut() }, 768, 470);
+
+            // Output folder, Run Box, Open at login, then Ask before replacing; no Terminal row
+            var left = Named<StackPanel>(window, "LeftColumn");
+            var order = left.Children.Where(c => c.IsVisible).Select(c => c.Name).Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray();
+            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow" }, order);
+            Assert.Equal("keycuts waits in the system tray.", SettingsViewModel.OpenAtLoginNote);
+            Assert.Equal("Affects the taskbar, Alt+Tab, and shortcuts.", PlatformText.TransparentIconNote);
+
+            foreach (var name in new[] { "LeftColumn", "RightColumn" })
+            {
+                var column = Named<StackPanel>(window, name);
+                var bottom = column.TranslatePoint(new Point(0, column.Bounds.Height), window)!.Value.Y;
+                Assert.True(bottom <= 470 - 16, name + " ends at " + bottom);
+            }
+
+            window.Close();
+        }
+
+        [AvaloniaFact]
         public void Settings_OnTheMac_OffersTheTransparentIconBackground_LastUnderAppearance()
         {
             Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS wording");
-            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()), 768, 470);
+            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()) { LoginItem = new StillLoginItem(), RunBoxShortcut = new StillShortcut() }, 768, 470);
 
             var toggle = Named<Avalonia.Controls.Primitives.ToggleButton>(window, "ToggleTransparentIcon");
             Assert.True(toggle.IsEffectivelyVisible);
@@ -403,6 +426,15 @@ namespace keycuts.Tests
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Affects the Dock icon.");
             var icon = Named<Button>(window, "BtnIcon");
             Assert.True(toggle.TranslatePoint(new Point(0, 0), window)!.Value.Y > icon.TranslatePoint(new Point(0, 0), window)!.Value.Y);
+
+            // Both columns still end inside the window at its minimum height (470), so nothing scrolls
+            foreach (var name in new[] { "LeftColumn", "RightColumn" })
+            {
+                var column = Named<StackPanel>(window, name);
+                var bottom = column.TranslatePoint(new Point(0, column.Bounds.Height), window)!.Value.Y;
+                Assert.True(bottom <= 470 - 16, name + " ends at " + bottom);
+            }
+
             window.Close();
         }
 

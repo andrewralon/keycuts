@@ -73,6 +73,11 @@ namespace keycuts.Common
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern IntPtr Send(IntPtr receiver, IntPtr selector, uint arg);
 
+        /// <summary>For <c>setIcon:forFile:options:</c>.</summary>
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool SendBool(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, nuint arg3);
+
         /// <summary>For <c>dataWithBytes:length:</c>.</summary>
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern IntPtr Send(IntPtr receiver, IntPtr selector, IntPtr arg1, nuint arg2);

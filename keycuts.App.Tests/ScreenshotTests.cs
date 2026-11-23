@@ -103,6 +103,52 @@ namespace keycuts.Tests
             public FolderSaveResult SaveOutputFolder(string folder) => new(true, null);
         }
 
+        /// <summary>The Run box shortcut at its default, so Settings shows the row; nothing is registered or stored.</summary>
+        sealed class SampleRunBoxShortcut : IRunBoxShortcut
+        {
+            public RunBoxHotkey? Current => RunBoxHotkey.DefaultForThisSystem;
+
+            public int Status => 0;
+
+            public bool UsesWindowsKeys => OperatingSystem.IsWindows();
+
+            public int Apply(RunBoxHotkey? hotkey) => 0;
+
+            public void Pause(bool paused)
+            {
+            }
+        }
+
+        /// <summary>Open at login, off, so Settings shows the row; nothing is registered.</summary>
+        sealed class SampleLoginItem : ILoginItem
+        {
+            public bool IsOn => false;
+
+            public bool NeedsApproval => false;
+
+            public string? Set(bool on) => null;
+        }
+
+        /// <summary>
+        /// Settings as the real app shows it: the Run box, Open at login and (macOS) Run keycuts in Terminal rows are each offered only
+        /// when their seam is set (#318). The shell path reads an empty temp home, so it never touches the real profile.
+        /// </summary>
+        static SettingsViewModel NewSettings(UpdateChecker updates)
+        {
+            var home = Directory.CreateTempSubdirectory("keycuts-screenshot-home").FullName;
+
+            return new SettingsViewModel(
+                new SampleStore(),
+                directoryExists: _ => true,
+                updates: updates,
+                shellPath: OperatingSystem.IsMacOS() ? new MacShellPath(home, "/bin/zsh", "/usr/bin:/bin", Array.Empty<string>()) : null)
+            {
+                ShowVersionRow = false,
+                RunBoxShortcut = new SampleRunBoxShortcut(),
+                LoginItem = new SampleLoginItem()
+            };
+        }
+
         [AvaloniaFact]
         public void RenderTheReadmeScreenshots()
         {
@@ -144,7 +190,7 @@ namespace keycuts.Tests
             var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState());
             var shell = new ShellViewModel(
                 () => Task.FromResult(7),
-                settingsFactory: () => new SettingsViewModel(new SampleStore(), directoryExists: _ => true, updates: updates) { ShowVersionRow = false },
+                settingsFactory: () => NewSettings(updates),
                 checkName: TestNameChecks.NoWarnings);
             var window = new MainWindow(shell);
             window.Show();

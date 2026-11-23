@@ -1,6 +1,17 @@
 # Publishes a GitHub release when main carries a version that has no tag yet.
 # To release: raise <Version> in Directory.Build.props on develop, then merge develop into main.
 # Merges that keep the same version do nothing, so re-running this is always safe.
+#
+#   version   reads <Version>, decides whether to build and whether to publish
+#   windows   tests, builds the two MSIs and the portable zips          } in parallel; each keeps its files as a workflow
+#   macos     builds, signs and notarizes the two .pkg files (#106)     } artifact, and nothing is public until both pass
+#   publish   checks the files and writes SHA256SUMS.txt, then makes the release in one go, as a draft that is published once every
+#             file is attached (a dry run stops before that last step)
+#   cask      opens the Homebrew cask pull request in andrewralon/homebrew-tap (its own job: a failure here leaves the release alone)
+#
+# A manual run with dry_run (from any branch) runs both builds and publish's checks, and keeps the files as artifacts for a week.
+# It makes no release and opens no cask pull request, so the secrets, the signing and the packaging can be tried before a release
+# depends on them.
 name: Release
 
 on:
@@ -8,25 +19,71 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      macos_dry_run:
-        description: "Only build, sign and notarize the macOS packages from this branch and keep them as a workflow artifact (no release, no cask)"
+      dry_run:
+        description: "Build and test everything from this branch, sign and notarize the macOS packages, and keep the files as workflow artifacts (no release, no cask)"
         type: boolean
         default: false
 
+# Only publish gets to write; the build jobs only read
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  release:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
-      released: ${{ steps.create.outputs.released }}
-      tag: ${{ steps.version.outputs.tag }}
-    # A manual run from another branch would publish unmerged code and take the tag main needs.
-    if: github.ref == 'refs/heads/main'
+      version: ${{ steps.read.outputs.version }}
+      tag: ${{ steps.read.outputs.tag }}
+      build: ${{ steps.read.outputs.build }}
+      publish: ${{ steps.read.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Read version
+        id: read
+        env:
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+        run: |
+          version="$(dotnet msbuild keycuts.Common/keycuts.Common.csproj -getProperty:Version | tr -d '[:space:]')"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version '$version' in Directory.Build.props must be x.y.z."; exit 1; }
+          tag="v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+          if [ "$DRY_RUN" = true ]; then
+            build=true; publish=false
+            printf '## keycuts %s dry run\n\nBuilt from %s. Nothing is released, and the files are kept as workflow artifacts for a week.\n' "$tag" "$GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$GITHUB_REF" != refs/heads/main ]; then
+            # A manual run from another branch would publish unmerged code and take the tag main needs
+            build=false; publish=false
+            message="A release is made from main only. Run with dry_run to try the build from this branch."
+            echo "::notice::$message"
+            printf '## keycuts %s\n\n%s\n' "$tag" "$message" >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            build=false; publish=false
+            message="$tag is already released; nothing to do. Raise <Version> in Directory.Build.props to release."
+            echo "::notice::$message"
+            printf '## keycuts %s\n\n%s\n' "$tag" "$message" >> "$GITHUB_STEP_SUMMARY"
+          else
+            build=true; publish=true
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: version
+    if: needs.version.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -41,34 +98,15 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Read version
-        id: version
-        run: |
-          $version = (dotnet msbuild keycuts.Common/keycuts.Common.csproj -getProperty:Version).Trim()
-          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Version '$version' in Directory.Build.props must be x.y.z." }
-          $tag = "v$version"
-          $exists = [bool](git ls-remote --tags origin "refs/tags/$tag")
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-          "exists=$($exists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          if ($exists) {
-            $message = "$tag is already released; nothing to do. Raise <Version> in Directory.Build.props to release."
-            "::notice::$message"
-            "## keycuts $tag`n`n$message" | Add-Content $env:GITHUB_STEP_SUMMARY
-          }
-
       - name: Test
-        if: steps.version.outputs.exists == 'false'
         run: dotnet test keycuts.sln -c Release --logger "GitHubActions;summary-include-passed=false"
 
       - name: Build installers
-        if: steps.version.outputs.exists == 'false'
         run: |
           ./tools/Build-Installer.ps1 -Runtime win-x64
           ./tools/Build-Installer.ps1 -Runtime win-arm64
 
       - name: Package
-        if: steps.version.outputs.exists == 'false'
         run: |
           $out = 'artifacts/release'
           New-Item $out -ItemType Directory -Force | Out-Null
@@ -77,47 +115,21 @@ jobs:
             Copy-Item "artifacts/installer/$runtime/keycuts-setup-$arch.msi" $out
             Compress-Archive -Path "artifacts/publish/$runtime/*" -DestinationPath "$out/keycuts-portable-$runtime.zip"
           }
-          Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
-            Set-Content "$out/SHA256SUMS.txt"
-          Get-Content "$out/SHA256SUMS.txt"
 
-      - name: Create release
-        id: create
-        if: steps.version.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          $assets = Get-ChildItem artifacts/release -File
-          $url = gh release create $env:TAG $assets.FullName `
-            --target $env:GITHUB_SHA `
-            --title "keycuts $env:TAG" `
-            --generate-notes
-          if ($LASTEXITCODE -ne 0) { throw 'Creating the release failed.' }
-          $lines = @(
-            "## Released [keycuts $env:TAG]($url)"
-            ''
-            '| Asset | Size | SHA256 |'
-            '|---|---|---|'
-          )
-          $lines += foreach ($asset in $assets) {
-            "| $($asset.Name) | $([math]::Round($asset.Length / 1MB, 1)) MB | ``$((Get-FileHash $asset.FullName -Algorithm SHA256).Hash.ToLower())`` |"
-          }
-          $lines | Add-Content $env:GITHUB_STEP_SUMMARY
-          'released=true' >> $env:GITHUB_OUTPUT
+      - name: Keep the Windows files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-release
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: ${{ inputs.dry_run && 7 || 1 }}
 
-  # The macOS packages (docs/macos-port.md, Phase 8; issue #106): built, signed and notarized on a Mac runner and attached to the
-  # release the job above just created, with SHA256SUMS.txt extended to cover them. It needs the Apple secrets listed in #106; without
-  # them it says so and does nothing, so the Windows release is never held up by it.
-  # A manual run with macos_dry_run (from any branch) builds, signs and notarizes the packages and keeps them as a workflow artifact:
-  # it attaches nothing to a release and opens no cask PR, so the secrets and the signing can be tried before a release depends on them.
+  # The macOS packages (docs/macos-port.md, Phase 8; issue #106): built, signed and notarized on a Mac runner. It needs the Apple
+  # secrets listed in #106; without them it says so and keeps nothing, and the release goes out with the Windows files only, so
+  # the Windows release is never held up by it.
   macos:
-    needs: release
-    if: >-
-      !cancelled() && github.repository == 'andrewralon/keycuts' && (
-        (needs.release.outputs.released == 'true' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'workflow_dispatch' && inputs.macos_dry_run)
-      )
+    needs: version
+    if: needs.version.outputs.build == 'true' && github.repository == 'andrewralon/keycuts'
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -182,51 +194,124 @@ jobs:
         env:
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
-        run: tools/Build-MacPackage.sh
-
-      - name: Keep the packages (dry run)
-        if: steps.secrets.outputs.have == 'true' && github.event_name == 'workflow_dispatch' && inputs.macos_dry_run
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: macos-packages
-          path: artifacts/installer/osx-*/keycuts-setup-*.pkg
-          retention-days: 7
-
-      - name: Attach to the release
-        if: steps.secrets.outputs.have == 'true' && needs.release.outputs.released == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.release.outputs.tag }}
         run: |
+          tools/Build-MacPackage.sh
+          # Build-MacPackage.sh stops at the first failure, so a package that gets here was signed, notarized and stapled
           mkdir -p artifacts/release
           cp artifacts/installer/osx-arm64/keycuts-setup-arm64.pkg artifacts/installer/osx-x64/keycuts-setup-x64.pkg artifacts/release/
-          # SHA256SUMS.txt covers all six files: the Windows lines as the release has them, then these two
-          gh release download "$TAG" --pattern SHA256SUMS.txt --dir artifacts/release --clobber
-          (cd artifacts/release && for pkg in keycuts-setup-arm64.pkg keycuts-setup-x64.pkg; do shasum -a 256 "$pkg" | sed 's/ \*/  /'; done >> SHA256SUMS.txt && cat SHA256SUMS.txt)
-          gh release upload "$TAG" artifacts/release/keycuts-setup-arm64.pkg artifacts/release/keycuts-setup-x64.pkg artifacts/release/SHA256SUMS.txt --clobber
-          # The summary the Windows job wrote lists its own files only; this adds the packages. Build-MacPackage.sh stops at the first
-          # failure, so a package that got here was signed, notarized and stapled.
+
+      - name: Keep the macOS packages
+        if: steps.secrets.outputs.have == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-release
+          path: artifacts/release/*.pkg
+          if-no-files-found: error
+          retention-days: ${{ inputs.dry_run && 7 || 1 }}
+
+  # Everything the builds made goes into one draft release, which is published only when every file is attached: a release is never
+  # public with some of its files missing, SHA256SUMS.txt is written once, and nothing is changed after publishing (which immutable
+  # releases would refuse). It needs no checkout, so no repository code runs with the write permission.
+  publish:
+    needs: [version, windows, macos]
+    if: >-
+      !cancelled() && needs.version.outputs.build == 'true' && needs.windows.result == 'success' &&
+      (needs.macos.result == 'success' || needs.macos.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      has_macos: ${{ steps.files.outputs.has_macos }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: '*-release'
+          merge-multiple: true
+          path: artifacts/release
+
+      - name: Check the files and write SHA256SUMS.txt
+        id: files
+        run: |
+          cd artifacts/release
+          [ "$(ls -1 *.msi | wc -l)" -eq 2 ] && [ "$(ls -1 *.zip | wc -l)" -eq 2 ] || { echo "::error::The two MSIs and two portable zips must all be here."; ls -l; exit 1; }
+          pkgs="$(ls -1 *.pkg 2>/dev/null | wc -l)"
+          if [ "$pkgs" -eq 2 ]; then
+            echo "has_macos=true" >> "$GITHUB_OUTPUT"
+          elif [ "$pkgs" -eq 0 ]; then
+            echo "has_macos=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No macOS packages (the Apple secrets are not set), so this release has the Windows files only."
+          else
+            echo "::error::Expected both macOS packages or none."; ls -l; exit 1
+          fi
+          ls -1 | LC_ALL=C sort | xargs sha256sum > ../SHA256SUMS.txt
+          mv ../SHA256SUMS.txt .
+          cat SHA256SUMS.txt
+          # The summary's table of the files, for the release (or the dry run) below
+          for file in *; do
+            printf '| %s | %s MB | `%s` |\n' "$file" "$(stat -c%s "$file" | awk '{ printf "%.1f", $1 / 1048576 }')" "$(sha256sum "$file" | cut -d' ' -f1)"
+          done > "$RUNNER_TEMP/assets.md"
+
+      - name: Dry run, so nothing is released
+        if: needs.version.outputs.publish != 'true'
+        run: |
           {
-            printf '## macOS packages for %s\n\n| Asset | Size | SHA256 |\n|---|---|---|\n' "$TAG"
-            for pkg in keycuts-setup-arm64.pkg keycuts-setup-x64.pkg; do
-              size="$(stat -f%z "artifacts/release/$pkg" | awk '{ printf "%.1f", $1 / 1048576 }')"
-              printf '| %s | %s MB | `%s` |\n' "$pkg" "$size" "$(shasum -a 256 "artifacts/release/$pkg" | cut -d' ' -f1)"
-            done
-            printf '\nBoth are signed with Developer ID, notarized by Apple and stapled. `SHA256SUMS.txt` covers all six release files.\n'
+            printf '\nThese files would be released as %s:\n\n| Asset | Size | SHA256 |\n|---|---|---|\n' "$TAG"
+            cat "$RUNNER_TEMP/assets.md"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Publish the release
+        if: needs.version.outputs.publish == 'true'
+        run: |
+          # A draft left behind by an earlier run that failed before publishing
+          if [ "$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null)" = true ]; then
+            gh release delete "$TAG" --yes
+          fi
+          gh release create "$TAG" artifacts/release/* --draft --target "$GITHUB_SHA" --title "keycuts $TAG" --generate-notes
+          gh release edit "$TAG" --draft=false
+          url="$(gh release view "$TAG" --json url -q .url)"
+          {
+            printf '## Released [keycuts %s](%s)\n\n| Asset | Size | SHA256 |\n|---|---|---|\n' "$TAG" "$url"
+            cat "$RUNNER_TEMP/assets.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.files.outputs.has_macos }}" = true ]; then
+            printf '\nThe macOS packages are signed with Developer ID, notarized by Apple and stapled.\n' >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '\n**No macOS packages:** the Apple secrets are not set, so this release has the Windows files only.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # The cask points at the release's files, so it follows publish. Its own job (and its own token): if it fails, say because the
+  # token expired, the release is untouched and "Re-run failed jobs" runs just this.
+  cask:
+    needs: [version, publish]
+    if: needs.version.outputs.publish == 'true' && needs.publish.result == 'success' && needs.publish.outputs.has_macos == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: macos-release
+          path: artifacts/release
+
       - name: Open the Homebrew cask update
-        if: steps.secrets.outputs.have == 'true' && needs.release.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          TAG: ${{ needs.release.outputs.tag }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::notice::HOMEBREW_TAP_TOKEN isn't set, so the cask in andrewralon/homebrew-tap was not updated."
             printf '\n**The Homebrew cask was not updated:** `HOMEBREW_TAP_TOKEN` is not set.\n' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          if output="$(tools/mac/update-cask.sh "${TAG#v}" artifacts/installer/osx-arm64/keycuts-setup-arm64.pkg artifacts/installer/osx-x64/keycuts-setup-x64.pkg 2>&1)"; then
+          if output="$(tools/mac/update-cask.sh "${TAG#v}" artifacts/release/keycuts-setup-arm64.pkg artifacts/release/keycuts-setup-x64.pkg 2>&1)"; then
             printf '%s\n' "$output"
             url="$(printf '%s\n' "$output" | grep -Eo 'https://github.com/[^ ]+/pull/[0-9]+' | tail -1 || true)"
             if [ -n "$url" ]; then

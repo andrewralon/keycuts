@@ -10,8 +10,10 @@ arm_pkg="${2:?arm64 pkg}"
 x64_pkg="${3:?x64 pkg}"
 tap="andrewralon/homebrew-tap"
 work="$(mktemp -d)"
-arm_sha="$(shasum -a 256 "$arm_pkg" | cut -d' ' -f1)"
-x64_sha="$(shasum -a 256 "$x64_pkg" | cut -d' ' -f1)"
+# shasum on a Mac, sha256sum on the Linux runner the release's cask job uses
+sha256() { if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
+arm_sha="$(sha256 "$arm_pkg")"
+x64_sha="$(sha256 "$x64_pkg")"
 
 gh repo clone "$tap" "$work/tap" -- --depth 1
 mkdir -p "$work/tap/Casks"
@@ -56,5 +58,7 @@ if git diff --cached --quiet; then
   exit 0
 fi
 git commit -m "keycuts $version"
-git push origin "$branch"
+# gh cloned with its token, but a plain git push has no credentials (the release run failed with "could not read Username"): give
+# this one push gh's helper, from GH_TOKEN or the gh login, without touching the git config
+git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin "$branch"
 gh pr create --repo "$tap" --head "$branch" --title "keycuts $version" --body "Sets the keycuts cask to v$version (written by the keycuts release workflow)."

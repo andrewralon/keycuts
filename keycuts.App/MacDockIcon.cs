@@ -68,11 +68,11 @@ namespace keycuts.GUI
             }
         }
 
-        /// <summary>The 1024 px art beside the app, or the 256 px one built in (the monogram has no larger original).</summary>
+        /// <summary>The 1024 px art shipped with the app (the bundle's Resources), or the 256 px one built in (the monogram has no larger original).</summary>
         private static Bitmap Load(AppIconArt art)
         {
             var name = Path.GetFileNameWithoutExtension(AppIcons.GetFileName(art));
-            var file = Path.Combine(AppContext.BaseDirectory, AppIcons.FolderName, name + "-1024.png");
+            var file = Path.Combine(BundleResources.Folder(AppIcons.FolderName), name + "-1024.png");
             return File.Exists(file) ? new Bitmap(file) : AppIcons.GetPreview(art);
         }
     }

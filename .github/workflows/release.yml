@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      macos_dry_run:
+        description: "Only build, sign and notarize the macOS packages from this branch and keep them as a workflow artifact (no release, no cask)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -104,9 +109,15 @@ jobs:
   # The macOS packages (docs/macos-port.md, Phase 8; issue #106): built, signed and notarized on a Mac runner and attached to the
   # release the job above just created, with SHA256SUMS.txt extended to cover them. It needs the Apple secrets listed in #106; without
   # them it says so and does nothing, so the Windows release is never held up by it.
+  # A manual run with macos_dry_run (from any branch) builds, signs and notarizes the packages and keeps them as a workflow artifact:
+  # it attaches nothing to a release and opens no cask PR, so the secrets and the signing can be tried before a release depends on them.
   macos:
     needs: release
-    if: needs.release.outputs.released == 'true' && github.repository == 'andrewralon/keycuts' && github.ref == 'refs/heads/main'
+    if: >-
+      !cancelled() && github.repository == 'andrewralon/keycuts' && (
+        (needs.release.outputs.released == 'true' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && inputs.macos_dry_run)
+      )
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -173,8 +184,16 @@ jobs:
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
         run: tools/Build-MacPackage.sh
 
+      - name: Keep the packages (dry run)
+        if: steps.secrets.outputs.have == 'true' && github.event_name == 'workflow_dispatch' && inputs.macos_dry_run
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-packages
+          path: artifacts/installer/osx-*/keycuts-setup-*.pkg
+          retention-days: 7
+
       - name: Attach to the release
-        if: steps.secrets.outputs.have == 'true'
+        if: steps.secrets.outputs.have == 'true' && needs.release.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag }}
@@ -187,7 +206,7 @@ jobs:
           gh release upload "$TAG" artifacts/release/keycuts-setup-arm64.pkg artifacts/release/keycuts-setup-x64.pkg artifacts/release/SHA256SUMS.txt --clobber
 
       - name: Open the Homebrew cask update
-        if: steps.secrets.outputs.have == 'true'
+        if: steps.secrets.outputs.have == 'true' && needs.release.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           TAG: ${{ needs.release.outputs.tag }}

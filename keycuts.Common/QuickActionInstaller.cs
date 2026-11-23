@@ -34,7 +34,7 @@ namespace keycuts.Common
         {
             return new QuickActionInstaller(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                Path.Combine(AppContext.BaseDirectory, "QuickAction", WorkflowName),
+                Path.Combine(BundleResources.Folder("QuickAction"), WorkflowName),
                 FlushServices);
         }
 

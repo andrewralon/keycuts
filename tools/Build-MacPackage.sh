@@ -49,6 +49,12 @@ build_one()
       -p:SatelliteResourceLanguages=en -p:Version="$version" -p:EnableWindowsTargeting=true --nologo -v q -o "$macos"
   done
 
+  # Only code belongs in Contents/MacOS: the bundle signature treats every file there as code, and Apple's notary refuses the
+  # main executable's signature when data folders sit beside it (found in Phase 8). The data goes in Resources, which
+  # BundleResources reads; the .cmd shims are Windows-only.
+  mv "$macos/QuickAction" "$macos/icons" "$app/Contents/Resources/"
+  rm -rf "$macos/shims"
+
   sed "s/@VERSION@/$version/g" "$repo/installer/macos/Info.plist.in" > "$app/Contents/Info.plist"
   "$repo/tools/mac/make-icns.sh" "$app/Contents/Resources/keycuts.icns"
   xattr -cr "$app"

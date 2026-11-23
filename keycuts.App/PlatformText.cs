@@ -32,7 +32,7 @@ namespace keycuts.GUI
 
         public static readonly string VariablesNote = PlatformKeys.IsMac
             ? "Save paths in your home folder as $HOME/…. Hold shift to see or create keycuts even when off."
-            : "Save paths as %USERPROFILE%\\… or similar. Hold Shift to preview or create a keycut like this, even when disabled.";
+            : "Save paths as %USERPROFILE%\\… or similar. Hold shift to see or create keycuts even when off.";
 
         public static readonly string VariablesHelp = PlatformKeys.IsMac
             ? "Saves /Users/you/Desktop as $HOME/Desktop, so keycuts work on other accounts. Hold Shift while creating to flip it for one keycut."

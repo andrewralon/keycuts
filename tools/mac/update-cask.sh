@@ -58,5 +58,7 @@ if git diff --cached --quiet; then
   exit 0
 fi
 git commit -m "keycuts $version"
-git push origin "$branch"
+# gh cloned with its token, but a plain git push has no credentials (the release run failed with "could not read Username"): give
+# this one push gh's helper, from GH_TOKEN or the gh login, without touching the git config
+git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin "$branch"
 gh pr create --repo "$tap" --head "$branch" --title "keycuts $version" --body "Sets the keycuts cask to v$version (written by the keycuts release workflow)."

@@ -18,7 +18,16 @@ namespace keycuts.GUI.ViewModels
         public const string CreateHint = "Click the rocket button to create it";
 
         /// <summary>The line after a create. It never names the keycut: the Name field does.</summary>
-        public static readonly string CreatedHint = PlatformText.WelcomeCreatedHint;
+        public static string CreatedHint
+        {
+            get { return PlatformText.WelcomeCreatedHint; }
+        }
+
+        /// <summary>The panel's first paragraph. It names the Run box's shortcut, so it is read each time the panel shows.</summary>
+        public string Intro
+        {
+            get { return PlatformText.WelcomeIntro; }
+        }
 
         private readonly Func<bool> isDismissed;
 
@@ -235,6 +244,7 @@ namespace keycuts.GUI.ViewModels
             createdFolder = null;
             SetSelected(null);
             IsVisible = true;
+            OnPropertyChanged(nameof(Intro));
             RaiseStateChanged();
             Shown?.Invoke(this, EventArgs.Empty);
         }

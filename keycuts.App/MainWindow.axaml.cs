@@ -229,18 +229,31 @@ namespace keycuts.GUI
         }
 
         /// <summary>
-        /// Phase 5.1 (mockup macos-window-v1): macOS draws the frame, its rounded corners and shadow, and its own traffic lights,
-        /// which sit in the tab bar, centered in its height. Zoom stays off (<c>CanMaximize</c>). The page is opaque, with no
-        /// border of its own and no torn corner.
+        /// Phase 5.1: macOS draws the frame, its rounded top corners and shadow, and its own traffic lights, which sit in the tab bar,
+        /// centered in its height. Zoom stays off (<c>CanMaximize</c>). The page has no border of its own. As on Windows the bottom-right
+        /// corner is torn, always (issue #292, #308): the window is transparent behind the page, so the desktop shows through the tear.
         /// </summary>
         private void UseMacFrame()
         {
             WindowDecorations = WindowDecorations.Full;
             ExtendClientAreaTitleBarHeightHint = (double)this.FindResource("RailHeight")!;
             MacTrafficLights.Attach(this, (double)this.FindResource("RailHeight")!);
-            TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
-            Bind(BackgroundProperty, this.GetResourceObservable("CanvasBrush"));
             PageBorder.IsVisible = false;
+            MakeTransparent();
+
+            // Issue #308: a hint set before the native window exists is not honored (the corner came up black); the same hint set on
+            // the open window is. So set it again once the window is open: off first, so the change is seen.
+            Opened += (sender, e) =>
+            {
+                TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
+                Avalonia.Threading.Dispatcher.UIThread.Post(MakeTransparent);
+            };
+        }
+
+        private void MakeTransparent()
+        {
+            TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
+            Background = Avalonia.Media.Brushes.Transparent;
         }
 
         /// <summary>Whether the window shows its torn corner: always, except in high contrast, which keeps the plain rectangle.</summary>
@@ -257,7 +270,7 @@ namespace keycuts.GUI
         // The page is clipped to the torn shape, so the desktop shows through the tear; the tear's own drawing sits on top
         private void UpdateTear()
         {
-            var torn = ShowsTear(ThemeManager.Current) && !OperatingSystem.IsMacOS();
+            var torn = ShowsTear(ThemeManager.Current);
             Frame.Clip = torn ? TornCornerShape.Default.GetWindowClip(Frame.Bounds.Size) : null;
             Tear.IsVisible = torn;
         }

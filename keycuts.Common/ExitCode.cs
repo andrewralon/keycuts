@@ -19,6 +19,8 @@ namespace keycuts.Common
         CannotUpdatePath = 12,
         CannotSetClipboard = 13,
         /// <summary>The name needs a y / n answer (a replace or a name conflict, #153), but input is redirected.</summary>
-        ConfirmationNeeded = 14
+        ConfirmationNeeded = 14,
+        /// <summary>The Finder Quick Action (macOS) or the Explorer verbs (Windows) couldn't be installed or removed.</summary>
+        CannotChangeShellIntegration = 15
     }
 }

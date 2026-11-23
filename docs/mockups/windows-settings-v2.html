@@ -1,0 +1,177 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>keycuts mockup: Windows Settings (v2)</title>
+<style>
+/* Phase 5.4, 6.2, 6.4 and 6.5 of docs/macos-port.md, and plan correction 2 (the default hotkey). A picture of the idea, not a screenshot. */
+*{box-sizing:border-box}
+body{margin:0;padding:28px;background:#e3e7ee;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;color:#172033;width:1640px}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:15px;margin:0 0 8px}
+.lead{font-size:13px;color:#465064;margin:0 0 20px;max-width:1240px;line-height:1.5}
+.row{display:flex;gap:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px}
+.note{font-size:12.5px;color:#465064;line-height:1.5}
+.note b{color:#172033}
+.note ul{margin:4px 0 0;padding-left:18px}
+.note li{margin:3px 0}
+.panel{background:#f4f6f9;border:1px solid #cfd5df;border-radius:10px;padding:16px 18px}
+.sp{height:28px}
+code{font-family:"SF Mono",Menlo,monospace;font-size:11.5px}
+
+.light{--surface:#fff;--subtle:#f6f8fb;--border:#d9dee8;--strong:#bdc5d2;--ctl:#818b9d;--text:#172033;--text2:#5d687b;--text3:#646e80;
+  --accent:#2563eb;--accentText:#2563eb;--accentSoft:#eaf1ff;--onAccent:#fff;--glow:rgba(37,99,235,.22);--warn:#9a5b00;--warnSoft:#fff5dc;
+  --rail1:#eef1f5;--rail2:#d3d9e3;--railTex:rgba(255,255,255,.45);--grip:rgba(23,32,51,.16);
+  --tab1:#dde2ea;--tab2:#c4ccd8;--tabTex:rgba(255,255,255,.38);--tabBorder:#aab3c2;--tabBorderOn:#bdc5d2;--tabText:#465064;--tabShadow:rgba(23,32,51,.22);
+  --zoomOff:#d6d8dc;--zoomOffRing:#bfc2c7;--uF:#6d43b8;--uB:#f3edff;--uE:#dfd2f7;--iF:#1c619d;--iB:#e9f4ff;--iE:#cfe6fa;--fF:#8a5700;--fB:#fff5dc;--fE:#f1dfae}
+.dark{--surface:#20242c;--subtle:#252a33;--border:#363d48;--strong:#4a5361;--ctl:#8d97a8;--text:#f3f5f8;--text2:#bdc5d2;--text3:#8d97a8;
+  --accent:#4f8cff;--accentText:#6a9eff;--accentSoft:#182a4d;--onAccent:#06090f;--glow:rgba(79,140,255,.3);--warn:#f0c365;--warnSoft:#41351e;
+  --rail1:#1c2029;--rail2:#111318;--railTex:rgba(255,255,255,.025);--grip:rgba(255,255,255,.10);
+  --tab1:#2b313c;--tab2:#191c23;--tabTex:rgba(255,255,255,.045);--tabBorder:#3d4553;--tabBorderOn:#4a5361;--tabText:#9aa4b5;--tabShadow:rgba(0,0,0,.55);
+  --zoomOff:#4b4e55;--zoomOffRing:#5b5f66;--uF:#c4a1ff;--uB:#33254c;--uE:#574279;--iF:#86c8ff;--iB:#18354e;--iE:#295879;--fF:#f0c365;--fB:#41351e;--fE:#62502a}
+
+.win{background:var(--surface);color:var(--text);border-radius:12px;box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column}
+.rail{height:48px;display:flex;align-items:flex-end;flex:none;
+  background:repeating-linear-gradient(0deg,var(--railTex) 0 1px,transparent 1px 3px),linear-gradient(180deg,var(--rail1),var(--rail2))}
+.lights{display:flex;gap:8px;align-self:center;padding:0 0 0 20px;flex:none}
+.lights i{width:12px;height:12px;border-radius:50%;display:block;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}
+.lights .r{background:#ff5f57}.lights .y{background:#febc2e}.lights .g{background:var(--zoomOff);box-shadow:inset 0 0 0 .5px var(--zoomOffRing)}
+.brand{display:flex;align-items:center;gap:8px;height:48px;padding:4px 24px 0 16px;align-self:stretch;font-weight:600;font-size:16px}
+.brand img{width:36px;height:36px}
+.tabs{display:flex;align-items:flex-end;height:48px;gap:4px}
+.tw{position:relative;z-index:1}
+.tw.on{z-index:5;filter:drop-shadow(3px 0 4px var(--tabShadow));clip-path:inset(-20px -20px 0 -20px)}
+.tab{--cut:8px;--slant:16px;position:relative;height:40px;padding:0 calc(var(--slant) + 8px) 2px 12px;display:flex;align-items:center;
+  font-size:16px;font-weight:600;color:var(--tabText);background:var(--tabBorder);clip-path:polygon(0 100%,0 var(--cut),var(--cut) 0,calc(100% - var(--slant)) 0,100% 100%)}
+.tab>*{position:relative;z-index:1}
+.tab::before{content:"";position:absolute;inset:1px 1px 0 1px;z-index:0;clip-path:polygon(0 100%,0 calc(var(--cut) - 1px),calc(var(--cut) - 1px) 0,calc(100% - var(--slant)) 0,100% 100%);
+  background:repeating-linear-gradient(120deg,var(--tabTex) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--tab1),var(--tab2))}
+.tw.on .tab{color:var(--text);background:var(--tabBorderOn)}
+.tw.on .tab::before{background:var(--surface);inset:1px 1px -1px 1px}
+.tw.on .tab::after{content:"";position:absolute;left:1px;right:1px;bottom:-1px;height:3px;background:var(--surface)}
+.drag{flex:1;align-self:stretch;margin:8px;background-image:radial-gradient(var(--grip) 1px,transparent 1.3px);background-size:6px 6px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+
+/* settings: two columns with a rule, PagePadding 16 top */
+.set-page{display:flex;padding:16px 24px 24px;flex:1;gap:0}
+.scol{flex:1;min-width:0}
+.rule{width:1px;background:var(--border);margin:0 24px}
+.sec{font-size:12px;font-weight:800;color:var(--accentText);letter-spacing:.6px;text-transform:uppercase;margin:20px 0 8px}
+.sec.first{margin-top:0}
+.set{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.set+.set{margin-top:14px}
+.set .t{font-size:13px;font-weight:600}
+.set .t .v{font-weight:400;color:var(--text2)}
+.set .n{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.35}
+.set .n.warn{color:var(--warn)}
+.tog{width:36px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--onAccent)}
+.tog.off{background:transparent;border:1px solid var(--ctl)}
+.tog.off::after{left:3px;right:auto;top:3px;width:12px;height:12px;background:var(--text2)}
+.field{height:36px;border:1px solid var(--ctl);border-radius:5px;padding:0 10px;display:flex;align-items:center;font-size:14px;flex:1;min-width:0;background:var(--surface)}
+.sq{width:36px;height:36px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;flex:none}
+.frow{display:flex;gap:8px;align-items:center}
+.flabel{font-size:13px;font-weight:600;margin-bottom:6px}
+.help{font-size:12px;color:var(--text2);margin-top:4px}
+.radio{display:flex;gap:14px;font-size:13px}
+.radio span{display:flex;align-items:center;gap:6px}
+.dot{width:16px;height:16px;border-radius:50%;border:1px solid var(--ctl)}
+.dot.on{border:5px solid var(--accent)}
+.iconpick{width:52px;height:52px;border:1px solid var(--ctl);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.iconpick img{width:40px;height:40px}
+.btn{height:36px;padding:0 14px;border:1px solid var(--ctl);border-radius:5px;background:var(--surface);color:var(--text);display:inline-flex;align-items:center;font-size:13px;font-weight:600}
+.endrow{display:flex;justify-content:space-between;margin-top:20px}
+.keyrec{height:30px;min-width:118px;border:1px solid var(--ctl);border-radius:5px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;padding:0 10px;background:var(--subtle)}
+.keyrec.rec{border:1.5px solid var(--accent);box-shadow:0 0 0 3px var(--glow);color:var(--text3);font-weight:400}
+.keyrec.bad{border-color:var(--warn);background:var(--warnSoft)}
+.newmark{outline:2px dashed #2563eb;outline-offset:4px;border-radius:4px}
+.legend{display:inline-block;width:14px;height:10px;outline:2px dashed #2563eb;border-radius:2px;margin-right:6px;vertical-align:0}
+
+/* hotkey table */
+.hk{border-collapse:collapse;font-size:12.5px;width:100%}
+.hk th,.hk td{padding:5px 8px;border-bottom:1px solid #d6dbe3;text-align:left;vertical-align:top}
+.hk th{color:#465064}
+.hk td.k{font-weight:700;white-space:nowrap;font-size:13px}
+.hk tr.pick td{background:#e6f4ea}
+.no{color:#b42318;font-weight:600}.ok{color:#127a3b;font-weight:600}.meh{color:#8a5700;font-weight:600}
+
+/* run box */
+.desk{width:760px;height:400px;border-radius:12px;position:relative;overflow:hidden;background:linear-gradient(135deg,#5a7bb5,#9a7fc2 55%,#d99a8a)}
+.desk.dk{background:linear-gradient(135deg,#1b2333,#30264a 55%,#4a2e3a)}
+.mb{height:24px;background:rgba(255,255,255,.55);display:flex;align-items:center;gap:16px;padding:0 12px;font-size:12.5px;color:#1d1d1f}
+.desk.dk .mb{background:rgba(30,30,34,.6);color:#eee}
+.mb .r{margin-left:auto;display:flex;gap:12px}
+.runbox{position:absolute;left:80px;top:78px;width:600px;border-radius:14px;overflow:hidden;background:var(--surface);color:var(--text);
+  box-shadow:0 0 0 .5px rgba(0,0,0,.3),0 20px 50px rgba(0,0,0,.35)}
+.rb-in{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--border);font-size:20px}
+.rb-in img{width:28px;height:28px}
+.rb-in .caret{display:inline-block;width:1.5px;height:22px;background:var(--accent);margin-left:1px;vertical-align:-4px}
+.rb-in .ghost{color:var(--text3)}
+.rb-list{padding:6px}
+.rb-row{height:40px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px;font-size:13px}
+.rb-row.sel{background:var(--accent);color:var(--onAccent)}
+.rb-row .nm{font-weight:600;width:110px;flex:none}
+.rb-row .tg{color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-row.sel .tg{color:var(--onAccent);opacity:.85}
+.rb-row .rn{font-size:12px;color:var(--text3)}
+.rb-row.sel .rn{color:var(--onAccent);opacity:.8}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:5px;font-size:12px;font-weight:600;border:1px solid;flex:none;width:58px;justify-content:center}
+.u{color:var(--uF);background:var(--uB);border-color:var(--uE)}.fi{color:var(--iF);background:var(--iB);border-color:var(--iE)}.f{color:var(--fF);background:var(--fB);border-color:var(--fE)}
+.rb-row.sel .badge{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);color:var(--onAccent)}
+.rb-foot{height:32px;border-top:1px solid var(--border);background:var(--subtle);display:flex;align-items:center;gap:16px;padding:0 16px;font-size:12px;color:var(--text2)}
+.rb-foot b{color:var(--text);font-weight:600}
+.plus{width:58px;display:flex;justify-content:center;flex:none}
+</style></head><body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></g></symbol>
+ <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+ <symbol id="i-launch" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<h1>keycuts on Windows: Settings in step with macOS (v2 proposal)</h1>
+<p class="lead">Issues #306 and #307. The same page as <code>windows-settings-v1</code> with <b>Run Box</b> and <b>Open at login</b>, in step with <code>macos-settings-v4</code>. <span class="legend"></span>marks what moved or changed. The window's torn corner and the Windows fonts are not drawn in the sketch.</p>
+<div class="row"><div class="col"><h2>Light</h2>
+  <div class="win light" style="width:768px;height:470px;border-radius:0">
+   <div class="rail">
+    <div class="brand"><img src="../../assets/icons/key-charcoal/key-charcoal-96.png" alt="">keycuts</div>
+    <div class="tabs"><div class="tw"><div class="tab"><span>creator</span></div></div><div class="tw"><div class="tab"><span>manager</span></div></div>
+     <div class="tw on"><div class="tab"><svg width="20" height="20"><use href="#i-gear"/></svg></div></div></div><div class="drag"></div><div style="display:flex;gap:0;align-self:stretch;align-items:center;margin-left:auto;font-size:18px;color:var(--text2)"><span style="width:46px;text-align:center">&#8212;</span><span style="width:46px;text-align:center">&#9744;</span><span style="width:46px;text-align:center">&#10005;</span></div></div>
+   <div class="set-page">
+    <div class="scol">
+     <div class="sec first" style="display:inline-block">Behavior</div>
+     <div style="margin:0 0 14px"><div class="flabel">Output folder</div><div class="frow"><div class="field">C:\Users\sample\Shortcuts</div><div class="sq"><svg width="20" height="20"><use href="#i-folder"/></svg></div><div class="sq"><svg width="20" height="20"><use href="#i-launch"/></svg></div></div></div>
+     <div class="set newmark"><div><div class="t">Run Box</div><div class="n">Opens the Run box from any app.</div></div><div class="keyrec">Ctrl+Alt+Space</div></div>
+     <div class="set newmark"><div><div class="t">Open at login</div><div class="n">keycuts waits in the system tray.</div></div><div class="tog"></div></div>
+     <div class="set"><div class="t">Ask before replacing a keycut</div><div class="tog"></div></div>
+     <div class="set"><div><div class="t">Right-click context menus</div><div class="n">Add “keycut this!” to File Explorer menus.</div></div><div class="tog"></div></div>
+     <div class="set"><div><div class="t">Use environment variables in paths</div><div class="n">Save paths as %USERPROFILE%\… or similar. Hold shift to see or create keycuts even when off.</div></div><div class="tog"></div></div>
+    </div>
+    <div class="rule"></div>
+    <div class="scol">
+     <div class="sec first">Appearance</div>
+     <div class="set"><div class="t">Theme</div><div class="radio"><span><i class="dot on"></i>System</span><span><i class="dot"></i>Light</span><span><i class="dot"></i>Dark</span></div></div>
+     <div class="set"><div><div class="t">Icon <span class="v">· Black &amp; White</span></div><div class="n">Porcelain in light mode, Onyx in dark mode.</div></div><div class="iconpick"><img src="../../assets/icons/key-charcoal/key-charcoal-96.png" alt=""></div></div>
+     <div class="set"><div><div class="t">Transparent icon background</div><div class="n">Affects the taskbar, Alt+Tab, and shortcuts.</div></div><div class="tog off"></div></div>
+     <div class="sec">Updates</div>
+     <div class="set"><div class="t">Check for updates daily</div><div class="tog"></div></div>
+     <div class="set"><div><div class="t">Version <span class="v">· 2.0.0</span></div><div class="n">You’re up to date.</div></div><span class="btn">check now</span></div>
+     <div class="endrow"><span class="btn">show welcome</span><span class="btn">restore defaults</span></div>
+    </div>
+   </div>
+  </div>
+</div></div>
+<div class="sp"></div>
+<div class="row"><div class="col"><h2>The tray icon's menu</h2>
+ <div style="width:260px;border-radius:8px;background:#2b2b2b;color:#fff;font:13px 'Segoe UI',system-ui,sans-serif;padding:6px;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 8px 24px rgba(0,0,0,.4)">
+  <div style="display:flex;justify-content:space-between;padding:8px 12px"><span>Run…</span><span style="opacity:.6">Ctrl+Alt+Space</span></div>
+  <div style="padding:8px 12px">New keycut…</div><div style="padding:8px 12px">Manager</div><div style="padding:8px 12px">Settings…</div>
+  <div style="height:1px;background:rgba(255,255,255,.15);margin:4px 6px"></div><div style="padding:8px 12px">Quit keycuts</div></div>
+</div></div>
+<div class="sp"></div>
+<div class="row"><div class="col" style="width:1000px"><div class="note"><ul>
+ <li><b>Run Box</b> (second) and <b>Open at login</b> (third) are new on Windows, as on macOS: Output folder, Run Box, Open at login, Ask before replacing, Right-click context menus, Use environment variables in paths. The right column is unchanged.</li>
+ <li><b>Run Box</b>: the key recorder takes Ctrl, Alt, Shift and Win with a key (at least one of Ctrl, Alt or Win); the default is <b>Ctrl+Alt+Space</b> (Win+R and Win+Space are Windows'). "Couldn’t use Ctrl+Alt+K: another app has it. Choose another." when it can't be registered.</li>
+ <li><b>Open at login</b>: "keycuts waits in the system tray." A start at login opens in the tray with no window. If Task Manager's Startup apps has it disabled the note says "Turn keycuts on in Settings → Apps → Startup."</li>
+ <li><b>The tray icon</b> (below) has the macOS menu bar's menu: Run… (with the shortcut), New keycut…, Manager, Settings…, Quit keycuts. Closing the window hides it to the tray; Quit keycuts quits.</li>
+ <li><b>Not on Windows:</b> Run keycuts in Terminal and Finder Quick Action (macOS). Transparent icon background is on both.</li>
+</ul></div></div></div>
+</body></html>

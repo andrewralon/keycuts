@@ -60,6 +60,15 @@ Tests never touch the real settings, registry, PATH, `~/Shortcuts`, network or R
 - **The owner may touch the machine while it runs.** The banner (top of the screen) says what is running and has Pause and Stop. A failure seen while
   someone could have been clicking is not evidence: repeat once, or confirm with a non-UI probe, before reporting it as a bug.
 
+- **A login start can't be faked from a shell (issue #294).** Measured on macOS 26: when the app decides, there is no launch Apple event for any
+  start (a manual `open` included: the check runs before AppKit delivers it), launchd is the parent of every app LaunchServices starts, and the app is
+  active in a manual and in a detached start alike. What tells a login item apart is time: it starts within moments of the login session, so the rule
+  is "registered as a login item, parent launchd, and the user's session (the age of the Dock, from `ps`) under 3 minutes" (`LoginLaunch`). That
+  rule is unit-tested; a real login (log out and in, with Open at login on) is the only end-to-end check. A cold `open` hours after logging in must
+  show the window, and the Dock tile must show the keycap icon (checked). Avalonia's lifetime shows `desktop.MainWindow` itself when it starts, which is
+  why that window is assigned only after it first opens in the login case; skipping the `Show()` call alone left the window up with the Dock icon
+  hidden. The Dock ignores an icon set while the app was hidden from it, so `MacDockIcon.Refresh()` runs each time the app returns to the Dock.
+
 ## Things this found (so they aren't "fixed" again by accident)
 
 - Avalonia 12.1.6 reports `ContrastPreference.NoPreference` on macOS with Increase contrast on, at startup too (probe in `ThemeManager.DetectPalette`

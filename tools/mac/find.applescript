@@ -7,7 +7,15 @@ on run argv
     set p to first process whose unix id is pid
     set frontmost of p to true
     delay 0.6
-    set els to entire contents of window 1 of p
+    -- Avalonia fills its accessibility tree after the first query: ask again until it has something
+    set els to {}
+    repeat 10 times
+      try
+        set els to entire contents of window 1 of p
+      end try
+      if (count of els) > 0 then exit repeat
+      delay 1
+    end repeat
     repeat with e in els
       try
         if (role of e as text) is wantRole then

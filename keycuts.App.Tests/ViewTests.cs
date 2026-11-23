@@ -332,6 +332,112 @@ namespace keycuts.Tests
             }
         }
 
+        sealed class StillLoginItem : ILoginItem
+        {
+            public bool IsOn => false;
+
+            public bool NeedsApproval => false;
+
+            public string? Set(bool on) => null;
+        }
+
+        sealed class StillShortcut : IRunBoxShortcut
+        {
+            public RunBoxHotkey? Current => RunBoxHotkey.Default;
+
+            public int Status => 0;
+
+            public int Apply(RunBoxHotkey? hotkey) => 0;
+
+            public void Pause(bool paused)
+            {
+            }
+        }
+
+        // Mockup macos-settings-v3: one Behavior section on the left (the output folder, Run Box, Open at login, Ask before replacing,
+        // the Quick Action, $HOME, Terminal last); Appearance and Updates on the right; no Output heading
+        [AvaloniaFact]
+        public void Settings_OnTheMac_FollowsTheV3Mockup()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS rows");
+            var settings = new SettingsViewModel(new FakeStore())
+            {
+                LoginItem = new StillLoginItem(),
+                RunBoxShortcut = new StillShortcut()
+            };
+            var window = Host(new SettingsView(), settings, 768, 470);
+
+            var labels = window.GetVisualDescendants().OfType<SectionLabel>().Select(l => l.Text).ToList();
+            Assert.DoesNotContain("Output", labels);
+            Assert.DoesNotContain("Run box", labels);
+            Assert.Equal(new[] { "Behavior", "Appearance", "Updates" }, labels.Where(l => l is "Behavior" or "Appearance" or "Updates").ToArray());
+
+            var left = Named<StackPanel>(window, "LeftColumn");
+            var order = left.Children.Select(c => c.Name).Where(n => n != null).ToList();
+            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow", "TerminalPathRow" }, order.Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray());
+            Assert.Equal("TerminalPathRow", order.Last());
+            Assert.Equal("Run Box", window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Run Box").Text);
+
+            // No sentence under the folder, none under Torn corner, and the empty line takes no room: Run Box sits one macOS row gap (12) under the box
+            Assert.Equal(string.Empty, settings.OutputFolderMessage);
+            var message = Named<HelperText>(window, "OutputFolderMessage");
+            Assert.Equal(0, message.Bounds.Height, 0.5);
+            Assert.Equal(new Thickness(0), message.Margin);
+            var box = Named<TextBox>(window, "TextboxOutputFolder");
+            var runBox = Named<StackPanel>(window, "RunBoxSection");
+            var gap = ((Control)runBox.Children[0]).TranslatePoint(new Point(0, 0), window)!.Value.Y - box.TranslatePoint(new Point(0, box.Bounds.Height), window)!.Value.Y;
+            Assert.InRange(gap, 11, 13);
+            Assert.Equal("keycuts waits in the menu bar.", SettingsViewModel.OpenAtLoginNote);
+            window.Close();
+        }
+
+        [AvaloniaFact]
+        public void Settings_OnWindows_FollowTheV2Mockup()
+        {
+            Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows rows");
+            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()) { LoginItem = new StillLoginItem(), RunBoxShortcut = new StillShortcut() }, 768, 470);
+
+            // Output folder, Run Box, Open at login, then Ask before replacing; no Terminal row
+            var left = Named<StackPanel>(window, "LeftColumn");
+            var order = left.Children.Where(c => c.IsVisible).Select(c => c.Name).Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray();
+            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow" }, order);
+            Assert.Equal("keycuts waits in the system tray.", SettingsViewModel.OpenAtLoginNote);
+            Assert.Equal("Affects the taskbar, Alt+Tab, and shortcuts.", PlatformText.TransparentIconNote);
+
+            foreach (var name in new[] { "LeftColumn", "RightColumn" })
+            {
+                var column = Named<StackPanel>(window, name);
+                var bottom = column.TranslatePoint(new Point(0, column.Bounds.Height), window)!.Value.Y;
+                Assert.True(bottom <= 470 - 16, name + " ends at " + bottom);
+            }
+
+            window.Close();
+        }
+
+        [AvaloniaFact]
+        public void Settings_OnTheMac_OffersTheTransparentIconBackground_LastUnderAppearance()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS wording");
+            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()) { LoginItem = new StillLoginItem(), RunBoxShortcut = new StillShortcut() }, 768, 470);
+
+            var toggle = Named<Avalonia.Controls.Primitives.ToggleButton>(window, "ToggleTransparentIcon");
+            Assert.True(toggle.IsEffectivelyVisible);
+            Assert.Equal("Affects the Dock icon.", PlatformText.TransparentIconNote);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Affects the Dock icon.");
+            var icon = Named<Button>(window, "BtnIcon");
+            Assert.True(toggle.TranslatePoint(new Point(0, 0), window)!.Value.Y > icon.TranslatePoint(new Point(0, 0), window)!.Value.Y);
+
+            // Both columns still end inside the window at its minimum height (470), so nothing scrolls
+            foreach (var name in new[] { "LeftColumn", "RightColumn" })
+            {
+                var column = Named<StackPanel>(window, name);
+                var bottom = column.TranslatePoint(new Point(0, column.Bounds.Height), window)!.Value.Y;
+                Assert.True(bottom <= 470 - 16, name + " ends at " + bottom);
+            }
+
+            window.Close();
+        }
+
         [AvaloniaFact]
         public void Settings_StoresTheFolderOnEnter_AndEscapeDropsAnEdit()
         {

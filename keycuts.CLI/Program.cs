@@ -47,7 +47,7 @@ namespace keycuts.CLI
             // "create" is the default verb, so the original "keycuts -t … -s …" still works
             // -h is the usual short form of --help; the parser only knows the long one
             args = args.Select(arg => arg == "-h" ? "--help" : arg).ToArray();
-            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions, RemoveOptions, RenameOptions, OpenOptions, PathOptions>(args);
+            var result = Usage.CreateParser().ParseArguments<Options, PasteOptions, ListOptions, RemoveOptions, RenameOptions, OpenOptions, PathOptions, InstallShellIntegrationOptions, UninstallShellIntegrationOptions>(args);
             return result.MapResult(
                 (Options parsed) => RunCreate(parsed),
                 (PasteOptions parsed) => RunPaste(parsed),
@@ -56,6 +56,8 @@ namespace keycuts.CLI
                 (RenameOptions parsed) => RunManage(context => KeycutCommands.Rename(context, parsed.OldName, parsed.NewName, parsed.Force)),
                 (OpenOptions parsed) => RunManage(context => KeycutCommands.Open(context, parsed.Name, KeycutCommands.JoinArguments((parsed.Arguments ?? Enumerable.Empty<string>()).ToArray(), 0))),
                 (PathOptions parsed) => RunPath(parsed.Action),
+                (InstallShellIntegrationOptions parsed) => RunShellIntegration(true),
+                (UninstallShellIntegrationOptions parsed) => RunShellIntegration(false),
                 errors => Usage.Show(result, errors, Console.Out, Console.Error));
         }
 
@@ -95,6 +97,32 @@ namespace keycuts.CLI
             }
         }
 
+
+        /// <summary>
+        /// <c>keycuts install-shell-integration</c> and <c>uninstall-shell-integration</c> (Phase 7): what Settings' right-click toggle
+        /// does, for the package's post-install and for scripts. The Quick Action on macOS, the Explorer verbs on Windows.
+        /// </summary>
+        private static ExitCode RunShellIntegration(bool install)
+        {
+            var name = OperatingSystem.IsMacOS() ? "Finder Quick Action" : "File Explorer menu";
+
+            if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows())
+            {
+                Console.Error.WriteLine("keycuts: shell integration isn't supported on this platform.");
+                Usage.MarkErrorWritten();
+                return ExitCode.CannotChangeShellIntegration;
+            }
+
+            if (!RegistryStuff.SetRightClickContextMenu(install))
+            {
+                Console.Error.WriteLine($"keycuts: couldn't {(install ? "add" : "remove")} the {name}.");
+                Usage.MarkErrorWritten();
+                return ExitCode.CannotChangeShellIntegration;
+            }
+
+            Console.WriteLine(install ? $"Added \"keycut this!\" ({name})." : $"Removed \"keycut this!\" ({name}).");
+            return ExitCode.Success;
+        }
 
         /// <summary>
         /// <c>keycuts path [status|add|remove]</c> (#101): on macOS the block in the shell profile (<see cref="KeycutPathCommand"/>);

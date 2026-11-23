@@ -18,12 +18,22 @@ namespace keycuts.GUI.ViewModels
 
         /// <summary>Lets go of the shortcut while a new one is recorded (or takes it back), so pressing it records instead of opening the box.</summary>
         void Pause(bool paused);
+
+        /// <summary>Windows (issue #306): Ctrl, Alt, Shift and Win, written <c>Ctrl+Alt+Space</c>; otherwise macOS's ⌃⌥⇧⌘.</summary>
+        bool UsesWindowsKeys => false;
     }
 
     /// <summary>The Run box section (Phase 6.2, mockup macos-settings-v1): the shortcut, recorded by pressing it.</summary>
     public partial class SettingsViewModel
     {
         public const string TakenError = "another app has it";
+
+        /// <summary>Carbon's eventHotKeyExistsErr, and Windows' ERROR_HOTKEY_ALREADY_REGISTERED.</summary>
+        private static bool IsTaken(int status) => status is -9878 or 1409;
+
+        private bool WindowsKeys => runBoxShortcut?.UsesWindowsKeys == true;
+
+        private string Describe(RunBoxHotkey hotkey) => WindowsKeys ? hotkey.WindowsDisplay : hotkey.Display;
 
         private IRunBoxShortcut? runBoxShortcut;
 
@@ -49,7 +59,7 @@ namespace keycuts.GUI.ViewModels
 
         public RelayCommand? RecordShortcutCommand { get; private set; }
 
-        /// <summary>While on, the next key with ⌘ or ⌃ becomes the shortcut (<see cref="RecordShortcut"/>); Esc cancels.</summary>
+        /// <summary>While on, the next key with ⌘ or ⌃ (Ctrl, Alt or Win on Windows) becomes the shortcut (<see cref="RecordShortcut"/>); Esc cancels.</summary>
         public bool IsRecordingShortcut
         {
             get { return isRecordingShortcut; }
@@ -77,10 +87,10 @@ namespace keycuts.GUI.ViewModels
             {
                 if (isRecordingShortcut)
                 {
-                    return "⌘ …";
+                    return WindowsKeys ? "Ctrl …" : "⌘ …";
                 }
 
-                return (refusedShortcut ?? runBoxShortcut?.Current)?.Display ?? "none";
+                return (refusedShortcut ?? runBoxShortcut?.Current) is { } shown ? Describe(shown) : "none";
             }
         }
 
@@ -105,19 +115,20 @@ namespace keycuts.GUI.ViewModels
 
                 if (refusedShortcut != null)
                 {
-                    return "Add ⌘ or ⌃: macOS doesn’t allow ⌥ or ⇧ alone.";
+                    return WindowsKeys ? "Add Ctrl, Alt or Win: Windows doesn’t allow Shift alone." : "Add ⌘ or ⌃: macOS doesn’t allow ⌥ or ⇧ alone.";
                 }
 
                 if (runBoxShortcut.Current is not { } current)
                 {
-                    return "None. Open the Run box from the menu bar.";
+                    return WindowsKeys ? "None. Open the Run box from the tray icon." : "None. Open the Run box from the menu bar.";
                 }
 
+                var name = Describe(current);
                 return runBoxShortcut.Status switch
                 {
                     0 => "Opens the Run box from any app.",
-                    -9878 => "Couldn’t use " + current.Display + ": " + TakenError + ". Choose another.",
-                    _ => "Couldn’t use " + current.Display + ". Choose another."
+                    var status when IsTaken(status) => "Couldn’t use " + name + ": " + TakenError + ". Choose another.",
+                    _ => "Couldn’t use " + name + ". Choose another."
                 };
             }
         }
@@ -131,7 +142,7 @@ namespace keycuts.GUI.ViewModels
             }
 
             isRecordingShortcut = false;
-            if (hotkey.IsAllowed)
+            if (WindowsKeys ? hotkey.IsAllowedOnWindows : hotkey.IsAllowed)
             {
                 refusedShortcut = null;
                 runBoxShortcut.Apply(hotkey);

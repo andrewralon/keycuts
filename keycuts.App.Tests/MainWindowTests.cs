@@ -319,7 +319,7 @@ namespace keycuts.Tests
             });
         }
 
-        // Phase 5.1 (mockup macos-window-v1): macOS's own frame and traffic lights, zoom off, no caption buttons, no torn corner
+        // Phase 5.1 (mockup macos-window-v1): macOS's own frame and traffic lights, zoom off, no caption buttons; the corner is torn as on Windows
         [AvaloniaFact]
         public void OnTheMac_TheFrameIsMacOS()
         {
@@ -332,8 +332,26 @@ namespace keycuts.Tests
                 Assert.False(window.CanMaximize);
                 Assert.False(Named<StackPanel>(window, "CaptionButtons").IsVisible);
                 Assert.False(Named<Border>(window, "PageBorder").IsVisible);
-                Assert.False(Named<TornCorner>(window, "Tear").IsVisible);
                 Assert.Equal(88, RailView.MacBrandLeft);
+            });
+        }
+
+        // Issues #292 and #308: the corner is always torn on macOS, and the window is transparent behind the page so it shows through
+        [AvaloniaFact]
+        public void OnTheMac_TheCornerIsAlwaysTorn_AndTheWindowIsTransparent()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
+            WithWindow((window, shell) =>
+            {
+                Assert.True(Named<TornCorner>(window, "Tear").IsVisible);
+                Assert.NotNull(Named<Grid>(window, "Frame").Clip);
+                Assert.Equal(new[] { WindowTransparencyLevel.Transparent }, window.TransparencyLevelHint);
+
+                // High contrast keeps the plain rectangle, as on Windows
+                ThemeManager.Apply(Palette.HighContrast);
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(Named<TornCorner>(window, "Tear").IsVisible);
+                Assert.Null(Named<Grid>(window, "Frame").Clip);
             });
         }
 
@@ -429,7 +447,7 @@ namespace keycuts.Tests
 
                 var view = window.GetVisualDescendants().OfType<SettingsView>().Single();
                 var labels = view.GetVisualDescendants().OfType<SectionLabel>().ToList();
-                var output = labels.Single(l => l.Text == "Output").TranslatePoint(new Point(0, 0), view)!.Value;
+                var output = labels.Single(l => l.Text == "Behavior").TranslatePoint(new Point(0, 0), view)!.Value;
                 var appearance = labels.Single(l => l.Text == "Appearance").TranslatePoint(new Point(0, 0), view)!.Value;
                 Assert.Equal(output.Y, appearance.Y, 0.5);
                 Assert.True(appearance.X > view.Bounds.Width / 2);

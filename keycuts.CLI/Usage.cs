@@ -54,6 +54,8 @@ namespace keycuts.CLI
                 : type == typeof(RenameOptions) ? "rename"
                 : type == typeof(OpenOptions) ? "open"
                 : type == typeof(PathOptions) ? "path"
+                : type == typeof(InstallShellIntegrationOptions) ? "install-shell-integration"
+                : type == typeof(UninstallShellIntegrationOptions) ? "uninstall-shell-integration"
                 : "create";
         }
 
@@ -141,6 +143,8 @@ namespace keycuts.CLI
                     "  keycuts rename <old> <new> [-f]                 Rename a keycut",
                     "  keycuts open <name> [arguments]                 Open a keycut",
                     "  keycuts path [status|add|remove]                PATH: say, add or take out",
+                    "  keycuts install-shell-integration               Add \"keycut this!\" to Finder / Explorer",
+                    "  keycuts uninstall-shell-integration             Take it out again",
                     "  keycuts <command> --help                        Help for that command",
                     "  keycuts --help                                  Open this help message",
                     "",

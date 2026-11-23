@@ -30,5 +30,10 @@
     <AppIconFile Include="..\assets\icons\key-white\key-white.ico;..\assets\icons\key-charcoal\key-charcoal.ico;..\assets\icons\key-blue\key-blue.ico;..\assets\icons\classic-transparent\classic-transparent.ico" />
     <AvaloniaResource Include="@(AppIconFile)" Link="Images\AppIcons\%(Filename)%(Extension)" />
     <Content Include="@(AppIconFile)" Link="icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The 1024 px art the macOS Dock icon is drawn from (MacDockIcon); the classic monogram has none, so it uses the built-in 256 px -->
+    <Content Condition="$([MSBuild]::IsOSPlatform('OSX')) Or $(RuntimeIdentifier.StartsWith('osx'))" Include="..\assets\icons\*\*-1024.png" Link="icons\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Finder Quick Action (Phase 7), copied to ~/Library/Services by Settings; the macOS package puts it in the bundle the same way. macOS builds only: the Windows installer
+         packages the publish folder and has no use for it -->
+    <Content Condition="$([MSBuild]::IsOSPlatform('OSX')) Or $(RuntimeIdentifier.StartsWith('osx'))" Include="..\installer\macos\keycut this!.workflow\Contents\*" Link="QuickAction\keycut this!.workflow\Contents\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

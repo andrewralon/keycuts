@@ -36,6 +36,7 @@ namespace keycuts.Common
         /// <summary>Show the app icon without its background (the keycap alone) on the windows and the shortcuts. Off unless set to 1.</summary>
         public static readonly string AppIconTransparentKeyName = "AppIconTransparent";
 
+
         /// <summary>Save new file and folder keycuts with environment variables (#31). Off unless set.</summary>
         public static readonly string UseEnvironmentVariablesKeyName = "UseEnvironmentVariables";
 
@@ -45,7 +46,7 @@ namespace keycuts.Common
         /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
         public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
 
-        /// <summary>macOS: the Run box shortcut (Phase 6.2) as <see cref="RunBoxHotkey.Stored"/>; unset is the default, empty is none.</summary>
+        /// <summary>The Run box shortcut (Phase 6.2; Windows, issue #306) as <see cref="RunBoxHotkey.Stored"/> (Windows: <see cref="RunBoxHotkey.WindowsDisplay"/>); unset is the default, empty is none.</summary>
         public static readonly string RunBoxHotkeyKeyName = "RunBoxHotkey";
 
         /// <summary>When the last update check read a release, as a round-trip UTC timestamp.</summary>
@@ -136,11 +137,10 @@ namespace keycuts.Common
         /// <summary>Whether the verbs are really there, which is what the Settings checkbox should show.</summary>
         public static bool GetRightClickContextMenu()
         {
-            // The Explorer verbs on Windows. On macOS the Finder Quick Action (Phase 7 installs it): until then, the stored choice,
-            // on unless turned off, as a new install has it
+            // The Explorer verbs on Windows; on macOS the Finder Quick Action in ~/Library/Services (Phase 7)
             if (OperatingSystem.IsMacOS())
             {
-                return ReadValue(RightClickContextMenuKeyName) is not int raw || raw != 0;
+                return QuickActionInstaller.CreateDefault().IsInstalled;
             }
 
             return OperatingSystem.IsWindows() && new ContextMenuRegistrar().IsRegistered();
@@ -305,13 +305,13 @@ namespace keycuts.Common
         /// <summary>The Run box shortcut: the default until one is chosen, null after "none" (or text that can't be read).</summary>
         public static RunBoxHotkey GetRunBoxHotkey()
         {
-            return ReadValue(RunBoxHotkeyKeyName) is string text ? RunBoxHotkey.Parse(text) : RunBoxHotkey.Default;
+            return ReadValue(RunBoxHotkeyKeyName) is string text ? RunBoxHotkey.Parse(text) : RunBoxHotkey.DefaultForThisSystem;
         }
 
         /// <summary>Stores the Run box shortcut; null stores "none".</summary>
         public static void SetRunBoxHotkey(RunBoxHotkey hotkey)
         {
-            Backend.WriteString(RunBoxHotkeyKeyName, hotkey?.Stored ?? "");
+            Backend.WriteString(RunBoxHotkeyKeyName, (OperatingSystem.IsWindows() ? hotkey?.WindowsDisplay : hotkey?.Stored) ?? "");
         }
 
         public static string GetInstallFolder()
@@ -403,14 +403,34 @@ namespace keycuts.Common
             Backend.DeleteValues(LegacyUpdateKeyNames);
         }
 
+        /// <summary>
+        /// macOS, at the app's start (Phase 8: no package postinstall): puts the Finder Quick Action in place, or brings an older copy up
+        /// to date, unless the user turned it off in Settings. Never fails.
+        /// </summary>
+        public static void EnsureQuickAction()
+        {
+            if (!OperatingSystem.IsMacOS() || (ReadValue(RightClickContextMenuKeyName) is int raw && raw == 0))
+            {
+                return;
+            }
+
+            QuickActionInstaller.CreateDefault().EnsureInstalled();
+        }
+
         /// <summary>Records the choice only after the verbs changed, so the two can't drift apart. False on failure.</summary>
         public static bool SetRightClickContextMenu(bool rightClickContextMenu)
         {
             if (OperatingSystem.IsMacOS())
             {
-                // Phase 7 installs and removes the Quick Action here; until then only the choice is stored
-                Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
-                return true;
+                var quickAction = QuickActionInstaller.CreateDefault();
+                var done = rightClickContextMenu ? quickAction.Install() : quickAction.Uninstall();
+
+                if (done)
+                {
+                    Backend.WriteDword(RightClickContextMenuKeyName, rightClickContextMenu ? 1 : 0);
+                }
+
+                return done;
             }
 
             if (!OperatingSystem.IsWindows())

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using keycuts.Common;
 using keycuts.GUI.ViewModels;
@@ -52,24 +53,49 @@ namespace keycuts.GUI
         }
 
         /// <summary>
-        /// Whether this start is the login's (the open-application Apple event's <c>keyAELaunchedAsLogInItem</c>, 'lgit'): then keycuts
-        /// waits in the menu bar instead of opening its window. False when it can't tell.
+        /// Whether this start is the login's, so keycuts waits in the menu bar instead of opening its window (issue #294):
+        /// <see cref="LoginLaunch.Decide"/> has the rules and why. False when it can't tell.
         /// </summary>
         public static bool LaunchedAtLogin()
         {
             using (ObjC.AutoreleasePool())
             {
+                // keyAEPropData ('prdt') holds 'lgit' for a legacy login item's launch; there is no event yet for any other start
                 var manager = ObjC.Send(ObjC.GetClass("NSAppleEventManager"), ObjC.Selector("sharedAppleEventManager"));
                 var evt = ObjC.Send(manager, ObjC.Selector("currentAppleEvent"));
-                if (evt == IntPtr.Zero)
-                {
-                    return false;
-                }
+                var property = evt == IntPtr.Zero ? IntPtr.Zero : ObjC.Send(evt, ObjC.Selector("paramDescriptorForKeyword:"), 0x70726474u);
+                var legacyLoginItem = property != IntPtr.Zero && ObjC.Send(property, ObjC.Selector("enumCodeValue")) == (IntPtr)0x6C676974;
 
-                // keyAEPropData ('prdt') holds 'lgit' for a login item's launch
-                var property = ObjC.Send(evt, ObjC.Selector("paramDescriptorForKeyword:"), 0x70726474u);
-                return property != IntPtr.Zero && ObjC.Send(property, ObjC.Selector("enumCodeValue")) == (IntPtr)0x6C676974;
+                var registered = ObjC.SendLong(Service(), ObjC.Selector("status")) == 1;
+                return LoginLaunch.Decide(legacyLoginItem, registered, getppid() == 1, registered ? SessionAge() : null);
             }
         }
+
+        /// <summary>How long this user's login session has run: the age of their <c>loginwindow</c> process (<c>ps</c>), or of the Dock.</summary>
+        public static TimeSpan? SessionAge()
+        {
+            try
+            {
+                var info = new System.Diagnostics.ProcessStartInfo("/bin/ps", new[] { "-U", getuid().ToString(), "-c", "-o", "etime=,comm=" })
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false
+                };
+                using var process = System.Diagnostics.Process.Start(info);
+                var output = process?.StandardOutput.ReadToEnd() ?? string.Empty;
+                process?.WaitForExit(2000);
+                return LoginLaunch.OldestOf(output, "loginwindow", "Dock");
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        [DllImport("libc")]
+        private static extern int getppid();
+
+        [DllImport("libc")]
+        private static extern uint getuid();
     }
 }

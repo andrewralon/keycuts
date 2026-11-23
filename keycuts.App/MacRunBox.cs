@@ -1,9 +1,7 @@
 using System;
 using System.Linq;
 using System.Runtime.Versioning;
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Threading;
 using keycuts.Common;
 using keycuts.GUI.ViewModels;
 
@@ -31,40 +29,15 @@ namespace keycuts.GUI
 
         public static void Show()
         {
-            box ??= new RunBoxWindow(new RunBoxViewModel(Run, Create, Hide));
+            box ??= new RunBoxWindow(new RunBoxViewModel(RunBoxActions.Run, Create, Hide));
             box.ViewModel.Reset(Array.Empty<Keycut>());
-            _ = LoadAsync(box.ViewModel);
+            _ = RunBoxActions.LoadAsync(box.ViewModel);
 
             box.Show();
             Place(box);
             ObjC.SendBool(NSApp(), ObjC.Selector("activateIgnoringOtherApps:"), 1L);
             box.Activate();
             box.FocusText();
-        }
-
-        private static async Task LoadAsync(RunBoxViewModel viewModel)
-        {
-            try
-            {
-                var keycuts = await Task.Run(() => KeycutRepository.CreateDefault().LoadAllAsync());
-                Dispatcher.UIThread.Post(() => viewModel.Keycuts = keycuts);
-            }
-            catch (Exception ex) when (ex is KeycutRepositoryException || ex is System.IO.IOException)
-            {
-                System.Diagnostics.Debug.WriteLine("keycuts: the Run box couldn't load the keycuts: " + ex.Message);
-            }
-        }
-
-        private static void Run(Keycut keycut)
-        {
-            try
-            {
-                Desktops.Current.RunKeycut(keycut.FilePath);
-            }
-            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception || ex is System.IO.IOException || ex is InvalidOperationException)
-            {
-                System.Diagnostics.Debug.WriteLine("keycuts: couldn't run \"" + keycut.FilePath + "\": " + ex.Message);
-            }
         }
 
         private static void Create(string name)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,7 +58,19 @@ namespace keycuts.GUI
             var shell = CreateShell(() => mainWindow);
 
             mainWindow = new MainWindow(shell);
-            desktop.MainWindow = mainWindow;
+
+            // Issue #294: the lifetime shows its MainWindow when it starts, so a start at login (menu bar or tray only) leaves it unset until the
+            // window is first shown, and dialogs still find their owner then. Windows says so with an argument (issue #307).
+            var atLogin = OperatingSystem.IsMacOS() ? MacLoginItem.LaunchedAtLogin() : desktop.Args?.Contains(WindowsLoginItem.StartupArgument) == true;
+            if (atLogin)
+            {
+                mainWindow.Opened += (sender, e) => desktop.MainWindow ??= mainWindow;
+            }
+            else
+            {
+                desktop.MainWindow = mainWindow;
+            }
+
             MacMenus.Attach(Current!, mainWindow);
             MacMenuBar.Attach(Current!, desktop, mainWindow);
             if (OperatingSystem.IsMacOS())
@@ -67,17 +80,21 @@ namespace keycuts.GUI
 
                 // Phase 6.2 and 6.4: the Run box, from any app by its shortcut
                 MacRunBox.Attach(mainWindow, shell);
+                MacFileOpen.Attach(Current!, shell, mainWindow);
                 MacHotKey.Register(RegistryStuff.GetRunBoxHotkey(), MacRunBox.Show);
+                PlatformText.RunBoxShortcut = () => OperatingSystem.IsMacOS() ? MacHotKey.Current?.Display : null;
+            }
+
+            if (OperatingSystem.IsWindows())
+            {
+                AttachWindowsTray(desktop, mainWindow, shell);
             }
 
             // Explorer "keycut this!": pre-fill the target; the creator view focuses the name field on load. A bad path shows as a
             // field error, not a crash.
             if (desktop.Args is { Length: > 0 } args)
             {
-                var result = TargetResolver.Resolve(args[0]);
-                shell.Creator.Target = result.Target;
-                shell.Creator.TargetKind = result.Kind;
-                shell.Creator.TargetError = result.Error;
+                ApplyTarget(shell, args);
             }
 
             // Before Show, so the taskbar never shows the exe's own icon first
@@ -88,7 +105,7 @@ namespace keycuts.GUI
             }
 
             // Phase 6.5: started by the login, keycuts waits in the menu bar with no window and no Dock icon
-            if (OperatingSystem.IsMacOS() && MacLoginItem.LaunchedAtLogin())
+            if (atLogin)
             {
                 MacMenuBar.HideFromDock();
             }
@@ -97,6 +114,53 @@ namespace keycuts.GUI
                 mainWindow.Show();
             }
             _ = LoadPathVariablesAsync(shell);
+        }
+
+        /// <summary>
+        /// Windows (issues #306 and #307): the tray, the Run box and its shortcut, and a second start handing over its arguments
+        /// (the target of Explorer's "keycut this!", or nothing) to this copy.
+        /// </summary>
+        [SupportedOSPlatform("windows")]
+        private static void AttachWindowsTray(IClassicDesktopStyleApplicationLifetime desktop, MainWindow mainWindow, ShellViewModel shell)
+        {
+            WindowsTray.Attach(Current!, desktop, mainWindow);
+            WindowsRunBox.Attach(mainWindow, shell);
+            WindowsHotKey.Register(RegistryStuff.GetRunBoxHotkey(), WindowsRunBox.Show);
+            PlatformText.RunBoxShortcut = () => WindowsHotKey.Current?.WindowsDisplay;
+
+            SingleInstance.OnSecondStart(args => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (HasTarget(args))
+                {
+                    ApplyTarget(shell, args);
+                    WindowsTray.Show(mainWindow, 1);
+                }
+                else if (!args.Contains(WindowsLoginItem.StartupArgument))
+                {
+                    WindowsTray.Show(mainWindow, null);
+                }
+            }));
+        }
+
+        /// <summary>Flags such as <c>--startup</c> aren't targets.</summary>
+        private static bool HasTarget(string[] args)
+        {
+            return args.Any(a => !a.StartsWith("--", StringComparison.Ordinal));
+        }
+
+        /// <summary>The creator's target from the first argument that isn't a flag; a bad path shows as a field error.</summary>
+        private static void ApplyTarget(ShellViewModel shell, string[] args)
+        {
+            var path = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
+            if (path == null)
+            {
+                return;
+            }
+
+            var result = TargetResolver.Resolve(path);
+            shell.Creator.Target = result.Target;
+            shell.Creator.TargetKind = result.Kind;
+            shell.Creator.TargetError = result.Error;
         }
 
         /// <summary>The window's screens and what they work on, on Windows and macOS alike; the differences are marked.</summary>
@@ -155,8 +219,8 @@ namespace keycuts.GUI
                 // The Debug folder override never writes PATH, so it has no PATH switch either
                 shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
             {
-                RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : null,
-                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : null
+                RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : OperatingSystem.IsWindows() ? NewWindowsShortcut() : null,
+                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : OperatingSystem.IsWindows() ? NewWindowsLoginItem() : null
             };
 
             var shell = new ShellViewModel(
@@ -206,6 +270,19 @@ namespace keycuts.GUI
                 _ = CheckForUpdatesAsync(updateNotice);
             });
             return shell;
+        }
+
+        [SupportedOSPlatform("windows")]
+        private static IRunBoxShortcut NewWindowsShortcut()
+        {
+            return new WindowsRunBoxShortcut();
+        }
+
+        /// <summary>Null (no row) for a copy that doesn't know its own exe.</summary>
+        [SupportedOSPlatform("windows")]
+        private static ILoginItem? NewWindowsLoginItem()
+        {
+            return Environment.ProcessPath is { } exe ? new WindowsLoginItem(new RegistryStartupKeys(), exe) : null;
         }
 
         private static readonly SemaphoreSlim shortcutLock = new(1, 1);
@@ -317,7 +394,7 @@ namespace keycuts.GUI
 
         /// <summary>
         /// What the installer does on Windows, done by the app's own start on macOS (correction 3): an installed copy (the
-        /// <c>keycuts</c> CLI beside it) records its folder for the shims and makes the keycuts folder. Never fails.
+        /// <c>keycuts</c> CLI beside it) records its folder for the shims and makes the keycuts folder, and puts the Finder Quick Action in place unless Settings turned it off. Never fails.
         /// </summary>
         private static void RecordMacInstall()
         {
@@ -327,6 +404,7 @@ namespace keycuts.GUI
                     CommandShims.RecordInstallFolder(CommandShims.InstallFolderPointer, AppContext.BaseDirectory, System.IO.File.Exists))
                 {
                     System.IO.Directory.CreateDirectory(new Runner().GetOutputFolder());
+                    RegistryStuff.EnsureQuickAction();
                 }
             }
             catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)

@@ -15,6 +15,21 @@ Grab the MSI from the [latest release](https://github.com/andrewralon/keycuts/re
 
 Silent: `msiexec /i keycuts-setup-x64.msi /qn OUTPUTFOLDER="C:\Shortcuts"`
 
+**On macOS** (13 or later): `brew install --cask andrewralon/tap/keycuts`, or the `.pkg` from the [latest release](https://github.com/andrewralon/keycuts/releases/latest) (`arm64` for Apple Silicon, `x64` for Intel). It puts `keycuts.app` in Applications and makes `~/Shortcuts` the first time it starts. Finder's right-click item **keycut this!** starts out switched off: turn it on in System Settings → General → Login Items & Extensions → Extensions → Finder.
+
+## Uninstall
+
+**Windows:** remove keycuts in Settings → Apps. Your keycuts stay.
+
+**On macOS**, take out what keycuts added, then the app:
+
+1. Turn off **Open at login** and **Run keycuts in Terminal** in Settings (⌘,), or in Terminal run `keycuts path remove`. That takes the marked block out of your shell profile and leaves the rest of the file as it was.
+2. Run `keycuts uninstall-shell-integration` to take **keycut this!** out of Finder.
+3. Quit keycuts from the menu bar, then `brew uninstall --cask keycuts`. Without Homebrew, drag `keycuts.app` from Applications to the Trash and run `sudo pkgutil --forget com.teamralon.keycuts`.
+4. To also remove the settings and run counts, delete `~/Library/Application Support/keycuts` (`brew uninstall --zap --cask keycuts` does this too).
+
+Your keycuts in `~/Shortcuts` stay. The `keycuts` and `keypaste` commands in that folder only work with the app installed, so delete those two files if you like.
+
 ## Use
 
 **Create:** drop, paste or browse to a target, type a name, press Enter. Or right-click anything → **keycut this!**

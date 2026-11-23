@@ -462,7 +462,7 @@ namespace keycuts.Tests
 
                 var view = window.GetVisualDescendants().OfType<SettingsView>().Single();
                 var labels = view.GetVisualDescendants().OfType<SectionLabel>().ToList();
-                var output = labels.Single(l => l.Text == "Output").TranslatePoint(new Point(0, 0), view)!.Value;
+                var output = labels.Single(l => l.Text == "Behavior").TranslatePoint(new Point(0, 0), view)!.Value;
                 var appearance = labels.Single(l => l.Text == "Appearance").TranslatePoint(new Point(0, 0), view)!.Value;
                 Assert.Equal(output.Y, appearance.Y, 0.5);
                 Assert.True(appearance.X > view.Bounds.Width / 2);

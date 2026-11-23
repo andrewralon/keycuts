@@ -37,10 +37,6 @@
     <Style Selector="Grid.mac Grid.SettingRow">
       <Setter Property="Margin" Value="0,12,0,0" />
     </Style>
-    <!-- Ask before replacing is the first Behavior row on Windows (no margin); on macOS Open at login is, so it sits 12 below that -->
-    <Style Selector="Grid.mac Grid#AskBeforeReplacingRow">
-      <Setter Property="Margin" Value="0,12,0,0" />
-    </Style>
     <Style Selector="Grid.mac controls|SectionLabel.LaterSection">
       <Setter Property="Margin" Value="0,20,0,8" />
     </Style>
@@ -90,11 +86,11 @@
     <!-- The page scrolls when the window is shorter than it; the footer stays. Off while the icon picker is open. -->
     <ScrollViewer x:Name="BodyScroller" Grid.Row="0" Focusable="False" IsTabStop="False" IsEnabled="{Binding IsBodyEnabled}"
                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <!-- Two columns at every width: Output and Behavior on the left, the rest on the right, with a rule 24 from each -->
+      <!-- Two columns at every width: Behavior on the left, Appearance and Updates on the right, with a rule 24 from each -->
       <Grid x:Name="Columns" Margin="{StaticResource PagePadding}" ColumnDefinitions="*,Auto,*" Classes.mac="{x:Static gui:PlatformKeys.IsMac}">
         <StackPanel x:Name="LeftColumn" Grid.Column="0">
-          <!-- Output -->
-          <controls:SectionLabel Text="Output" />
+          <!-- Behavior: the output folder is its first setting (mockups macos-settings-v3 and windows-settings-v1) -->
+          <controls:SectionLabel Text="Behavior" />
           <TextBlock Text="Output folder" Theme="{StaticResource FieldLabel}" />
           <Grid ColumnDefinitions="*,Auto,Auto">
             <!-- Stored when committed: Enter or leaving the box, or a pick from the folder button. Escape drops an edit. -->
@@ -117,10 +113,22 @@
                                Classes.silent="{Binding !HasOutputFolderMessage}"
                                Text="{Binding OutputFolderMessage}" />
 
-          <!-- Behavior -->
-          <controls:SectionLabel Text="Behavior" Classes="LaterSection" />
-          <!-- macOS (Phase 6.5): the first setting under Behavior -->
-          <Grid x:Name="OpenAtLoginRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsOpenAtLoginOffered}">
+          <!-- macOS (Phase 6.2): the Run Box, the second Behavior setting. The shortcut is recorded by pressing it. -->
+          <StackPanel x:Name="RunBoxSection" IsVisible="{Binding IsRunBoxOffered}">
+            <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="Run Box" Classes="SettingName" />
+                <TextBlock x:Name="ShortcutNoteText" Text="{Binding ShortcutNote}" Classes="SettingNote" Classes.warning="{Binding ShortcutIsWarning}"
+                           AutomationProperties.LiveSetting="Polite" />
+              </StackPanel>
+              <!-- Click, then press the keys (SettingsView.ShortcutRecorder_KeyDown); Esc cancels, Delete clears -->
+              <Button x:Name="ShortcutRecorder" Grid.Column="1" Theme="{StaticResource SecondaryButton}" Margin="16,0,0,0"
+                      VerticalAlignment="Center" Content="{Binding ShortcutText}" Command="{Binding RecordShortcutCommand}"
+                      AutomationProperties.Name="Run box shortcut" AutomationProperties.HelpText="{Binding ShortcutNote}" />
+            </Grid>
+          </StackPanel>
+          <!-- macOS (Phase 6.5) -->
+          <Grid x:Name="OpenAtLoginRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsOpenAtLoginOffered}">
             <StackPanel>
               <TextBlock Text="Open at login" Classes="SettingName" />
               <TextBlock Text="{Binding OpenAtLoginText}" Classes="SettingNote" />
@@ -129,8 +137,9 @@
                           VerticalAlignment="Center" IsChecked="{Binding OpenAtLogin}" AutomationProperties.Name="Open at login"
                           AutomationProperties.HelpText="{Binding OpenAtLoginText}" />
           </Grid>
+
           <!-- No visible note: the toggle's help text tells a screen reader what it does -->
-          <Grid x:Name="AskBeforeReplacingRow" ColumnDefinitions="*,Auto">
+          <Grid x:Name="AskBeforeReplacingRow" Classes="SettingRow" ColumnDefinitions="*,Auto">
             <TextBlock Text="Ask before replacing a keycut" Classes="SettingName" VerticalAlignment="Center" />
             <ToggleButton x:Name="ToggleAskBeforeReplacing" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
                           VerticalAlignment="Center" IsChecked="{Binding AskBeforeReplacing}"
@@ -158,34 +167,6 @@
                           AutomationProperties.Name="{x:Static gui:PlatformText.VariablesName}"
                           AutomationProperties.HelpText="{x:Static gui:PlatformText.VariablesHelp}" />
           </Grid>
-          <!-- macOS (issue #292): the native window is the default; this tears its bottom-right corner, as the Windows window is -->
-          <Grid x:Name="TornCornerRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsTornCornerOffered}">
-            <TextBlock Text="Torn corner" Classes="SettingName" VerticalAlignment="Center" />
-            <ToggleButton x:Name="ToggleTornCorner" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                          VerticalAlignment="Center" IsChecked="{Binding TornCorner}" AutomationProperties.Name="Torn corner"
-                          AutomationProperties.HelpText="Tears the window’s bottom-right corner" />
-          </Grid>
-        </StackPanel>
-
-        <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
-
-        <StackPanel x:Name="RightColumn" Grid.Column="2">
-          <!-- macOS (Phase 6.2, mockup macos-settings-v2): the Run Box, a Behavior setting at the top of this column. The shortcut is
-               recorded by pressing it. -->
-          <StackPanel x:Name="RunBoxSection" IsVisible="{Binding IsRunBoxOffered}">
-            <Grid ColumnDefinitions="*,Auto">
-              <StackPanel>
-                <TextBlock Text="Run Box" Classes="SettingName" />
-                <TextBlock x:Name="ShortcutNoteText" Text="{Binding ShortcutNote}" Classes="SettingNote" Classes.warning="{Binding ShortcutIsWarning}"
-                           AutomationProperties.LiveSetting="Polite" />
-              </StackPanel>
-              <!-- Click, then press the keys (SettingsView.ShortcutRecorder_KeyDown); Esc cancels, Delete clears -->
-              <Button x:Name="ShortcutRecorder" Grid.Column="1" Theme="{StaticResource SecondaryButton}" Margin="16,0,0,0"
-                      VerticalAlignment="Center" Content="{Binding ShortcutText}" Command="{Binding RecordShortcutCommand}"
-                      AutomationProperties.Name="Run box shortcut" AutomationProperties.HelpText="{Binding ShortcutNote}" />
-            </Grid>
-          </StackPanel>
-
           <!-- macOS (Phase 5.4): the folder on PATH in the shell profile, as keycuts path add and remove do; the last Behavior setting -->
           <Grid x:Name="TerminalPathRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsTerminalPathOffered}">
             <StackPanel>
@@ -197,9 +178,13 @@
                           AutomationProperties.Name="{x:Static vm:SettingsViewModel.RunInTerminalName}"
                           AutomationProperties.HelpText="{Binding TerminalPathNote}" />
           </Grid>
+        </StackPanel>
 
+        <Border x:Name="ColumnRule" Grid.Column="1" Width="1" Margin="24,0" Background="{DynamicResource BorderBrush}" />
+
+        <StackPanel x:Name="RightColumn" Grid.Column="2">
           <!-- Appearance. The theme: the label and the three choices share a line. A choice applies and is stored at once. -->
-          <controls:SectionLabel Text="Appearance" Classes.LaterSection="{Binding IsTerminalPathOffered}" />
+          <controls:SectionLabel Text="Appearance" />
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="Theme" Classes="SettingName" VerticalAlignment="Center" />
             <StackPanel x:Name="ThemeChoices" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
@@ -236,6 +221,14 @@
                           VerticalAlignment="Center" IsChecked="{Binding TransparentIcon}"
                           AutomationProperties.Name="Transparent icon background"
                           AutomationProperties.HelpText="Affects the taskbar, Alt+Tab, and shortcuts." />
+          </Grid>
+
+          <!-- macOS (issue #292): the last Appearance setting; the native window is the default, and this tears its bottom-right corner as the Windows window is -->
+          <Grid x:Name="TornCornerRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsTornCornerOffered}">
+            <TextBlock Text="Torn corner" Classes="SettingName" VerticalAlignment="Center" />
+            <ToggleButton x:Name="ToggleTornCorner" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
+                          VerticalAlignment="Center" IsChecked="{Binding TornCorner}" AutomationProperties.Name="Torn corner"
+                          AutomationProperties.HelpText="Tears the window’s bottom-right corner" />
           </Grid>
 
           <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->

@@ -361,10 +361,10 @@ namespace keycuts.Tests
             }
         }
 
-        // Mockup macos-settings-v2: Open at login leads Behavior; Run Box heads the right column, with no section label of its own;
-        // no sentence under the output folder or the torn corner
+        // Mockup macos-settings-v3: one Behavior section on the left (the output folder, Run Box, Open at login, Ask before replacing,
+        // the Quick Action, $HOME, Terminal last); Appearance (Torn corner last) and Updates on the right; no Output heading
         [AvaloniaFact]
-        public void Settings_OnTheMac_FollowsTheV2Mockup()
+        public void Settings_OnTheMac_FollowsTheV3Mockup()
         {
             Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS rows");
             var settings = new SettingsViewModel(new FakeStore())
@@ -375,32 +375,38 @@ namespace keycuts.Tests
             };
             var window = Host(new SettingsView(), settings, 768, 470);
 
+            var labels = window.GetVisualDescendants().OfType<SectionLabel>().Select(l => l.Text).ToList();
+            Assert.DoesNotContain("Output", labels);
+            Assert.DoesNotContain("Run box", labels);
+            Assert.Equal(new[] { "Behavior", "Appearance", "Updates" }, labels.Where(l => l is "Behavior" or "Appearance" or "Updates").ToArray());
+
             var left = Named<StackPanel>(window, "LeftColumn");
-            var right = Named<StackPanel>(window, "RightColumn");
             var order = left.Children.Select(c => c.Name).Where(n => n != null).ToList();
-            Assert.True(order.IndexOf("OpenAtLoginRow") < order.IndexOf("AskBeforeReplacingRow"), string.Join(", ", order));
-            Assert.Contains("TornCornerRow", order);
-
-            // Right column: the Run Box row first, then the PATH row, then Appearance; "Run box" is no longer a section label
-            Assert.Same(Named<StackPanel>(window, "RunBoxSection"), right.Children[0]);
+            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow", "TerminalPathRow" }, order.Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray());
+            Assert.Equal("TerminalPathRow", order.Last());
+            Assert.DoesNotContain("TornCornerRow", order);
             Assert.Equal("Run Box", window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Run Box").Text);
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<SectionLabel>(), l => l.Text == "Run box");
-            Assert.Same(Named<Grid>(window, "TerminalPathRow"), right.Children[1]);
 
-            // No neutral sentence under the folder, and none under Torn corner
+            // The right column is Appearance, with Torn corner after Icon, then Updates
+            var right = Named<StackPanel>(window, "RightColumn");
+            var rightOrder = right.Children.Select(c => c.Name ?? c.GetType().Name).ToList();
+            Assert.Contains("TornCornerRow", rightOrder);
+            var appearance = right.Children.OfType<SectionLabel>().First(l => l.Text == "Appearance");
+            var updates = right.Children.OfType<SectionLabel>().First(l => l.Text == "Updates");
+            Assert.True(right.Children.IndexOf(Named<Grid>(window, "TornCornerRow")) > right.Children.IndexOf(appearance));
+            Assert.True(right.Children.IndexOf(Named<Grid>(window, "TornCornerRow")) < right.Children.IndexOf(updates));
+
+            // No sentence under the folder, none under Torn corner, and the empty line takes no room: Run Box sits one macOS row gap (12) under the box
             Assert.Equal(string.Empty, settings.OutputFolderMessage);
             Assert.Single(Named<Grid>(window, "TornCornerRow").GetVisualDescendants().OfType<TextBlock>(), t => !string.IsNullOrEmpty(t.Text));
-            Assert.Equal(SettingsViewModel.OpenAtLoginNote, "keycuts waits in the menu bar.");
-
-            // The empty folder line takes no room: Behavior sits one section gap (20) under the box, not a text line more
             var message = Named<HelperText>(window, "OutputFolderMessage");
             Assert.Equal(0, message.Bounds.Height, 0.5);
             Assert.Equal(new Thickness(0), message.Margin);
             var box = Named<TextBox>(window, "TextboxOutputFolder");
-            var behavior = window.GetVisualDescendants().OfType<SectionLabel>().First(l => l.Text == "Behavior");
-            var gap = behavior.TranslatePoint(new Point(0, 0), window)!.Value.Y - (box.TranslatePoint(new Point(0, box.Bounds.Height), window)!.Value.Y);
-            Assert.InRange(gap, 19, 21);
-
+            var runBox = Named<StackPanel>(window, "RunBoxSection");
+            var gap = ((Control)runBox.Children[0]).TranslatePoint(new Point(0, 0), window)!.Value.Y - box.TranslatePoint(new Point(0, box.Bounds.Height), window)!.Value.Y;
+            Assert.InRange(gap, 11, 13);
+            Assert.Equal("keycuts waits in the menu bar.", SettingsViewModel.OpenAtLoginNote);
             window.Close();
         }
 

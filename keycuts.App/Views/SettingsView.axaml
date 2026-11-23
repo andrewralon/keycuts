@@ -234,10 +234,10 @@
           <!-- The version, the update status and check now: hidden only for the README's screenshots -->
           <Grid x:Name="VersionRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding ShowVersionRow}">
             <StackPanel VerticalAlignment="Center">
-              <!-- "Version · 1.6.0", like "Icon · Black & White": the name SemiBold, the value in secondary text -->
+              <!-- "Version · 1.6.0 (abc1234)", like "Icon · Black & White": the name SemiBold, the value in secondary text -->
               <TextBlock x:Name="CurrentVersionText" Classes="SettingName" AutomationProperties.Name="{Binding CurrentVersionText}">
                 <Run Text="Version" /><Run Text=" · " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
-                    Text="{Binding CurrentVersionNumber}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    Text="{Binding CurrentVersionValue}" FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" />
               </TextBlock>
               <WrapPanel Margin="0,4,0,0">
                 <TextBlock x:Name="UpdateStatusMessage" Text="{Binding UpdateStatusText}" Theme="{StaticResource Caption}"

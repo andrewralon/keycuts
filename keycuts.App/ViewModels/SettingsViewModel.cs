@@ -121,6 +121,8 @@ namespace keycuts.GUI.ViewModels
 
         private bool transparentIcon;
 
+        private string? commit = BuildInfo.Commit;
+
         /// <param name="pickFolder">Shows a folder picker seeded with the given folder; null when cancelled.</param>
         /// <param name="openFolder">Opens the folder in Explorer.</param>
         /// <param name="checkFolder">Creates the folder if needed and proves it is writable; returns an error message or null. Tests use temp folders.</param>
@@ -452,16 +454,39 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>"Version 1.1.1": the running version in three parts. Settings shows it as "Version · 1.1.1", and a screen reader reads this.</summary>
+        /// <summary>
+        /// "Version 1.1.1, commit abc1234": the running version in three parts and the commit it was built from, if known. Settings
+        /// shows it as "Version · 1.1.1 (abc1234)", and a screen reader reads this.
+        /// </summary>
         public string CurrentVersionText
         {
-            get { return string.Format(VersionFormat, CurrentVersionNumber); }
+            get { return string.Format(VersionFormat, CurrentVersionNumber) + (Commit == null ? string.Empty : ", commit " + Commit); }
         }
 
-        /// <summary>"1.1.1": the running version in three parts, shown after "Version ·" as the icon's name follows "Icon ·".</summary>
+        /// <summary>"1.1.1": the running version in three parts.</summary>
         public string CurrentVersionNumber
         {
             get { return CurrentVersion.ToString(3); }
+        }
+
+        /// <summary>"1.1.1 (abc1234)", or "1.1.1" alone without a commit (no empty brackets): shown after "Version ·" as the icon's name follows "Icon ·".</summary>
+        public string CurrentVersionValue
+        {
+            get { return Commit == null ? CurrentVersionNumber : $"{CurrentVersionNumber} ({Commit})"; }
+        }
+
+        /// <summary>The short commit the app was built from (<see cref="BuildInfo.Commit"/>), null when the build has none. Tests set it.</summary>
+        public string? Commit
+        {
+            get { return commit; }
+            set
+            {
+                if (SetProperty(ref commit, value))
+                {
+                    OnPropertyChanged(nameof(CurrentVersionText));
+                    OnPropertyChanged(nameof(CurrentVersionValue));
+                }
+            }
         }
 
         /// <summary>

@@ -46,7 +46,7 @@ namespace keycuts.Common
         /// <summary>Check GitHub for a newer release once a day (#171). On unless set to 0.</summary>
         public static readonly string CheckForUpdatesKeyName = "CheckForUpdates";
 
-        /// <summary>macOS: the Run box shortcut (Phase 6.2) as <see cref="RunBoxHotkey.Stored"/>; unset is the default, empty is none.</summary>
+        /// <summary>The Run box shortcut (Phase 6.2; Windows, issue #306) as <see cref="RunBoxHotkey.Stored"/> (Windows: <see cref="RunBoxHotkey.WindowsDisplay"/>); unset is the default, empty is none.</summary>
         public static readonly string RunBoxHotkeyKeyName = "RunBoxHotkey";
 
         /// <summary>When the last update check read a release, as a round-trip UTC timestamp.</summary>
@@ -305,13 +305,13 @@ namespace keycuts.Common
         /// <summary>The Run box shortcut: the default until one is chosen, null after "none" (or text that can't be read).</summary>
         public static RunBoxHotkey GetRunBoxHotkey()
         {
-            return ReadValue(RunBoxHotkeyKeyName) is string text ? RunBoxHotkey.Parse(text) : RunBoxHotkey.Default;
+            return ReadValue(RunBoxHotkeyKeyName) is string text ? RunBoxHotkey.Parse(text) : RunBoxHotkey.DefaultForThisSystem;
         }
 
         /// <summary>Stores the Run box shortcut; null stores "none".</summary>
         public static void SetRunBoxHotkey(RunBoxHotkey hotkey)
         {
-            Backend.WriteString(RunBoxHotkeyKeyName, hotkey?.Stored ?? "");
+            Backend.WriteString(RunBoxHotkeyKeyName, (OperatingSystem.IsWindows() ? hotkey?.WindowsDisplay : hotkey?.Stored) ?? "");
         }
 
         public static string GetInstallFolder()

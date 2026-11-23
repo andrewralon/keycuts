@@ -73,6 +73,10 @@ namespace keycuts.Common
         [DllImport(Lib, EntryPoint = "objc_msgSend")]
         public static extern IntPtr Send(IntPtr receiver, IntPtr selector, uint arg);
 
+        /// <summary>For <c>dataWithBytes:length:</c>.</summary>
+        [DllImport(Lib, EntryPoint = "objc_msgSend")]
+        public static extern IntPtr Send(IntPtr receiver, IntPtr selector, IntPtr arg1, nuint arg2);
+
         [DllImport("/usr/lib/libSystem.dylib", EntryPoint = "dlopen")]
         private static extern IntPtr DlOpen(string path, int mode);
 

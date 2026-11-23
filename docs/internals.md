@@ -21,7 +21,7 @@ Behavior that spans several files. Read the section before changing that area. P
 - Events `Stored`, `OutputFolderChanged`, `ShowWelcomeRequested`, `UpdateChecked` keep the shell in step.
 - Restore defaults (`Settings.Defaults()`) confirms in `ConfirmWindow`, never touches the folder or PATH.
 - The right-click toggle shows whether the verbs exist, not the stored `RightClickContextMenu` value (which only records the choice so an MSI upgrade doesn't re-add a removed menu).
-- `ShowVersionRow = false` hides the version row in screenshots.
+- `ShowVersionRow = false` hides the version row in screenshots. The row reads "Version · 2.1.0 (abc1234)": the number, then `BuildInfo.Commit` (`Common/BuildInfo.cs`), the first seven hex characters after the `+` the SDK adds to `AssemblyInformationalVersion` when the build has git information (every build from a checkout, release builds included; no `SourceRevisionId` is set). A source archive has none and shows the number alone. The three-part `<Version>`, the MSI, the update check and `keycuts --version` (`Usage.GetVersion` strips the `+…`) never see it. `SettingsViewModel.Commit` is settable so tests don't depend on the checkout.
 
 ## Creator and footer
 

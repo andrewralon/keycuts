@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Avalonia.Media.Imaging;
 using keycuts.Common;
 using keycuts.GUI.Themes;
 
@@ -9,7 +11,7 @@ namespace keycuts.GUI
     /// <summary>
     /// The Dock icon while keycuts runs: the icon chosen in Settings. <c>Window.Icon</c> doesn't reach the Dock on macOS (it showed
     /// the generic icon whatever was picked), so the choice is set on <c>NSApplication</c>. The bundle's own icon stays fixed, since
-    /// changing it would break the signature. The .ico files beside the app are the ones Windows shortcuts use; AppKit reads them.
+    /// changing it would break the signature. The art is drawn on Apple's icon grid first (<see cref="DockIconImage"/>, issue #310): the Dock draws a runtime image as given, so a full-bleed tile looked a fifth too big.
     /// </summary>
     public static class MacDockIcon
     {
@@ -34,23 +36,44 @@ namespace keycuts.GUI
         [SupportedOSPlatform("macos")]
         private static void Apply(AppIconArt art)
         {
-            var file = Path.Combine(AppContext.BaseDirectory, AppIcons.FolderName, AppIcons.GetFileName(art));
-
-            if (!File.Exists(file))
+            byte[] png;
+            try
             {
+                png = DockIconImage.Render(Load(art));
+            }
+            catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidOperationException)
+            {
+                System.Diagnostics.Debug.WriteLine("keycuts: couldn't draw the Dock icon: " + ex.Message);
                 return;
             }
 
             using (ObjC.AutoreleasePool())
             {
-                var image = ObjC.Send(ObjC.Send(ObjC.GetClass("NSImage"), ObjC.Selector("alloc")), ObjC.Selector("initWithContentsOfFile:"), ObjC.String(file));
-
-                if (image != IntPtr.Zero)
+                var handle = GCHandle.Alloc(png, GCHandleType.Pinned);
+                try
                 {
-                    var nsApp = ObjC.Send(ObjC.GetClass("NSApplication"), ObjC.Selector("sharedApplication"));
-                    ObjC.Send(nsApp, ObjC.Selector("setApplicationIconImage:"), image);
+                    var data = ObjC.Send(ObjC.GetClass("NSData"), ObjC.Selector("dataWithBytes:length:"), handle.AddrOfPinnedObject(), (nuint)png.Length);
+                    var image = ObjC.Send(ObjC.Send(ObjC.GetClass("NSImage"), ObjC.Selector("alloc")), ObjC.Selector("initWithData:"), data);
+
+                    if (image != IntPtr.Zero)
+                    {
+                        var nsApp = ObjC.Send(ObjC.GetClass("NSApplication"), ObjC.Selector("sharedApplication"));
+                        ObjC.Send(nsApp, ObjC.Selector("setApplicationIconImage:"), image);
+                    }
+                }
+                finally
+                {
+                    handle.Free();
                 }
             }
+        }
+
+        /// <summary>The 1024 px art beside the app, or the 256 px one built in (the monogram has no larger original).</summary>
+        private static Bitmap Load(AppIconArt art)
+        {
+            var name = Path.GetFileNameWithoutExtension(AppIcons.GetFileName(art));
+            var file = Path.Combine(AppContext.BaseDirectory, AppIcons.FolderName, name + "-1024.png");
+            return File.Exists(file) ? new Bitmap(file) : AppIcons.GetPreview(art);
         }
     }
 }

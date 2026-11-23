@@ -341,13 +341,6 @@ namespace keycuts.Tests
             public string? Set(bool on) => null;
         }
 
-        sealed class StillTornCorner : ITornCorner
-        {
-            public bool IsOn => false;
-
-            public string? Set(bool on) => null;
-        }
-
         sealed class StillShortcut : IRunBoxShortcut
         {
             public RunBoxHotkey? Current => RunBoxHotkey.Default;
@@ -362,7 +355,7 @@ namespace keycuts.Tests
         }
 
         // Mockup macos-settings-v3: one Behavior section on the left (the output folder, Run Box, Open at login, Ask before replacing,
-        // the Quick Action, $HOME, Terminal last); Appearance (Torn corner last) and Updates on the right; no Output heading
+        // the Quick Action, $HOME, Terminal last); Appearance and Updates on the right; no Output heading
         [AvaloniaFact]
         public void Settings_OnTheMac_FollowsTheV3Mockup()
         {
@@ -370,7 +363,6 @@ namespace keycuts.Tests
             var settings = new SettingsViewModel(new FakeStore())
             {
                 LoginItem = new StillLoginItem(),
-                TornCornerOption = new StillTornCorner(),
                 RunBoxShortcut = new StillShortcut()
             };
             var window = Host(new SettingsView(), settings, 768, 470);
@@ -384,21 +376,10 @@ namespace keycuts.Tests
             var order = left.Children.Select(c => c.Name).Where(n => n != null).ToList();
             Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow", "TerminalPathRow" }, order.Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray());
             Assert.Equal("TerminalPathRow", order.Last());
-            Assert.DoesNotContain("TornCornerRow", order);
             Assert.Equal("Run Box", window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Run Box").Text);
-
-            // The right column is Appearance, with Torn corner after Icon, then Updates
-            var right = Named<StackPanel>(window, "RightColumn");
-            var rightOrder = right.Children.Select(c => c.Name ?? c.GetType().Name).ToList();
-            Assert.Contains("TornCornerRow", rightOrder);
-            var appearance = right.Children.OfType<SectionLabel>().First(l => l.Text == "Appearance");
-            var updates = right.Children.OfType<SectionLabel>().First(l => l.Text == "Updates");
-            Assert.True(right.Children.IndexOf(Named<Grid>(window, "TornCornerRow")) > right.Children.IndexOf(appearance));
-            Assert.True(right.Children.IndexOf(Named<Grid>(window, "TornCornerRow")) < right.Children.IndexOf(updates));
 
             // No sentence under the folder, none under Torn corner, and the empty line takes no room: Run Box sits one macOS row gap (12) under the box
             Assert.Equal(string.Empty, settings.OutputFolderMessage);
-            Assert.Single(Named<Grid>(window, "TornCornerRow").GetVisualDescendants().OfType<TextBlock>(), t => !string.IsNullOrEmpty(t.Text));
             var message = Named<HelperText>(window, "OutputFolderMessage");
             Assert.Equal(0, message.Bounds.Height, 0.5);
             Assert.Equal(new Thickness(0), message.Margin);

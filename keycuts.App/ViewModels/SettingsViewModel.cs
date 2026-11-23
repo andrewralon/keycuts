@@ -638,13 +638,6 @@ namespace keycuts.GUI.ViewModels
             var iconChanged = selectedIcon.Choice != Settings.DefaultAppIcon;
             SelectedIcon = AppIcons.Get(Settings.DefaultAppIcon);
 
-            // The torn corner is off on a new install (macOS keeps its native window)
-            if (tornCorner?.IsOn == true)
-            {
-                tornCorner.Set(false);
-                OnPropertyChanged(nameof(TornCorner));
-            }
-
             string? transparentError = null;
             if (transparentIcon != Settings.DefaultAppIconTransparent)
             {

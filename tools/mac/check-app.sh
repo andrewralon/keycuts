@@ -43,7 +43,7 @@ cleanup()
   cleaning=1
   status "Putting your desktop back…"
   [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null
-  osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1 || true
+  [ -n "${white_pid:-}" ] && kill "$white_pid" 2>/dev/null
   # never leave the system's Increase contrast on
   [ "$("$sandbox/contrast")" = "true" ] 2>/dev/null && set_contrast false
   osascript -e 'tell application "Finder" to close (every window whose name is "drop")' >/dev/null 2>&1 || true
@@ -153,7 +153,6 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
       read_app | grep -q "That target type isn’t supported." && ok "Finder drop: alias is reported as not supported" || bad "Finder drop: alias is not reported"
       osascript -e 'tell application "Safari"
         activate
-        close every window
         make new document with properties {URL:"https://example.com/"}
         delay 3
         set bounds of front window to {20, 60, 700, 420}
@@ -167,7 +166,8 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
         [ "$got" = "https://example.com/" ] && break
       done
       check "Safari drop: the address bar URL" "$got" "https://example.com/"
-      osascript -e 'tell application "Safari" to quit' >/dev/null 2>&1
+      # only the window opened above, never the user's other Safari windows
+      osascript -e 'tell application "Safari" to close front window' >/dev/null 2>&1
       ;;
     browse)
       front; osascript -e 'tell application "System Events" to keystroke "1" using command down'
@@ -203,19 +203,28 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
       [ "$before" != "$cobalt" ] && [ "$cobalt" != "$onyx" ] && ok "Dock icon follows the picker (changed at each pick)" || bad "Dock icon did not change: $before $cobalt $onyx"
       ;;
     torn)
-      # the window's bottom-right corner: the app's own colour with the torn corner off, the desktop's with it on
-      corner() { front; IFS=, read -r x y w h <<<"$(osascript -e "tell application \"System Events\" to tell (first process whose unix id is $pid) to return (position of window 1 as list) & (size of window 1 as list)" | tr -d ' ')"; screencapture -x -R"$((x + w - 22))","$((y + h - 22))",1,1 "$sandbox/corner.png"; md5 -q "$sandbox/corner.png"; }
-      front; osascript -e 'tell application "System Events" to keystroke "3" using command down'; sleep 1
-      # by position (the Settings screen is 768 x 470; the switch sits at 683,801 of its 2x picture): the accessibility tree can be empty
-      IFS=, read -r wx wy _ _ <<<"$(osascript -e "tell application \"System Events\" to tell (first process whose unix id is $pid) to return (position of window 1 as list) & (size of window 1 as list)" | tr -d ' ')"
-      switch="$((wx + 341)),$((wy + 400))"
-      off="$(corner)"
-      cliclick c:"$switch"; sleep 2.5
-      on="$(corner)"
-      cliclick m:"$((wx + 300)),$((wy + 300))"; sleep 1   # a second click on the same spot isn't registered
-      cliclick c:"$switch"; sleep 2.5
-      again="$(corner)"
-      [ "$off" != "$on" ] && [ "$off" = "$again" ] && ok "Torn corner: the window's corner changes with the setting" || bad "Torn corner: corner pixels $off $on $again"
+      # The bottom-right corner is torn on every start (issues #292, #308) and must be see-through: a white window of our own sits behind
+      # it, so black can't pass for a dark desktop. Without the fix for #308 the corner reads 0,0,0 here.
+      window_rect() { osascript -e "tell application \"System Events\" to tell (first process whose unix id is $pid) to return (position of window 1 as list) & (size of window 1 as list)" | tr -d ' '; }
+      swiftc -O "$here/whitewindow.swift" -o "$sandbox/whitewindow" 2>/dev/null
+      front; sleep 1
+      IFS=, read -r x y w h <<<"$(window_rect)"
+      "$sandbox/whitewindow" "$((x + w - 200))" "$((y + h - 140))" 400 300 &
+      white_pid=$!
+      sleep 2; front; sleep 1.5
+      screencapture -x -R"$((x + w - 22))","$((y + h - 22))",1,1 "$sandbox/corner.png"
+      sips -s format bmp "$sandbox/corner.png" --out "$sandbox/corner.bmp" >/dev/null
+      corner="$(python3 -I - "$sandbox/corner.bmp" <<'PY'
+import struct, sys
+d = open(sys.argv[1], 'rb').read()
+off = struct.unpack('<I', d[10:14])[0]
+b, g, r = d[off], d[off + 1], d[off + 2]
+print('light' if min(r, g, b) > 120 else 'dark %d,%d,%d' % (r, g, b))
+PY
+)"
+      kill "$white_pid" 2>/dev/null
+      white_pid=
+      [ "$corner" = light ] && ok "Torn corner: see-through on a fresh start" || bad "Torn corner: the corner is $corner, not see-through (issue #308)"
       ;;
     *) say "unknown check: $name" ;;
   esac

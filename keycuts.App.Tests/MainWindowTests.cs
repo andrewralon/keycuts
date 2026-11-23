@@ -319,7 +319,7 @@ namespace keycuts.Tests
             });
         }
 
-        // Phase 5.1 (mockup macos-window-v1): macOS's own frame and traffic lights, zoom off, no caption buttons, no torn corner
+        // Phase 5.1 (mockup macos-window-v1): macOS's own frame and traffic lights, zoom off, no caption buttons; the corner is torn as on Windows
         [AvaloniaFact]
         public void OnTheMac_TheFrameIsMacOS()
         {
@@ -332,42 +332,27 @@ namespace keycuts.Tests
                 Assert.False(window.CanMaximize);
                 Assert.False(Named<StackPanel>(window, "CaptionButtons").IsVisible);
                 Assert.False(Named<Border>(window, "PageBorder").IsVisible);
-                Assert.False(Named<TornCorner>(window, "Tear").IsVisible);
                 Assert.Equal(88, RailView.MacBrandLeft);
             });
         }
 
-        // Issue #292: the torn corner on macOS is a setting; the window turns transparent behind the page while it is on
+        // Issues #292 and #308: the corner is always torn on macOS, and the window is transparent behind the page so it shows through
         [AvaloniaFact]
-        public void OnTheMac_TheTornCorner_FollowsTheSetting()
+        public void OnTheMac_TheCornerIsAlwaysTorn_AndTheWindowIsTransparent()
         {
             Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS only");
-            try
+            WithWindow((window, shell) =>
             {
-                WithWindow((window, shell) =>
-                {
-                    var tear = Named<TornCorner>(window, "Tear");
-                    var frame = Named<Grid>(window, "Frame");
-                    Assert.False(tear.IsVisible);
-                    Assert.Null(frame.Clip);
+                Assert.True(Named<TornCorner>(window, "Tear").IsVisible);
+                Assert.NotNull(Named<Grid>(window, "Frame").Clip);
+                Assert.Equal(new[] { WindowTransparencyLevel.Transparent }, window.TransparencyLevelHint);
 
-                    TornCornerSetting.Show(true);
-                    Dispatcher.UIThread.RunJobs();
-                    Assert.True(tear.IsVisible);
-                    Assert.NotNull(frame.Clip);
-                    Assert.Equal(new[] { WindowTransparencyLevel.Transparent }, window.TransparencyLevelHint);
-
-                    TornCornerSetting.Show(false);
-                    Dispatcher.UIThread.RunJobs();
-                    Assert.False(tear.IsVisible);
-                    Assert.Null(frame.Clip);
-                    Assert.Equal(new[] { WindowTransparencyLevel.None }, window.TransparencyLevelHint);
-                });
-            }
-            finally
-            {
-                TornCornerSetting.Show(false);
-            }
+                // High contrast keeps the plain rectangle, as on Windows
+                ThemeManager.Apply(Palette.HighContrast);
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(Named<TornCorner>(window, "Tear").IsVisible);
+                Assert.Null(Named<Grid>(window, "Frame").Clip);
+            });
         }
 
         #endregion The caption buttons and the bar

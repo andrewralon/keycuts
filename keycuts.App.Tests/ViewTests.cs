@@ -392,6 +392,21 @@ namespace keycuts.Tests
         }
 
         [AvaloniaFact]
+        public void Settings_OnTheMac_OffersTheTransparentIconBackground_LastUnderAppearance()
+        {
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS wording");
+            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()), 768, 470);
+
+            var toggle = Named<Avalonia.Controls.Primitives.ToggleButton>(window, "ToggleTransparentIcon");
+            Assert.True(toggle.IsEffectivelyVisible);
+            Assert.Equal("Affects the Dock icon.", PlatformText.TransparentIconNote);
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Affects the Dock icon.");
+            var icon = Named<Button>(window, "BtnIcon");
+            Assert.True(toggle.TranslatePoint(new Point(0, 0), window)!.Value.Y > icon.TranslatePoint(new Point(0, 0), window)!.Value.Y);
+            window.Close();
+        }
+
+        [AvaloniaFact]
         public void Settings_StoresTheFolderOnEnter_AndEscapeDropsAnEdit()
         {
             var store = new FakeStore();

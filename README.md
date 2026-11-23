@@ -70,7 +70,7 @@ Your keycuts in `~/Shortcuts` stay. The `keycuts` and `keypaste` commands in tha
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark-mac.png">
-  <img src="docs/images/settings-light-mac.png" alt="Settings on macOS, with Run keycuts in Terminal." width="830">
+  <img src="docs/images/settings-light-mac.png" alt="Settings on macOS, with the Run box shortcut, Open at login and Run keycuts in Terminal." width="830">
 </picture>
 
 </details>

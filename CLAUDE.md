@@ -4,6 +4,8 @@
 
 keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens anything by nickname (`npp`, `gmail`). The `.bat` is the product: no database, no list file. The output folder (default `%USERPROFILE%\Shortcuts`) is stored in `HKCU\Software\TeamRalon\keycuts`. Entry points: the app (Avalonia), the Explorer right-click verb (passes the target as `args[0]`, `keycuts.App/App.axaml.cs`), the CLI, or `keycuts.Common`.
 
+**On macOS** the product is an extensionless `#!/bin/sh` script (mode 755, LF) in `~/Shortcuts`, with the same header lines as the `.bat` behind `# ` (see "macOS keycuts" below); you run it from the app's Run box (a global hotkey, ⇧⌘Space) or by name in Terminal (the folder on `PATH` through a marked block in `~/.zprofile`). Settings are JSON in `~/Library/Application Support/keycuts/settings.json`. Windows and macOS are one codebase: `ScriptFormats.Current` (`BatFormat` or `ShFormat`), `ISettingsBackend`, `IDesktop`.
+
 ## Commands
 
 .NET SDK 10, Windows only. `global.json` pins the 10.0.4xx band (`latestPatch`). Run from the repo root:
@@ -15,8 +17,9 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - Screenshots and GIFs: `pwsh -File tools/New-Screenshots.ps1` rewrites `docs/images` (the README's PNGs and its `walkthrough-*.gif`) via `ScreenshotTests` (inert unless `KEYCUTS_SCREENSHOTS_OUT` is set). Commit only images that visibly changed, GIFs included. The GIF's frames must share one size.
 - Mockups: `pwsh -File tools/Render-Mockup.ps1 -Html docs/mockups/<file>.html [-Out <png>] [-Width W -Height H]`. UI changes are sketched and approved this way first.
 - Icons: `pwsh -File tools/New-AppIcons.ps1` rewrites `assets/icons`.
-- macOS UI checks: `tools/mac/check-app.sh [menus|drops|browse|contrast|dock]` drives a throwaway bundle of the real app (Finder and Safari drags, the file panel, Increase contrast, the Dock). It hides your other apps and flips Increase contrast while it runs; read `tools/mac/README.md` first.
-- macOS/Linux: build/format the sln with `-p:EnableWindowsTargeting=true`. `dotnet test keycuts.Common.Tests` and `keycuts.App.Tests` run there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`; an `[AvaloniaFact]` measured in Segoe UI starts with `Assert.SkipUnless(OperatingSystem.IsWindows(), …)`.
+- macOS bundles: `tools/Build-MacPackage.sh [-v x.y.z] [-a arm64|x64|both]` builds the signed (with `APPLE_*` set) or ad-hoc `.pkg`; `tools/mac/new-dev-bundle.sh` makes a real-id `keycuts.app` (default `~/Desktop`) that uses your real settings and `~/Shortcuts`; `tools/mac/new-test-bundle.sh <sandbox>` makes the throwaway Debug one `check-app.sh` and `run` use.
+- macOS UI checks: `tools/mac/check-app.sh [menus|drops|browse|contrast|dock|torn]` drives a throwaway bundle of the real app (Finder and Safari drags, the file panel, Increase contrast, the Dock). It hides your other apps and flips Increase contrast while it runs; read `tools/mac/README.md` first.
+- macOS/Linux: build and test with `-p:EnableWindowsTargeting=true`; `dotnet format` takes no `-p:`, so set the environment variable: `EnableWindowsTargeting=true dotnet format keycuts.sln --verify-no-changes --severity error`. `dotnet test keycuts.Common.Tests` and `keycuts.App.Tests` run there (CI's `macos` job); a test that needs Windows behavior (cmd, `C:\` paths, PATH lookup, the registry) is `[WindowsFact]`/`[WindowsTheory]`; an `[AvaloniaFact]` measured in Segoe UI starts with `Assert.SkipUnless(OperatingSystem.IsWindows(), …)`.
 
 ## Gotchas
 
@@ -29,13 +32,15 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 - The view models ask synchronously (`ConfirmName`, `ShowEditForm`, pickers): dialogs run in a nested dispatcher frame (`Modal.Show`/`Modal.Wait`); tests answer them with `Modal.Answer`.
 - Avalonia traps: a style `Setter` holding a control shares one instance (the row menu is a template, built per row); a local `Margin` outranks a style, so a live line's margin goes in a style that `.silent` can override; a view takes its first focus on `Loaded`, not when attached.
 - Fakes of `IKeycutActions` (`FakeActions`, `RecordingActions`) must implement every member.
+- **macOS bundle data lives in `Contents/Resources`, never in `Contents/MacOS`** (`BundleResources.Folder(name)`, which falls back to the folder beside the executable for dev builds): the bundle seal treats every file in `Contents/MacOS` as code and Apple's notary refuses the app ("the signature of the binary is invalid"). `Build-MacPackage.sh` does the move; new shipped data goes through `BundleResources`. Internals: `docs/internals.md`, the macOS sections.
+- Close any keycuts you launch to look at (it keeps running in the menu bar). Two copies run from the same executable path are one app to macOS (activation goes to the older one), so run a test copy from another folder.
 - **Line endings:** `* text=auto`; mixed CRLF/LF is normal, don't convert. Byte-sensitive: `*.cmd` shims (CRLF) and `tests/corpus/**/*.bat`. Never rewrite those through anything that normalizes newlines.
 - Debug builds honor `KEYCUTS_OUTPUT_FOLDER`; `tools/New-SampleKeycuts.ps1` makes fixture folders.
 - CI (`.github/workflows/ci.yml`): a `changes` job skips the rest when only `docs/`, `README.md`, `CLAUDE.md` or `gameplan.md` changed (a new root doc goes in that `grep`) (a skipped job counts as passed for the required checks; never use `paths-ignore` here). `build` (Windows) and `format` (Linux) are required on `develop`/`main`, `macos` on `develop`; PRs into `main` also build both MSIs. Failed runs upload `test-results` (TRX + `.received.txt`). Actions pinned to SHAs.
 
 ## Versioning and releases
 
-`<Version>` in `Directory.Build.props` is the only version (three parts). Pushing to `main` runs `release.yml`, which publishes `v<Version>` if the tag doesn't exist. To release: bump the version on `develop`, **regenerate the screenshots and GIFs** and commit visible changes, merge `develop` into `main`. Never tag by hand.
+`<Version>` in `Directory.Build.props` is the only version (three parts). Pushing to `main` runs `release.yml`, which publishes `v<Version>` if the tag doesn't exist. It has five jobs: `version`, then `windows` (tests, MSIs) and `macos` (both signed, notarized `.pkg` files) in parallel, then `publish` (checks the files, `SHA256SUMS.txt`, a draft release published once everything is attached), then `cask` (a PR in `andrewralon/homebrew-tap`; its own job, so a failure leaves the release alone). `gh workflow run release.yml --ref <branch> -f dry_run=true` runs everything but the release and the cask PR. The `HOMEBREW_TAP_TOKEN` secret expires. To release: bump the version on `develop`, **regenerate the screenshots and GIFs** and commit visible changes, merge `develop` into `main`. Never tag by hand.
 
 ## Architecture
 
@@ -52,6 +57,10 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 All creates end in `Runner.Run` → `CreateShortcutFile` (GUI goes through `KeycutCreator` first, which validates with `TargetResolver` and name checks; the CLI doesn't). All reads go through `ShortcutFile` (`KeycutRepository.TryParse`). Changing the emitter or parser affects every entry point.
 
 `.bat` format: header `REM keycuts <version>`, then `REM <shortcut>`, `<type>`, `<target>` (pre-1.3: `<destination>`, still read), `<description>`, launch line, the two run-counting lines (`UsageLog.BatLines`, #187), `EXIT`. REM type+target win when valid; otherwise the launch line is regex-parsed (0.1.x files). Corpus of real files in `tests/corpus/legacy/`.
+
+### macOS keycuts
+
+`~/Shortcuts/<name>`: line 1 `#!/bin/sh`, line 2 `# keycuts <version>` (that pair makes a file a keycut; the `keycuts`/`keypaste` shims and any other script are ignored), then `# <shortcut>`, `<type>`, `<target>`, `<description>`, the launch line (`open '<target>'`, `open -a '<app>' '<file>'`; single-quoted, `$HOME` in double quotes when variables are on), the run-count lines (`${0##*/}.runs` under `~/Library/Application Support/keycuts/usage`) and `exit $s`. Run as `/bin/sh <file>` (`MacDesktop`), so the execute bit isn't needed from the Run box. Reading and rewriting share the `.bat`'s code (`IScriptFormat`); `CanEditInForm` and the corpus rules apply the same way. A symlink is followed to its target except into `/System/Cryptexes/` (Safari keeps `/Applications/Safari.app`). No `.lnk`, `.url`, CLSID or hosts-file keycuts, and no folder-background right-click: Windows-only.
 
 ### Landmines
 

@@ -1,13 +1,13 @@
 # keycuts
 
-Open any file, folder or URL by typing a nickname in Win+R.
+Open any file, folder or URL by typing a nickname: in Win+R on Windows, in keycuts' Run box on a Mac.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/walkthrough-dark.gif">
   <img src="docs/images/walkthrough-light.gif" alt="Creating a keycut: a Gmail link is the target, the name gmail is typed, Enter creates it. Then Win+R, gmail, Enter opens it." width="580">
 </picture>
 
-Each keycut is a small `.bat` file in a folder on your `PATH`: `npp` opens Notepad++, `gmail` opens your email, `db` opens Dropbox.
+Each keycut is a small script in a folder on your `PATH` (a `.bat` file on Windows, a shell script on macOS): `npp` opens Notepad++, `gmail` opens your email, `db` opens Dropbox.
 
 ## Install
 
@@ -46,7 +46,7 @@ Your keycuts in `~/Shortcuts` stay. The `keycuts` and `keypaste` commands in tha
   <img src="docs/images/manager-light.png" alt="The manager: a row for a new keycut over a searchable table of keycuts." width="830">
 </picture>
 
-**Settings:** output folder, theme, icon (with or without its background), right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
+**Settings:** output folder, the Run box shortcut, open at login, theme, icon (with or without its background), right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
@@ -79,6 +79,38 @@ The app checks GitHub for updates at most once a day. No telemetry: run counts a
 
 **Keycuts from older versions:** the first time the app opens a keycuts folder, it brings keycuts written by older versions to the current format. It renames their `<destination>` line to `<target>`, and folder keycuts get `START "" /B` in front of their Explorer line, so their console window closes sooner. Nothing else in the files changes, and their date modified stays the same. The originals are copied to a hidden `.keycuts-backup\<date-time>` folder inside the keycuts folder first, and a message says where.
 
+## How you run a keycut on macOS
+
+Spotlight and the Finder don't run scripts by name, so keycuts has two launchers of its own:
+
+- **The Run box.** keycuts stays in the menu bar (closing its window only hides it; **Open at login** in Settings has it waiting after a restart). Press **⇧⌘Space** from any app (change it under **Run Box** in Settings), type the name, press Return. The box suggests matches as you type, Tab completes one, Esc closes it, and a name you haven't made offers **Create…**. When the keycut has run, focus goes back to the app you were in.
+- **Terminal.** Turn on **Run keycuts in Terminal** in Settings and the keycuts folder goes on your `PATH`, through a marked block at the end of `~/.zprofile` (zsh) or `~/.bash_profile` (bash); then `gmail` works in any new Terminal window. For fish or nushell, Settings and `keycuts path` show the line to add yourself. Turning the switch off takes the block out again and leaves the rest of the file as it was.
+
+Not Spotlight: it won't run a script when you type its name. Whether a Spotlight quick key could work is still being investigated ([#263](https://github.com/andrewralon/keycuts/issues/263)).
+
+## Windows and macOS
+
+| | Windows | macOS |
+|---|---|---|
+| Install | MSI (`x64`, `arm64`) | `.pkg` (`arm64`, `x64`), or `brew install --cask andrewralon/tap/keycuts` |
+| Run a keycut | Win+R; the Run box (Ctrl+Alt+Space) | The Run box (⇧⌘Space); Terminal |
+| A keycut is | a `.bat` file | a shell script with no extension (mode 755) |
+| Keycuts folder | `%USERPROFILE%\Shortcuts` | `~/Shortcuts` |
+| On `PATH` | the installer adds the folder to your user `PATH` | opt in: **Run keycuts in Terminal** in Settings |
+| Create from a drop, paste or Browse; the manager, search, rename, edit, run counts | yes | yes |
+| Right-click **keycut this!** | files, folders and a folder's background, in File Explorer | files and folders, as a Finder Quick Action (switched off until you turn it on in System Settings) |
+| Targets: files, folders, URLs, apps | yes | yes (apps are `.app` bundles; a `.webloc` file is its URL) |
+| `.lnk` and `.url` files as targets | yes | no |
+| Control Panel and other CLSID items, the hosts file | yes | no |
+| Paths that move between accounts | `%USERPROFILE%`-style variables | `$HOME` |
+| Delete with undo | Recycle Bin | Trash |
+| Open at login | yes (the tray) | yes (the menu bar) |
+| Themes, icons, update check | yes | yes |
+| Command line | `keycuts`, `keypaste` | the same, plus `keycuts path` |
+| Spotlight | not applicable | not available (see above) |
+
+**Known gaps on macOS:** no Spotlight launch; no right-click on a folder's background; no CLSID or hosts-file keycuts; no `.lnk` handling; a Finder alias can't be a target (use the original item).
+
 ## Command line
 
 ```
@@ -90,6 +122,8 @@ keycuts rm <name>                 # delete a keycut, to the Recycle Bin
 keycuts open <name>               # open a keycut, as Win+R does
 keycuts              # open the app
 ```
+
+On macOS there are two more: `keycuts path [status|add|remove]` (the Terminal `PATH` block above) and `keycuts install-shell-integration` / `uninstall-shell-integration` (Finder's **keycut this!**). The Windows ones add or remove the File Explorer menus.
 
 ## Development
 

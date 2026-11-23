@@ -241,6 +241,17 @@ namespace keycuts.GUI
             PageBorder.IsVisible = false;
             ApplyMacShape();
             TornCornerSetting.Changed += TornCornerSetting_Changed;
+
+            // Issue #308: a hint set before the native window exists is not honored (started with the corner on, it came up black);
+            // the same hint set on the open window is. So set it again once the window is open: off first, so the change is seen.
+            Opened += (sender, e) =>
+            {
+                if (TornCornerSetting.On)
+                {
+                    TransparencyLevelHint = new[] { WindowTransparencyLevel.None };
+                    Avalonia.Threading.Dispatcher.UIThread.Post(ApplyMacShape);
+                }
+            };
             Closed += (sender, e) => TornCornerSetting.Changed -= TornCornerSetting_Changed;
         }
 

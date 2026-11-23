@@ -223,14 +223,6 @@
                           AutomationProperties.HelpText="Affects the taskbar, Alt+Tab, and shortcuts." />
           </Grid>
 
-          <!-- macOS (issue #292): the last Appearance setting; the native window is the default, and this tears its bottom-right corner as the Windows window is -->
-          <Grid x:Name="TornCornerRow" Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsTornCornerOffered}">
-            <TextBlock Text="Torn corner" Classes="SettingName" VerticalAlignment="Center" />
-            <ToggleButton x:Name="ToggleTornCorner" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                          VerticalAlignment="Center" IsChecked="{Binding TornCorner}" AutomationProperties.Name="Torn corner"
-                          AutomationProperties.HelpText="Tears the window’s bottom-right corner" />
-          </Grid>
-
           <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->
           <controls:SectionLabel Text="Updates" Classes="LaterSection" />
           <Grid ColumnDefinitions="*,Auto">

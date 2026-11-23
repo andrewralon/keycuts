@@ -10,8 +10,10 @@ arm_pkg="${2:?arm64 pkg}"
 x64_pkg="${3:?x64 pkg}"
 tap="andrewralon/homebrew-tap"
 work="$(mktemp -d)"
-arm_sha="$(shasum -a 256 "$arm_pkg" | cut -d' ' -f1)"
-x64_sha="$(shasum -a 256 "$x64_pkg" | cut -d' ' -f1)"
+# shasum on a Mac, sha256sum on the Linux runner the release's cask job uses
+sha256() { if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1"; else sha256sum "$1"; fi | cut -d' ' -f1; }
+arm_sha="$(sha256 "$arm_pkg")"
+x64_sha="$(sha256 "$x64_pkg")"
 
 gh repo clone "$tap" "$work/tap" -- --depth 1
 mkdir -p "$work/tap/Casks"

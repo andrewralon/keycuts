@@ -204,6 +204,16 @@ jobs:
           gh release download "$TAG" --pattern SHA256SUMS.txt --dir artifacts/release --clobber
           (cd artifacts/release && for pkg in keycuts-setup-arm64.pkg keycuts-setup-x64.pkg; do shasum -a 256 "$pkg" | sed 's/ \*/  /'; done >> SHA256SUMS.txt && cat SHA256SUMS.txt)
           gh release upload "$TAG" artifacts/release/keycuts-setup-arm64.pkg artifacts/release/keycuts-setup-x64.pkg artifacts/release/SHA256SUMS.txt --clobber
+          # The summary the Windows job wrote lists its own files only; this adds the packages. Build-MacPackage.sh stops at the first
+          # failure, so a package that got here was signed, notarized and stapled.
+          {
+            printf '## macOS packages for %s\n\n| Asset | Size | SHA256 |\n|---|---|---|\n' "$TAG"
+            for pkg in keycuts-setup-arm64.pkg keycuts-setup-x64.pkg; do
+              size="$(stat -f%z "artifacts/release/$pkg" | awk '{ printf "%.1f", $1 / 1048576 }')"
+              printf '| %s | %s MB | `%s` |\n' "$pkg" "$size" "$(shasum -a 256 "artifacts/release/$pkg" | cut -d' ' -f1)"
+            done
+            printf '\nBoth are signed with Developer ID, notarized by Apple and stapled. `SHA256SUMS.txt` covers all six release files.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open the Homebrew cask update
         if: steps.secrets.outputs.have == 'true' && needs.release.outputs.released == 'true'
@@ -213,6 +223,19 @@ jobs:
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::notice::HOMEBREW_TAP_TOKEN isn't set, so the cask in andrewralon/homebrew-tap was not updated."
+            printf '\n**The Homebrew cask was not updated:** `HOMEBREW_TAP_TOKEN` is not set.\n' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          tools/mac/update-cask.sh "${TAG#v}" artifacts/installer/osx-arm64/keycuts-setup-arm64.pkg artifacts/installer/osx-x64/keycuts-setup-x64.pkg
+          if output="$(tools/mac/update-cask.sh "${TAG#v}" artifacts/installer/osx-arm64/keycuts-setup-arm64.pkg artifacts/installer/osx-x64/keycuts-setup-x64.pkg 2>&1)"; then
+            printf '%s\n' "$output"
+            url="$(printf '%s\n' "$output" | grep -Eo 'https://github.com/[^ ]+/pull/[0-9]+' | tail -1 || true)"
+            if [ -n "$url" ]; then
+              printf '\nHomebrew cask: [the pull request in the tap](%s) sets keycuts to %s. Merge it to publish the cask.\n' "$url" "${TAG#v}" >> "$GITHUB_STEP_SUMMARY"
+            else
+              printf '\nHomebrew cask: the tap is already at %s, so no pull request was opened.\n' "${TAG#v}" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            printf '%s\n' "$output"
+            printf '\n**The Homebrew cask update failed.** The release and its packages are fine. Check this job'"'"'s log (the token may have expired), then run `tools/mac/update-cask.sh` by hand.\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

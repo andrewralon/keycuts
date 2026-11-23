@@ -326,6 +326,33 @@ namespace keycuts.Tests
             Assert.Equal((ShortcutType.File, file), (r.RawType, r.Target));
         }
 
+        [Fact]
+        public void MacTargets_ResolveLinks_KeepsThePathOfALinkIntoACryptex_AndResolvesEveryOtherLink()
+        {
+            string Links(string link) => link switch
+            {
+                "/Applications/Safari.app" => "/System/Cryptexes/App/System/Applications/Safari.app",
+                "/usr/local/bin/tool" => "/opt/tool/bin/tool",
+                _ => null
+            };
+
+            Assert.Equal("/Applications/Safari.app", MacTargets.ResolveLinks("/Applications/Safari.app", Links));
+            Assert.Equal("/opt/tool/bin/tool", MacTargets.ResolveLinks("/usr/local/bin/tool", Links));
+            Assert.Equal("/Applications/Notes.app", MacTargets.ResolveLinks("/Applications/Notes.app", Links));
+            Assert.Equal("/a/b", MacTargets.ResolveLinks("/a/b", _ => throw new IOException()));
+        }
+
+        [MacFact]
+        public void OnMacOS_SafariIsKeptAsApplicationsSafari_NotItsCryptexPath()
+        {
+            const string safari = "/Applications/Safari.app";
+            Assert.SkipUnless(new DirectoryInfo(safari).LinkTarget != null, "No Cryptex link here (macOS before 13)");
+
+            var r = TargetResolver.Resolve(safari);
+
+            Assert.Equal((true, ShortcutType.File, safari), (r.IsValid, r.RawType, r.Target));
+        }
+
         [MacFact]
         public void OnMacOS_BracesArentACLSID_AndATildeIsHome()
         {

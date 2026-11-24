@@ -564,7 +564,7 @@
         </Setter>
     </ControlTheme>
 
-    <!-- Slim scroll bars: 12 wide, a thumb with no arrows, always shown -->
+    <!-- Slim scroll bars: 12 wide, a thumb with no arrows, always shown, and never too short to grab (#337) -->
     <ControlTheme x:Key="ScrollTrackButton" TargetType="RepeatButton">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
@@ -617,10 +617,16 @@
             <Style Selector="^ /template/ Track#PART_Track">
                 <Setter Property="IsDirectionReversed" Value="True" />
             </Style>
+            <Style Selector="^ /template/ Thumb">
+                <Setter Property="MinHeight" Value="{StaticResource ScrollThumbMinLength}" />
+            </Style>
         </Style>
         <Style Selector="^:horizontal">
             <Setter Property="Height" Value="12" />
             <Setter Property="MinHeight" Value="12" />
+            <Style Selector="^ /template/ Thumb">
+                <Setter Property="MinWidth" Value="{StaticResource ScrollThumbMinLength}" />
+            </Style>
         </Style>
     </ControlTheme>
 
@@ -724,7 +730,7 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{DynamicResource BadgeCommandForegroundBrush}" />

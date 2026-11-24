@@ -40,7 +40,14 @@ keycuts writes **generated `.bat` files** into a folder on `PATH` so Win+R opens
 
 ## Versioning and releases
 
-`<Version>` in `Directory.Build.props` is the only version (three parts). Pushing to `main` runs `release.yml`, which publishes `v<Version>` if the tag doesn't exist. It has five jobs: `version`, then `windows` (tests, MSIs) and `macos` (both signed, notarized `.pkg` files) in parallel, then `publish` (checks the files, `SHA256SUMS.txt`, a draft release published once everything is attached), then `cask` (a PR in `andrewralon/homebrew-tap`; its own job, so a failure leaves the release alone). `gh workflow run release.yml --ref <branch> -f dry_run=true` runs everything but the release and the cask PR. The `HOMEBREW_TAP_TOKEN` secret expires. To release: bump the version on `develop`, **regenerate the screenshots and GIFs** and commit visible changes, **re-sign the Spotlight shortcut** (`tools/mac/sign-spotlight-shortcut.sh --refresh` on your Mac; its certificate lasts about 13 months; commit both files in `installer/macos/`), merge `develop` into `main`. Never tag by hand.
+`<Version>` in `Directory.Build.props` is the only version (three parts). Pushing to `main` runs `release.yml`, which publishes `v<Version>` if the tag doesn't exist. It has five jobs: `version`, then `windows` (tests, MSIs) and `macos` (both signed, notarized `.pkg` files) in parallel, then `publish` (checks the files, `SHA256SUMS.txt`, a draft release published once everything is attached), then `cask` (a PR in `andrewralon/homebrew-tap`; its own job, so a failure leaves the release alone). `gh workflow run release.yml --ref <branch> -f dry_run=true` runs everything but the release and the cask PR. The `HOMEBREW_TAP_TOKEN` secret expires. Never tag by hand.
+
+**Release prep** (one PR from `develop`, targeting `develop`; the owner merges it, then merges `develop` into `main`). When asked to prepare a release, do all of it on the owner's Mac; don't hand the Mac-side steps back:
+1. Bump `<Version>` in `Directory.Build.props`. Only when asked.
+2. **Regenerate the screenshots and GIFs** (`pwsh -File tools/New-Screenshots.ps1`) and commit only images that visibly changed. On a Mac it writes the `-mac` PNGs only; the Windows PNGs and the walkthrough GIFs need a Windows PC, so say plainly which are left for the owner.
+3. **Re-sign the Spotlight shortcut**: `tools/mac/sign-spotlight-shortcut.sh --refresh` (needs this Mac signed into iCloud; CI can't sign). Its certificate lasts about 13 months, so a stale file may stop importing. Commit `installer/macos/Run keycut.shortcut` and `Run keycut.shortcut.info`, and check the `.info`'s `expires=` moved forward.
+4. Run the tests and the format check, and `gh workflow run release.yml --ref <branch> -f dry_run=true` to prove both packages still build, sign and notarize (tell the owner before running it: it uses the signing secrets).
+5. Check the `HOMEBREW_TAP_TOKEN` hasn't expired, or the cask PR quietly stops.
 
 ## Architecture
 

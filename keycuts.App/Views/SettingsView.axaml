@@ -223,6 +223,21 @@
                           AutomationProperties.HelpText="{x:Static gui:PlatformText.TransparentIconNote}" />
           </Grid>
 
+          <!-- macOS 26 and later, when the build has the signed shortcut (#328): a quick key in Spotlight runs a keycut -->
+          <StackPanel x:Name="SpotlightSection" IsVisible="{Binding IsSpotlightOffered}">
+            <controls:SectionLabel Text="Spotlight" Classes="LaterSection" />
+            <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Quick key" Classes="SettingName" />
+                <TextBlock x:Name="SpotlightNoteText" Text="{x:Static vm:SettingsViewModel.SpotlightNote}" Classes="SettingNote" />
+              </StackPanel>
+              <Button x:Name="BtnAddSpotlightShortcut" Grid.Column="1" Theme="{StaticResource SecondaryButton}" Margin="16,0,0,0"
+                      VerticalAlignment="Center" Content="{x:Static vm:SettingsViewModel.SpotlightButtonText}"
+                      Command="{Binding AddSpotlightShortcutCommand}" AutomationProperties.Name="Add the Run keycut shortcut to Shortcuts"
+                      AutomationProperties.HelpText="{x:Static vm:SettingsViewModel.SpotlightNote}" />
+            </Grid>
+          </StackPanel>
+
           <!-- Updates (#171): only reads the latest release from GitHub and links to its page -->
           <controls:SectionLabel Text="Updates" Classes="LaterSection" />
           <Grid ColumnDefinitions="*,Auto">

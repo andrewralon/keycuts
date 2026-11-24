@@ -216,7 +216,9 @@ namespace keycuts.GUI
                 shellPath: OperatingSystem.IsMacOS() && !usesDebugFolder ? MacShellPath.CreateDefault() : null)
             {
                 RunBoxShortcut = OperatingSystem.IsMacOS() ? new MacRunBoxShortcut() : OperatingSystem.IsWindows() ? NewWindowsShortcut() : null,
-                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : OperatingSystem.IsWindows() ? NewWindowsLoginItem() : null
+                LoginItem = OperatingSystem.IsMacOS() ? new MacLoginItem() : OperatingSystem.IsWindows() ? NewWindowsLoginItem() : null,
+                SpotlightShortcutFile = SpotlightShortcut.FindFile(),
+                OpenSpotlightShortcut = target => Desktops.Current.OpenTarget(target)
             };
 
             var shell = new ShellViewModel(

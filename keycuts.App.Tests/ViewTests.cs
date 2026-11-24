@@ -415,6 +415,29 @@ namespace keycuts.Tests
         }
 
         [AvaloniaFact]
+        public void Settings_TheSpotlightSection_IsShownWithTheFile_AndTheButtonOpensIt()
+        {
+            var opened = new List<string>();
+            var without = Host(new SettingsView(), new SettingsViewModel(new FakeStore()), 768, 470);
+            Assert.False(Named<StackPanel>(without, "SpotlightSection").IsEffectivelyVisible);
+            without.Close();
+
+            var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore())
+            {
+                SpotlightShortcutFile = "/x/Run keycut.shortcut",
+                OpenSpotlightShortcut = opened.Add
+            }, 768, 470);
+
+            Assert.True(Named<StackPanel>(window, "SpotlightSection").IsEffectivelyVisible);
+            Assert.Equal(SettingsViewModel.SpotlightNote, Named<TextBlock>(window, "SpotlightNoteText").Text);
+            var button = Named<Button>(window, "BtnAddSpotlightShortcut");
+            Assert.Equal("add to Shortcuts", button.Content);
+            button.Command!.Execute(null);
+            Assert.Equal(new[] { "/x/Run keycut.shortcut" }, opened);
+            window.Close();
+        }
+
+        [AvaloniaFact]
         public void Settings_OnTheMac_OffersNeitherTheIconNorTheTransparentBackground()
         {
             Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS offers no icon choice (#314)");

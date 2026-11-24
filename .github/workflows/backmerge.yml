@@ -61,13 +61,6 @@ jobs:
 
           branch="backmerge/$(git rev-parse --short=10 origin/main)"
 
-          # Never push over the branch: a person may have resolved a conflict on it. To start again, delete it and run this again.
-          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-            echo "$branch is already there, so this run left it alone. Delete the branch to start again." >> "$GITHUB_STEP_SUMMARY"
-            echo "::notice::$branch is already there; delete it to start again."
-            exit 0
-          fi
-
           result="$(bash tools/backmerge.sh origin/main origin/develop "$branch")"
           kind="$(head -n 1 <<< "$result")"
 
@@ -85,6 +78,13 @@ jobs:
               echo "::error::tools/backmerge.sh said: $result"
               exit 1 ;;
           esac
+
+          # Never push over the branch: a person may have resolved a conflict on it. To start again, delete it and run this again.
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            echo "$branch is already there, so this run left it alone. Delete the branch to start again." >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::$branch is already there; delete it to start again."
+            exit 0
+          fi
 
           git push origin "HEAD:refs/heads/$branch"
 

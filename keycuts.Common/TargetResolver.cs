@@ -255,12 +255,27 @@ namespace keycuts.Common
             return text == "~" ? home : text.StartsWith("~/", StringComparison.Ordinal) ? home + text.Substring(1) : text;
         }
 
-        /// <summary>A symbolic link's final target, so the keycut opens it even if the link goes; anything else as it is.</summary>
+        /// <summary>Where macOS keeps the apps it updates apart from the system, such as Safari since macOS 13.</summary>
+        private const string CryptexFolder = "/System/Cryptexes/";
+
+        /// <summary>
+        /// A symbolic link's final target, so the keycut opens it even if the link goes; anything else as it is. Except a link into
+        /// a Cryptex (<c>/Applications/Safari.app</c>): the link is the stable name, the Cryptex path an OS detail that can change
+        /// with an update, so the path given is kept.
+        /// </summary>
         public static string ResolveLinks(string path)
+        {
+            return ResolveLinks(path, link => File.ResolveLinkTarget(link, true)?.FullName);
+        }
+
+        /// <param name="resolveLink">The final target of a link, or null if the path isn't one.</param>
+        public static string ResolveLinks(string path, Func<string, string> resolveLink)
         {
             try
             {
-                return File.ResolveLinkTarget(path, true)?.FullName ?? path;
+                var target = resolveLink(path);
+
+                return target == null || target.StartsWith(CryptexFolder, StringComparison.Ordinal) ? path : target;
             }
             catch (Exception)
             {

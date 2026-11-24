@@ -194,9 +194,26 @@ namespace keycuts.Tests
         public void Settings_ShowsTheRunningVersionInThreeParts()
         {
             var vm = NewSettings(UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "1.1.1.0"));
+            vm.Commit = null; // this build's own commit is not what's tested
 
             Assert.Equal("Version 1.1.1", vm.CurrentVersionText);
             Assert.Equal("1.1.1", vm.CurrentVersionNumber);
+        }
+
+        [Fact]
+        public void Settings_ShowsTheCommitAfterTheVersion_AndNothingWithoutOne()
+        {
+            var vm = NewSettings(UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "1.1.1.0"));
+
+            vm.Commit = "abc1234";
+            Assert.Equal("1.1.1 (abc1234)", vm.CurrentVersionValue);
+            Assert.Equal("Version 1.1.1, commit abc1234", vm.CurrentVersionText);
+            Assert.Equal("1.1.1", vm.CurrentVersionNumber);
+
+            // A build with no git information: just the number, no empty brackets
+            vm.Commit = null;
+            Assert.Equal("1.1.1", vm.CurrentVersionValue);
+            Assert.Equal("Version 1.1.1", vm.CurrentVersionText);
         }
 
         [Fact]

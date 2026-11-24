@@ -10,6 +10,7 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Controls.Chrome;
+using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -465,6 +466,24 @@ namespace keycuts.Tests
             }, withSettings: true);
         }
 
+        [AvaloniaTheory]
+        [InlineData("abc1234", "Version · 0.0.0 (abc1234)")]
+        [InlineData(null, "Version · 0.0.0")]
+        public void Settings_VersionRow_ShowsTheCommit_OrJustTheNumber(string? commit, string expected)
+        {
+            var updates = UpdateFakes.Checker(new FakeReleaseSource(), new FakeUpdateState(), "0.0.0.0");
+
+            WithWindow((window, shell) =>
+            {
+                shell.ShowSettings();
+                Dispatcher.UIThread.RunJobs();
+
+                var text = Named<TextBlock>(window, "CurrentVersionText");
+                Assert.Equal(expected, string.Concat(text.Inlines!.OfType<Run>().Select(r => r.Text)));
+                Assert.Equal(commit == null ? "Version 0.0.0" : "Version 0.0.0, commit abc1234", AutomationProperties.GetName(text));
+            }, settingsFactory: () => new SettingsViewModel(new MemorySettingsStore(), updates: updates) { Commit = commit });
+        }
+
         #endregion Sizes
 
         #region The Manager
@@ -589,12 +608,12 @@ namespace keycuts.Tests
             };
         }
 
-        internal static void WithWindow(Action<MainWindow, ShellViewModel> body, bool withKeycuts = false, bool withSettings = false)
+        internal static void WithWindow(Action<MainWindow, ShellViewModel> body, bool withKeycuts = false, bool withSettings = false, Func<SettingsViewModel>? settingsFactory = null)
         {
             ThemeManager.Apply(Palette.Light);
             Func<CancellationToken, Task<IReadOnlyList<Keycut>>>? loader = withKeycuts ? _ => Task.FromResult(FixtureKeycuts()) : null;
             // A Settings screen over a store in memory: nothing reads or writes the registry
-            Func<SettingsViewModel>? settings = withSettings ? () => new SettingsViewModel(new MemorySettingsStore()) : null;
+            Func<SettingsViewModel>? settings = settingsFactory ?? (withSettings ? () => new SettingsViewModel(new MemorySettingsStore()) : null);
             var shell = new ShellViewModel(() => Task.FromResult(withKeycuts ? 2 : 3), loader, settingsFactory: settings);
             var window = new MainWindow(shell);
             window.Show();

@@ -5,7 +5,8 @@
   Run Shell Script step. `k gmail` in Spotlight (once the user adds the quick key k) passes "gmail" as $1, and the script runs that file
   from the output folder, as the Run box does (/bin/sh, so the execute bit isn't needed). It follows the OutputFolder setting
   (settings.json) and falls back to ~/Shortcuts. An empty name does nothing.
-  Packaging signs this into Contents/Resources/Spotlight/Run keycut.shortcut: tools/mac/sign-spotlight-shortcut.sh.
+  After editing it, run tools/mac/sign-spotlight-shortcut.sh with the refresh option on a Mac signed into iCloud and commit Run keycut.shortcut and its .info
+  (a test checks the .info's hash). Packaging copies the signed file into Contents/Resources/Spotlight/.
 -->
 <plist version="1.0">
 <dict>

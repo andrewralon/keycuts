@@ -21,7 +21,7 @@ for project in keycuts.App keycuts.CLI; do
   dotnet publish "$repo/$project/$project.csproj" -c Release -r "$rid" --self-contained -p:EnableWindowsTargeting=true --nologo -v q -o "$app/Contents/MacOS" >&2
 done
 
-# The Spotlight shortcut (#328): signed here, so Settings' Spotlight row is offered; skipped quietly if signing fails
+# The Spotlight shortcut (#328): the committed, signed file, so Settings' Spotlight row is offered
 "$repo/tools/mac/sign-spotlight-shortcut.sh" "$app/Contents/Resources"
 
 # The bundle's own icon (Finder, Desktop, Login Items) is Porcelain and stays fixed; the Dock icon follows Settings at runtime.

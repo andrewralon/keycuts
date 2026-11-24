@@ -145,7 +145,9 @@ namespace keycuts.Tests
             {
                 ShowVersionRow = false,
                 RunBoxShortcut = new SampleRunBoxShortcut(),
-                LoginItem = new SampleLoginItem()
+                LoginItem = new SampleLoginItem(),
+                // macOS 26 and later with a signed build: the Spotlight row
+                SpotlightShortcutFile = OperatingSystem.IsMacOS() ? "/Applications/keycuts.app/Contents/Resources/Spotlight/Run keycut.shortcut" : null
             };
         }
 

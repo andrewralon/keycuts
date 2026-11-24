@@ -207,6 +207,15 @@ README: install and use on macOS, a platform matrix (feature × Windows × macOS
 
 ### Phase 10: Spotlight, investigated (option B)
 
+**Result (2026-11-23, with the owner on macOS 26.6; #263, built as #328):** it works, with one manual step. Findings:
+
+- The text typed after the quick key reaches a Run Shell Script step (Input: Shortcut Input, Pass Input: as arguments) as **one intact argument**: `k hello world` gives `$1` = `hello world`; no stdin; the working directory is `$HOME`.
+- It runs from plain Spotlight (no Actions mode needed). About ten runs, including a cold start with Shortcuts quit, all fired; `k dl` opened Downloads in well under half a second. Not tried: after sleep, or hundreds of runs. A bad name shows a notification, "Run Shell Script finished with an error. /bin/sh: …/nosuchname: No such file or directory".
+- The step must run the file with `/bin/sh` (a keycut can lack the execute bit: the owner's `gmail` was mode 644) and must ignore an empty name (the editor's play button runs it with none). The shipped script also reads `OutputFolder` from `settings.json`, since `$HOME/Shortcuts` is only the default.
+- A shortcut installs from a **signed `.shortcut` file** (an `AEA1` archive of a small `Shortcut.wflow` plist, signed by `shortcuts sign --mode anyone`): importing it asked for no approval, and Show in Spotlight and Receive Input from Spotlight survived. **The quick key did not**: Spotlight stores it ("Add quick keys" on the result row), so the user adds `k` once by hand. Deleting the shortcut also drops its quick key.
+- The signing certificate is fresh per signing and valid about 13 months, and the plist holds nothing personal. So the repo keeps the plist as text (`installer/macos/Run keycut.plist`) and packaging signs it (`tools/mac/sign-spotlight-shortcut.sh`; the input needs the `.shortcut` extension) into `Contents/Resources/Spotlight/`, instead of committing a signed file that would stop importing.
+- **Decision (owner): build it.** Settings (macOS 26 and later, only when the bundle has the file) has a Spotlight section with an "add to Shortcuts" button that opens the file, which makes Shortcuts show its import sheet (checked in the real app), and a note on adding the quick key. Not done: writing Spotlight's own quick key store. **Still to check:** that the release job's runner can sign (`gh workflow run release.yml --ref <branch> -f dry_run=true`); without it the build warns, ships no file, and the app hides the row.
+
 One shortcut, "Run keycut", with "Show in Spotlight" and "Receive input from Spotlight", running `"$HOME/Shortcuts/$1"`, with quick key `k`. Find out whether the input reaches the shell step, how reliably Spotlight runs it, and whether keycuts can install it (a signed `.shortcut` file the user imports once). Report back and decide. **M**
 
 ## GitHub issue changes (Phase 1)

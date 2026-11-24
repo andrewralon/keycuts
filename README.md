@@ -81,12 +81,11 @@ The app checks GitHub for updates at most once a day. No telemetry: run counts a
 
 ## How you run a keycut on macOS
 
-Spotlight and the Finder don't run scripts by name, so keycuts has two launchers of its own:
+Spotlight and the Finder don't run scripts by name, so keycuts has two launchers of its own, and on macOS 26 a third through Spotlight's quick keys:
 
 - **The Run box.** keycuts stays in the menu bar (closing its window only hides it; **Open at login** in Settings has it waiting after a restart). Press **⇧⌘Space** from any app (change it under **Run Box** in Settings), type the name, press Return. The box suggests matches as you type, Tab completes one, Esc closes it, and a name you haven't made offers **Create…**. When the keycut has run, focus goes back to the app you were in.
 - **Terminal.** Turn on **Run keycuts in Terminal** in Settings and the keycuts folder goes on your `PATH`, through a marked block at the end of `~/.zprofile` (zsh) or `~/.bash_profile` (bash); then `gmail` works in any new Terminal window. For fish or nushell, Settings and `keycuts path` show the line to add yourself. Turning the switch off takes the block out again and leaves the rest of the file as it was.
-
-Not Spotlight: it won't run a script when you type its name. Whether a Spotlight quick key could work is still being investigated ([#263](https://github.com/andrewralon/keycuts/issues/263)).
+- **Spotlight, with a quick key (macOS 26 or later).** Spotlight won't run a script when you type its name, but a quick key can: in Settings → **Spotlight**, press **add to Shortcuts** and confirm in Shortcuts (it adds a shortcut named **Run keycut**). Then open Spotlight, find **Run keycut**, press **Add quick keys** on it and type `k` (macOS keeps quick keys itself, so keycuts can't add this one). From then on, `k gmail` in Spotlight runs the keycut, with no window; a name that isn't a keycut shows a notification with the error. It runs the same files as the Run box, from the output folder in Settings.
 
 ## Windows and macOS
 
@@ -107,9 +106,9 @@ Not Spotlight: it won't run a script when you type its name. Whether a Spotlight
 | Open at login | yes (the tray) | yes (the menu bar) |
 | Themes, icons, update check | yes | yes |
 | Command line | `keycuts`, `keypaste` | the same, plus `keycuts path` |
-| Spotlight | not applicable | not available (see above) |
+| Spotlight | not applicable | a quick key, `k gmail` (macOS 26 or later; see above) |
 
-**Known gaps on macOS:** no Spotlight launch; no right-click on a folder's background; no CLSID or hosts-file keycuts; no `.lnk` handling; a Finder alias can't be a target (use the original item).
+**Known gaps on macOS:** no Spotlight launch by plain name (the quick key above is the way, and needs macOS 26); no right-click on a folder's background; no CLSID or hosts-file keycuts; no `.lnk` handling; a Finder alias can't be a target (use the original item).
 
 ## Command line
 

@@ -55,6 +55,9 @@ build_one()
   mv "$macos/QuickAction" "$macos/icons" "$app/Contents/Resources/"
   rm -rf "$macos/shims"
 
+  # The Spotlight shortcut (#328), signed now so its certificate is fresh; without it the app leaves its Spotlight row out
+  "$repo/tools/mac/sign-spotlight-shortcut.sh" "$app/Contents/Resources"
+
   sed "s/@VERSION@/$version/g" "$repo/installer/macos/Info.plist.in" > "$app/Contents/Info.plist"
   "$repo/tools/mac/make-icns.sh" "$app/Contents/Resources/keycuts.icns"
   xattr -cr "$app"

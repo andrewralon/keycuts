@@ -476,6 +476,28 @@ namespace keycuts.Tests
         }
 
         [AvaloniaFact]
+        public void TheHintLine_EndsWithHowManyKeycutsThereAre_WhateverIsTyped()
+        {
+            WithBox(Many(8, 2), (window, box, recorder) =>
+            {
+                var count = MainWindowTests.Named<TextBlock>(window, "CountText");
+                Assert.Equal("8 keycuts", count.Text);
+
+                Type(window, "k0001");
+                Assert.Single(box.Rows);
+                Assert.Equal("8 keycuts", count.Text);
+
+                box.Keycuts = Many(1, 1);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal("1 keycut", count.Text);
+
+                box.Keycuts = Array.Empty<Keycut>();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal("0 keycuts", count.Text);
+            });
+        }
+
+        [AvaloniaFact]
         public void NoKeycuts_ShowsOnlyTheTextBox_AndEnterDoesNothing()
         {
             WithBox(Array.Empty<Keycut>(), (window, box, recorder) =>

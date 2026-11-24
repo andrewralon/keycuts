@@ -119,8 +119,15 @@ namespace keycuts.GUI.ViewModels
             {
                 var chosen = moved ? Selected?.Keycut?.Name : null;
                 keycuts = value ?? Array.Empty<Keycut>();
+                OnPropertyChanged(nameof(CountText));
                 Refresh(chosen);
             }
+        }
+
+        /// <summary>At the end of the hint line: how many keycuts there are in all, whatever is typed (#337).</summary>
+        public string CountText
+        {
+            get { return keycuts.Count == 1 ? "1 keycut" : keycuts.Count + " keycuts"; }
         }
 
         public string Text

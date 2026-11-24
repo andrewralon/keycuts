@@ -93,12 +93,15 @@
         </ListBox>
         <Border Height="{StaticResource RunBoxHintHeight}" Background="{DynamicResource SurfaceSubtleBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="16,0">
-          <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-            <TextBlock Theme="{StaticResource Caption}"><Run Text="Return" FontWeight="SemiBold" /><Run Text="{Binding ReturnHint}" /></TextBlock>
-            <TextBlock Theme="{StaticResource Caption}" IsVisible="{Binding !OffersCreate}"><Run Text="Tab" FontWeight="SemiBold" /><Run Text=" complete" /></TextBlock>
-            <TextBlock Theme="{StaticResource Caption}" IsVisible="{Binding !OffersCreate}"><Run Text="↑ ↓" FontWeight="SemiBold" /><Run Text=" choose" /></TextBlock>
-            <TextBlock Theme="{StaticResource Caption}"><Run Text="Esc" FontWeight="SemiBold" /><Run Text=" close" /></TextBlock>
-          </StackPanel>
+          <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+              <TextBlock Theme="{StaticResource Caption}"><Run Text="Return" FontWeight="SemiBold" /><Run Text="{Binding ReturnHint}" /></TextBlock>
+              <TextBlock Theme="{StaticResource Caption}" IsVisible="{Binding !OffersCreate}"><Run Text="Tab" FontWeight="SemiBold" /><Run Text=" complete" /></TextBlock>
+              <TextBlock Theme="{StaticResource Caption}" IsVisible="{Binding !OffersCreate}"><Run Text="↑ ↓" FontWeight="SemiBold" /><Run Text=" choose" /></TextBlock>
+              <TextBlock Theme="{StaticResource Caption}"><Run Text="Esc" FontWeight="SemiBold" /><Run Text=" close" /></TextBlock>
+            </StackPanel>
+            <TextBlock x:Name="CountText" Grid.Column="1" Theme="{StaticResource Caption}" Text="{Binding CountText}" />
+          </Grid>
         </Border>
       </StackPanel>
     </StackPanel>

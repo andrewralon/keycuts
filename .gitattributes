@@ -10,6 +10,9 @@
 # macOS keycuts are sh scripts: /bin/sh reads a CR as part of the line
 tests/corpus/macos/** text eol=lf
 
+# The signed Spotlight shortcut (#328) is an Apple Encrypted Archive: never touch its bytes
+installer/macos/*.shortcut binary
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

@@ -2,7 +2,10 @@
 # develop only takes pull requests, so this opens one and turns on auto-merge (a merge commit): GitHub merges it when the required checks pass.
 # If main is already in develop nothing happens. If they conflict, the pull request is left open for a person and this run fails.
 #
-# A pull request made with GITHUB_TOKEN doesn't start CI, so CI is started here on its branch; the required checks go by the commit.
+# It acts as a GitHub App of ours, because a pull request opened with GITHUB_TOKEN doesn't get CI until a person approves the run, and checks
+# started any other way don't count (tried on #343). The App is installed on this repository only, with Contents and Pull requests: read and
+# write. Its client ID is the variable BACKMERGE_APP_CLIENT_ID and its private key the secret BACKMERGE_APP_PRIVATE_KEY.
+#
 # tools/backmerge.sh makes a commit of its own rather than using main's: the release run puts a check named "macos" on main's commit,
 # which is also the name of a required check on develop.
 #
@@ -28,9 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write        # push the backmerge branch, and merge
-      pull-requests: write   # open the pull request and turn on auto-merge
-      actions: write         # start CI on it
+      contents: read
     defaults:
       run:
         shell: bash          # with pipefail, which the default shell leaves out
@@ -40,12 +41,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Act as the backmerge App
+        id: app
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.BACKMERGE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.BACKMERGE_APP_PRIVATE_KEY }}
+          permission-contents: write        # push the branch, and merge
+          permission-pull-requests: write   # open the pull request and turn on auto-merge
+
       - name: Bring main back into develop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          BOT: ${{ steps.app.outputs.app-slug }}[bot]
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "$BOT"
+          git config user.email "$(gh api "/users/$BOT" --jq .id)+$BOT@users.noreply.github.com"
           gh auth setup-git
 
           branch="backmerge/$(git rev-parse --short=10 origin/main)"
@@ -86,5 +97,4 @@ jobs:
             exit 1
           fi
 
-          gh workflow run ci.yml --ref "$branch"
           gh pr merge --auto --merge --match-head-commit "$(git rev-parse HEAD)" "$url"

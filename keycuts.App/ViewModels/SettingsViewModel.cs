@@ -399,6 +399,12 @@ namespace keycuts.GUI.ViewModels
             get { return $"Icon: {selectedIcon.Name}. Change"; }
         }
 
+        /// <summary>
+        /// Whether Settings shows the Icon and Transparent icon background rows. Windows only: on macOS the Dock shows the bundle's own
+        /// icon (Porcelain), which can't follow a choice, so the choice isn't offered (#314). Tests set it.
+        /// </summary>
+        public bool AppIconOffered { get; init; } = !OperatingSystem.IsMacOS();
+
         public bool IsIconPickerOpen
         {
             get { return isIconPickerOpen; }

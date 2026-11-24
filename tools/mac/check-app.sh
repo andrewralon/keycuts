@@ -1,7 +1,7 @@
 #!/bin/bash
 # Drives the real keycuts app on a Mac and checks what the headless tests can't (tools/mac/README.md).
 #
-#   tools/mac/check-app.sh [menus] [drops] [browse] [contrast] [dock] [torn]      (no argument: all of them)
+#   tools/mac/check-app.sh [menus] [drops] [browse] [contrast] [torn]      (no argument: all of them)
 #
 # It builds a throwaway bundle (new-test-bundle.sh), hides your other apps and minimizes your Finder windows while it runs
 # and puts them back (desktop.sh), and flips Increase contrast in System Settings for a few seconds and back.
@@ -12,7 +12,7 @@ set -uo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 checks=("$@")
-[ ${#checks[@]} -eq 0 ] && checks=(menus drops browse contrast dock torn)
+[ ${#checks[@]} -eq 0 ] && checks=(menus drops browse contrast torn)
 
 sandbox="$(mktemp -d "${TMPDIR:-/tmp}/keycuts-ui.XXXXXX")"
 sandbox="$(cd -P "$sandbox" && pwd)"
@@ -91,13 +91,6 @@ off = struct.unpack('<I', d[10:14])[0]
 bpp = struct.unpack('<H', d[28:30])[0] // 8
 print(sum(1 for i in range(off, len(d) - bpp, bpp) if d[i] <= 3 and d[i + 1] <= 3 and d[i + 2] <= 3))
 PY
-}
-
-dock_tile()
-{
-  IFS=, read -r x y w h <<<"$(osascript -e 'tell application "System Events" to tell process "Dock" to tell UI element "keycuts" of list 1 to return (position as list) & (size as list)' | tr -d ' ')"
-  screencapture -x -R"$x","$y","$w","$h" "$sandbox/dock-$1.png"
-  md5 -q "$sandbox/dock-$1.png"
 }
 
 say "sandbox: $sandbox"
@@ -188,19 +181,6 @@ tell application \"System Events\" to tell (first process whose unix id is $pid)
       set_contrast true; sleep 4; on="$(black_pixels)"
       set_contrast false; sleep 4; again="$(black_pixels)"
       [ "$off" = 0 ] && [ "$on" -gt 1000 ] && [ "$again" = 0 ] && ok "Increase contrast: black pixels $off → $on → $again" || bad "Increase contrast: black pixels $off → $on → $again"
-      ;;
-    dock)
-      front; osascript -e 'tell application "System Events" to keystroke "3" using command down'
-      before="$(dock_tile before)"
-      cliclick c:"$(find_at AXButton "Icon:*")"; sleep 1.5
-      cliclick c:"$(find_at AXRow Cobalt)"; sleep 2
-      osascript -e 'tell application "System Events" to key code 53'; sleep 2
-      cobalt="$(dock_tile cobalt)"
-      cliclick c:"$(find_at AXButton "Icon:*")"; sleep 1.5
-      cliclick c:"$(find_at AXRow Onyx)"; sleep 2
-      osascript -e 'tell application "System Events" to key code 53'; sleep 2
-      onyx="$(dock_tile onyx)"
-      [ "$before" != "$cobalt" ] && [ "$cobalt" != "$onyx" ] && ok "Dock icon follows the picker (changed at each pick)" || bad "Dock icon did not change: $before $cobalt $onyx"
       ;;
     torn)
       # The bottom-right corner is torn on every start (issues #292, #308) and must be see-through: a white window of our own sits behind

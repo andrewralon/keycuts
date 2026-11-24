@@ -77,7 +77,7 @@ namespace keycuts.GUI
 
         public static readonly string AddToPathHelp = "Adds the keycuts folder to PATH, so " + PlatformWords.Launcher + " can find your keycuts";
 
-        /// <summary>Settings: what the transparent icon background changes (#305). The macOS bundle's own icon stays as it is.</summary>
-        public static readonly string TransparentIconNote = PlatformKeys.IsMac ? "Affects the Dock icon." : "Affects the taskbar, Alt+Tab, and shortcuts.";
+        /// <summary>Settings: what the transparent icon background changes (Windows only; macOS doesn't offer it, #314).</summary>
+        public static readonly string TransparentIconNote = "Affects the taskbar, Alt+Tab, and shortcuts.";
     }
 }

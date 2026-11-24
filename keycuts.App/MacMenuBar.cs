@@ -107,11 +107,6 @@ namespace keycuts.GUI
         {
             var nsApp = ObjC.Send(ObjC.GetClass("NSApplication"), ObjC.Selector("sharedApplication"));
             ObjC.SendBool(nsApp, ObjC.Selector("setActivationPolicy:"), show ? 0L : 1L);
-
-            if (show)
-            {
-                MacDockIcon.Refresh();
-            }
         }
 
         private static NativeMenuItem Item(string header, Action action)

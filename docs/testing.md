@@ -67,14 +67,14 @@ Tests never touch the real settings, registry, PATH, `~/Shortcuts`, network or R
   rule is unit-tested; a real login (log out and in, with Open at login on) is the only end-to-end check. A cold `open` hours after logging in must
   show the window, and the Dock tile must show the keycap icon (checked). Avalonia's lifetime shows `desktop.MainWindow` itself when it starts, which is
   why that window is assigned only after it first opens in the login case; skipping the `Show()` call alone left the window up with the Dock icon
-  hidden. The Dock ignores an icon set while the app was hidden from it, so `MacDockIcon.Refresh()` runs each time the app returns to the Dock.
+  hidden.
 
 ## Things this found (so they aren't "fixed" again by accident)
 
 - Avalonia 12.1.6 reports `ContrastPreference.NoPreference` on macOS with Increase contrast on, at startup too (probe in `ThemeManager.DetectPalette`
   printed `theme=Light contrast=NoPreference`). The app reads `NSWorkspace.accessibilityDisplayShouldIncreaseContrast` itself (`MacAccessibility`) and re-reads
   it every 2 s. `NSApplication.effectiveAppearance.bestMatch(…)` does report the high-contrast variant to a plain AppKit app; Avalonia just doesn't pass it on.
-- `Window.Icon` does not reach the Dock on macOS (generic icon whatever was picked): `MacDockIcon` sets `NSApplication.applicationIconImage`.
+- `Window.Icon` does not reach the Dock on macOS (generic icon whatever was picked). The Dock shows the bundle's `keycuts.icns`; a runtime `NSApplication.applicationIconImage` was tried (#310, #305) and removed (#314): it made the running Dock icon follow Settings, but a pinned tile went back to the bundle icon at every quit.
 - Avalonia builds the app menu at startup and ignores a menu set afterwards: `MacMenus.FillAppMenu` edits the existing one in place.
 - Finder aliases are "not supported" on purpose (docs/macos-port.md); a `.webloc` resolves to its URL.
 

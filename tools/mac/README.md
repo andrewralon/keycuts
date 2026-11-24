@@ -15,7 +15,6 @@ tools/mac/check-app.sh drops contrast       # some checks
 | `drops` | Real drags with `cliclick`: from a Finder window (file, folder, `.app`, `.webloc`, Finder alias → "not supported") and from Safari's address bar onto the creator; reads the Target field |
 | `browse` | Browse → File…, drives the native panel with ⌘⇧G, reads the Target |
 | `contrast` | Switches Increase contrast on in System Settings, counts the pure-black pixels of the window (high contrast text is exactly black), switches it off |
-| `dock` | Picks two icons in Settings and compares the Dock tile's pixels after each pick |
 
 **What it changes on your Mac while it runs:** hides your other apps and minimizes your other Finder windows (`desktop.sh` puts them back, also
 on failure), opens a Finder window, Safari (needs the network, example.com) and System Settings, and flips Increase contrast for a few seconds.

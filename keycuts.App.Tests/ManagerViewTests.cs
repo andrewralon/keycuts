@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -169,6 +170,17 @@ namespace keycuts.Tests
         #endregion
 
         #region Selection keys
+
+        [AvaloniaFact]
+        public void WithManyKeycuts_TheScrollThumbCanStillBeGrabbed()
+        {
+            WithManager(Enumerable.Range(1, 1000).Select(n => "k" + n.ToString("0000")).ToArray(), (window, manager, actions, search) =>
+            {
+                var bar = window.GetVisualDescendants().OfType<ScrollBar>().Single(b => b.Name == "PART_VerticalScrollbar");
+                Assert.True(bar.IsEffectivelyVisible);
+                Assert.Equal(28, bar.GetVisualDescendants().OfType<Thumb>().Single().Bounds.Height);
+            });
+        }
 
         [AvaloniaFact]
         public void UpAndDown_SelectRows_FromTheSearchBox_AndEnterOpensTheSelection()

@@ -382,6 +382,42 @@ namespace keycuts.Tests
             }
         }
 
+        [AvaloniaTheory]
+        [InlineData(Orientation.Vertical)]
+        [InlineData(Orientation.Horizontal)]
+        public void AScrollThumb_IsNeverTooShortToGrab_AndDragsToTheEnd(Orientation orientation)
+        {
+            var vertical = orientation == Orientation.Vertical;
+            var viewer = new ScrollViewer
+            {
+                Width = 200,
+                Height = 200,
+                VerticalScrollBarVisibility = vertical ? ScrollBarVisibility.Visible : ScrollBarVisibility.Disabled,
+                HorizontalScrollBarVisibility = vertical ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Visible,
+                Content = new Border { Width = vertical ? 100 : 40000, Height = vertical ? 40000 : 100 }
+            };
+            var window = Host(viewer);
+            try
+            {
+                var thumb = viewer.GetVisualDescendants().OfType<ScrollBar>().First(b => b.Orientation == orientation).GetVisualDescendants().OfType<Thumb>().Single();
+                Assert.Equal(28, vertical ? thumb.Bounds.Height : thumb.Bounds.Width);
+
+                var from = Center(window, thumb);
+                var by = vertical ? new Vector(0, 300) : new Vector(300, 0);
+                window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+                window.MouseMove(from + by / 4, RawInputModifiers.None);
+                window.MouseMove(from + by, RawInputModifiers.None);
+                window.MouseUp(from + by, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Equal(40000 - 200, vertical ? viewer.Offset.Y : viewer.Offset.X);
+            }
+            finally
+            {
+                window.Close();
+            }
+        }
+
         [AvaloniaFact]
         public void ScrollBars_AreSlim()
         {

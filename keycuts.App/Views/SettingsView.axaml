@@ -198,7 +198,7 @@
           </Grid>
 
           <!-- The icon: its name and what it does, and the icon itself as the button that opens the picker -->
-          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding AppIconOffered}">
             <StackPanel VerticalAlignment="Center">
               <TextBlock Classes="SettingName">
                 <Run Text="Icon" /><Run Text=" · " FontWeight="Normal" Foreground="{DynamicResource TextSecondaryBrush}" /><Run
@@ -211,8 +211,8 @@
                     ToolTip.Tip="Change the icon" AutomationProperties.Name="{Binding IconButtonName}" />
           </Grid>
 
-          <!-- The icon without its background everywhere but the tab bar, which always shows it so (the Dock on macOS) -->
-          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
+          <!-- The icon without its background everywhere but the tab bar, which always shows it so. Neither icon row is offered on macOS (#314) -->
+          <Grid Classes="SettingRow" ColumnDefinitions="*,Auto" IsVisible="{Binding AppIconOffered}">
             <StackPanel>
               <TextBlock Text="Transparent icon background" Classes="SettingName" />
               <TextBlock Text="{x:Static gui:PlatformText.TransparentIconNote}" Classes="SettingNote" />

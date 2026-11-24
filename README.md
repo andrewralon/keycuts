@@ -46,7 +46,7 @@ Your keycuts in `~/Shortcuts` stay. The `keycuts` and `keypaste` commands in tha
   <img src="docs/images/manager-light.png" alt="The manager: a row for a new keycut over a searchable table of keycuts." width="830">
 </picture>
 
-**Settings:** output folder, the Run box shortcut, open at login, theme, icon (with or without its background), right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
+**Settings:** output folder, the Run box shortcut, open at login, theme, icon (with or without its background; Windows), right-click menu, update checks, and environment-variable paths (`%USERPROFILE%\...`) for a portable keycuts folder.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">

@@ -415,19 +415,15 @@ namespace keycuts.Tests
         }
 
         [AvaloniaFact]
-        public void Settings_OnTheMac_OffersTheTransparentIconBackground_LastUnderAppearance()
+        public void Settings_OnTheMac_OffersNeitherTheIconNorTheTransparentBackground()
         {
-            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS wording");
+            Assert.SkipUnless(OperatingSystem.IsMacOS(), "macOS offers no icon choice (#314)");
             var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()) { LoginItem = new StillLoginItem(), RunBoxShortcut = new StillShortcut() }, 768, 470);
 
-            var toggle = Named<Avalonia.Controls.Primitives.ToggleButton>(window, "ToggleTransparentIcon");
-            Assert.True(toggle.IsEffectivelyVisible);
-            Assert.Equal("Affects the Dock icon.", PlatformText.TransparentIconNote);
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Affects the Dock icon.");
-            var icon = Named<Button>(window, "BtnIcon");
-            Assert.True(toggle.TranslatePoint(new Point(0, 0), window)!.Value.Y > icon.TranslatePoint(new Point(0, 0), window)!.Value.Y);
+            Assert.False(Named<Button>(window, "BtnIcon").IsEffectivelyVisible);
+            Assert.False(Named<Avalonia.Controls.Primitives.ToggleButton>(window, "ToggleTransparentIcon").IsEffectivelyVisible);
 
-            // Both columns still end inside the window at its minimum height (470), so nothing scrolls
+            // Both columns end inside the window at its minimum height (470), so nothing scrolls
             foreach (var name in new[] { "LeftColumn", "RightColumn" })
             {
                 var column = Named<StackPanel>(window, name);

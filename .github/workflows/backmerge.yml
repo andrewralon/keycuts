@@ -1,0 +1,90 @@
+# Brings main back into develop after every push to main, so the two never disagree about history and the next release PR has no conflicts.
+# develop only takes pull requests, so this opens one and turns on auto-merge (a merge commit): GitHub merges it when the required checks pass.
+# If main is already in develop nothing happens. If they conflict, the pull request is left open for a person and this run fails.
+#
+# A pull request made with GITHUB_TOKEN doesn't start CI, so CI is started here on its branch; the required checks go by the commit.
+# tools/backmerge.sh makes a commit of its own rather than using main's: the release run puts a check named "macos" on main's commit,
+# which is also the name of a required check on develop.
+#
+# GitHub runs the copy of this file that is on main, so a change here takes effect once it has been released.
+name: Backmerge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# One at a time, and never stopped half way
+concurrency:
+  group: backmerge
+  cancel-in-progress: false
+
+jobs:
+  backmerge:
+    # Not in a fork, which has no develop of ours to keep in step
+    if: github.repository == 'andrewralon/keycuts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write        # push the backmerge branch, and merge
+      pull-requests: write   # open the pull request and turn on auto-merge
+      actions: write         # start CI on it
+    defaults:
+      run:
+        shell: bash          # with pipefail, which the default shell leaves out
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bring main back into develop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          gh auth setup-git
+
+          branch="backmerge/$(git rev-parse --short=10 origin/main)"
+
+          # Never push over the branch: a person may have resolved a conflict on it. To start again, delete it and run this again.
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            echo "$branch is already there, so this run left it alone. Delete the branch to start again." >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::$branch is already there; delete it to start again."
+            exit 0
+          fi
+
+          result="$(bash tools/backmerge.sh origin/main origin/develop "$branch")"
+          kind="$(head -n 1 <<< "$result")"
+
+          case "$kind" in
+            none)
+              echo "develop already has all of main." >> "$GITHUB_STEP_SUMMARY"
+              exit 0 ;;
+            history)
+              note="main has nothing develop lacks (the release was squashed or rebased into main), so this keeps develop's files and only records the merge." ;;
+            clean)
+              note="An ordinary merge, with no conflicts." ;;
+            conflict)
+              note="$(printf '**These files conflict, so this needs a person.** Merge develop into this branch, resolve them and push.\n\n'; tail -n +2 <<< "$result" | sed 's/.*/- `&`/')" ;;
+            *)
+              echo "::error::tools/backmerge.sh said: $result"
+              exit 1 ;;
+          esac
+
+          git push origin "HEAD:refs/heads/$branch"
+
+          body="$(printf '%s\n\nMerge it with **a merge commit**: squashing or rebasing it would undo its purpose.\n\nOpened by `backmerge.yml`.\n' "$note")"
+          url="$(gh pr create --head "$branch" --base develop --title "Merge main into develop" --body "$body")"
+          printf '%s\n\n%s\n' "$url" "$note" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$kind" = conflict ]; then
+            echo "::error::main conflicts with develop. Resolve it in $url"
+            exit 1
+          fi
+
+          gh workflow run ci.yml --ref "$branch"
+          gh pr merge --auto --merge --match-head-commit "$(git rev-parse HEAD)" "$url"

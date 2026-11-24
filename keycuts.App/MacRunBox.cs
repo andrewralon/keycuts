@@ -30,7 +30,7 @@ namespace keycuts.GUI
         public static void Show()
         {
             box ??= new RunBoxWindow(new RunBoxViewModel(RunBoxActions.Run, Create, Hide));
-            box.ViewModel.Reset(Array.Empty<Keycut>());
+            box.ViewModel.Reset();
             _ = RunBoxActions.LoadAsync(box.ViewModel);
 
             box.Show();

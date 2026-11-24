@@ -9,7 +9,7 @@ namespace keycuts.GUI
     /// <summary>What the Run box does on every system (Phase 6.4; Windows, issue #306): load the keycuts, and run one through <see cref="Desktops.Current"/>.</summary>
     public static class RunBoxActions
     {
-        /// <summary>Loads the folder's keycuts off the UI thread and hands them to the box when they are in.</summary>
+        /// <summary>Loads the folder's keycuts off the UI thread and hands them to the box when they are in; none when they can't be read, so it doesn't offer old ones.</summary>
         public static async Task LoadAsync(RunBoxViewModel viewModel)
         {
             try
@@ -20,6 +20,7 @@ namespace keycuts.GUI
             catch (Exception ex) when (ex is KeycutRepositoryException || ex is System.IO.IOException)
             {
                 System.Diagnostics.Debug.WriteLine("keycuts: the Run box couldn't load the keycuts: " + ex.Message);
+                Dispatcher.UIThread.Post(() => viewModel.Keycuts = Array.Empty<Keycut>());
             }
         }
 

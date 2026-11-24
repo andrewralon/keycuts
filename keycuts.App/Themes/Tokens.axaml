@@ -40,6 +40,7 @@
     <x:Double x:Key="InputHeight">36</x:Double>
     <x:Double x:Key="IconButtonSize">32</x:Double>
     <x:Double x:Key="TileSize">40</x:Double>
+    <x:Double x:Key="ScrollThumbMinLength">28</x:Double>
 
     <!-- The tab bar that replaces the title bar (#218). The caption buttons are the Windows standard sizes, an exception to the grid. -->
     <x:Double x:Key="RailHeight">48</x:Double>

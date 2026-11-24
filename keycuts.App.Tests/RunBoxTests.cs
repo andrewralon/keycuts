@@ -199,6 +199,7 @@ namespace keycuts.Tests
             WithBox(Many(1000, 500), (window, box, recorder) =>
             {
                 Assert.InRange(List(window).GetRealizedContainers().Count(), RunBoxViewModel.VisibleRows, 30);
+                Assert.Equal(28, Bar(window).GetVisualDescendants().OfType<Thumb>().Single().Bounds.Height);
 
                 ScrollTo(window, 20000);
                 Assert.InRange(List(window).GetRealizedContainers().Count(), RunBoxViewModel.VisibleRows, 30);

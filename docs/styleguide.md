@@ -306,7 +306,7 @@ Exceptions, each with a comment:
 
 - **Fully round shapes** use half their height: the count pill (11 at 22), the toggle (10 at 20), the check badge (9 at 18), the radio box (9 at 18).
 - **Rings outside a control** follow its radius plus their offset: the focus ring is `RadiusSm` + 2 = 7, the text box glow `RadiusSm` + 3 = 8, the drop-area glow `RadiusLg` + 3 = 15 (16 at the 4px drag-over glow).
-- **Slim scroll thumbs**: 3.
+- **Slim scroll thumbs**: 3. However long the list, a thumb is at least `ScrollThumbMinLength` (28, so 24 drawn inside its 2px inset), so it can be grabbed (#337).
 
 ## Icons
 

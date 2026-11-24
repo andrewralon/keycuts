@@ -48,6 +48,25 @@ namespace keycuts.Common
                 .ToList();
         }
 
+        /// <summary>
+        /// The keycuts for a Run box with nothing typed (#332): the latest run first, then the name, at most
+        /// <paramref name="limit"/>. A keycut with no recorded run isn't one.
+        /// </summary>
+        public static IReadOnlyList<Keycut> Recent(IEnumerable<Keycut> keycuts, int limit = int.MaxValue)
+        {
+            if (keycuts == null || limit <= 0)
+            {
+                return Array.Empty<Keycut>();
+            }
+
+            return keycuts
+                .Where(keycut => keycut.Runs > 0 && keycut.LastRun != default)
+                .OrderByDescending(keycut => keycut.LastRun)
+                .ThenBy(keycut => keycut.Name, StringComparer.OrdinalIgnoreCase)
+                .Take(limit)
+                .ToList();
+        }
+
         private static RunBoxMatchKind? Match(Keycut keycut, string text)
         {
             var name = keycut.Name ?? "";

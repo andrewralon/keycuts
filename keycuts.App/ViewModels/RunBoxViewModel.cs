@@ -67,8 +67,8 @@ namespace keycuts.GUI.ViewModels
 
     /// <summary>
     /// The Run box (Phase 6.4, docs/styleguide.md, The Run box): type a keycut's name, Return runs it. Up to
-    /// <see cref="MaxRows"/> suggestions from <see cref="RunBoxMatcher"/>; a name that matches nothing offers to create it. Tab
-    /// completes the name to the selected row's; Esc closes.
+    /// <see cref="MaxRows"/> suggestions from <see cref="RunBoxMatcher"/>, the latest run ones while nothing is typed (#332); a
+    /// name that matches nothing offers to create it. Tab completes the name to the selected row's; Esc closes.
     /// </summary>
     public class RunBoxViewModel : ObservableObject
     {
@@ -86,6 +86,9 @@ namespace keycuts.GUI.ViewModels
 
         private int selectedIndex = -1;
 
+        /// <summary>Up or Down moved the selection since the text last changed, so new keycuts must not move it.</summary>
+        private bool moved;
+
         /// <param name="run">Runs a keycut (the app: <see cref="IDesktop.RunKeycut"/>, so its own lines count the run).</param>
         /// <param name="create">Opens the creator with the name filled in.</param>
         /// <param name="close">Hides the box; the app gives the focus back to the app that had it.</param>
@@ -98,14 +101,18 @@ namespace keycuts.GUI.ViewModels
 
         public ObservableCollection<RunBoxRow> Rows { get; } = new();
 
-        /// <summary>The keycuts to match, as the Manager loads them (run counts included). A new list keeps what was typed.</summary>
+        /// <summary>
+        /// The keycuts to match, as the Manager loads them (run counts included). A new list keeps what was typed, and a row
+        /// chosen with Up or Down while it is still listed: the list is loaded after the box opens, and Return must not run another.
+        /// </summary>
         public IReadOnlyList<Keycut> Keycuts
         {
             get { return keycuts; }
             set
             {
+                var chosen = moved ? Selected?.Keycut?.Name : null;
                 keycuts = value ?? Array.Empty<Keycut>();
-                Refresh();
+                Refresh(chosen);
             }
         }
 
@@ -116,6 +123,7 @@ namespace keycuts.GUI.ViewModels
             {
                 if (SetProperty(ref text, value ?? string.Empty))
                 {
+                    moved = false;
                     Refresh();
                 }
             }
@@ -165,11 +173,11 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <summary>Opening the box: empty, with the keycuts loaded.</summary>
-        public void Reset(IReadOnlyList<Keycut> loaded)
+        /// <summary>Opening the box: nothing typed, with the keycuts it last had, so it opens at its full height (#332); a fresh list follows.</summary>
+        public void Reset()
         {
-            keycuts = loaded ?? Array.Empty<Keycut>();
             text = string.Empty;
+            moved = false;
             OnPropertyChanged(nameof(Text));
             Refresh();
         }
@@ -179,6 +187,7 @@ namespace keycuts.GUI.ViewModels
         {
             if (Rows.Count > 0)
             {
+                moved = true;
                 SelectedIndex = Math.Clamp(selectedIndex + by, 0, Rows.Count - 1);
             }
         }
@@ -195,7 +204,7 @@ namespace keycuts.GUI.ViewModels
             return true;
         }
 
-        /// <summary>Return: runs the selected keycut, or opens the creator for a new name, then closes. Nothing for nothing typed.</summary>
+        /// <summary>Return: runs the selected keycut, or opens the creator for a new name, then closes. Nothing without a row.</summary>
         public void Accept()
         {
             if (Selected is not { } row)
@@ -207,6 +216,7 @@ namespace keycuts.GUI.ViewModels
             if (row.Keycut is { } keycut)
             {
                 run(keycut);
+                CountRun(keycut);
             }
             else
             {
@@ -220,20 +230,41 @@ namespace keycuts.GUI.ViewModels
             close();
         }
 
-        private void Refresh()
+        /// <summary>
+        /// The run as its own lines will count it, so the keycut is first when the box opens again, before that list is loaded.
+        /// One without those lines has no record to be in.
+        /// </summary>
+        private void CountRun(Keycut ran)
         {
+            if (ran.CountsRuns)
+            {
+                keycuts = keycuts
+                    .Select(keycut => ReferenceEquals(keycut, ran) ? keycut with { Runs = (keycut.Runs ?? 0) + 1, LastRun = DateTime.Now } : keycut)
+                    .ToList();
+            }
+        }
+
+        /// <param name="chosen">The name of the keycut to select; the first row without one, or when it isn't listed.</param>
+        private void Refresh(string? chosen = null)
+        {
+            var typed = text.Trim();
+            var found = typed.Length == 0
+                ? RunBoxMatcher.Recent(keycuts, MaxRows)
+                : RunBoxMatcher.Find(keycuts, typed, MaxRows).Select(match => match.Keycut);
+
             Rows.Clear();
-            foreach (var match in RunBoxMatcher.Find(keycuts, text, MaxRows))
+            foreach (var keycut in found)
             {
-                Rows.Add(new RunBoxRow(match.Keycut));
+                Rows.Add(new RunBoxRow(keycut));
             }
 
-            if (Rows.Count == 0 && text.Trim().Length > 0)
+            if (Rows.Count == 0 && typed.Length > 0)
             {
-                Rows.Add(RunBoxRow.Create(text.Trim()));
+                Rows.Add(RunBoxRow.Create(typed));
             }
 
-            selectedIndex = Rows.Count > 0 ? 0 : -1;
+            var kept = chosen == null ? -1 : Rows.ToList().FindIndex(row => string.Equals(row.Keycut?.Name, chosen, StringComparison.OrdinalIgnoreCase));
+            selectedIndex = kept >= 0 ? kept : Rows.Count > 0 ? 0 : -1;
             OnPropertyChanged(nameof(SelectedIndex));
             OnPropertyChanged(nameof(Selected));
             OnPropertyChanged(nameof(HasRows));

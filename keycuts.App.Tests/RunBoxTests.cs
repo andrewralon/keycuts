@@ -499,6 +499,27 @@ namespace keycuts.Tests
         }
 
         [AvaloniaFact]
+        public void TheHintLine_IsOnOneLine_CenteredInItsBar()
+        {
+            WithBox((window, box, recorder) =>
+            {
+                var line = MainWindowTests.Named<Grid>(window, "HintLine");
+                var hints = line.GetVisualDescendants().OfType<TextBlock>().ToList();
+                Assert.Equal(6, hints.Count);
+
+                foreach (var hint in hints)
+                {
+                    var middle = hint.TranslatePoint(new Point(0, hint.Bounds.Height / 2), line)!.Value.Y;
+                    Assert.InRange(middle, line.Bounds.Height / 2 - 0.5, line.Bounds.Height / 2 + 0.5);
+                }
+
+                // The words share a baseline; the arrows, from a fallback font, have their own line
+                var baselines = hints.Where(h => h.Text != "↑ ↓").Select(h => h.TranslatePoint(new Point(0, h.TextLayout.Baseline), line)!.Value.Y).ToList();
+                Assert.InRange(baselines.Max() - baselines.Min(), 0, 0.5);
+            });
+        }
+
+        [AvaloniaFact]
         public void NoKeycuts_ShowsOnlyTheTextBox_AndEnterDoesNothing()
         {
             WithBox(Array.Empty<Keycut>(), (window, box, recorder) =>

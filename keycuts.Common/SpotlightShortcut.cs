@@ -5,7 +5,8 @@ namespace keycuts.Common
 {
     /// <summary>
     /// The "Run keycut" Shortcut behind Settings' Spotlight row on macOS (issue #328): <c>k gmail</c> in Spotlight runs the keycut.
-    /// Packaging signs <c>installer/macos/Run keycut.plist</c> into the bundle's Resources (<c>tools/mac/sign-spotlight-shortcut.sh</c>);
+    /// <c>installer/macos/Run keycut.plist</c> is signed on a Mac (<c>tools/mac/sign-spotlight-shortcut.sh --refresh</c>: CI has no iCloud) and
+    /// packaging copies the signed file into the bundle's Resources;
     /// the app opens that file, Shortcuts imports it, and the user adds the quick key in Spotlight themselves, which the file can't hold.
     /// </summary>
     public static class SpotlightShortcut

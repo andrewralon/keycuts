@@ -55,7 +55,7 @@ build_one()
   mv "$macos/QuickAction" "$macos/icons" "$app/Contents/Resources/"
   rm -rf "$macos/shims"
 
-  # The Spotlight shortcut (#328), signed now so its certificate is fresh; without it the app leaves its Spotlight row out
+  # The Spotlight shortcut (#328): the committed, signed file (CI can't sign: no iCloud); without it the app leaves its Spotlight row out
   "$repo/tools/mac/sign-spotlight-shortcut.sh" "$app/Contents/Resources"
 
   sed "s/@VERSION@/$version/g" "$repo/installer/macos/Info.plist.in" > "$app/Contents/Info.plist"

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using keycuts.Common;
 using keycuts.GUI.Mvvm;
@@ -10,9 +9,11 @@ namespace keycuts.GUI.ViewModels
     /// <summary>A row in the Run box: a keycut that matches, or the "Create “name”…" row when none does.</summary>
     public sealed class RunBoxRow
     {
-        public RunBoxRow(Keycut keycut)
+        /// <param name="startsNotRun">The first keycut never run, after the ones that have been: a line is drawn above it.</param>
+        public RunBoxRow(Keycut keycut, bool startsNotRun = false)
         {
             Keycut = keycut;
+            StartsNotRun = startsNotRun;
             Name = keycut.Name ?? "";
             Kind = keycut.Kind;
             Target = keycut.Target ?? "";
@@ -45,6 +46,9 @@ namespace keycuts.GUI.ViewModels
 
         public bool IsCreate { get; }
 
+        /// <summary>The line above the row is part of it, not an item, so Up, Down and a screen reader's count don't see it (#337).</summary>
+        public bool StartsNotRun { get; }
+
         public bool IsKeycut
         {
             get { return !IsCreate; }
@@ -66,13 +70,15 @@ namespace keycuts.GUI.ViewModels
     }
 
     /// <summary>
-    /// The Run box (Phase 6.4, docs/styleguide.md, The Run box): type a keycut's name, Return runs it. Up to
-    /// <see cref="MaxRows"/> suggestions from <see cref="RunBoxMatcher"/>, the latest run ones while nothing is typed (#332); a
-    /// name that matches nothing offers to create it. Tab completes the name to the selected row's; Esc closes.
+    /// The Run box (Phase 6.4, docs/styleguide.md, The Run box): type a keycut's name, Return runs it. The
+    /// suggestions are <see cref="RunBoxMatcher"/>'s, all of them, <see cref="VisibleRows"/> showing and the rest scrolled to
+    /// (#337). While nothing is typed they are the keycuts that have been run, the latest first (#332), then the others by name;
+    /// a name that matches nothing offers to create it. Tab completes the name to the selected row's; Esc closes.
     /// </summary>
     public class RunBoxViewModel : ObservableObject
     {
-        public const int MaxRows = 6;
+        /// <summary>How many rows show at once (<c>RunBoxRowsHeight</c>), and what Page Up and Page Down move by.</summary>
+        public const int VisibleRows = 5;
 
         private readonly Action<Keycut> run;
 
@@ -99,7 +105,8 @@ namespace keycuts.GUI.ViewModels
             this.close = close ?? throw new ArgumentNullException(nameof(close));
         }
 
-        public ObservableCollection<RunBoxRow> Rows { get; } = new();
+        /// <summary>Replaced as a whole, so a long list is one change to the list box, not one per row.</summary>
+        public IReadOnlyList<RunBoxRow> Rows { get; private set; } = Array.Empty<RunBoxRow>();
 
         /// <summary>
         /// The keycuts to match, as the Manager loads them (run counts included). A new list keeps what was typed, and a row
@@ -182,14 +189,16 @@ namespace keycuts.GUI.ViewModels
             Refresh();
         }
 
-        /// <summary>Up and Down: the selection moves and stops at either end.</summary>
+        /// <summary>Up and Down, Page Up and Page Down: the selection moves and stops at either end. With no row selected only down does, to the first.</summary>
         public void Move(int by)
         {
-            if (Rows.Count > 0)
+            if (Rows.Count == 0 || (selectedIndex < 0 && by < 0))
             {
-                moved = true;
-                SelectedIndex = Math.Clamp(selectedIndex + by, 0, Rows.Count - 1);
+                return;
             }
+
+            moved = true;
+            SelectedIndex = selectedIndex < 0 ? 0 : Math.Clamp(selectedIndex + by, 0, Rows.Count - 1);
         }
 
         /// <summary>Tab: the name becomes the selected keycut's. False when there is nothing to complete.</summary>
@@ -244,27 +253,36 @@ namespace keycuts.GUI.ViewModels
             }
         }
 
-        /// <param name="chosen">The name of the keycut to select; the first row without one, or when it isn't listed.</param>
+        /// <param name="chosen">The name of the keycut to select; without one, or when it isn't listed, the first row, or none
+        /// while nothing is typed and nothing has been run: the first by name isn't one the user chose before (#337).</param>
         private void Refresh(string? chosen = null)
         {
             var typed = text.Trim();
-            var found = typed.Length == 0
-                ? RunBoxMatcher.Recent(keycuts, MaxRows)
-                : RunBoxMatcher.Find(keycuts, typed, MaxRows).Select(match => match.Keycut);
+            var rows = new List<RunBoxRow>();
+            var first = 0;
 
-            Rows.Clear();
-            foreach (var keycut in found)
+            if (typed.Length > 0)
             {
-                Rows.Add(new RunBoxRow(keycut));
+                rows.AddRange(RunBoxMatcher.Find(keycuts, typed).Select(match => new RunBoxRow(match.Keycut)));
+                if (rows.Count == 0)
+                {
+                    rows.Add(RunBoxRow.Create(typed));
+                }
+            }
+            else
+            {
+                rows.AddRange(RunBoxMatcher.Recent(keycuts).Select(keycut => new RunBoxRow(keycut)));
+                var recent = rows.Count;
+                first = recent > 0 ? 0 : -1;
+                rows.AddRange(RunBoxMatcher.NotRun(keycuts).Select((keycut, index) => new RunBoxRow(keycut, recent > 0 && index == 0)));
             }
 
-            if (Rows.Count == 0 && typed.Length > 0)
-            {
-                Rows.Add(RunBoxRow.Create(typed));
-            }
+            // The list box answers a new list by writing -1 to SelectedIndex, so the selection is set after it
+            Rows = rows;
+            OnPropertyChanged(nameof(Rows));
 
-            var kept = chosen == null ? -1 : Rows.ToList().FindIndex(row => string.Equals(row.Keycut?.Name, chosen, StringComparison.OrdinalIgnoreCase));
-            selectedIndex = kept >= 0 ? kept : Rows.Count > 0 ? 0 : -1;
+            var kept = chosen == null ? -1 : rows.FindIndex(row => string.Equals(row.Keycut?.Name, chosen, StringComparison.OrdinalIgnoreCase));
+            selectedIndex = kept >= 0 ? kept : rows.Count > 0 ? first : -1;
             OnPropertyChanged(nameof(SelectedIndex));
             OnPropertyChanged(nameof(Selected));
             OnPropertyChanged(nameof(HasRows));

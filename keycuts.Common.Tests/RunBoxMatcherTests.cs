@@ -81,6 +81,16 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public void NotRun_IsWhatRecentLeavesOut_ByNameInAnyCase()
+        {
+            var keycuts = new[] { K("ran", runs: 1, lastRunDay: 1), K("zoo", runs: 0), K("Bee"), K("ant", runs: 3), K("cat", runs: 0) };
+
+            Assert.Equal(new[] { "ant", "Bee", "cat", "zoo" }, RunBoxMatcher.NotRun(keycuts).Select(k => k.Name));
+            Assert.Equal(new[] { "ran" }, RunBoxMatcher.Recent(keycuts).Select(k => k.Name));
+            Assert.Empty(RunBoxMatcher.NotRun(null));
+        }
+
+        [Fact]
         public void TheTextIsTrimmed_AndTheLimitHolds()
         {
             Assert.Equal(new[] { "ga", "gb" }, RunBoxMatcher.Find(new[] { K("gb"), K("gc"), K("ga") }, "  g ", 2).Select(m => m.Keycut.Name));

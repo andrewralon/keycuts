@@ -60,11 +60,30 @@ namespace keycuts.Common
             }
 
             return keycuts
-                .Where(keycut => keycut.Runs > 0 && keycut.LastRun != default)
+                .Where(HasRun)
                 .OrderByDescending(keycut => keycut.LastRun)
                 .ThenBy(keycut => keycut.Name, StringComparer.OrdinalIgnoreCase)
                 .Take(limit)
                 .ToList();
+        }
+
+        /// <summary>The keycuts <see cref="Recent"/> leaves out (#337), by name: never run, or their runs aren't counted.</summary>
+        public static IReadOnlyList<Keycut> NotRun(IEnumerable<Keycut> keycuts)
+        {
+            if (keycuts == null)
+            {
+                return Array.Empty<Keycut>();
+            }
+
+            return keycuts
+                .Where(keycut => !HasRun(keycut))
+                .OrderBy(keycut => keycut.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static bool HasRun(Keycut keycut)
+        {
+            return keycut.Runs > 0 && keycut.LastRun != default;
         }
 
         private static RunBoxMatchKind? Match(Keycut keycut, string text)

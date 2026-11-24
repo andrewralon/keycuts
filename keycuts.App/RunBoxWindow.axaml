@@ -33,6 +33,8 @@
       <Setter Property="Padding" Value="12,0" />
       <Setter Property="MinHeight" Value="0" />
       <Setter Property="CornerRadius" Value="{StaticResource RadiusMd}" />
+      <!-- The text box keeps the focus when a row is clicked, so its keys go on working -->
+      <Setter Property="Focusable" Value="False" />
     </Style>
     <Style Selector="ListBox#RunRows > ListBoxItem:selected /template/ ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
@@ -66,9 +68,12 @@
       </Grid>
 
       <StackPanel IsVisible="{Binding HasRows}">
+        <!-- MaxHeight also bounds the list: in a StackPanel it would have no end, and every row would be made (#337). The window
+             scrolls to the selected row itself, for the keys only -->
         <Border Height="1" Background="{DynamicResource BorderBrush}" />
         <ListBox x:Name="RunRows" ItemsSource="{Binding Rows}" SelectedIndex="{Binding SelectedIndex}" Margin="8" Background="Transparent"
-                 Focusable="False" AutomationProperties.Name="Suggestions">
+                 MaxHeight="{StaticResource RunBoxRowsHeight}" AutoScrollToSelectedItem="False" ScrollViewer.AllowAutoHide="False"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" Focusable="False" AutomationProperties.Name="Suggestions">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:RunBoxRow">
               <Grid Height="{StaticResource RunBoxRowHeight}" ColumnDefinitions="Auto,Auto,*,Auto"
@@ -80,6 +85,8 @@
                 <TextBlock Grid.Column="2" Margin="12,0" Text="{Binding Target}" Classes="secondary target"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="3" Text="{Binding RunsText}" Theme="{StaticResource Caption}" Classes="secondary" VerticalAlignment="Center" />
+                <Border Grid.ColumnSpan="4" Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderStrongBrush}"
+                        Classes="notRunLine" IsVisible="{Binding StartsNotRun}" IsHitTestVisible="False" />
               </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>

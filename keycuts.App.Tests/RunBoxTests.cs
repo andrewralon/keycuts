@@ -2,11 +2,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using keycuts.Common;
 using keycuts.GUI;
 using keycuts.GUI.Themes;
@@ -81,7 +84,7 @@ namespace keycuts.Tests
         {
             WithBox((window, box, recorder) =>
             {
-                Assert.Equal(new[] { "gmaps", "gmail", "g" }, Names(box));
+                Assert.Equal(new[] { "gmaps", "gmail", "g", "dl" }, Names(box));
                 Assert.Equal(0, MainWindowTests.Named<ListBox>(window, "RunRows").SelectedIndex);
                 Assert.Equal(string.Empty, box.Completion);
                 Assert.Equal(" run", box.ReturnHint);
@@ -113,7 +116,7 @@ namespace keycuts.Tests
             WithBox((window, box, recorder) =>
             {
                 Type(window, " ");
-                Assert.Equal(new[] { "gmaps", "gmail", "g" }, Names(box));
+                Assert.Equal(new[] { "gmaps", "gmail", "g", "dl" }, Names(box));
                 MainWindowTests.Press(window, Key.Back, RawInputModifiers.None);
 
                 Type(window, "d");
@@ -121,18 +124,249 @@ namespace keycuts.Tests
                 MainWindowTests.Press(window, Key.Back, RawInputModifiers.None);
 
                 Assert.Equal(string.Empty, box.Text);
-                Assert.Equal(new[] { "gmaps", "gmail", "g" }, Names(box));
+                Assert.Equal(new[] { "gmaps", "gmail", "g", "dl" }, Names(box));
+            });
+        }
+
+        private static List<Keycut> Many(int count, int run)
+        {
+            return Enumerable.Range(1, count)
+                .Select(n => new Keycut { Name = "k" + n.ToString("0000"), Target = "/t", FilePath = "/k/k" + n, CountsRuns = true, Runs = n <= run ? 1 : 0, LastRun = n <= run ? DateTime.Now.AddDays(-n) : default })
+                .ToList();
+        }
+
+        private static ListBox List(RunBoxWindow window)
+        {
+            return MainWindowTests.Named<ListBox>(window, "RunRows");
+        }
+
+        private static ScrollViewer Scroller(RunBoxWindow window)
+        {
+            return List(window).GetVisualDescendants().OfType<ScrollViewer>().First();
+        }
+
+        private static ScrollBar Bar(RunBoxWindow window)
+        {
+            return List(window).GetVisualDescendants().OfType<ScrollBar>().Single(bar => bar.Orientation == Avalonia.Layout.Orientation.Vertical);
+        }
+
+        private static void ScrollTo(RunBoxWindow window, double offset)
+        {
+            Scroller(window).Offset = new Vector(0, offset);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(offset, Scroller(window).Offset.Y);
+        }
+
+        private static bool IsInView(RunBoxWindow window, int index)
+        {
+            return List(window).ContainerFromIndex(index) is { } row &&
+                row.TranslatePoint(default, Scroller(window)) is { } at &&
+                at.Y >= -0.5 && at.Y + row.Bounds.Height <= Scroller(window).Bounds.Height + 0.5;
+        }
+
+        private static void Click(RunBoxWindow window, Visual at, Point point)
+        {
+            var where = at.TranslatePoint(point, window)!.Value;
+            window.MouseDown(where, MouseButton.Left);
+            window.MouseUp(where, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        [AvaloniaFact]
+        public void FiveRowsShow_AndTheBoxIsAsHighWithFiveHundred()
+        {
+            var heights = new List<double>();
+            foreach (var count in new[] { 3, 5, 6, 500 })
+            {
+                WithBox(Many(count, count), (window, box, recorder) =>
+                {
+                    Assert.Equal(count, box.Rows.Count);
+                    Assert.Equal(Math.Min(count, RunBoxViewModel.VisibleRows) * 40, List(window).Bounds.Height);
+                    Assert.Equal(count > RunBoxViewModel.VisibleRows, Bar(window).IsEffectivelyVisible);
+                    Assert.Equal(Math.Min(count, RunBoxViewModel.VisibleRows), Enumerable.Range(0, count).Count(n => IsInView(window, n)));
+                    heights.Add(window.Bounds.Height);
+                });
+            }
+
+            Assert.Equal(heights[1], heights[2]);
+            Assert.Equal(heights[1], heights[3]);
+            Assert.True(heights[0] < heights[1]);
+        }
+
+        [AvaloniaFact]
+        public void WithAThousandKeycuts_OnlyTheRowsNearTheViewAreMade()
+        {
+            WithBox(Many(1000, 500), (window, box, recorder) =>
+            {
+                Assert.InRange(List(window).GetRealizedContainers().Count(), RunBoxViewModel.VisibleRows, 30);
+
+                ScrollTo(window, 20000);
+                Assert.InRange(List(window).GetRealizedContainers().Count(), RunBoxViewModel.VisibleRows, 30);
+
+                Type(window, "k");
+                Assert.Equal(1000, box.Rows.Count);
+                Assert.InRange(List(window).GetRealizedContainers().Count(), RunBoxViewModel.VisibleRows, 30);
             });
         }
 
         [AvaloniaFact]
-        public void TheRecentKeycuts_AreAtMostMaxRows()
+        public void Down_GoesPastTheFifthRow_ToTheLast_InView_AndUpComesBack()
         {
-            var keycuts = Enumerable.Range(1, RunBoxViewModel.MaxRows + 2)
-                .Select(n => new Keycut { Name = "k" + n, Target = "/t", FilePath = "/k/k" + n, CountsRuns = true, Runs = 1, LastRun = DateTime.Now.AddDays(-n) })
-                .ToList();
+            WithBox(Many(8, 8), (window, box, recorder) =>
+            {
+                for (var n = 1; n < 8; n++)
+                {
+                    MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal(n, box.SelectedIndex);
+                    Assert.True(IsInView(window, n), "row " + n);
+                }
 
-            WithBox(keycuts, (window, box, recorder) => Assert.Equal(keycuts.Take(RunBoxViewModel.MaxRows).Select(k => k.Name), Names(box)));
+                MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
+                Assert.Equal(7, box.SelectedIndex);
+
+                for (var n = 6; n >= 0; n--)
+                {
+                    MainWindowTests.Press(window, Key.Up, RawInputModifiers.None);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.True(IsInView(window, n), "row " + n);
+                }
+
+                MainWindowTests.Press(window, Key.PageDown, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(5, box.SelectedIndex);
+                Assert.True(IsInView(window, 5));
+                MainWindowTests.Press(window, Key.PageUp, RawInputModifiers.None);
+                Assert.Equal(0, box.SelectedIndex);
+            });
+        }
+
+        [AvaloniaFact]
+        public void ScrollingLeavesTheSelectionAlone_EnterRunsItOutOfView_AndDownBringsItBack()
+        {
+            WithBox(Many(100, 100), (window, box, recorder) =>
+            {
+                ScrollTo(window, 2000);
+                Assert.Equal(0, box.SelectedIndex);
+                Assert.False(IsInView(window, 0));
+
+                MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(IsInView(window, 1));
+
+                ScrollTo(window, 2000);
+                MainWindowTests.Press(window, Key.Enter, RawInputModifiers.None);
+                Assert.Equal(new[] { "k0002" }, recorder.Ran);
+            });
+        }
+
+        [AvaloniaFact]
+        public void TheWheelScrolls_WithoutRunningOrSelecting()
+        {
+            WithBox(Many(100, 100), (window, box, recorder) =>
+            {
+                window.MouseWheel(List(window).TranslatePoint(new Point(100, 100), window)!.Value, new Vector(0, -3));
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.True(Scroller(window).Offset.Y > 0);
+                Assert.Equal(0, box.SelectedIndex);
+                Assert.Empty(recorder.Ran);
+            });
+        }
+
+        [AvaloniaFact]
+        public void ANewList_KeepsTheScrolling_AndTypingOrOpeningAgainGoesToTheTop()
+        {
+            WithBox(Many(100, 100), (window, box, recorder) =>
+            {
+                ScrollTo(window, 1000);
+                box.Keycuts = Many(100, 100);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1000, Scroller(window).Offset.Y);
+                Assert.Equal(0, List(window).SelectedIndex);
+
+                MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
+                ScrollTo(window, 1000);
+                box.Keycuts = Many(100, 100);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1000, Scroller(window).Offset.Y);
+                Assert.Equal("k0002", box.Selected!.Name);
+
+                Type(window, "k");
+                Assert.Equal(0, Scroller(window).Offset.Y);
+                Assert.True(IsInView(window, 0));
+
+                ScrollTo(window, 1000);
+                box.Reset();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(0, Scroller(window).Offset.Y);
+                Assert.Equal(0, List(window).SelectedIndex);
+            });
+        }
+
+        [AvaloniaFact]
+        public void TheScrollBar_ScrollsWithoutRunning_AndTheTextBoxKeepsTheFocus()
+        {
+            WithBox(Many(100, 100), (window, box, recorder) =>
+            {
+                var bar = Bar(window);
+                Click(window, bar, new Point(bar.Bounds.Width / 2, bar.Bounds.Height - 10));
+                Assert.True(Scroller(window).Offset.Y > 0);
+
+                ScrollTo(window, 0);
+                var thumb = bar.GetVisualDescendants().OfType<Thumb>().Single();
+                var from = thumb.TranslatePoint(new Point(6, thumb.Bounds.Height / 2), window)!.Value;
+                window.MouseDown(from, MouseButton.Left);
+                window.MouseMove(from + new Vector(0, 60));
+                window.MouseMove(from + new Vector(-100, 80));
+                window.MouseUp(from + new Vector(-100, 80), MouseButton.Left);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.True(Scroller(window).Offset.Y > 0);
+                Assert.Empty(recorder.Ran);
+                Assert.Equal(0, recorder.Closed);
+                Assert.True(MainWindowTests.Named<TextBox>(window, "RunText").IsFocused);
+            });
+        }
+
+        [AvaloniaFact]
+        public void AClickOnARow_RunsIt_ButNotARightClickOrADragOffIt()
+        {
+            WithBox(Many(100, 100), (window, box, recorder) =>
+            {
+                ScrollTo(window, 400);
+                var row = List(window).ContainerFromIndex(12)!;
+                var at = row.TranslatePoint(new Point(200, 20), window)!.Value;
+
+                window.MouseDown(at, MouseButton.Right);
+                window.MouseUp(at, MouseButton.Right);
+                window.MouseDown(at, MouseButton.Left);
+                window.MouseUp(at + new Vector(0, 45), MouseButton.Left);
+                Assert.Empty(recorder.Ran);
+                Assert.True(MainWindowTests.Named<TextBox>(window, "RunText").IsFocused);
+
+                Click(window, row, new Point(200, 20));
+                Assert.Equal(new[] { "k0013" }, recorder.Ran);
+            });
+        }
+
+        [AvaloniaFact]
+        public void TheLine_IsAboveTheFirstKeycutNeverRun_OnlyWithNothingTyped_AndOnlyBetweenTheTwo()
+        {
+            WithBox(Many(4, 2), (window, box, recorder) =>
+            {
+                Assert.Equal(new[] { false, false, true, false }, box.Rows.Select(r => r.StartsNotRun));
+                var line = List(window).ContainerFromIndex(2)!.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("notRunLine"));
+                Assert.True(line.IsEffectivelyVisible);
+                Assert.Equal(1, line.Bounds.Height);
+                Assert.Equal(40, List(window).ContainerFromIndex(2)!.Bounds.Height);
+
+                Type(window, "k");
+                Assert.DoesNotContain(box.Rows, r => r.StartsNotRun);
+            });
+
+            WithBox(Many(4, 4), (window, box, recorder) => Assert.DoesNotContain(box.Rows, r => r.StartsNotRun));
+            WithBox(Many(4, 0), (window, box, recorder) => Assert.DoesNotContain(box.Rows, r => r.StartsNotRun));
         }
 
         [AvaloniaFact]
@@ -143,7 +377,7 @@ namespace keycuts.Tests
                 var loaded = Keycuts().Select(k => k.Name == "g" ? k with { LastRun = DateTime.Now } : k).ToList();
 
                 box.Keycuts = loaded;
-                Assert.Equal(new[] { "g", "gmaps", "gmail" }, Names(box));
+                Assert.Equal(new[] { "g", "gmaps", "gmail", "dl" }, Names(box));
                 Assert.Equal("g", box.Selected!.Name);
 
                 MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
@@ -186,7 +420,7 @@ namespace keycuts.Tests
                 box.Reset();
 
                 Assert.Equal(string.Empty, box.Text);
-                Assert.Equal(new[] { "gmail", "gmaps", "g" }, Names(box));
+                Assert.Equal(new[] { "gmail", "gmaps", "g", "dl" }, Names(box));
                 Assert.Equal("43 runs", box.Rows[0].RunsText);
             });
         }
@@ -204,17 +438,51 @@ namespace keycuts.Tests
 
                 box.Reset();
 
-                Assert.Equal(new[] { "gmaps", "gmail", "g" }, Names(box));
+                Assert.Equal(new[] { "gmaps", "gmail", "g", "dl", "old" }, Names(box));
             });
         }
 
         [AvaloniaFact]
-        public void NothingTyped_AndNothingEverRun_ShowsNoRows_AndEnterDoesNothing()
+        public void NothingTyped_AndNothingEverRun_SelectsNoRowUntilDown()
         {
-            WithBox(new[] { new Keycut { Name = "dl", Target = "/t", FilePath = "/k/dl", CountsRuns = true, Runs = 0 } }, (window, box, recorder) =>
+            WithBox(Many(8, 0), (window, box, recorder) =>
+            {
+                Assert.Equal(8, box.Rows.Count);
+                foreach (var key in new[] { Key.Enter, Key.Tab, Key.Up, Key.PageUp })
+                {
+                    MainWindowTests.Press(window, key, RawInputModifiers.None);
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal(-1, box.SelectedIndex);
+                    Assert.Equal(-1, List(window).SelectedIndex);
+                }
+
+                box.Keycuts = Many(8, 0);
+                Assert.Equal(-1, box.SelectedIndex);
+                Assert.Equal(string.Empty, box.Text);
+                Assert.Empty(recorder.Ran);
+                Assert.Equal(0, recorder.Closed);
+
+                Type(window, "k");
+                Assert.Equal(0, box.SelectedIndex);
+                MainWindowTests.Press(window, Key.Back, RawInputModifiers.None);
+                Assert.Equal(-1, box.SelectedIndex);
+
+                MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(0, List(window).SelectedIndex);
+                MainWindowTests.Press(window, Key.Enter, RawInputModifiers.None);
+                Assert.Equal(new[] { "k0001" }, recorder.Ran);
+            });
+        }
+
+        [AvaloniaFact]
+        public void NoKeycuts_ShowsOnlyTheTextBox_AndEnterDoesNothing()
+        {
+            WithBox(Array.Empty<Keycut>(), (window, box, recorder) =>
             {
                 Assert.False(box.HasRows);
                 MainWindowTests.Press(window, Key.Enter, RawInputModifiers.None);
+                MainWindowTests.Press(window, Key.Down, RawInputModifiers.None);
                 Assert.Empty(recorder.Ran);
                 Assert.Equal(0, recorder.Closed);
             });

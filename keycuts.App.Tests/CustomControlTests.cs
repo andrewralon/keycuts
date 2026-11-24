@@ -349,6 +349,7 @@ namespace keycuts.Tests
                 Assert.Equal(PaletteColor($"Badge{brushes}BackgroundBrush"), ColorOf(badge.Background));
                 Assert.Equal(TypeBadge.GetIconKind(kind), Descendants<Icon>(badge).Single().Kind);
                 Assert.Equal(TypeBadge.GetLabel(kind), Descendants<TextBlock>(badge).Single().Text);
+                Assert.Equal(FontWeight.Normal, Descendants<TextBlock>(badge).Single().FontWeight);
                 Assert.Equal(TypeBadge.GetAutomationName(kind), ControlAutomationPeer.CreatePeerForElement(badge).GetName());
             }
             finally

@@ -208,16 +208,16 @@ Font: `AppFontFamily`, Segoe UI Variable with Segoe UI as the fallback. In the A
 | `FontSizeSubheading` | 16 | SemiBold | Level 2 headings: the welcome panel, empty and error states, sheet titles; the name `keycuts` in the tab bar (Fluent "Body Large") |
 | `FontSizeInput` | 14 | Regular | Text typed into a text box; welcome bubbles' keycut names |
 | `FontSizeBody` | 13 | Regular | Body text, field labels (SemiBold), buttons and tabs (SemiBold), menu items, table cells |
-| `FontSizeCaption` | 12 | Regular | Helper text, notes, errors under a field, status lines, tooltips, table headers (SemiBold), section labels (ExtraBold), badges and row markers (SemiBold) |
+| `FontSizeCaption` | 12 | Regular | Helper text, notes, errors under a field, status lines, tooltips, table headers (SemiBold), section labels (ExtraBold), type badges, row markers (SemiBold) |
 
 **12 is the smallest text** ([decision](#decisions)). Body text stays 13. Fluent's body is 14, and moving to it would be a bigger change, made only if the owner decides to.
 
 ### Weights
 
-- **SemiBold**: headings, field labels, setting names, button labels, table headers, the Manager's name cell, badges, menu item titles.
+- **SemiBold**: headings, field labels, setting names, button labels, table headers, the Manager's name cell, the count pill, menu item titles.
 - **ExtraBold**: only the section label.
-- **Regular**: everything else.
-- **No plain `Bold`** anywhere. Today it is on the Manager's name cell and its column and sort headers, the status line's Undo, the Browse menu's File… and Folder… titles, the welcome bubbles' names and the type badges; they become SemiBold.
+- **Regular**: everything else, type badges included: their color and icon already say the type, so the keycut's name is the one that stands out ([decision](#decisions)).
+- **No plain `Bold`** anywhere. Today it is on the Manager's name cell and its column and sort headers, the status line's Undo, the Browse menu's File… and Folder… titles, the welcome bubbles' names and the type badges; they become SemiBold (the type badges have since become Regular).
 
 ### Shared text styles
 
@@ -465,6 +465,7 @@ Answers from the owner. Each settles a discrepancy; the date is when it was made
 | 2026-11-23 | The macOS Dock icon and Settings' icon rows (#314; supersedes #305 and #310 on macOS) | The Dock icon followed Settings while running (`MacDockIcon`, on Apple's grid) and went back to Porcelain at a quit; Settings offered Icon and Transparent icon background | **The Dock always shows the bundle's Porcelain icon**, running or pinned. No runtime Dock icon, and **Icon and Transparent icon background aren't offered on macOS** (Windows keeps both). A bundle icon that follows light and dark (an Icon Composer `.icon`) is parked: it takes the system's Liquid Glass mask and needs a hand-made dark variant |
 | 2026-11-24 | The Run box with nothing typed (#332) | Only the text box | **The keycuts run most recently**, up to 6, latest first, as the same rows as when typing: no heading, the first one selected, so Return repeats the last keycut. Only the text box when no run is recorded. No mockup was rendered: it reuses the rows as they are |
 | 2026-11-24 | The Run box's rows (#337) | Up to 6, the rest dropped; never-run keycuts not listed with nothing typed | **Five rows, the rest scrolled to** with a visible scroll bar and no half-shown sixth row. With nothing typed: the keycuts run, latest first, a thin line, then the never-run ones by name; nothing selected until Down when none has been run. Return runs the selected row even scrolled out of view. The hint line ends with the total, "42 keycuts". Loaded whole, not in pages: search and order need every keycut, and 1,000 load in about 40 ms. Approved in the running app, no mockup |
+| 2026-11-24 | Type badge text (#337) | SemiBold | **Regular**, in the Manager, the Run box and the welcome bubbles; same color, icon and size |
 | 2026-11-23 | Settings' Spotlight section on macOS (#328) | Spotlight can't run a keycut | **A Spotlight section** (macOS 26+, only when the bundle has the signed shortcut) in the right column: **Quick key**, "Adds “Run keycut” to Shortcuts. In Spotlight, press Add quick keys on it and type k; then “k gmail” runs a keycut.", and an **add to Shortcuts** secondary button that opens Shortcuts' import sheet. No mockup was rendered (`Render-Mockup.ps1` is Windows-only): it reuses the Run Box row's layout (name and note left, secondary button right) and the Updates section label |
 | 2026-11-22 | Windows Settings: Run Box and Open at login (#306, #307) | Neither (Win+R was the Run box) | **`windows-settings-v2`**: Behavior is Output folder, **Run Box** (Ctrl+Alt+Space; Ctrl, Alt or Win needed, Shift alone refused), **Open at login** ("keycuts waits in the system tray."; "Turn keycuts on in Settings → Apps → Startup." when Startup apps has it off), Ask before replacing, Right-click context menus, Use environment variables in paths. The tray icon's menu is the macOS menu bar's: Run… (with the shortcut), New keycut…, Manager, Settings…, Quit keycuts. **Closing the window hides it to the tray** (macOS parity, no option; the owner left the choice to the PR) |
 

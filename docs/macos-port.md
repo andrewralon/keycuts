@@ -235,7 +235,7 @@ One shortcut, "Run keycut", with "Show in Spotlight" and "Receive input from Spo
 
 **Owner's checks the plan left open (not recorded as done)**
 - A real login with Open at login on, and the "needs approval" note in System Settings → General → Login Items (Phase 6.5).
-- On a Windows machine: the real Run box hotkey, tray, startup and second-start paths (Phase 6, "Windows follows"); Narrator, listening to the Settings and Manager (Phase 3.9); the 2.0.0 cutover's manual checks (install over 1.6.2, context menu as non-admin, Recycle Bin drag, upgrade keeps settings: Phase 3.12).
+- On a Windows machine: ~~the real Run box hotkey, tray, startup and second-start paths~~ (Phase 6, "Windows follows"). *Checked 2026-11-25 on the installed 2.2.1 (Windows 10 22H2), without touching its keys or settings:* it holds its shortcut for real (`RegisterHotKey` of `Alt+Win+Space` from another process fails with 1409, while an unused one succeeds); a second start exits 0 and the running copy's window appears (same process, no second one); closing the window hides it and the process stays alive. *Still not checked:* the tray icon and its menu on screen, pressing the shortcut and seeing the box, the `--startup` start with no window, and Open at login's toggle against Startup apps. Narrator, listening to the Settings and Manager (Phase 3.9); the 2.0.0 cutover's manual checks (install over 1.6.2, context menu as non-admin, Recycle Bin drag, upgrade keeps settings: Phase 3.12).
 - A browser-downloaded `.pkg` installed on a Mac with no developer tools, and `brew install --cask andrewralon/tap/keycuts` from the tap (Phase 8).
 
 ## GitHub issue changes (Phase 1)

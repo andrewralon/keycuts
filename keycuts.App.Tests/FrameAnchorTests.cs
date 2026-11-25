@@ -5,8 +5,8 @@ using Xunit;
 namespace keycuts.Tests
 {
     /// <summary>
-    /// The arithmetic of <see cref="FrameAnchor"/>: where the window's rectangle goes so what is drawn stays put when the resize
-    /// borders come or go. The Win32 messages themselves need a real window, so they were checked by polling one (docs/internals.md).
+    /// The arithmetic of <see cref="FrameAnchor"/>: where the window's rectangle goes so the page stays put when the resize borders
+    /// come or go. The Win32 messages themselves need a real window, so they were checked by polling one (docs/internals.md).
     /// </summary>
     public class FrameAnchorTests
     {
@@ -26,33 +26,33 @@ namespace keycuts.Tests
         }
 
         [Fact]
-        public void BecomingResizable_StartsTheRectangleTheInsetBeforeWhatIsDrawn()
+        public void BecomingResizable_StartsTheRectangleTheInsetBeforeThePage()
         {
-            // What is drawn at 659 with a 7 px invisible border: the rectangle starts at 652 (the Manager and Settings)
-            Assert.Equal(new PixelPoint(652, 45), FrameAnchor.WindowTopLeftFor(new PixelPoint(659, 45), new PixelPoint(7, 0)));
+            // The page at 660 with 8 px of resize border: the rectangle starts at 652 (the Manager and Settings)
+            Assert.Equal(new PixelPoint(652, 44), FrameAnchor.WindowTopLeftFor(new PixelPoint(660, 45), new PixelPoint(8, 1)));
         }
 
         [Fact]
-        public void BecomingFixed_StartsTheRectangleWhereWhatIsDrawnStarts()
+        public void BecomingFixed_StartsTheRectangleOnlyTheThinBorderBeforeThePage()
         {
-            // No resize borders, no inset: the rectangle is what is drawn (the Creator)
-            Assert.Equal(new PixelPoint(659, 45), FrameAnchor.WindowTopLeftFor(new PixelPoint(659, 45), new PixelPoint(0, 0)));
+            // The Creator: the 1 px border and nothing else
+            Assert.Equal(new PixelPoint(659, 44), FrameAnchor.WindowTopLeftFor(new PixelPoint(660, 45), new PixelPoint(1, 1)));
         }
 
         [Fact]
-        public void TheFirstGuessOfTheBorder_IsTheSizingFramePlusItsPadding_LessTheDrawnLine()
+        public void TheFirstGuessOfTheInset_FollowsTheSystemMetrics()
         {
-            // 100 %: SM_CXSIZEFRAME 4 and SM_CXPADDEDBORDER 4, the 7 px measured on Windows 10
-            Assert.Equal(7, FrameAnchor.InvisibleBorder(4, 4));
-            Assert.Equal(11, FrameAnchor.InvisibleBorder(6, 6));
-            Assert.Equal(0, FrameAnchor.InvisibleBorder(0, 0));
+            // 100 %: SM_CXBORDER 1, SM_CXSIZEFRAME 4, SM_CXPADDEDBORDER 4, SM_CYBORDER 1; measured on Windows 10: 8 and 1
+            Assert.Equal(new PixelPoint(8, 1), FrameAnchor.ClientInset(true, 1, 4, 4, 1));
+            Assert.Equal(new PixelPoint(1, 1), FrameAnchor.ClientInset(false, 1, 4, 4, 1));
+            Assert.Equal(new PixelPoint(12, 2), FrameAnchor.ClientInset(true, 2, 6, 6, 2));
         }
 
         [Fact]
-        public void TheSafetyNet_MovesTheWindowByHowFarWhatIsDrawnMoved()
+        public void TheSafetyNet_MovesTheWindowByHowFarThePageMoved()
         {
-            // Drawn at 666 instead of 659: the window goes 7 px left
-            Assert.Equal(new PixelPoint(652, 45), FrameAnchor.MoveBack(new PixelPoint(659, 45), new PixelPoint(666, 45), new PixelPoint(659, 45)));
+            // The page at 667 instead of 660: the window goes 7 px left
+            Assert.Equal(new PixelPoint(652, 45), FrameAnchor.MoveBack(new PixelPoint(659, 45), new PixelPoint(667, 45), new PixelPoint(660, 45)));
         }
     }
 }

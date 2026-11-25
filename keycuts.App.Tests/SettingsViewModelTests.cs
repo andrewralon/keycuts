@@ -764,7 +764,7 @@ namespace keycuts.Tests
             var home = Path.Combine(root, "home");
             Directory.CreateDirectory(home);
             var folder = Path.Combine(home, "Shortcuts");
-            var path = new MacShellPath(home, shell, onPathAlready ? "/usr/bin:" + folder : "/usr/bin:/bin", Array.Empty<string>());
+            var path = new MacShellPath(home, shell, onPathAlready ? "/usr/bin:" + folder : "/usr/bin:/bin", Array.Empty<(string Folder, string File)>());
             var store = new FakeStore();
             store.Stored.OutputFolder = folder;
             return (new SettingsViewModel(store, shellPath: path), path, folder);

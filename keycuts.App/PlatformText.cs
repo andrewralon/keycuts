@@ -24,7 +24,7 @@ namespace keycuts.GUI
         public static readonly string RightClickName = PlatformKeys.IsMac ? "Finder Quick Action" : "Right-click context menus";
 
         public static readonly string RightClickNote = PlatformKeys.IsMac
-            ? "Add “keycut this!” to Finder’s Quick Actions. Turn it on in System Settings → Extensions."
+            ? "Add “keycut this!” to Finder’s Quick Actions. Turn it on in System Settings → General → Login Items & Extensions → Extensions → Finder."
             : "Add “keycut this!” to File Explorer menus.";
 
         /// <summary>Settings: macOS has one variable, the home folder (Phase 4.6).</summary>

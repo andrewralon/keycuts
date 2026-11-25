@@ -201,7 +201,7 @@ The `.workflow` committed under `installer/macos/` as source. It runs `open -a k
 3. `.icns` from `assets/icons` (`tools/New-AppIcons.ps1` writes the PNG set; `iconutil` runs in the macOS build). **M**
 4. `release.yml`: a macOS job builds, signs and notarizes both `.pkg` files and attaches them to the same `v<Version>` release, and `SHA256SUMS.txt` covers all six files. Secrets as listed in #106, with jobs guarded against fork PRs. **CI**
 5. Homebrew cask in `andrewralon/homebrew-tap`; the release opens a PR there. The cask's `binary` stanza links `keycuts`. **CI**
-6. The update check works unchanged (it links to the release page). Check the notice on macOS. **M**
+6. The update check works unchanged (it links to the release page). Check the notice on macOS. **M** *Passed:* the owner saw the notice in the Mac app and confirmed it works (2026-11-25).
 
 ### Phase 9: docs
 
@@ -233,9 +233,8 @@ One shortcut, "Run keycut", with "Show in Spotlight" and "Receive input from Spo
 - **#330**: research a better way to ship the Spotlight shortcut than a hand-signed file (the workflow signed into iCloud, an iCloud share link, or the app walking the user through it). Until then, **re-sign `installer/macos/Run keycut.shortcut` before every release** (CLAUDE.md, release prep); its certificate ends 2027-12-22. Untested: whether Shortcuts refuses an import after the certificate's end, and Spotlight runs after sleep or in large numbers.
 - **#295**: the macOS traffic lights are 12×14 against 16×16 in other apps. Re-stamping the launcher's SDK and resizing the buttons both failed; marked for an Opus attempt, with a newer-SDK launcher only as a last resort.
 
-**Owner's checks the plan left open** (the Windows ones were done on 2026-11-25; of the macOS ones, only the update notice is left)
+**Owner's checks the plan left open** (none left: the last ones were done on 2026-11-25, and each is recorded under its phase or below)
 - On a Windows machine: ~~the real Run box hotkey, tray, startup and second-start paths~~ (Phase 6, "Windows follows"). *Checked 2026-11-25 on the installed 2.2.1 (Windows 10 22H2), without touching its keys or settings:* it holds its shortcut for real (`RegisterHotKey` of `Alt+Win+Space` from another process fails with 1409, while an unused one succeeds); a second start exits 0 and the running copy's window appears (same process, no second one); closing the window hides it and the process stays alive. **The rest was checked by the owner the same day, on a Debug build of `develop` (41b12b4, 2.2.1), and all passed:** the tray icon and its menu (Run…, New keycut…, Manager, Settings…, Quit keycuts); the shortcut opening the Run box on the screen with the mouse, a suggestion, Down, Tab and Enter running a keycut and returning focus, Esc, and Quit; Open at login against Startup apps and, after a sign-out, the `--startup` start in the tray with no window; "keycut this!" from Explorer's right-click as a non-admin, and the Settings toggle adding and removing it with no UAC prompt; dragging the Recycle Bin onto the Creator (Phase 3.12); Narrator on the tab list, the Creator's names and errors, the Manager's headers, rows, count and status lines, and Settings (Phase 3.9); and the upgrade keeping settings (Phase 3.12). Nothing in this item is open now.
-- The update notice in the Mac app (Phase 8, step 6).
 
 ## GitHub issue changes (Phase 1)
 

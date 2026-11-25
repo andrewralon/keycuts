@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using keycuts.Common;
 using Xunit;
 
@@ -24,7 +25,7 @@ namespace keycuts.Tests
 
         private MacShellPath Shell(string shell = "/bin/zsh", string processPath = "/usr/bin:/bin", params string[] system)
         {
-            return new MacShellPath(_home, shell, processPath, system);
+            return new MacShellPath(_home, shell, processPath, system.Select(folder => (folder, "/etc/paths")));
         }
 
         [Theory]
@@ -155,10 +156,40 @@ namespace keycuts.Tests
             Assert.Equal("", File.ReadAllText(shell.ProfilePath));
         }
 
+        private const string OnPathText = Folder + " is on PATH, so Terminal runs your keycuts by name. ";
+
         [Fact]
-        public void ThePathCommand_OnPathAlready_SaysSo()
+        public void ThePathCommand_OnPathFromNeitherASystemFileNorABlock_SaysTheEnvironment()
         {
-            Assert.Equal((ExitCode.Success, Folder + " is on PATH, so Terminal runs your keycuts by name.", ""), RunPath("status", Shell(processPath: Folder)));
+            var shell = Shell(processPath: Folder);
+            var expected = (ExitCode.Success, OnPathText + "It comes from this shell's environment, not from /etc/paths or a keycuts block.", "");
+
+            Assert.Equal(expected, RunPath("status", shell));
+
+            // A block for another folder isn't where this one comes from
+            shell.Add("/Volumes/Other");
+            Assert.Equal(expected, RunPath("status", shell));
+        }
+
+        [Fact]
+        public void ThePathCommand_OnPathFromTheBlock_NamesTheProfile()
+        {
+            var shell = Shell("/bin/bash", Folder);
+            shell.Add(Folder);
+
+            Assert.Equal((ExitCode.Success, OnPathText + "It comes from the keycuts block in ~/.bash_profile.", ""), RunPath("status", shell));
+        }
+
+        [Fact]
+        public void ThePathCommand_OnPathFromSystemFiles_NamesEach_AndTheBlockToo()
+        {
+            var shell = new MacShellPath(_home, "/bin/zsh", "/usr/bin",
+                new[] { ("/usr/bin", "/etc/paths"), (Folder + "/", "/etc/paths.d/mine") });
+
+            Assert.Equal((ExitCode.Success, OnPathText + "It comes from /etc/paths.d/mine.", ""), RunPath("status", shell));
+
+            shell.Add(Folder);
+            Assert.Equal((ExitCode.Success, OnPathText + "It comes from /etc/paths.d/mine and the keycuts block in ~/.zprofile.", ""), RunPath("status", shell));
         }
 
         [Fact]

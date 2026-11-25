@@ -20,9 +20,6 @@ namespace keycuts.GUI
 
         public string OutputFolder { get; set; } = string.Empty;
 
-        /// <summary>"Ask before replacing a keycut" (#153), which replaced "Force overwrite" with the opposite meaning.</summary>
-        public bool AskBeforeReplacing { get; set; } = Runner.DefaultAskBeforeReplacing;
-
         /// <summary>Save new file and folder keycuts with environment variables (#31).</summary>
         public bool UseEnvironmentVariables { get; set; }
 
@@ -45,15 +42,14 @@ namespace keycuts.GUI
         public const bool DefaultAppIconTransparent = false;
 
         /// <summary>
-        /// What a new install has, for Settings' restore defaults (#218): ask before replacing, the right-click menu on (the
-        /// installer adds it), no environment variables, the system theme, and update checks on. The output folder isn't a
-        /// default here: restore defaults never touches it.
+        /// What a new install has, for Settings' restore defaults (#218): the right-click menu on (the installer adds it), no
+        /// environment variables, the system theme, and update checks on. The output folder isn't a default here: restore
+        /// defaults never touches it.
         /// </summary>
         public static Settings Defaults()
         {
             return new Settings
             {
-                AskBeforeReplacing = Runner.DefaultAskBeforeReplacing,
                 RightClickContextMenus = true,
                 UseEnvironmentVariables = false,
                 Theme = ThemePreference.System,
@@ -64,7 +60,6 @@ namespace keycuts.GUI
         public void LoadSettings()
         {
             OutputFolder = runner.GetOutputFolder();
-            AskBeforeReplacing = runner.GetAskBeforeReplacing();
             UseEnvironmentVariables = runner.GetUseEnvironmentVariables();
             RightClickContextMenus = runner.GetRightClickContextMenu();
             Theme = runner.GetThemePreference();
@@ -87,7 +82,6 @@ namespace keycuts.GUI
         {
             try
             {
-                runner.SetAskBeforeReplacing(AskBeforeReplacing);
                 runner.SetUseEnvironmentVariables(UseEnvironmentVariables);
                 runner.SetThemePreference(Theme);
                 runner.SetCheckForUpdates(CheckForUpdates);

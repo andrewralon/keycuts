@@ -153,6 +153,23 @@ namespace keycuts.Tests
         }
 
         [Fact]
+        public async Task Duplicate_WithNoOverwriteChoice_IsRefused_WhateverTheStoredSetting()
+        {
+            // The app always asks before replacing: null refuses, so the caller can ask (a stored AskBeforeReplacing is the
+            // command line's only)
+            await KeycutCreator.CreateAsync(_target, "dup", Options());
+            var path = Path.Combine(_out, "dup" + ShortcutFile.Extension);
+            var before = File.ReadAllText(path);
+            var options = Options();
+            options.Overwrite = null;
+
+            var result = await KeycutCreator.CreateAsync("https://example.com", "dup", options);
+
+            Assert.Equal(CreateOutcome.DuplicateName, result.Outcome);
+            Assert.Equal(before, File.ReadAllText(path));
+        }
+
+        [Fact]
         public async Task Duplicate_IsCaseInsensitive()
         {
             await KeycutCreator.CreateAsync(_target, "dup", Options());

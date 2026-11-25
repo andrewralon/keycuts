@@ -91,7 +91,6 @@ namespace keycuts.Tests
                 return new Settings
                 {
                     OutputFolder = SampleFolder,
-                    AskBeforeReplacing = true,
                     RightClickContextMenus = true,
                     UseEnvironmentVariables = true,
                     CheckForUpdates = true

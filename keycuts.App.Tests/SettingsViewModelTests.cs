@@ -34,7 +34,6 @@ namespace keycuts.Tests
             public Settings Stored { get; set; } = new Settings
             {
                 OutputFolder = @"C:\Shortcuts",
-                AskBeforeReplacing = false,
                 RightClickContextMenus = false,
                 UseEnvironmentVariables = true,
                 Theme = ThemePreference.Dark
@@ -83,7 +82,6 @@ namespace keycuts.Tests
             var vm = NewViewModel(new FakeStore());
 
             Assert.Equal(@"C:\Shortcuts", vm.OutputFolder);
-            Assert.False(vm.AskBeforeReplacing);
             Assert.False(vm.RightClickContextMenus);
             Assert.True(vm.UseEnvironmentVariables);
             Assert.Equal(ThemePreference.Dark, vm.Theme);
@@ -112,22 +110,20 @@ namespace keycuts.Tests
             var stored = 0;
             vm.Stored += (sender, e) => stored++;
 
-            vm.AskBeforeReplacing = true;
-            Assert.True(Assert.Single(store.Saves).AskBeforeReplacing);
-
             vm.RightClickContextMenus = true;
+            Assert.True(Assert.Single(store.Saves).RightClickContextMenus);
+
             vm.UseEnvironmentVariables = false;
             vm.CheckForUpdates = false;
 
-            Assert.Equal(4, store.Saves.Count);
+            Assert.Equal(3, store.Saves.Count);
             var last = store.Saves[^1];
-            Assert.True(last.AskBeforeReplacing);
             Assert.True(last.RightClickContextMenus);
             Assert.False(last.UseEnvironmentVariables);
             Assert.False(last.CheckForUpdates);
             // The folder is another window's or the CLI's to change too: a toggle never writes it back (PR #225 review)
             Assert.Empty(store.FolderSaves);
-            Assert.Equal(4, stored);
+            Assert.Equal(3, stored);
         }
 
         [Fact]
@@ -136,7 +132,7 @@ namespace keycuts.Tests
             var store = new FakeStore();
             var vm = NewViewModel(store);
 
-            vm.AskBeforeReplacing = vm.AskBeforeReplacing;
+            vm.CheckForUpdates = vm.CheckForUpdates;
             vm.Theme = vm.Theme;
 
             Assert.Empty(store.Saves);
@@ -169,7 +165,7 @@ namespace keycuts.Tests
             Assert.False(Directory.Exists(folder));
 
             // A toggle changed meanwhile stores the toggle, and no folder at all
-            vm.AskBeforeReplacing = true;
+            vm.CheckForUpdates = false;
             Assert.Single(store.Saves);
             Assert.Empty(store.FolderSaves);
 
@@ -256,7 +252,7 @@ namespace keycuts.Tests
             Assert.Equal(1, stored);
 
             store.SaveMessage = null;
-            vm.AskBeforeReplacing = true;
+            vm.CheckForUpdates = false;
             Assert.Null(vm.SaveError);
         }
 
@@ -296,7 +292,7 @@ namespace keycuts.Tests
 
             // A toggle meanwhile writes no folder, so nothing puts back an old one
             store.FolderResult = null;
-            vm.AskBeforeReplacing = true;
+            vm.CheckForUpdates = false;
             Assert.Single(store.FolderSaves);
 
             // The same folder again is not "unchanged": it was never stored
@@ -426,7 +422,6 @@ namespace keycuts.Tests
                 Stored = new Settings
                 {
                     OutputFolder = @"D:\Elsewhere",
-                    AskBeforeReplacing = false,
                     RightClickContextMenus = false,
                     UseEnvironmentVariables = true,
                     Theme = ThemePreference.Dark,
@@ -444,14 +439,11 @@ namespace keycuts.Tests
             var saved = Assert.Single(store.Saves);
             var defaults = Settings.Defaults();
             Assert.Empty(store.FolderSaves);
-            Assert.Equal(defaults.AskBeforeReplacing, saved.AskBeforeReplacing);
-            Assert.True(saved.AskBeforeReplacing);
             Assert.True(saved.RightClickContextMenus);
             Assert.False(saved.UseEnvironmentVariables);
             Assert.Equal(ThemePreference.System, saved.Theme);
             Assert.True(saved.CheckForUpdates);
 
-            Assert.True(vm.AskBeforeReplacing);
             Assert.True(vm.RightClickContextMenus);
             Assert.False(vm.UseEnvironmentVariables);
             Assert.Equal(ThemePreference.System, vm.Theme);
@@ -480,7 +472,6 @@ namespace keycuts.Tests
 
             Assert.Equal(1, asked);
             Assert.Empty(store.Saves);
-            Assert.False(vm.AskBeforeReplacing);
             Assert.Equal(ThemePreference.Dark, vm.Theme);
         }
 
@@ -493,7 +484,6 @@ namespace keycuts.Tests
 
             vm.RestoreDefaultsCommand.Execute(null);
 
-            Assert.Contains(nameof(SettingsViewModel.AskBeforeReplacing), changed);
             Assert.Contains(nameof(SettingsViewModel.RightClickContextMenus), changed);
             Assert.Contains(nameof(SettingsViewModel.UseEnvironmentVariables), changed);
             Assert.Contains(nameof(SettingsViewModel.CheckForUpdates), changed);
@@ -505,7 +495,6 @@ namespace keycuts.Tests
         {
             var defaults = Settings.Defaults();
 
-            Assert.Equal(Runner.DefaultAskBeforeReplacing, defaults.AskBeforeReplacing);
             Assert.True(defaults.RightClickContextMenus);
             Assert.False(defaults.UseEnvironmentVariables);
             Assert.Equal(ThemePreference.System, defaults.Theme);
@@ -632,7 +621,7 @@ namespace keycuts.Tests
             vm.OutputFolder = @"relative\folder";
             Assert.False(vm.CommitOutputFolder());
 
-            vm.AskBeforeReplacing = true;
+            vm.CheckForUpdates = false;
 
             Assert.Single(store.Saves);
             Assert.Empty(store.FolderSaves);
@@ -672,10 +661,10 @@ namespace keycuts.Tests
             var changed = new List<string?>();
             vm.PropertyChanged += (sender, e) => changed.Add(e.PropertyName);
 
-            vm.AskBeforeReplacing = !vm.AskBeforeReplacing;
+            vm.CheckForUpdates = !vm.CheckForUpdates;
             vm.RightClickContextMenus = !vm.RightClickContextMenus;
 
-            Assert.Equal(new[] { nameof(SettingsViewModel.AskBeforeReplacing), nameof(SettingsViewModel.RightClickContextMenus) }, changed);
+            Assert.Equal(new[] { nameof(SettingsViewModel.CheckForUpdates), nameof(SettingsViewModel.RightClickContextMenus) }, changed);
         }
 
         #endregion

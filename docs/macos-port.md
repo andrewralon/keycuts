@@ -226,10 +226,11 @@ One shortcut, "Run keycut", with "Show in Spotlight" and "Receive input from Spo
 
 ## Still open
 
-*As of 2026-11-24. Nothing here blocks a release.*
+*As of 2026-11-25. Nothing here blocks a release.*
 
 **Tracked in GitHub**
-- **#318**: the README's Windows Settings screenshots are stale (the old separate Output section; no Run Box or Open at login rows). Run `pwsh -File tools/New-Screenshots.ps1` on a Windows PC and commit only what visibly changed. The macOS half is done.
+- **#348**: check the torn corner on a Windows 11 machine (no ghost square outline or shadow around the cut-away corner; the window still has its rounded Windows 11 look elsewhere; the disabled Maximize button opens no snap layouts flyout, Plan correction 12). The fix for the outline (`FrameGlass`, #349) was verified on Windows 10 only. Also unchecked: the same corner in high contrast, which keeps the plain rectangle and the system border.
+- **Settings screenshots on macOS**: `settings-*-mac.png` still show the "Ask before replacing a keycut" row, which is gone from both systems (#347). Run `tools/New-Screenshots.ps1` on a Mac and commit them. (#318, the stale Windows screenshots, is closed; the Windows PNGs were regenerated for #347 too.)
 - **#330**: research a better way to ship the Spotlight shortcut than a hand-signed file (the workflow signed into iCloud, an iCloud share link, or the app walking the user through it). Until then, **re-sign `installer/macos/Run keycut.shortcut` before every release** (CLAUDE.md, release prep); its certificate ends 2027-12-22. Untested: whether Shortcuts refuses an import after the certificate's end, and Spotlight runs after sleep or in large numbers.
 - **#295**: the macOS traffic lights are 12×14 against 16×16 in other apps. Re-stamping the launcher's SDK and resizing the buttons both failed; marked for an Opus attempt, with a newer-SDK launcher only as a last resort.
 

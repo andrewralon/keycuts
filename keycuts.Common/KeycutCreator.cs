@@ -21,8 +21,8 @@ namespace keycuts.Common
     public class CreateOptions
     {
         /// <summary>
-        /// Overwrite an existing keycut with the same name. Null follows the Settings toggle "Ask before replacing a keycut":
-        /// replace when it's off, refuse (<see cref="CreateOutcome.DuplicateName"/>) when it's on, so the caller can ask.
+        /// Overwrite an existing keycut with the same name. Null refuses (<see cref="CreateOutcome.DuplicateName"/>), so the caller
+        /// can ask: the app always asks before replacing a keycut. (The command line has its own stored setting and -f.)
         /// </summary>
         public bool? Overwrite { get; set; }
 
@@ -141,7 +141,7 @@ namespace keycuts.Common
 
                 var runner = new Runner();
                 var outputFolder = string.IsNullOrWhiteSpace(options.OutputFolder) ? runner.GetOutputFolder() : options.OutputFolder;
-                var overwrite = options.Overwrite ?? !runner.GetAskBeforeReplacing();
+                var overwrite = options.Overwrite ?? false;
 
                 if (string.IsNullOrWhiteSpace(outputFolder) || outputFolder.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
                 {

@@ -354,7 +354,7 @@ namespace keycuts.Tests
             }
         }
 
-        // Mockup macos-settings-v3: one Behavior section on the left (the output folder, Run Box, Open at login, Ask before replacing,
+        // Mockup macos-settings-v3: one Behavior section on the left (the output folder, Run Box, Open at login,
         // the Quick Action, $HOME, Terminal last); Appearance and Updates on the right; no Output heading
         [AvaloniaFact]
         public void Settings_OnTheMac_FollowsTheV3Mockup()
@@ -374,7 +374,7 @@ namespace keycuts.Tests
 
             var left = Named<StackPanel>(window, "LeftColumn");
             var order = left.Children.Select(c => c.Name).Where(n => n != null).ToList();
-            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow", "TerminalPathRow" }, order.Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray());
+            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "TerminalPathRow" }, order.Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "TerminalPathRow").ToArray());
             Assert.Equal("TerminalPathRow", order.Last());
             Assert.Equal("Run Box", window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "Run Box").Text);
 
@@ -397,10 +397,10 @@ namespace keycuts.Tests
             Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows rows");
             var window = Host(new SettingsView(), new SettingsViewModel(new FakeStore()) { LoginItem = new StillLoginItem(), RunBoxShortcut = new StillShortcut() }, 768, 470);
 
-            // Output folder, Run Box, Open at login, then Ask before replacing; no Terminal row
+            // Output folder, Run Box, Open at login; no Terminal row
             var left = Named<StackPanel>(window, "LeftColumn");
-            var order = left.Children.Where(c => c.IsVisible).Select(c => c.Name).Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "AskBeforeReplacingRow" or "TerminalPathRow").ToArray();
-            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow", "AskBeforeReplacingRow" }, order);
+            var order = left.Children.Where(c => c.IsVisible).Select(c => c.Name).Where(n => n is "RunBoxSection" or "OpenAtLoginRow" or "TerminalPathRow").ToArray();
+            Assert.Equal(new[] { "RunBoxSection", "OpenAtLoginRow" }, order);
             Assert.Equal("keycuts waits in the system tray.", SettingsViewModel.OpenAtLoginNote);
             Assert.Equal("Affects the taskbar, Alt+Tab, and shortcuts.", PlatformText.TransparentIconNote);
 

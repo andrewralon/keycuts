@@ -248,11 +248,6 @@ namespace keycuts.Common
             Backend.WriteString(OutputFolderKeyName, path);
         }
 
-        public static void SetAskBeforeReplacing(bool askBeforeReplacing)
-        {
-            Backend.WriteDword(AskBeforeReplacingKeyName, askBeforeReplacing ? 1 : 0);
-        }
-
         public static void SetThemePreference(ThemePreference preference)
         {
             Backend.WriteString(ThemeKeyName, preference.ToString());

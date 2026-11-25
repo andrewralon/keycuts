@@ -21,6 +21,8 @@ namespace keycuts.GUI
         // The size the Manager and Settings share, once the window has left it for the Creator
         private Size? largeSize;
 
+        private FrameGlass frameGlass = null!;
+
         private bool syncingTabs;
 
         private ShellMode shownMode;
@@ -47,6 +49,8 @@ namespace keycuts.GUI
             NoMaximizeHook.Attach(this);
             // Turning resizable (the Manager, Settings) or back (the Creator) never moves the window as seen
             FrameAnchor.Attach(this);
+            // The system's border and shadow are rectangles; with the torn corner they would outline what is cut away
+            frameGlass = FrameGlass.Attach(this);
             KeyDown += Main_KeyDown;
 
             if (OperatingSystem.IsMacOS())
@@ -273,6 +277,7 @@ namespace keycuts.GUI
             var torn = ShowsTear(ThemeManager.Current);
             Frame.Clip = torn ? TornCornerShape.Default.GetWindowClip(Frame.Bounds.Size) : null;
             Tear.IsVisible = torn;
+            frameGlass.SetBare(this, torn);
         }
 
         /// <summary>The Manager and Settings share the large size; the Creator has the small one.</summary>
@@ -298,12 +303,6 @@ namespace keycuts.GUI
         // From the Creator to the Manager or Settings: the large size, as it was last left (by either), kept on the screen
         private void ShowLargeSize()
         {
-            SizeToContent = SizeToContent.Manual;
-            CanResize = true;
-            Tear.IsResizeGrip = true;
-            MinWidth = WindowLayout.ManagerMinWidth;
-            MinHeight = WindowLayout.ManagerMinHeight;
-
             var size = largeSize ?? new Size(WindowLayout.ManagerDefaultWidth, WindowLayout.ManagerDefaultHeight);
             var scale = DesktopScaling;
             var left = Position.X / scale;
@@ -314,7 +313,19 @@ namespace keycuts.GUI
                 bounds = WindowLayout.ClampToWorkArea(bounds, workArea);
             }
 
-            Position = new PixelPoint((int)Math.Round(bounds.Left * scale), (int)Math.Round(bounds.Top * scale));
+            // Moved before the window turns resizable, and only when the screen asks for it: after that, FrameAnchor puts the first
+            // move or resize where the window is seen, and a move of our own in between would show as a shake (7 px, for a frame)
+            var position = new PixelPoint((int)Math.Round(bounds.Left * scale), (int)Math.Round(bounds.Top * scale));
+            if (position != Position)
+            {
+                Position = position;
+            }
+
+            SizeToContent = SizeToContent.Manual;
+            CanResize = true;
+            Tear.IsResizeGrip = true;
+            MinWidth = WindowLayout.ManagerMinWidth;
+            MinHeight = WindowLayout.ManagerMinHeight;
             Width = bounds.Width;
             Height = bounds.Height;
         }

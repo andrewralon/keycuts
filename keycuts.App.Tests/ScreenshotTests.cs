@@ -91,7 +91,6 @@ namespace keycuts.Tests
                 return new Settings
                 {
                     OutputFolder = SampleFolder,
-                    AskBeforeReplacing = true,
                     RightClickContextMenus = true,
                     UseEnvironmentVariables = true,
                     CheckForUpdates = true
@@ -141,7 +140,7 @@ namespace keycuts.Tests
                 new SampleStore(),
                 directoryExists: _ => true,
                 updates: updates,
-                shellPath: OperatingSystem.IsMacOS() ? new MacShellPath(home, "/bin/zsh", "/usr/bin:/bin", Array.Empty<string>()) : null)
+                shellPath: OperatingSystem.IsMacOS() ? new MacShellPath(home, "/bin/zsh", "/usr/bin:/bin", Array.Empty<(string Folder, string File)>()) : null)
             {
                 ShowVersionRow = false,
                 RunBoxShortcut = new SampleRunBoxShortcut(),

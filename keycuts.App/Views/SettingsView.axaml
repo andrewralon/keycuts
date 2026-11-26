@@ -138,14 +138,6 @@
                           AutomationProperties.HelpText="{Binding OpenAtLoginText}" />
           </Grid>
 
-          <!-- No visible note: the toggle's help text tells a screen reader what it does -->
-          <Grid x:Name="AskBeforeReplacingRow" Classes="SettingRow" ColumnDefinitions="*,Auto">
-            <TextBlock Text="Ask before replacing a keycut" Classes="SettingName" VerticalAlignment="Center" />
-            <ToggleButton x:Name="ToggleAskBeforeReplacing" Grid.Column="1" Theme="{StaticResource ToggleSwitch}" Margin="16,0,0,0"
-                          VerticalAlignment="Center" IsChecked="{Binding AskBeforeReplacing}"
-                          AutomationProperties.Name="Ask before replacing a keycut"
-                          AutomationProperties.HelpText="Confirm before a new keycut replaces one with the same name." />
-          </Grid>
           <Grid Classes="SettingRow" ColumnDefinitions="*,Auto">
             <StackPanel>
               <TextBlock Text="{x:Static gui:PlatformText.RightClickName}" Classes="SettingName" />

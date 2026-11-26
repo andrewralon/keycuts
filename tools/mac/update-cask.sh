@@ -30,7 +30,7 @@ cask "keycuts" do
   desc "Open anything by nickname: from Terminal, or from the Run box"
   homepage "https://github.com/andrewralon/keycuts"
 
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   pkg "keycuts-setup-#{arch}.pkg"
 

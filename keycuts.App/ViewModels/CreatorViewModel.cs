@@ -1072,8 +1072,7 @@ namespace keycuts.GUI.ViewModels
             }
 #endif
             // The variables the preview used, so the keycut is saved as shown; null (not read yet) makes the create read them
-            // Overwrite only after a confirmed replace; otherwise the setting decides (null): with "Ask before replacing a
-            // keycut" off a keycut is replaced without asking, and with it on one that appeared since the check is refused
+            // Overwrite only after a confirmed replace; otherwise (null) a keycut that appeared since the check is refused
             var options = new CreateOptions
             {
                 Description = description,
@@ -1087,9 +1086,8 @@ namespace keycuts.GUI.ViewModels
 
         private static NameCheck DefaultCheckName(string name)
         {
-            // With "Ask before replacing a keycut" off, an existing keycut is replaced without asking, so it isn't a warning
-            var runner = new Runner();
-            return NameCheck.Run(name, runner.GetOutputFolder(), runner.GetAskBeforeReplacing(), NameConflictEnvironment.GetDefault());
+            // An existing keycut with the name always counts, so replacing it always asks
+            return NameCheck.Run(name, new Runner().GetOutputFolder(), true, NameConflictEnvironment.GetDefault());
         }
 
         private void RaiseStateChanged()

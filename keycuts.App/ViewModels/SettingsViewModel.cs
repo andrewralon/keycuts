@@ -101,7 +101,6 @@ namespace keycuts.GUI.ViewModels
 
         private string? saveError;
 
-        private bool askBeforeReplacing;
 
         private bool rightClickContextMenus;
 
@@ -174,7 +173,6 @@ namespace keycuts.GUI.ViewModels
             var loaded = store.Load();
             outputFolder = loaded.OutputFolder ?? string.Empty;
             committedFolder = outputFolder;
-            askBeforeReplacing = loaded.AskBeforeReplacing;
             rightClickContextMenus = loaded.RightClickContextMenus;
             useEnvironmentVariables = loaded.UseEnvironmentVariables;
             theme = loaded.Theme;
@@ -289,19 +287,6 @@ namespace keycuts.GUI.ViewModels
         public bool HasSaveError
         {
             get { return saveError != null; }
-        }
-
-        /// <summary>Confirm before a new keycut replaces one with the same name (#153). Name conflicts always warn.</summary>
-        public bool AskBeforeReplacing
-        {
-            get { return askBeforeReplacing; }
-            set
-            {
-                if (SetProperty(ref askBeforeReplacing, value))
-                {
-                    Store();
-                }
-            }
         }
 
         public bool RightClickContextMenus
@@ -625,7 +610,6 @@ namespace keycuts.GUI.ViewModels
         {
             var settings = new Settings
             {
-                AskBeforeReplacing = askBeforeReplacing,
                 RightClickContextMenus = rightClickContextMenus,
                 UseEnvironmentVariables = useEnvironmentVariables,
                 Theme = theme,
@@ -648,14 +632,12 @@ namespace keycuts.GUI.ViewModels
             }
 
             var defaults = Settings.Defaults();
-            askBeforeReplacing = defaults.AskBeforeReplacing;
             rightClickContextMenus = defaults.RightClickContextMenus;
             useEnvironmentVariables = defaults.UseEnvironmentVariables;
             checkForUpdates = defaults.CheckForUpdates;
             var themeChanged = theme != defaults.Theme;
             theme = defaults.Theme;
 
-            OnPropertyChanged(nameof(AskBeforeReplacing));
             OnPropertyChanged(nameof(RightClickContextMenus));
             OnPropertyChanged(nameof(UseEnvironmentVariables));
             OnPropertyChanged(nameof(CheckForUpdates));

@@ -23,7 +23,9 @@ namespace keycuts.Tests
             Assert.Null(second);
         }
 
-        [Fact]
+        // Windows only (issue #339): elsewhere a named pipe is a Unix socket, where a send made while the last message is still
+        // handled queues on the socket that is about to close, and is lost. A Windows pipe makes the sender wait instead.
+        [WindowsFact]
         public void ASecondStart_HandsItsArgumentsToTheFirst()
         {
             var name = NewName();

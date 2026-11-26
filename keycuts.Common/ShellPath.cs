@@ -32,7 +32,7 @@ namespace keycuts.Common
                     var status = shell.Status(folder);
                     output.WriteLine(status switch
                     {
-                        ShellPathStatus.OnPath => $"{folder} is on PATH, so Terminal runs your keycuts by name.",
+                        ShellPathStatus.OnPath => $"{folder} is on PATH, so Terminal runs your keycuts by name. {Origin(shell.Sources(folder))}",
                         ShellPathStatus.InProfile => $"{folder} is in {profile}. Open a new Terminal window to run your keycuts by name.",
                         _ => profile != null
                             ? $"{folder} isn't on PATH. 'keycuts path add' adds it to {profile}, so Terminal runs your keycuts by name."
@@ -73,6 +73,13 @@ namespace keycuts.Common
                     return ExitCode.BadArguments;
             }
         }
+
+        private static string Origin(IReadOnlyList<string> sources)
+        {
+            return sources.Count > 0
+                ? $"It comes from {string.Join(" and ", sources)}."
+                : "It comes from this shell's environment, not from /etc/paths or a keycuts block.";
+        }
     }
 
     /// <summary>
@@ -91,19 +98,19 @@ namespace keycuts.Common
         /// <param name="home">The home folder.</param>
         /// <param name="shell">The login shell, as <c>$SHELL</c> gives it (<c>/bin/zsh</c>); empty reads as zsh, the macOS default.</param>
         /// <param name="processPath">This process's PATH.</param>
-        /// <param name="systemPaths">The entries of <c>/etc/paths</c> and <c>/etc/paths.d</c>.</param>
-        public MacShellPath(string home, string shell, string processPath, IEnumerable<string> systemPaths)
+        /// <param name="systemPaths">The entries of <c>/etc/paths</c> and <c>/etc/paths.d</c>, each with the file that lists it.</param>
+        public MacShellPath(string home, string shell, string processPath, IEnumerable<(string Folder, string File)> systemPaths)
         {
             Home = home.TrimEnd('/');
             Shell = string.IsNullOrWhiteSpace(shell) ? "zsh" : Path.GetFileName(shell.TrimEnd('/'));
             ProcessPath = processPath ?? "";
-            SystemPaths = systemPaths?.ToList() ?? new List<string>();
+            SystemPaths = systemPaths?.ToList() ?? new List<(string Folder, string File)>();
         }
 
         /// <summary>This user and this Mac. Reads only the environment and <c>/etc/paths</c>.</summary>
         public static MacShellPath CreateDefault()
         {
-            var system = new List<string>();
+            var system = new List<(string Folder, string File)>();
 
             try
             {
@@ -111,7 +118,7 @@ namespace keycuts.Common
                 {
                     if (File.Exists(file))
                     {
-                        system.AddRange(File.ReadAllLines(file).Select(line => line.Trim()).Where(line => line.Length > 0));
+                        system.AddRange(File.ReadAllLines(file).Select(line => line.Trim()).Where(line => line.Length > 0).Select(line => (line, file)));
                     }
                 }
             }
@@ -131,7 +138,7 @@ namespace keycuts.Common
 
         public string ProcessPath { get; }
 
-        public IReadOnlyList<string> SystemPaths { get; }
+        public IReadOnlyList<(string Folder, string File)> SystemPaths { get; }
 
         /// <summary>The file keycuts edits for this shell, or null when it only gives <see cref="Instructions"/>.</summary>
         public string ProfilePath => Shell switch
@@ -143,12 +150,33 @@ namespace keycuts.Common
 
         public ShellPathStatus Status(string folder)
         {
-            if (ProcessPath.Split(':').Concat(SystemPaths).Any(entry => IsSameFolder(entry, folder)))
+            if (ProcessPath.Split(':').Concat(SystemPaths.Select(path => path.Folder)).Any(entry => IsSameFolder(entry, folder)))
             {
                 return ShellPathStatus.OnPath;
             }
 
-            return ReadBlockFolder() is string inProfile && IsSameFolder(inProfile, folder) ? ShellPathStatus.InProfile : ShellPathStatus.NotOnPath;
+            return IsInBlock(folder) ? ShellPathStatus.InProfile : ShellPathStatus.NotOnPath;
+        }
+
+        /// <summary>
+        /// What puts <paramref name="folder"/> on PATH, as far as keycuts can tell: each system file that lists it, then the
+        /// keycuts block that names it. Empty when neither does (another startup file, or only this process's environment).
+        /// </summary>
+        public IReadOnlyList<string> Sources(string folder)
+        {
+            var sources = SystemPaths.Where(path => IsSameFolder(path.Folder, folder)).Select(path => path.File).Distinct().ToList();
+
+            if (IsInBlock(folder))
+            {
+                sources.Add("the keycuts block in ~/" + Path.GetFileName(ProfilePath));
+            }
+
+            return sources;
+        }
+
+        private bool IsInBlock(string folder)
+        {
+            return ReadBlockFolder() is string inProfile && IsSameFolder(inProfile, folder);
         }
 
         /// <summary>What to add by hand, for a shell keycuts doesn't edit the profile of; null for zsh and bash.</summary>

@@ -215,14 +215,6 @@ namespace keycuts.Common
             return outputFolder;
         }
 
-        public void SetAskBeforeReplacing(bool askBeforeReplacing)
-        {
-            if (GetAskBeforeReplacing() != askBeforeReplacing)
-            {
-                RegistryStuff.SetAskBeforeReplacing(askBeforeReplacing);
-            }
-        }
-
         public void SetThemePreference(ThemePreference preference)
         {
             if (RegistryStuff.GetThemePreference() != preference)

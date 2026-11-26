@@ -26,7 +26,7 @@ Most of what's left is in two places: the moment a keycut runs, and the edges of
 4. A description field and an Edit form (#162, #180).
 5. Arguments and URL templates (#172, #181).
 6. winget (#182).
-7. A license, which unblocks free signing (#169).
+7. ~~A license, which unblocks free signing (#169).~~ Decided against on 2026-11-25; see item 10 below.
 
 The first four make the existing workflow feel finished. The last three are what would make the app worth recommending to other people.
 
@@ -178,6 +178,8 @@ Issues: #169 (license), #118 (signing)
 
 SmartScreen's warning on an unsigned MSI is the first thing a new user sees (#118). SignPath Foundation is free but needs an OSI license, and the repo has none yet. Adding a license is cheap, worth doing for an open-source project anyway, and unblocks free signing.
 
+Decided (#169, 2026-11-25): no open-source license, so SignPath is out and signing (#118) is on hold. The Microsoft Store would sign an MSIX for free (#210). #352 covers the copyright notice, terms and third-party notices.
+
 #### 11. README fixes
 
 Issue: #170
@@ -295,7 +297,7 @@ A group is a keycut whose only job is to open other keycuts at the same time. `c
 Issues: #175 (Command Palette), #176 (Windows 11 menu)
 
 - A PowerToys Command Palette or Run extension that lists keycuts with fuzzy search.
-- The Windows 11 top-level context-menu entry, which needs a packaged `IExplorerCommand` handler (see `CLAUDE.md`). Sparse packages must be signed, so it depends on #118.
+- The Windows 11 top-level context-menu entry, which needs a packaged `IExplorerCommand` handler (see `CLAUDE.md`). Sparse packages must be signed, so it depends on #118 (on hold).
 
 ### 8. Quick create from anywhere (tradeoff)
 
